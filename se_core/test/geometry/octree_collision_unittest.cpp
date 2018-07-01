@@ -33,6 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "geometry/aabb_collision.hpp"
 #include "utils/morton_utils.hpp"
 #include "octree.hpp"
+#include "octant_ops.hpp"
+#include "node_iterator.hpp"
 #include "functors/axis_aligned_functor.hpp"
 #include "gtest/gtest.h"
 
@@ -76,13 +78,12 @@ class OctreeCollisionTest : public ::testing::Test {
 
 TEST_F(OctreeCollisionTest, TotallyUnseen) {
 
-  se::leaf_iterator<testT> it(oct_);
-  typedef std::tuple<Eigen::Vector3i, int, typename se::Octree<testT>::value_type> it_result;
-  it_result node = it.next();
-  for(int i = 256; std::get<1>(node) > 0; node = it.next(), i /= 2){
-    const Eigen::Vector3i coords = std::get<0>(node);
-    const int side = std::get<1>(node);
-    const se::Octree<testT>::value_type val = std::get<2>(node);
+  se::node_iterator<testT> it(oct_);
+  se::Node<testT> * node = it.next();
+  for(int i = 256; node != nullptr ; node = it.next(), i /= 2){
+    const Eigen::Vector3i coords = se::keyops::decode(node->code_);
+    const int side = node->side_;
+    const se::Octree<testT>::value_type val = (node->value_[0]);
     printf("se::Node's coordinates: (%d, %d, %d), side %d, value %.2f\n", 
         coords(0), coords(1), coords(2), side, val);
     EXPECT_EQ(side, i);

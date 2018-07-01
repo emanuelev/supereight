@@ -29,6 +29,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "octree.hpp"
+#include "octant_ops.hpp"
+#include "node_iterator.hpp"
 #include "utils/se_common.h"
 #include "gtest/gtest.h"
 #include <random>
@@ -92,14 +94,12 @@ TEST_F(MultiscaleTest, Iterator) {
   alloc_list[0] = oct_.hash(blocks[0](0), blocks[0](1), blocks[0](2));
 
   oct_.allocate(alloc_list, 1);
-  se::leaf_iterator<testT> it(oct_);
-
-  typedef std::tuple<Eigen::Vector3i, int, typename se::Octree<testT>::value_type> it_result;
-  it_result node = it.next();
-  for(int i = 512; std::get<1>(node) > 0; node = it.next(), i /= 2){
-    const Eigen::Vector3i coords = std::get<0>(node);
-    const int side = std::get<1>(node);
-    const se::Octree<testT>::value_type val = std::get<2>(node);
+  se::node_iterator<testT> it(oct_);
+  se::Node<testT> * node = it.next();
+  for(int i = 512; node != nullptr; node = it.next(), i /= 2){
+    const Eigen::Vector3i coords = se::keyops::decode(node->code_);
+    const int side = node->side_;
+    const se::Octree<testT>::value_type val = node->value_[0];
     EXPECT_EQ(side, i);
   }
 }

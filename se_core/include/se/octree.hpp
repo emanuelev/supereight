@@ -83,7 +83,7 @@ template <typename T>
 class ray_iterator;
 
 template <typename T>
-class leaf_iterator;
+class node_iterator;
 
 template <typename T>
 class Octree
@@ -245,7 +245,7 @@ private:
   MemoryPool<Node<T> > nodes_buffer_;
 
   friend class ray_iterator<T>;
-  friend class leaf_iterator<T>;
+  friend class node_iterator<T>;
 
   // Allocation specific variables
   key_t* keys_at_level_;
@@ -837,6 +837,7 @@ bool Octree<T>::allocate_level(key_t* keys, int num_tasks, int target_level){
       if(!(*n)){
         if(level == leaves_level){
           *n = block_buffer_.acquire_block();
+          (*n)->side_ = edge;
           static_cast<VoxelBlock<T> *>(*n)->coordinates(Eigen::Vector3i(unpack_morton(myKey)));
           static_cast<VoxelBlock<T> *>(*n)->active(true);
           static_cast<VoxelBlock<T> *>(*n)->code_ = myKey | level;
@@ -948,58 +949,6 @@ void Octree<T>::load(const std::string& filename) {
     }
   }
 }
-
-template <typename T>
-class leaf_iterator {
-
-  public:
-
-  leaf_iterator(const Octree<T>& m): map_(m){
-    state_ = BRANCH_NODES;
-    last = 0;
-  };
-
-  std::tuple<Eigen::Vector3i, int, typename Octree<T>::value_type> next() {
-    switch(state_) {
-      case BRANCH_NODES:
-        if(last < map_.nodes_buffer_.size()) {
-          Node<T>* n = map_.nodes_buffer_[last++];
-          return std::make_tuple(unpack_morton(n->code_), 
-                                 n->side_, n->value_[0]);
-        } else {
-          last = 0;
-          state_ = LEAF_NODES; 
-          return next();
-        }
-        break;
-      case LEAF_NODES:
-        if(last < map_.block_buffer_.size()) {
-          VoxelBlock<T>* n = map_.block_buffer_[last++];
-          return std::make_tuple(unpack_morton(n->code_), 
-              int(VoxelBlock<T>::side), n->value_[0]);
-              /* the above int init required due to odr-use of static member */
-        } else {
-          last = 0;
-          state_ = FINISHED; 
-          return std::make_tuple(Eigen::Vector3i::Constant(-1), 
-              -1, Octree<T>::traits_type::empty());
-        }
-        break;
-      case FINISHED:
-          break;
-    }
-  }
-
-  private:
-  typedef enum ITER_STATE {
-    BRANCH_NODES,
-    LEAF_NODES,
-    FINISHED
-  } ITER_STATE;
-
-  const Octree<T>& map_;
-  ITER_STATE state_;
-  size_t last;
-};
+;
 }
 #endif // OCTREE_H
