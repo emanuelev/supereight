@@ -1,0 +1,17 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>images/clear24.png</file>
+        <file>images/rotccw24.png</file>
+        <file>images/rotcw24.png</file>
+        <file>images/rotu24.png</file>
+        <file>images/rotd24.png</file>
+        <file>images/pause.png</file>
+        <file>images/play.png</file>
+        <file>images/step.png</file>
+        <file>images/restart.png</file>
+        <file>images/camera.png</file>
+        <file>images/tripod.png</file>
+        <file>images/live.png</file>
+        <file>images/film.png</file>
+    </qresource>
+</RCC>

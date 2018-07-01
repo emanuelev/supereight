@@ -1,0 +1,67 @@
+#!/bin/sh
+# Copyright (c) 2014 University of Edinburgh, Imperial College, University of Manchester.
+# Developed in the PAMELA project, EPSRC Programme Grant EP/K008730/1
+#
+# This code is licensed under the MIT License.
+
+# the next line restarts using tclsh \
+exec tclsh "$0" ${1+"$@"}
+
+if { $argc < 1 } {
+	puts "[lindex argv 0]  <filename> "
+	exit
+}
+
+#puts $heading
+#puts $files
+    set file [lindex $argv 0] 
+foreach file $argv {
+    set fp [ open $file]
+    set pos -1
+   puts "$file"    
+  if { [gets $fp line] >=0 } {
+	set keys [split  [regexp -inline -all -- {\S+} $line] " " ]            
+        set time [ lsearch $keys "Sample_time" ]
+        set i 0
+
+        foreach key $keys {
+            set total($i) 0
+            incr i
+        }
+   }
+    
+    
+
+    while { [gets $fp line] >=0 } {
+	if { [string range $line 0 0] != "#" } {   
+     		set words [split  [regexp -inline -all -- {\S+} $line] " " ]            
+        	set i 0
+        	set delay [lindex $words $time] 
+        	foreach col $words {
+        	    	if {  $i == $time } { 
+               			set total($i) [expr $total($i) + $col]
+            		} else {
+               		 	set total($i) [expr $total($i) + [expr $col * $delay] ]
+            		}
+                	incr i
+        	}
+	}        
+    }
+    
+    close $fp
+    set i 0;
+    set totalEnergy 0;
+    
+    foreach key $keys {
+	if { [string compare $key "Sample_time"] != 0 } {
+	        puts  "${file}: $key\tTotal energy: $total($i) Average Power: [expr $total($i) /  $total($time)]"
+		set totalEnergy [expr $totalEnergy + $total($i)]
+	}
+        incr i 
+    }
+    puts "${file}: System Total energy: $totalEnergy    Average Power: [expr ${totalEnergy}/$total($time)]"
+}
+
+
+
+
