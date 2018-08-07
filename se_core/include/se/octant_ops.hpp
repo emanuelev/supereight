@@ -77,12 +77,9 @@ inline Eigen::Vector3i face_neighbour(const se::key_t o,
  * \param octant 
  * \param ancestor 
  */
-inline bool descendant(se::key_t octant, 
-    se::key_t ancestor, const int max_depth) {
-  const int level = se::keyops::level(ancestor);
-  const int idx = MAX_BITS - max_depth - 1 + level;
-  octant = octant & MASK[idx];
+inline bool descendant(se::key_t octant, se::key_t ancestor) {
   ancestor = se::keyops::code(ancestor);
+  octant = ancestor & se::keyops::code(octant);
   return (ancestor ^ octant) == 0;
 }
 

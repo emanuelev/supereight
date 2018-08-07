@@ -58,10 +58,10 @@ TEST(Octree, OctantDescendant) {
     se::keyops::encode(octant(0), octant(1), octant(2), 5, max_depth);
   se::key_t ancestor = 
     se::keyops::encode(96, 64, 128, 3, max_depth);
-  ASSERT_EQ(true , descendant(code, ancestor, max_depth)); 
+  ASSERT_EQ(true , descendant(code, ancestor)); 
 
   ancestor = se::keyops::encode(128, 64, 64, 3, max_depth);
-  ASSERT_FALSE(descendant(code, ancestor, max_depth)); 
+  ASSERT_FALSE(descendant(code, ancestor)); 
 }
 
 TEST(Octree, OctantParent) {
