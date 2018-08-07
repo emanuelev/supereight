@@ -32,7 +32,7 @@ set(common_libraries lodepng)
 # ----------------- OFUsion -----------------
 set(field_type SE_FIELD_TYPE=OFusion)
 
-add_library(${appname}-ofusion STATIC ../../se_denseslam/src/DenseSLAMSystem.cpp)
+add_library(${appname}-ofusion STATIC ./src/DenseSLAMSystem.cpp)
 if(WITH_OPENMP AND OPENMP_FOUND)
   target_compile_options(${appname}-ofusion PRIVATE ${OpenMP_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unknown-pragmas)
   target_compile_definitions(${appname}-ofusion PRIVATE ${field_type})
@@ -48,7 +48,7 @@ list(APPEND BUILT_LIBS ${appname}-ofusion)
 # ----------------- SDF -----------------
 set(field_type SE_FIELD_TYPE=SDF)
 
-add_library(${appname}-sdf  ../../se_denseslam/src/DenseSLAMSystem.cpp)
+add_library(${appname}-sdf  ./src/DenseSLAMSystem.cpp)
 if(WITH_OPENMP AND OPENMP_FOUND)
   target_compile_options(${appname}-sdf PRIVATE ${OpenMP_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unknown-pragmas)
   target_compile_definitions(${appname}-sdf PRIVATE ${field_type})
