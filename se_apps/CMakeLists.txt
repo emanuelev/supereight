@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 
 project(se-apps)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
+
 if(APPLE)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__APPLE__")
 endif(APPLE)
