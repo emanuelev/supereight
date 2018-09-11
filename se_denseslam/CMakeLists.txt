@@ -20,26 +20,22 @@ set(appname ${PROJECT_NAME})
 
 
 # ---- PREPARE COMMON DEPENDENCIES  ------------ 
+set(compile_flags  -Wall -Wextra -Wno-unknown-pragmas)
+set(libraries lodepng se_shared se_core)
 
-include_directories(./include ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} 
-  ${SOPHUS_INCLUDE_DIR} ../se_shared ../se_tools ./include
-  ../se_core/include/ ../utils)
-set(common_compile_flags "")
-set(common_libraries lodepng)
-
+if (WITH_OPENMP AND OPENMP_FOUND)
+    list(APPEND compile_flags ${OpenMP_CXX_FLAGS})
+    list(APPEND libraries ${OpenMP_CXX_FLAGS})
+endif()
 # ----------------- OFUsion -----------------
 set(field_type SE_FIELD_TYPE=OFusion)
 
 add_library(${appname}-ofusion STATIC ./src/DenseSLAMSystem.cpp)
-if(WITH_OPENMP AND OPENMP_FOUND)
-  target_compile_options(${appname}-ofusion PRIVATE ${OpenMP_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unknown-pragmas)
-  target_compile_definitions(${appname}-ofusion PRIVATE ${field_type})
-  target_link_libraries(${appname}-ofusion   ${common_libraries})	
-else()
-  target_compile_options(${appname}-ofusion PRIVATE -Wall -Wextra -Werror -Wno-unknown-pragmas)
-  target_compile_definitions(${appname}-ofusion PRIVATE ${field_type})
-  target_link_libraries(${appname}-ofusion   ${common_libraries})	
-endif()
+target_include_directories(${appname}-ofusion PUBLIC include
+    ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
+target_compile_options(${appname}-ofusion PUBLIC ${compile_flags})
+target_link_libraries(${appname}-ofusion ${libraries})
+target_compile_definitions(${appname}-ofusion PUBLIC ${field_type})
 
 list(APPEND BUILT_LIBS ${appname}-ofusion)
 
@@ -47,15 +43,11 @@ list(APPEND BUILT_LIBS ${appname}-ofusion)
 set(field_type SE_FIELD_TYPE=SDF)
 
 add_library(${appname}-sdf  ./src/DenseSLAMSystem.cpp)
-if(WITH_OPENMP AND OPENMP_FOUND)
-  target_compile_options(${appname}-sdf PRIVATE ${OpenMP_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unknown-pragmas)
-  target_compile_definitions(${appname}-sdf PRIVATE ${field_type})
-  target_link_libraries(${appname}-sdf ${OpenMP_CXX_FLAGS} ${common_libraries})	
-else()
-  target_compile_options(${appname}-sdf PRIVATE -Wall -Wextra -Werror -Wno-unknown-pragmas)
-  target_compile_definitions(${appname}-sdf PRIVATE ${field_type})
-  target_link_libraries(${appname}-sdf   ${common_libraries})	
-endif()
+target_include_directories(${appname}-sdf PUBLIC include
+    ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
+target_compile_options(${appname}-ofusion PUBLIC ${compile_flags})
+target_link_libraries(${appname}-sdf ${libraries})
+target_compile_definitions(${appname}-sdf PUBLIC ${field_type})
 
 list(APPEND BUILT_LIBS ${appname}-sdf)
 
