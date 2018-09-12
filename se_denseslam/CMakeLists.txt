@@ -23,6 +23,14 @@ set(appname ${PROJECT_NAME})
 set(compile_flags  -Wall -Wextra -Wno-unknown-pragmas)
 set(libraries lodepng se_shared se_core)
 
+add_library(se_denseslam INTERFACE)
+target_include_directories(se_denseslam INTERFACE
+    include
+    ${TOON_INCLUDE_DIR}
+    ${EIGEN3_INCLUDE_DIR}
+    ${SOPHUS_INCLUDE_DIR})
+target_link_libraries(se_denseslam INTERFACE ${libraries})
+
 if (WITH_OPENMP AND OPENMP_FOUND)
     list(APPEND compile_flags ${OpenMP_CXX_FLAGS})
     list(APPEND libraries ${OpenMP_CXX_FLAGS})
