@@ -49,10 +49,13 @@ doc :
 
 clean :
 	rm -rf build
+cleandoc :
+	rm -rf doc
 cleanall : 
 	rm -rf build
 	rm -rf living_room_traj*_loop livingRoom*.gt.freiburg living_room_traj*_loop.raw
 	rm -f *.log 
+	rm -f doc
 
 
 .PHONY : clean bench test all validate
