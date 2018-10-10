@@ -44,6 +44,9 @@ demo-kfusion:
 
 #### GENERAL GENERATION ####
 
+doc :
+	doxygen Doxyfile
+
 clean :
 	rm -rf build
 cleanall : 
