@@ -18,8 +18,15 @@ const float dist_threshold = 0.1f;
 const float normal_threshold = 0.8f;
 const float track_threshold = 0.15f;
 const float maxweight = 100.0f;
+
+/** TODO
+ */
 const float nearPlane = 0.4f;
+
+/** TODO
+ */
 const float farPlane = 4.0f;
+
 const float delta = 4.0f;
 
 const float3 light = make_float3(1, 1, -1.0);
