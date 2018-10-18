@@ -45,12 +45,10 @@ demo-kfusion:
 #### GENERAL GENERATION ####
 
 doc :
-	doxygen Doxyfile
+	doxygen
 
 clean :
 	rm -rf build
-cleandoc :
-	rm -rf doc
 cleanall : 
 	rm -rf build
 	rm -rf living_room_traj*_loop livingRoom*.gt.freiburg living_room_traj*_loop.raw
@@ -58,7 +56,7 @@ cleanall :
 	rm -f doc
 
 
-.PHONY : clean bench test all validate
+.PHONY : clean bench test all validate doc
 
 .PRECIOUS: living_room_traj%_loop livingRoom%.gt.freiburg living_room_traj%_loop.raw
 
