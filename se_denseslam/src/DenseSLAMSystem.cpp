@@ -57,31 +57,8 @@ std::vector<Matrix4> poses;
 
 DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution, float3 volumeDimensions,
 			float3 initPose, std::vector<int> & pyramid, Configuration config):
-  computation_size_(make_uint2(inputSize.x, inputSize.y)),
-  vertex_(computation_size_.x, computation_size_.y),
-  normal_(computation_size_.x, computation_size_.y),
-  float_depth_(computation_size_.x, computation_size_.y),
-  tracking_result_(computation_size_.x, computation_size_.y) {
-
-    this->init_pose_ = initPose;
-    this->volume_dimension_ = volumeDimensions;
-    this->volume_resolution_ = volumeResolution;
-    this->mu_ = config.mu;
-    this->config_ = config;
-
-    pose_.data[0] = {1.f, 0.f, 0.f, initPose.x};
-    pose_.data[1] = {0.f, 1.f, 0.f, initPose.y};
-    pose_.data[2] = {0.f, 0.f, 1.f, initPose.z};
-    pose_.data[3] = {0.f, 0.f, 0.f, 1.f};
-    this->iterations_.clear();
-    for (std::vector<int>::iterator it = pyramid.begin();
-        it != pyramid.end(); it++) {
-      this->iterations_.push_back(*it);
-    }
-
-    viewPose_ = &pose_;
-    this->languageSpecificConstructor();
-  }
+      DenseSLAMSystem(inputSize, volumeResolution, volumeDimensions, 
+          toMatrix4(initPose), pyramid, config) { }
 
 DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution, 
     float3 volumeDimensions, Matrix4 initPose, std::vector<int> & pyramid, 
@@ -91,6 +68,7 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution,
   normal_(computation_size_.x, computation_size_.y),
   float_depth_(computation_size_.x, computation_size_.y),
   tracking_result_(computation_size_.x, computation_size_.y) {
+
     this->init_pose_ = getPosition();
     this->volume_dimension_ = volumeDimensions;
     this->volume_resolution_ = volumeResolution;
@@ -104,51 +82,45 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution,
     }
 
     viewPose_ = &pose_;
-    this->languageSpecificConstructor();
-  }
 
-void DenseSLAMSystem::languageSpecificConstructor() {
+    if (getenv("KERNEL_TIMINGS"))
+      print_kernel_timing = true;
 
-	if (getenv("KERNEL_TIMINGS"))
-		print_kernel_timing = true;
+    // internal buffers to initialize
+    reduction_output_.resize(8 * 32);
 
-	// internal buffers to initialize
-	reduction_output_.resize(8 * 32);
+    for (unsigned int i = 0; i < iterations_.size(); ++i) {
+      int downsample = 1 << i;
+      scaled_depth_.push_back(se::Image<float>(computation_size_.x / downsample, 
+            computation_size_.y / downsample));
 
-	for (unsigned int i = 0; i < iterations_.size(); ++i) {
-    int downsample = 1 << i;
-		scaled_depth_.push_back(se::Image<float>(computation_size_.x / downsample, 
-          computation_size_.y / downsample));
+      input_vertex_.push_back(se::Image<float3>(computation_size_.x / downsample, 
+            computation_size_.y / downsample));
 
-		input_vertex_.push_back(se::Image<float3>(computation_size_.x / downsample, 
-          computation_size_.y / downsample));
+      input_normal_.push_back(se::Image<float3>(computation_size_.x / downsample, 
+            computation_size_.y / downsample));
+    }
 
-		input_normal_.push_back(se::Image<float3>(computation_size_.x / downsample, 
-          computation_size_.y / downsample));
-	}
+    // ********* BEGIN : Generate the gaussian *************
+    size_t gaussianS = radius * 2 + 1;
+    gaussian_.reserve(gaussianS);
+    int x;
+    for (unsigned int i = 0; i < gaussianS; i++) {
+      x = i - 2;
+      gaussian_[i] = expf(-(x * x) / (2 * delta * delta));
+    }
 
-	// ********* BEGIN : Generate the gaussian *************
-	size_t gaussianS = radius * 2 + 1;
-	gaussian_.resize(gaussianS);
-	int x;
-	for (unsigned int i = 0; i < gaussianS; i++) {
-		x = i - 2;
-		gaussian_[i] = expf(-(x * x) / (2 * delta * delta));
-	}
-	// ********* END : Generate the gaussian *************
+    // ********* END : Generate the gaussian *************
 
-  if(config_.groundtruth_file != ""){
-    parseGTFile(config_.groundtruth_file, poses);
-    std::cout << "Parsed " << poses.size() << " poses" << std::endl;
-  }
+    if(config_.groundtruth_file != ""){
+      parseGTFile(config_.groundtruth_file, poses);
+      std::cout << "Parsed " << poses.size() << " poses" << std::endl;
+    }
 
-  discrete_vol_ptr_ = std::make_shared<se::Octree<FieldType> >();
-  discrete_vol_ptr_->init(volume_resolution_.x, volume_dimension_.x);
-  volume_ = Volume<FieldType>(volume_resolution_.x, volume_dimension_.x, 
-      discrete_vol_ptr_.get());
-}
-
-DenseSLAMSystem::~DenseSLAMSystem() {
+    discrete_vol_ptr_ = std::make_shared<se::Octree<FieldType> >();
+    discrete_vol_ptr_->init(volume_resolution_.x, volume_dimension_.x);
+    volume_ = Volume<FieldType>(volume_resolution_.x, volume_dimension_.x, 
+        discrete_vol_ptr_.get());
 }
 
 bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, const uint2 inputSize, 

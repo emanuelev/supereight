@@ -101,10 +101,6 @@ class DenseSLAMSystem {
         float3 volume_dimension_, Matrix4 initPose, std::vector<int> & pyramid,
         Configuration config_);
 
-    void languageSpecificConstructor();
-
-    ~DenseSLAMSystem();
-
     bool preprocessing(const ushort * inputDepth, const uint2 inputSize, 
         const bool filterInput);
 
