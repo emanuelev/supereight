@@ -167,10 +167,10 @@ bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate
 		depth2vertexKernel(input_vertex_[i].data(), scaled_depth_[i].data(), localimagesize,
 				invK);
     if(k.y < 0)
-      vertex2normalKernel<FieldType, true>(input_normal_[i].data(), 
+      vertex2normalKernel<true>(input_normal_[i].data(), 
           input_vertex_[i].data(), localimagesize);
     else
-      vertex2normalKernel<FieldType, false>(input_normal_[i].data(), 
+      vertex2normalKernel<false>(input_normal_[i].data(), 
           input_vertex_[i].data(), localimagesize);
 		localimagesize = make_uint2(localimagesize.x / 2, localimagesize.y / 2);
 	}
@@ -345,8 +345,3 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
   se::algorithms::marching_cube(*volume_._map_index, select, inside, mesh);
   writeVtkMesh(filename.c_str(), mesh);
 }
-
-void synchroniseDevices() {
-	// Nothing to do in the C++ implementation
-}
-
