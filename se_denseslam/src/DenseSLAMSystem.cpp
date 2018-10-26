@@ -57,7 +57,11 @@ std::vector<Matrix4> poses;
 
 DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution, float3 volumeDimensions,
 			float3 initPose, std::vector<int> & pyramid, Configuration config):
-  computation_size_(make_uint2(inputSize.x, inputSize.y)) {
+  computation_size_(make_uint2(inputSize.x, inputSize.y)),
+  vertex_(computation_size_.x, computation_size_.y),
+  normal_(computation_size_.x, computation_size_.y),
+  float_depth_(computation_size_.x, computation_size_.y),
+  tracking_result_(computation_size_.x, computation_size_.y) {
 
     this->init_pose_ = initPose;
     this->volume_dimension_ = volumeDimensions;
@@ -82,7 +86,11 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution, float3
 DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution, 
     float3 volumeDimensions, Matrix4 initPose, std::vector<int> & pyramid, 
     Configuration config) :
-  computation_size_(make_uint2(inputSize.x, inputSize.y)) {
+  computation_size_(make_uint2(inputSize.x, inputSize.y)),
+  vertex_(computation_size_.x, computation_size_.y),
+  normal_(computation_size_.x, computation_size_.y),
+  float_depth_(computation_size_.x, computation_size_.y),
+  tracking_result_(computation_size_.x, computation_size_.y) {
     this->init_pose_ = getPosition();
     this->volume_dimension_ = volumeDimensions;
     this->volume_resolution_ = volumeResolution;
@@ -105,38 +113,23 @@ void DenseSLAMSystem::languageSpecificConstructor() {
 		print_kernel_timing = true;
 
 	// internal buffers to initialize
-	reduction_output_ = (float*) calloc(sizeof(float) * 8 * 32, 1);
-
-	scaled_depth_ = (float**) calloc(sizeof(float*) * iterations_.size(), 1);
-	input_vertex_ = (float3**) calloc(sizeof(float3*) * iterations_.size(), 1);
-	input_normal_ = (float3**) calloc(sizeof(float3*) * iterations_.size(), 1);
+	reduction_output_.resize(8 * 32);
 
 	for (unsigned int i = 0; i < iterations_.size(); ++i) {
-		scaled_depth_[i] = (float*) calloc(
-				sizeof(float) * (computation_size_.x * computation_size_.y)
-						/ (int) pow(2, i), 1);
-		input_vertex_[i] = (float3*) calloc(
-				sizeof(float3) * (computation_size_.x * computation_size_.y)
-						/ (int) pow(2, i), 1);
-		input_normal_[i] = (float3*) calloc(
-				sizeof(float3) * (computation_size_.x * computation_size_.y)
-						/ (int) pow(2, i), 1);
+    int downsample = 1 << i;
+		scaled_depth_.push_back(se::Image<float>(computation_size_.x / downsample, 
+          computation_size_.y / downsample));
+
+		input_vertex_.push_back(se::Image<float3>(computation_size_.x / downsample, 
+          computation_size_.y / downsample));
+
+		input_normal_.push_back(se::Image<float3>(computation_size_.x / downsample, 
+          computation_size_.y / downsample));
 	}
 
-	float_depth_ = (float*) calloc(
-			sizeof(float) * computation_size_.x * computation_size_.y, 1);
-	vertex_ = (float3*) calloc(
-			sizeof(float3) * computation_size_.x * computation_size_.y, 1);
-	normal_ = (float3*) calloc(
-			sizeof(float3) * computation_size_.x * computation_size_.y, 1);
-	tracking_result_ = (TrackData*) calloc(
-			sizeof(TrackData) * computation_size_.x * computation_size_.y, 1);
-
-  allocation_list_ = NULL;
-  reserved_ = 0;
 	// ********* BEGIN : Generate the gaussian *************
 	size_t gaussianS = radius * 2 + 1;
-	gaussian_ = (float*) calloc(gaussianS * sizeof(float), 1);
+	gaussian_.resize(gaussianS);
 	int x;
 	for (unsigned int i = 0; i < gaussianS; i++) {
 		x = i - 2;
@@ -156,32 +149,18 @@ void DenseSLAMSystem::languageSpecificConstructor() {
 }
 
 DenseSLAMSystem::~DenseSLAMSystem() {
-
-	free(reduction_output_);
-	for (unsigned int i = 0; i < iterations_.size(); ++i) {
-		free(scaled_depth_[i]);
-		free(input_vertex_[i]);
-		free(input_normal_[i]);
-	}
-	free(scaled_depth_);
-	free(input_vertex_);
-	free(vertex_);
-	free(normal_);
-	free(gaussian_);
-  
-  if(allocation_list_) free(allocation_list_);
 }
 
 bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, const uint2 inputSize, 
     const bool filterInput){
 
-    mm2metersKernel(float_depth_, computation_size_, inputDepth, inputSize);
+    mm2metersKernel(float_depth_.data(), computation_size_, inputDepth, inputSize);
     if(filterInput){
-        bilateralFilterKernel(scaled_depth_[0], float_depth_, computation_size_, gaussian_,
-			e_delta, radius);
+        bilateralFilterKernel(scaled_depth_[0].data(), float_depth_.data(), 
+            computation_size_, gaussian_.data(), e_delta, radius);
     }
     else {
-      std::memcpy(scaled_depth_[0], float_depth_,
+      std::memcpy(scaled_depth_[0].data(), float_depth_.data(),
           sizeof(float) * computation_size_.x * computation_size_.y);
     }
 	return true;
@@ -204,7 +183,7 @@ bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate
 
 	// half sample the input depth maps into the pyramid levels
 	for (unsigned int i = 1; i < iterations_.size(); ++i) {
-		halfSampleRobustImageKernel(scaled_depth_[i], scaled_depth_[i - 1],
+		halfSampleRobustImageKernel(scaled_depth_[i].data(), scaled_depth_[i - 1].data(),
 				make_uint2(computation_size_.x / (int) pow(2, i - 1),
 						computation_size_.y / (int) pow(2, i - 1)), e_delta * 3, 1);
 	}
@@ -213,12 +192,14 @@ bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate
 	uint2 localimagesize = computation_size_;
 	for (unsigned int i = 0; i < iterations_.size(); ++i) {
 		Matrix4 invK = getInverseCameraMatrix(k / float(1 << i));
-		depth2vertexKernel(input_vertex_[i], scaled_depth_[i], localimagesize,
+		depth2vertexKernel(input_vertex_[i].data(), scaled_depth_[i].data(), localimagesize,
 				invK);
     if(k.y < 0)
-      vertex2normalKernel<FieldType, true>(input_normal_[i], input_vertex_[i], localimagesize);
+      vertex2normalKernel<FieldType, true>(input_normal_[i].data(), 
+          input_vertex_[i].data(), localimagesize);
     else
-      vertex2normalKernel<FieldType, false>(input_normal_[i], input_vertex_[i], localimagesize);
+      vertex2normalKernel<FieldType, false>(input_normal_[i].data(), 
+          input_vertex_[i].data(), localimagesize);
 		localimagesize = make_uint2(localimagesize.x / 2, localimagesize.y / 2);
 	}
 
@@ -231,19 +212,20 @@ bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate
 				computation_size_.y / (int) pow(2, level));
 		for (int i = 0; i < iterations_[level]; ++i) {
 
-			trackKernel(tracking_result_, input_vertex_[level], input_normal_[level],
-					localimagesize, vertex_, normal_, computation_size_, pose_,
+			trackKernel(tracking_result_.data(), input_vertex_[level].data(), 
+          input_normal_[level].data(),
+					localimagesize, vertex_.data(), normal_.data(), computation_size_, pose_,
 					projectReference, dist_threshold, normal_threshold);
 
-			reduceKernel(reduction_output_, tracking_result_, computation_size_,
+			reduceKernel(reduction_output_.data(), tracking_result_.data(), computation_size_,
 					localimagesize);
 
-			if (updatePoseKernel(pose_, reduction_output_, icp_threshold))
+			if (updatePoseKernel(pose_, reduction_output_.data(), icp_threshold))
 				break;
 
 		}
 	}
-	return checkPoseKernel(pose_, old_pose_, reduction_output_, computation_size_,
+	return checkPoseKernel(pose_, old_pose_, reduction_output_.data(), computation_size_,
 			track_threshold);
 
 }
@@ -255,7 +237,7 @@ bool DenseSLAMSystem::raycasting(float4 k, float mu, uint frame) {
   if(frame > 2) {
     raycast_pose_ = pose_;
     float step = volume_dimension_.x / volume_resolution_.x;
-    raycastKernel(volume_, vertex_, normal_, computation_size_,
+    raycastKernel(volume_, vertex_.data(), normal_.data(), computation_size_,
         raycast_pose_ * getInverseCameraMatrix(k), nearPlane, farPlane, mu,
         step, step*BLOCK_SIDE);
     doRaycast = true;
@@ -266,33 +248,34 @@ bool DenseSLAMSystem::raycasting(float4 k, float mu, uint frame) {
 bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
 		uint frame) {
 
-	bool doIntegrate = poses.empty() ? checkPoseKernel(pose_, old_pose_, reduction_output_,
-			computation_size_, track_threshold) : true;
+	bool doIntegrate = poses.empty() ? checkPoseKernel(pose_, old_pose_, 
+      reduction_output_.data(), computation_size_, track_threshold) : true;
 
   if ((doIntegrate && ((frame % integration_rate) == 0)) || (frame <= 3)) {
 
     float voxelsize =  volume_._dim/volume_._size;
     int num_vox_per_pix = volume_._dim/((se::VoxelBlock<FieldType>::side)*voxelsize);
     size_t total = num_vox_per_pix * computation_size_.x * computation_size_.y;
-    if(!reserved_) {
-      allocation_list_ = (se::key_t* ) calloc(sizeof(se::key_t) * total, 1);
-      reserved_ = total;
-    }
+    allocation_list_.reserve(total);
+
     unsigned int allocated = 0;
     if(std::is_same<FieldType, SDF>::value) {
-     allocated  = buildAllocationList(allocation_list_, reserved_,
-        *volume_._map_index, pose_, getCameraMatrix(k), float_depth_, computation_size_, volume_._size,
+     allocated  = buildAllocationList(allocation_list_.data(), 
+         allocation_list_.capacity(),
+        *volume_._map_index, pose_, getCameraMatrix(k), float_depth_.data(), 
+        computation_size_, volume_._size,
       voxelsize, 2*mu);  
     } else if(std::is_same<FieldType, OFusion>::value) {
-     allocated = buildOctantList(allocation_list_, reserved_, *volume_._map_index,
-         pose_, getCameraMatrix(k), float_depth_, computation_size_, voxelsize,
+     allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(), 
+         *volume_._map_index,
+         pose_, getCameraMatrix(k), float_depth_.data(), computation_size_, voxelsize,
          compute_stepsize, step_to_depth, 6*mu);  
     }
 
-    volume_._map_index->allocate(allocation_list_, allocated);
+    volume_._map_index->allocate(allocation_list_.data(), allocated);
 
     if(std::is_same<FieldType, SDF>::value) {
-      struct sdf_update funct(float_depth_,
+      struct sdf_update funct(float_depth_.data(),
           Eigen::Vector2i(computation_size_.x, computation_size_.y), mu, 100);
       se::functor::projective_map(*volume_._map_index,
           to_sophus(pose_).inverse(),
@@ -302,7 +285,7 @@ bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
     } else if(std::is_same<FieldType, OFusion>::value) {
 
       float timestamp = (1.f/30.f)*frame; 
-      struct bfusion_update funct(float_depth_,
+      struct bfusion_update funct(float_depth_.data(),
           Eigen::Vector2i(computation_size_.x, computation_size_.y), mu, timestamp);
 
       se::functor::projective_map(*volume_._map_index,
@@ -356,16 +339,17 @@ void DenseSLAMSystem::renderVolume(uchar4 * out, uint2 outputSize, int frame,
 	*(this->viewPose_) * getInverseCameraMatrix(k), nearPlane,
 	farPlane * 2.0f, mu_, step, largestep,
         get_translation(*(this->viewPose_)), ambient,
-        !compareMatrix4(*(this->viewPose_), raycast_pose_), vertex_, normal_);
+        !compareMatrix4(*(this->viewPose_), raycast_pose_), vertex_.data(), 
+        normal_.data());
   }
 }
 
 void DenseSLAMSystem::renderTrack(uchar4 * out, uint2 outputSize) {
-        renderTrackKernel(out, tracking_result_, outputSize);
+        renderTrackKernel(out, tracking_result_.data(), outputSize);
 }
 
 void DenseSLAMSystem::renderDepth(uchar4 * out, uint2 outputSize) {
-        renderDepthKernel(out, float_depth_, outputSize, nearPlane, farPlane);
+        renderDepthKernel(out, float_depth_.data(), outputSize, nearPlane, farPlane);
 }
 
 void DenseSLAMSystem::dump_mesh(const std::string filename){

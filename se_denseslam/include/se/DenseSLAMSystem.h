@@ -43,6 +43,7 @@
 #include <timings.h>
 #include <se/config.h>
 #include <se/octree.hpp>
+#include <se/image/image.hpp>
 #include "volume_traits.hpp"
 #include "continuous/volume_template.hpp"
 
@@ -70,26 +71,25 @@ class DenseSLAMSystem {
     Configuration config_;
 
     // input once
-    float * gaussian_;
+    std::vector<float> gaussian_;
 
     // inter-frame
-    float3 * vertex_;
-    float3 * normal_;
+    se::Image<float3> vertex_;
+    se::Image<float3> normal_;
 
-    se::key_t* allocation_list_;
-    size_t reserved_;
+    std::vector<se::key_t> allocation_list_;
     std::shared_ptr<se::Octree<FieldType> > discrete_vol_ptr_;
     Volume<FieldType> volume_;
 
     // intra-frame
-    TrackData * tracking_result_;
-    float* reduction_output_;
-    float ** scaled_depth_;
-    float * float_depth_;
+    std::vector<float> reduction_output_;
+    std::vector<se::Image<float>  > scaled_depth_;
+    std::vector<se::Image<float3> > input_vertex_;
+    std::vector<se::Image<float3> > input_normal_;
+    se::Image<float> float_depth_;
+    se::Image<TrackData>  tracking_result_;
     Matrix4 old_pose_;
     Matrix4 raycast_pose_;
-    float3 ** input_vertex_;
-    float3 ** input_normal_;
 
   public:
 
