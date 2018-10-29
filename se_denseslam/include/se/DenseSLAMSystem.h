@@ -74,8 +74,8 @@ class DenseSLAMSystem {
     std::vector<float> gaussian_;
 
     // inter-frame
-    se::Image<float3> vertex_;
-    se::Image<float3> normal_;
+    se::Image<Eigen::Vector3f> vertex_;
+    se::Image<Eigen::Vector3f> normal_;
 
     std::vector<se::key_t> allocation_list_;
     std::shared_ptr<se::Octree<FieldType> > discrete_vol_ptr_;
@@ -84,8 +84,8 @@ class DenseSLAMSystem {
     // intra-frame
     std::vector<float> reduction_output_;
     std::vector<se::Image<float>  > scaled_depth_;
-    std::vector<se::Image<float3> > input_vertex_;
-    std::vector<se::Image<float3> > input_normal_;
+    std::vector<se::Image<Eigen::Vector3f> > input_vertex_;
+    std::vector<se::Image<Eigen::Vector3f> > input_normal_;
     se::Image<float> float_depth_;
     se::Image<TrackData>  tracking_result_;
     Matrix4 old_pose_;
