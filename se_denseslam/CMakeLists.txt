@@ -27,6 +27,7 @@ if (WITH_OPENMP AND OPENMP_FOUND)
     list(APPEND compile_flags ${OpenMP_CXX_FLAGS})
     list(APPEND libraries ${OpenMP_CXX_FLAGS})
 endif()
+
 # ----------------- OFUsion -----------------
 set(field_type SE_FIELD_TYPE=OFusion)
 

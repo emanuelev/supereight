@@ -24,6 +24,8 @@
 #include <perfstats.h>
 #include <PowerMonitor.h>
 
+#include <chrono>
+
 #ifndef __QT__
 
 #include <draw.h>
@@ -59,17 +61,20 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipeline,
 		DepthReader **_depthReader, Configuration *config, void *depthRender,
 		void *trackRender, void *volumeModel, void *inputRGB);
-void storeStats(int frame, double *timings, float3 pos, bool tracked,
+
+void storeStats(int frame, 
+    std::chrono::time_point<std::chrono::steady_clock> *timings, 
+    float3 pos, bool tracked,
 		bool integrated) {
 	Stats.sample("frame", frame, PerfStats::FRAME);
-	Stats.sample("acquisition", timings[1] - timings[0], PerfStats::TIME);
-	Stats.sample("preprocessing", timings[2] - timings[1], PerfStats::TIME);
-	Stats.sample("tracking", timings[3] - timings[2], PerfStats::TIME);
-	Stats.sample("integration", timings[4] - timings[3], PerfStats::TIME);
-	Stats.sample("raycasting", timings[5] - timings[4], PerfStats::TIME);
-	Stats.sample("rendering", timings[6] - timings[5], PerfStats::TIME);
-	Stats.sample("computation", timings[5] - timings[1], PerfStats::TIME);
-	Stats.sample("total", timings[6] - timings[0], PerfStats::TIME);
+	Stats.sample("acquisition",  std::chrono::duration<double>(timings[1] - timings[0]).count(), PerfStats::TIME);
+	Stats.sample("preprocessing",std::chrono::duration<double>(timings[2] - timings[1]).count(), PerfStats::TIME);
+	Stats.sample("tracking",     std::chrono::duration<double>(timings[3] - timings[2]).count(), PerfStats::TIME);
+	Stats.sample("integration",  std::chrono::duration<double>(timings[4] - timings[3]).count(), PerfStats::TIME);
+	Stats.sample("raycasting",   std::chrono::duration<double>(timings[5] - timings[4]).count(), PerfStats::TIME);
+	Stats.sample("rendering",    std::chrono::duration<double>(timings[6] - timings[5]).count(), PerfStats::TIME);
+	Stats.sample("computation",  std::chrono::duration<double>(timings[5] - timings[1]).count(), PerfStats::TIME);
+	Stats.sample("total",        std::chrono::duration<double>(timings[6] - timings[0]).count(), PerfStats::TIME);
 	Stats.sample("X", pos.x, PerfStats::DISTANCE);
 	Stats.sample("Y", pos.y, PerfStats::DISTANCE);
 	Stats.sample("Z", pos.z, PerfStats::DISTANCE);
@@ -153,10 +158,12 @@ int main(int argc, char ** argv) {
 	// ==========     DUMP VOLUME      =========
 
 	if (config.dump_volume_file != "") {
-    double start = tock();
+    auto start = std::chrono::steady_clock::now();
 		pipeline->dump_mesh(config.dump_volume_file.c_str());
-    double end = tock();
-	  Stats.sample("meshing", end - start, PerfStats::TIME);
+    auto end = std::chrono::steady_clock::now();
+	  Stats.sample("meshing", 
+        std::chrono::duration<double>(end - start).count(), 
+        PerfStats::TIME);
 	}
 
 	//if (config.log_file != "") {
@@ -193,7 +200,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 	bool tracked, integrated, raycasted;
 	double start, end, startCompute, endCompute;
 	uint2 render_vol_size;
-	double timings[7];
+	std::chrono::time_point<std::chrono::steady_clock> timings[7];
 	float3 pos;
 	int frame;
 	const uint2 inputSize =
@@ -214,16 +221,16 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		Stats.start();
 	}
 	Matrix4 pose;
-	timings[0] = tock();
+	timings[0] = std::chrono::steady_clock::now();
 	if (processFrame && (reader->readNextDepthFrame(inputRGB, inputDepth))) {
 		frame = reader->getFrameNumber() - frameOffset;
 		if (powerMonitor != NULL && !firstFrame)
 			powerMonitor->start();
 
-		timings[1] = tock();
+		timings[1] = std::chrono::steady_clock::now();
 		pipeline->preprocessing(inputDepth, inputSize, config->bilateralFilter);
 
-		timings[2] = tock();
+		timings[2] = std::chrono::steady_clock::now();
 
 		tracked = pipeline->tracking(camera, config->icp_threshold,
 				config->tracking_rate, frame);
@@ -231,21 +238,21 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		pos = pipeline->getPosition();
 		pose = pipeline->getPose();
 
-		timings[3] = tock();
+		timings[3] = std::chrono::steady_clock::now();
 
 		integrated = pipeline->integration(camera, config->integration_rate,
 				config->mu, frame);
 
-		timings[4] = tock();
+		timings[4] = std::chrono::steady_clock::now();
 
 		raycasted = pipeline->raycasting(camera, config->mu, frame);
 
-		timings[5] = tock();
+		timings[5] = std::chrono::steady_clock::now();
 
 	} else {
 		if (processFrame) {
 			finished = true;
-			timings[0] = tock();
+			timings[0] = std::chrono::steady_clock::now();
 		}
 
 	}
@@ -255,7 +262,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		pipeline->renderVolume(volumeRender, pipeline->getComputationResolution(),
 				(processFrame ? reader->getFrameNumber() - frameOffset : 0),
 				config->rendering_rate, camera, 0.75 * config->mu);
-		timings[6] = tock();
+		timings[6] = std::chrono::steady_clock::now();
 	}
 
 	if (!finished) {

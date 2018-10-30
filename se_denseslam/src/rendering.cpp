@@ -73,9 +73,11 @@ void raycastKernel(const Volume<T>& volume, float3* vertex, float3* normal, uint
         float3 surfNorm = make_float3(tmp(0), tmp(1), tmp(2));
         if (length(surfNorm) == 0) {
           //normal[pos] = normalize(surfNorm); // APN added
-          normal[pos.x + pos.y * inputSize.x].x = INVALID;
+          normal[pos.x + pos.y * inputSize.x] = make_float3(INVALID, 0, 0);
         } else {
-          normal[pos.x + pos.y * inputSize.x] = normalize(surfNorm);
+          // Invert normals if SDF 
+          normal[pos.x + pos.y * inputSize.x] = std::is_same<T, SDF>::value ?
+            normalize(-1.f * surfNorm) : normalize(surfNorm);
         }
       } else {
         vertex[pos.x + pos.y * inputSize.x] = make_float3(0);
@@ -202,6 +204,9 @@ void renderVolumeKernel(const Volume<T>& volume, uchar4* out, const uint2 depthS
           Eigen::Vector3f tmp = volume.grad(make_float3(hit), 
               [](const auto& val){ return val.x; });
           surfNorm = make_float3(tmp(0), tmp(1), tmp(2));
+
+          // Invert normals if SDF 
+          surfNorm = std::is_same<T, SDF>::value ? -1.f * surfNorm : surfNorm;
         } else {
           out[x + depthSize.x*y] = make_uchar4(0, 0, 0, 0); // The forth value is a padding to align memory
         }
@@ -211,9 +216,8 @@ void renderVolumeKernel(const Volume<T>& volume, uchar4* out, const uint2 depthS
         surfNorm = normal[x + depthSize.x*y];
       }
 
-      if (length(surfNorm) > 0) {
-        const float3 diff = (std::is_same<T, SDF>::value ?
-            normalize(light - test) : normalize(test - light));
+      if (surfNorm.x != INVALID && length(surfNorm) > 0) {
+        const float3 diff = normalize(test - light);
         const float dir = fmaxf(dot(normalize(surfNorm), diff),
             0.f);
         const float3 col = clamp(make_float3(dir) + ambient, 0.f,

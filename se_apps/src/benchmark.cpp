@@ -104,8 +104,8 @@ int main(int argc, char ** argv) {
 			config.volume_size, init_pose, config.pyramid, config);
      
   bool bilateralfilter = false;
-	double timings[7];
-	timings[0] = tock();
+	std::chrono::time_point<std::chrono::steady_clock> timings[7];
+	timings[0] = std::chrono::steady_clock::now();
 
 	*logstream
 			<< "frame\tacquisition\tpreprocessing\ttracking\tintegration\traycasting\trendering\tcomputation\ttotal    \tX          \tY          \tZ         \ttracked   \tintegrated"
@@ -114,17 +114,17 @@ int main(int argc, char ** argv) {
 
     while (reader->readNextDepthFrame(inputDepth)) {
 
-		timings[1] = tock();
+		timings[1] = std::chrono::steady_clock::now();
 
 		pipeline.preprocessing(inputDepth, inputSize, config.bilateralFilter);
 
-		timings[2] = tock();
+		timings[2] = std::chrono::steady_clock::now();
 
 		bool tracked = pipeline.tracking(camera, config.icp_threshold,
 				config.tracking_rate, frame);
 
 
-		timings[3] = tock();
+		timings[3] = std::chrono::steady_clock::now();
 
 		Matrix4 pose = pipeline.getPose();
 
@@ -136,34 +136,34 @@ int main(int argc, char ** argv) {
 		bool integrated = pipeline.integration(camera, config.integration_rate,
 				config.mu, frame);
 
-		timings[4] = tock();
+		timings[4] = std::chrono::steady_clock::now();
 
 		bool raycast = pipeline.raycasting(camera, config.mu, frame);
 
-		timings[5] = tock();
+		timings[5] = std::chrono::steady_clock::now();
 
 		pipeline.renderDepth(depthRender, computationSize);
 		pipeline.renderTrack(trackRender, computationSize);
 		pipeline.renderVolume(volumeRender, computationSize, frame,
 				config.rendering_rate, camera, 0.75 * config.mu);
 
-		timings[6] = tock();
+		timings[6] = std::chrono::steady_clock::now();
 
-		*logstream << frame << "\t" << timings[1] - timings[0] << "\t" //  acquisition
-				<< timings[2] - timings[1] << "\t"     //  preprocessing
-				<< timings[3] - timings[2] << "\t"     //  tracking
-				<< timings[4] - timings[3] << "\t"     //  integration
-				<< timings[5] - timings[4] << "\t"     //  raycasting
-				<< timings[6] - timings[5] << "\t"     //  rendering
-				<< timings[5] - timings[1] << "\t"     //  computation
-				<< timings[6] - timings[0] << "\t"     //  total
-				<< xt << "\t" << yt << "\t" << zt << "\t"     //  X,Y,Z
-				<< tracked << "        \t" << integrated // tracked and integrated flags
-				<< std::endl;
+		*logstream << frame << "\t" 
+      << std::chrono::duration<double>(timings[1] - timings[0]).count() << "\t" //  acquisition
+      << std::chrono::duration<double>(timings[2] - timings[1]).count() << "\t"     //  preprocessing
+      << std::chrono::duration<double>(timings[3] - timings[2]).count() << "\t"     //  tracking
+      << std::chrono::duration<double>(timings[4] - timings[3]).count() << "\t"     //  integration
+      << std::chrono::duration<double>(timings[5] - timings[4]).count() << "\t"     //  raycasting
+      << std::chrono::duration<double>(timings[6] - timings[5]).count() << "\t"     //  rendering
+      << std::chrono::duration<double>(timings[5] - timings[1]).count() << "\t"     //  computation
+      << std::chrono::duration<double>(timings[6] - timings[0]).count() << "\t"     //  total
+      << xt << "\t" << yt << "\t" << zt << "\t"     //  X,Y,Z
+      << tracked << "        \t" << integrated // tracked and integrated flags
+      << std::endl;
 
 		frame++;
-
-		timings[0] = tock();
+		timings[0] = std::chrono::steady_clock::now();
 	}
 
     std::shared_ptr<se::Octree<FieldType> > map_ptr;
@@ -173,10 +173,10 @@ int main(int argc, char ** argv) {
     // ==========     DUMP VOLUME      =========
 
   if (config.dump_volume_file != "") {
-    double s = tock();
+    auto s = std::chrono::steady_clock::now();
     pipeline.dump_volume(config.dump_volume_file);
-    double e = tock();
-    std::cout << "Mesh generated in " << e - s << " seconds" << std::endl;
+    auto e = std::chrono::steady_clock::now();
+    std::cout << "Mesh generated in " << (e - s).count() << " seconds" << std::endl;
   }
 
 	//  =========  FREE BASIC BUFFERS  =========
