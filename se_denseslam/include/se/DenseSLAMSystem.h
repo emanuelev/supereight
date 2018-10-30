@@ -102,7 +102,7 @@ class DenseSLAMSystem {
      * \param[in] volume_dimension_ The x, y and z dimensions of the
      * reconstructed volume in meters.
      * \param[in] initPose The x, y and z coordinates of the initial camera
-     * position.
+     * position. The camera orientation is assumed to be aligned with the axes.
      * \param[in] pyramid TODO See ::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
@@ -112,7 +112,18 @@ class DenseSLAMSystem {
                     float3             initPose,
                     std::vector<int> & pyramid,
                     Configuration      config_);
-
+    /**
+     * Constructor using the initial camera position.
+     *
+     * \param[in] inputSize The size (width and height) of the input frames.
+     * \param[in] volume_resolution_ The x, y and z resolution of the
+     * reconstructed volume in voxels.
+     * \param[in] volume_dimension_ The x, y and z dimensions of the
+     * reconstructed volume in meters.
+     * \param[in] initPose The initial camera pose encoded in a 4x4 matrix.
+     * \param[in] pyramid TODO See ::Configuration.pyramid for more details.
+     * \param[in] config_ The pipeline options.
+     */
     DenseSLAMSystem(uint2              inputSize,
                     uint3              volume_resolution_,
                     float3             volume_dimension_,
@@ -135,8 +146,8 @@ class DenseSLAMSystem {
                        const uint2    inputSize,
                        const bool     filterInput);
 
-    /**
-     * @todo Implement this.
+    /*
+     * TODO Implement this.
      */
     bool preprocessing(const ushort * inputDepth,
                        const uchar3 * inputRGB,
@@ -200,18 +211,60 @@ class DenseSLAMSystem {
                     float  mu,
                     uint   frame);
 
-    /**
-     * @todo Implement this.
+    /*
+     * TODO Implement this.
      */
     void dump_volume(const std::string filename);
+
+    /*
+     * TODO Document this.
+     */
     void dump_mesh(const std::string filename);
 
+    /**
+     * Render the current 3D reconstruction.
+     *
+     * \param[out] out A pointer to an array containing the rendered frame.
+     * The array must be allocated before calling this function. The x, y and
+     * z members of each element of the array contain the R, G and B values of
+     * the image respectively. The w member of each element of the array is
+     * always 0 and is used for padding.
+     * \param[in] outputSize The dimensions of the output array (width and
+     * height in pixels).
+     * \param[in] frame The index of the current frame (starts from 0).
+     * \param[in] rate Render the 3D reconstruction every rate frames.
+     * \param[in] k The intrinsic camera parameters. See
+     * ::Configuration.camera for details.
+     * \param[in] mu TSDF truncation bound. See ::Configuration.mu for more
+     * details.
+     */
     void renderVolume(uchar4 *    out,
                       const uint2 outputSize,
                       int         frame,
                       int         rate,
                       float4      k,
                       float       mu);
+
+    /**
+     * Render the output of the tracking algorithm. The meaning of the colors is as follows:
+     * | Color  | Meaning |
+     * | ------ | ------- |
+     * | grey   | Successful tracking. |
+     * | black  | No input data. |
+     * | red    | Not in image. |
+     * | green  | No correspondence. |
+     * | blue   | Too far away. |
+     * | yellow | Wrong normal. |
+     * | orange | Tracking not performed. |
+     *
+     * \param[out] out A pointer to an array containing the rendered frame.
+     * The array must be allocated before calling this function. The x, y and
+     * z members of each element of the array contain the R, G and B values of
+     * the image respectively. The w member of each element of the array is
+     * always 0 and is used for padding.
+     * \param[in] outputSize The dimensions of the output array (width and
+     * height in pixels).
+     */
     void renderTrack(uchar4 *    out,
                      const uint2 outputSize);
 
@@ -236,14 +289,23 @@ class DenseSLAMSystem {
     // Getters
     //
 
+    /*
+     * TODO Document this.
+     */
     void getMap(std::shared_ptr<se::Octree<FieldType> >& out) {
       out = discrete_vol_ptr_;
     }
 
+    /*
+     * TODO Document this.
+     */
     bool getTracked() {
       return (tracked_);
     }
 
+    /*
+     * TODO Document this.
+     */
     bool getIntegrated() {
       return (integrated_);
     }
@@ -336,8 +398,9 @@ class DenseSLAMSystem {
 };
 
 /**
- * Synchronise CPU and GPU. This function does nothing in the C++
- * implementation.
+ * Synchronize CPU and GPU.
+ *
+ * @note This function does nothing in the C++ implementation.
  */
 void synchroniseDevices();
 

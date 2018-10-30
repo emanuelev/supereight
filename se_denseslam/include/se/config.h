@@ -84,7 +84,7 @@ struct Configuration {
 
   int voxel_block_size;
 
-  /**
+  /*
    * TODO
    * <br>\em Default: (0.5, 0.5, 0)
    */
@@ -96,25 +96,25 @@ struct Configuration {
    */
   std::vector<int> pyramid;
 
-  /**
+  /*
    * TODO
    * <br>\em Default: ""
    */
   std::string dump_volume_file;
 
-  /**
+  /*
    * TODO
    * <br>\em Default: ""
    */
   std::string input_file;
 
-  /**
+  /*
    * TODO
    * <br>\em Default: ""
    */
   std::string log_file;
 
-  /**
+  /*
    * TODO
    * <br>\em Default: ""
    */
@@ -140,7 +140,7 @@ struct Configuration {
    */
   float mu;
 
-  /**
+  /*
    * TODO
    *
    * @note Must be non-negative.
@@ -149,7 +149,7 @@ struct Configuration {
    */
   int fps;
 
-  /**
+  /*
    * TODO
    * <br>\em Default: false
    */
@@ -167,7 +167,7 @@ struct Configuration {
    */
   bool no_gui;
 
-  /**
+  /*
    * TODO
    * <br>\em Default: false
    */
