@@ -126,10 +126,10 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution,
 bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, const uint2 inputSize, 
     const bool filterInput){
 
-    mm2metersKernel(float_depth_.data(), computation_size_, inputDepth, inputSize);
+    mm2metersKernel(float_depth_, inputDepth, Eigen::Vector2i(inputSize.x, inputSize.y));
     if(filterInput){
-        bilateralFilterKernel(scaled_depth_[0].data(), float_depth_.data(), 
-            computation_size_, gaussian_.data(), e_delta, radius);
+        bilateralFilterKernel(scaled_depth_[0], float_depth_, gaussian_, 
+            e_delta, radius);
     }
     else {
       std::memcpy(scaled_depth_[0].data(), float_depth_.data(),
@@ -155,23 +155,18 @@ bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate
 
 	// half sample the input depth maps into the pyramid levels
 	for (unsigned int i = 1; i < iterations_.size(); ++i) {
-		halfSampleRobustImageKernel(scaled_depth_[i].data(), scaled_depth_[i - 1].data(),
-				make_uint2(computation_size_.x / (int) pow(2, i - 1),
-						computation_size_.y / (int) pow(2, i - 1)), e_delta * 3, 1);
+		halfSampleRobustImageKernel(scaled_depth_[i], scaled_depth_[i - 1], e_delta * 3, 1);
 	}
 
 	// prepare the 3D information from the input depth maps
 	uint2 localimagesize = computation_size_;
 	for (unsigned int i = 0; i < iterations_.size(); ++i) {
 		Matrix4 invK = getInverseCameraMatrix(k / float(1 << i));
-		depth2vertexKernel(input_vertex_[i].data(), scaled_depth_[i].data(), localimagesize,
-				invK);
+		depth2vertexKernel(input_vertex_[i], scaled_depth_[i], to_eigen(invK));
     if(k.y < 0)
-      vertex2normalKernel<true>(input_normal_[i].data(), 
-          input_vertex_[i].data(), localimagesize);
+      vertex2normalKernel<true>(input_normal_[i], input_vertex_[i]);
     else
-      vertex2normalKernel<false>(input_normal_[i].data(), 
-          input_vertex_[i].data(), localimagesize);
+      vertex2normalKernel<false>(input_normal_[i], input_vertex_[i]);
 		localimagesize = make_uint2(localimagesize.x / 2, localimagesize.y / 2);
 	}
 

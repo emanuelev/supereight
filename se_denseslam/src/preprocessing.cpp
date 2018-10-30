@@ -39,16 +39,24 @@
 #include <functional>
 #include <se/image/image.hpp>
 
-void bilateralFilterKernel(float* out, const float* in, uint2 size,
-		const float * gaussian, float e_d, int r) {
+void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
+		const std::vector<float>& gaussian, float e_d, int r) {
+
+	if ((in.width() != out.width()) || in.height() != out.height()) {
+		std::cerr << "input/output image sizes differ." << std::endl;
+		exit(1);
+	}
+
 	TICK()
-		uint y;
+    const int width = in.width();
+    const int height = in.height();
+		int y;
 		float e_d_squared_2 = e_d * e_d * 2;
 #pragma omp parallel for \
 	    shared(out),private(y)   
-		for (y = 0; y < size.y; y++) {
-			for (uint x = 0; x < size.x; x++) {
-				uint pos = x + y * size.x;
+		for (y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				uint pos = x + y * width;
 				if (in[pos] == 0) {
 					out[pos] = 0;
 					continue;
@@ -61,9 +69,9 @@ void bilateralFilterKernel(float* out, const float* in, uint2 size,
 
 				for (int i = -r; i <= r; ++i) {
 					for (int j = -r; j <= r; ++j) {
-						uint2 curPos = make_uint2(clamp(x + i, 0u, size.x - 1),
-								clamp(y + j, 0u, size.y - 1));
-						const float curPix = in[curPos.x + curPos.y * size.x];
+            Eigen::Vector2i curPos = Eigen::Vector2i(clamp(x + i, 0, width - 1),
+								clamp(y + j, 0, height - 1));
+						const float curPix = in[curPos.x() + curPos.y()* width];
 						if (curPix > 0) {
 							const float mod = sq(curPix - center);
 							const float factor = gaussian[i + r]
@@ -77,7 +85,7 @@ void bilateralFilterKernel(float* out, const float* in, uint2 size,
 				out[pos] = t / sum;
 			}
 		}
-		TOCK("bilateralFilterKernel", size.x * size.y);
+		TOCK("bilateralFilterKernel", width * height);
 }
 
   void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex, 
@@ -144,23 +152,24 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out,
 	TOCK("vertex2normalKernel", width * height);
 }
 
-void mm2metersKernel(se::Image<float> out, const se::Image<ushort> in) {
+void mm2metersKernel(se::Image<float> out, const ushort* in, 
+    const Eigen::Vector2i& inputSize) {
 	TICK();
 	// Check for unsupported conditions
-	if ((in.width() < out.width()) || in.height() < out.height()) {
+	if ((inputSize.x() < out.width()) || inputSize.y() < out.height()) {
 		std::cerr << "Invalid ratio." << std::endl;
 		exit(1);
 	}
-	if ((in.width() % out.width() != 0) || (in.height() % out.height() != 0)) {
+	if ((inputSize.x() % out.width() != 0) || (inputSize.y() % out.height() != 0)) {
 		std::cerr << "Invalid ratio." << std::endl;
 		exit(1);
 	}
-	if ((in.width() / out.width() != in.height() / out.height())) {
+	if ((inputSize.x() / out.width() != inputSize.y() / out.height())) {
 		std::cerr << "Invalid ratio." << std::endl;
 		exit(1);
 	}
 
-	int ratio = in.width() / out.width();
+	int ratio = inputSize.x() / out.width();
 	int y;
 #pragma omp parallel for \
         shared(out), private(y)
@@ -172,40 +181,40 @@ void mm2metersKernel(se::Image<float> out, const se::Image<ushort> in) {
 	TOCK("mm2metersKernel", outSize.x * outSize.y);
 }
 
-void halfSampleRobustImageKernel(float* out, const float* in, uint2 inSize,
-		const float e_d, const int r) {
+void halfSampleRobustImageKernel(se::Image<float>& out, 
+                                const se::Image<float>& in,
+                                const float e_d, const int r) {
+	if ((in.width() / out.width() != 2) || ( in.height() / out.height() != 2)) {
+		std::cerr << "Invalid ratio." << std::endl;
+		exit(1);
+	}
 	TICK();
-	uint2 outSize = make_uint2(inSize.x / 2, inSize.y / 2);
-	unsigned int y;
+	int y;
 #pragma omp parallel for \
         shared(out), private(y)
-	for (y = 0; y < outSize.y; y++) {
-		for (unsigned int x = 0; x < outSize.x; x++) {
-			uint2 pixel = make_uint2(x, y);
-			const uint2 centerPixel = 2 * pixel;
+	for (y = 0; y < out.height(); y++) {
+		for (int x = 0; x < out.width(); x++) {
+      Eigen::Vector2i pixel = Eigen::Vector2i(x, y);
+			const Eigen::Vector2i centerPixel = 2 * pixel;
 
 			float sum = 0.0f;
 			float t = 0.0f;
-			const float center = in[centerPixel.x
-					+ centerPixel.y * inSize.x];
+			const float center = in[centerPixel.x() + centerPixel.y() * in.width()];
 			for (int i = -r + 1; i <= r; ++i) {
 				for (int j = -r + 1; j <= r; ++j) {
-					uint2 cur = make_uint2(
-							clamp(
-									make_int2(centerPixel.x + j,
-											centerPixel.y + i), make_int2(0),
-									make_int2(2 * outSize.x - 1,
-											2 * outSize.y - 1)));
-					float current = in[cur.x + cur.y * inSize.x];
+          Eigen::Vector2i cur = centerPixel + Eigen::Vector2i(j, i); 
+          clamp(cur, 
+                Eigen::Vector2i::Constant(0), 
+                Eigen::Vector2i(2 * out.width() - 1, 2 * out.height() - 1));
+					float current = in[cur.x() + cur.y() * in.width()];
 					if (fabsf(current - center) < e_d) {
 						sum += 1.0f;
 						t += current;
 					}
 				}
 			}
-			out[pixel.x + pixel.y * outSize.x] = t / sum;
+			out[pixel.x() + pixel.y() * out.width()] = t / sum;
 		}
 	}
 	TOCK("halfSampleRobustImageKernel", outSize.x * outSize.y);
 }
-
