@@ -19,11 +19,13 @@ const float normal_threshold = 0.8f;
 const float track_threshold = 0.15f;
 const float maxweight = 100.0f;
 
-/** TODO
+/**
+ * TODO
  */
 const float nearPlane = 0.4f;
 
-/** TODO
+/**
+ * TODO
  */
 const float farPlane = 4.0f;
 

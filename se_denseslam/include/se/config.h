@@ -43,133 +43,156 @@ struct Configuration {
 	// Command line arguments are parsed in default_parameters.h 
 	//
 
-	/** The ratio of the input frame size over the frame size used internally.
-	 *  Values greater than 1 result in the input frames being downsampled
-	 *  before processing. Valid values are 1, 2, 4 and 8.
-	 *  <br>\em Default: 1
+	/** 
+	 * The ratio of the input frame size over the frame size used internally.
+	 * Values greater than 1 result in the input frames being downsampled
+	 * before processing. Valid values are 1, 2, 4 and 8.
+	 * <br>\em Default: 1
 	 */
 	int compute_size_ratio;
 
-	/** Perform tracking on a frame every tracking_rate frames.
-	 *  <br>\em Default: 1
+	/** 
+	 * Perform tracking on a frame every tracking_rate frames.
+	 * <br>\em Default: 1
 	 */
 	int tracking_rate;
 
-	/** Integrate a 3D reconstruction every integration_rate frames.
-	 *  Should not be less than tracking_rate.
-	 *  <br>\em Default: 2
+	/** 
+	 * Integrate a 3D reconstruction every integration_rate frames. Should not
+	 * be less than tracking_rate.
+	 * <br>\em Default: 2
 	 */
 	int integration_rate;
 
-	/** Render the 3D reconstruction every rendering_rate frames.
-	 *  <br>\em Default: 4
+	/** 
+	 * Render the 3D reconstruction every rendering_rate frames.
+	 * <br>\em Default: 4
 	 */
 	int rendering_rate;
 
-	/** The x, y and z resolution of the reconstructed volume in voxels.
-	 *  <br>\em Default: (256, 256, 256)
+	/** 
+	 * The x, y and z resolution of the reconstructed volume in voxels.
+	 * <br>\em Default: (256, 256, 256)
 	 */
 	uint3 volume_resolution;
 
-	/** The x, y and z dimensions of the reconstructed volume in meters. 
-	 *  <br>\em Default: (2, 2, 2)
+	/** 
+	 * The x, y and z dimensions of the reconstructed volume in meters. 
+	 * <br>\em Default: (2, 2, 2)
 	 */
 	float3 volume_size;
 
     int voxel_block_size;
 
-	/** TODO
-	 *  <br>\em Default: (0.5, 0.5, 0)
+	/** 
+	 * TODO
+	 * <br>\em Default: (0.5, 0.5, 0)
 	 */
 	float3 initial_pos_factor;
 
-	/** TODO
-	 *  <br>\em Default: (10, 5, 4)
+	/** 
+	 * TODO
+	 * <br>\em Default: (10, 5, 4)
 	 */
 	std::vector<int> pyramid;
 
-	/** TODO
-	 *  <br>\em Default: ""
+	/** 
+	 * TODO
+	 * <br>\em Default: ""
 	 */
 	std::string dump_volume_file;
 
-	/** TODO
-	 *  <br>\em Default: ""
+	/** 
+	 * TODO
+	 * <br>\em Default: ""
 	 */
 	std::string input_file;
 
-	/** TODO
-	 *  <br>\em Default: ""
+	/** 
+	 * TODO
+	 * <br>\em Default: ""
 	 */
 	std::string log_file;
 
-	/** TODO
-	 *  <br>\em Default: ""
+	/** 
+	 * TODO
+	 * <br>\em Default: ""
 	 */
 	std::string groundtruth_file;
 
-	/** The intrinsic camera parameters.
-	 *  camera.x, camera.y, camera.z and camera.w are the x-axis focal length,
-	 *  y-axis focal length, horizontal resolution (pixels) and vertical
-	 *  resolution (pixels) respectively.
+	/** 
+	 * The intrinsic camera parameters. camera.x, camera.y, camera.z and
+	 * camera.w are the x-axis focal length, y-axis focal length, horizontal
+	 * resolution (pixels) and vertical resolution (pixels) respectively.
 	 */
 	float4 camera;
 
-	/** Whether the default intrinsic camera parameters have been overriden.
+	/** 
+	 * Whether the default intrinsic camera parameters have been overriden.
 	 */
 	bool camera_overrided;
 
-	/** The TSDF truncation bound.
-	 *  Values of the TSDF are assumed to be in the interval ±mu. See Section
-	 *  3.3 of \cite NewcombeISMAR2011 for more details.
+	/** 
+	 * The TSDF truncation bound. Values of the TSDF are assumed to be in the
+	 * interval ±mu. See Section 3.3 of \cite NewcombeISMAR2011 for more
+	 * details.
 	 *  <br>\em Default: 0.1
 	 */
 	float mu;
 
-	/** TODO
-	 *  Must be non-negative.
-	 *  <br>\em Default: 0
+	/** 
+	 * TODO
+	 *
+	 * @note Must be non-negative.
+	 *
+	 * <br>\em Default: 0
 	 */
 	int fps;
 
-	/** TODO
-	 *  <br>\em Default: false
+	/** 
+	 * TODO
+	 * <br>\em Default: false
 	 */
 	bool blocking_read;
 
-	/** The ICP convergence threshold.
-	 *  <br>\em Default: 1e-5
+	/** 
+	 * The ICP convergence threshold.
+	 * <br>\em Default: 1e-5
 	 */
 	float icp_threshold;
 
-	/** Whether to hide the GUI.
-	 *  Hiding the GUI results in faster operation.
-	 *  <br>\em Default: false
+	/** 
+	 * Whether to hide the GUI. Hiding the GUI results in faster operation.
+	 * <br>\em Default: false
 	 */
 	bool no_gui;
 
-	/** TODO
-	 *  <br>\em Default: false
+	/** 
+	 * TODO
+	 * <br>\em Default: false
 	 */
 	bool render_volume_fullsize;
 
-	/** Whether to filter the depth input frames using a bilateral filter.
-	 *  Filtering using a bilateral filter helps to reduce the measurement
-	 *  noise.
-	 *  <br>\em Default: false
+	/** 
+	 * Whether to filter the depth input frames using a bilateral filter.
+	 * Filtering using a bilateral filter helps to reduce the measurement
+	 * noise.
+	 * <br>\em Default: false
 	 */
 	bool bilateralFilter;
 
 	/* UNUSED */
 	bool colouredVoxels;
 
-	/* UNUSED
-	 *  <br>\em Default: false
+	/* 
+	 * UNUSED
+	 * <br>\em Default: false
 	 */
 	bool multiResolution;
 
-	/* UNUSED
-	 *  <br>\em Default: false
+	/* 
+	 * UNUSED
+	 * <br>\em Default: false
 	 */
 	bool bayesian;
 };
