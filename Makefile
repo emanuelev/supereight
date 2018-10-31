@@ -44,15 +44,19 @@ demo-kfusion:
 
 #### GENERAL GENERATION ####
 
+doc :
+	doxygen
+
 clean :
 	rm -rf build
 cleanall : 
 	rm -rf build
 	rm -rf living_room_traj*_loop livingRoom*.gt.freiburg living_room_traj*_loop.raw
 	rm -f *.log 
+	rm -f doc
 
 
-.PHONY : clean bench test all validate
+.PHONY : clean bench test all validate doc
 
 .PRECIOUS: living_room_traj%_loop livingRoom%.gt.freiburg living_room_traj%_loop.raw
 
