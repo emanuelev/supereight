@@ -36,6 +36,9 @@
 #include <math_utils.h>
 #include "timings.h"
 
+#include <se/commons.h>
+#include <se/image/image.hpp>
+
 void new_reduce(int blockIndex, float * out, TrackData* J, const uint2 Jsize,
 		const uint2 size) {
 	float *sums = out + blockIndex * 32;
@@ -280,66 +283,79 @@ void reduceKernel(float * out, TrackData* J, const uint2 Jsize,
 	TOCK("reduceKernel", 512);
 }
 
-void trackKernel(TrackData* output, const float3* inVertex,
-		const float3* inNormal, uint2 inSize, const float3* refVertex,
-		const float3* refNormal, uint2 refSize, const Matrix4 Ttrack,
-		const Matrix4 view, const float dist_threshold,
+void trackKernel(TrackData* output, 
+    const se::Image<Eigen::Vector3f>& inVertex,
+		const se::Image<Eigen::Vector3f>& inNormal, 
+    const se::Image<Eigen::Vector3f>&  refVertex,
+		const se::Image<Eigen::Vector3f>& refNormal, 
+    const Eigen::Matrix4f& Ttrack,
+		const Eigen::Matrix4f& view, 
+    const float dist_threshold,
 		const float normal_threshold) {
 	TICK();
-	uint2 pixel = make_uint2(0, 0);
-	unsigned int pixely, pixelx;
+	Eigen::Vector2i   pixel(0, 0);
+  Eigen::Vector2i  inSize( inVertex.width(),  inVertex.height());
+  Eigen::Vector2i refSize(refVertex.width(), refVertex.height());
+
+	int pixely, pixelx;
 #pragma omp parallel for \
 	    shared(output), private(pixel,pixelx,pixely)
-	for (pixely = 0; pixely < inSize.y; pixely++) {
-		for (pixelx = 0; pixelx < inSize.x; pixelx++) {
-			pixel.x = pixelx;
-			pixel.y = pixely;
+	for (pixely = 0; pixely < inSize.y(); pixely++) {
+		for (pixelx = 0; pixelx < inSize.x(); pixelx++) {
+			pixel.x() = pixelx;
+			pixel.y() = pixely;
 
-			TrackData & row = output[pixel.x + pixel.y * refSize.x];
+			TrackData & row = output[pixel.x() + pixel.y() * refSize.x()];
 
-			if (inNormal[pixel.x + pixel.y * inSize.x].x == INVALID) {
+			if (inNormal[pixel.x() + pixel.y() * inSize.x()].x() == INVALID) {
 				row.result = -1;
 				continue;
 			}
 
-			const float3 projectedVertex = Ttrack
-					* inVertex[pixel.x + pixel.y * inSize.x];
-			const float3 projectedPos = view * projectedVertex;
-			const float2 projPixel = make_float2(
-					projectedPos.x / projectedPos.z + 0.5f,
-					projectedPos.y / projectedPos.z + 0.5f);
-			if (projPixel.x < 0 || projPixel.x > refSize.x - 1
-					|| projPixel.y < 0 || projPixel.y > refSize.y - 1) {
+			const Eigen::Vector3f projectedVertex = (Ttrack * 
+          inVertex[pixel.x() + pixel.y() * inSize.x()].homogeneous()).head<3>();
+			const Eigen::Vector3f projectedPos = view * projectedVertex;
+			const Eigen::Vector2f projPixel(
+					projectedPos.x() / projectedPos.z() + 0.5f,
+					projectedPos.y() / projectedPos.z() + 0.5f);
+			if (projPixel.x() < 0 || projPixel.x() > refSize.x() - 1
+					|| projPixel.y() < 0 || projPixel.y() > refSize.y() - 1) {
 				row.result = -2;
 				continue;
 			}
 
-			const uint2 refPixel = make_uint2(projPixel.x, projPixel.y);
-			const float3 referenceNormal = refNormal[refPixel.x
-					+ refPixel.y * refSize.x];
+			const Eigen::Vector2i refPixel = projPixel.cast<int>();
+			const Eigen::Vector3f referenceNormal = refNormal[refPixel.x()
+					+ refPixel.y() * refSize.x()];
 
-			if (referenceNormal.x == INVALID) {
+			if (referenceNormal.x() == INVALID) {
 				row.result = -3;
 				continue;
 			}
 
-			const float3 diff = refVertex[refPixel.x + refPixel.y * refSize.x]
+			const Eigen::Vector3f diff = refVertex[refPixel.x() + refPixel.y() * refSize.x()]
 					- projectedVertex;
-			const float3 projectedNormal = rotate(Ttrack,
-					inNormal[pixel.x + pixel.y * inSize.x]);
+			const Eigen::Vector3f projectedNormal = Ttrack.topLeftCorner<3, 3>() * 
+					inNormal[pixel.x() + pixel.y() * inSize.x()];
 
-			if (length(diff) > dist_threshold) {
+			if (diff.norm() > dist_threshold) {
 				row.result = -4;
 				continue;
 			}
-			if (dot(projectedNormal, referenceNormal) < normal_threshold) {
+			if (projectedNormal.dot(referenceNormal) < normal_threshold) {
 				row.result = -5;
 				continue;
 			}
 			row.result = 1;
-			row.error = dot(referenceNormal, diff);
-			((float3 *) row.J)[0] = referenceNormal;
-			((float3 *) row.J)[1] = cross(projectedVertex, referenceNormal);
+			row.error = referenceNormal.dot(diff);
+			row.J[0] = referenceNormal.x();
+			row.J[1] = referenceNormal.y();
+			row.J[2] = referenceNormal.z();
+
+      Eigen::Vector3f crossRes = projectedVertex.cross(referenceNormal);
+			row.J[3] = crossRes.x();
+			row.J[4] = crossRes.y();
+			row.J[5] = crossRes.z();
 		}
 	}
 	TOCK("trackKernel", inSize.x * inSize.y);

@@ -66,8 +66,8 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution,
   computation_size_(make_uint2(inputSize.x, inputSize.y)),
   vertex_(computation_size_.x, computation_size_.y),
   normal_(computation_size_.x, computation_size_.y),
-  float_depth_(computation_size_.x, computation_size_.y),
-  tracking_result_(computation_size_.x, computation_size_.y) {
+  float_depth_(computation_size_.x, computation_size_.y)
+  {
 
     this->init_pose_ = getPosition();
     this->volume_dimension_ = volumeDimensions;
@@ -88,16 +88,17 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution,
 
     // internal buffers to initialize
     reduction_output_.resize(8 * 32);
+    tracking_result_.resize(computation_size_.x * computation_size_.y);
 
     for (unsigned int i = 0; i < iterations_.size(); ++i) {
       int downsample = 1 << i;
       scaled_depth_.push_back(se::Image<float>(computation_size_.x / downsample, 
             computation_size_.y / downsample));
 
-      input_vertex_.push_back(se::Image<float3>(computation_size_.x / downsample, 
+      input_vertex_.push_back(se::Image<Eigen::Vector3f>(computation_size_.x / downsample, 
             computation_size_.y / downsample));
 
-      input_normal_.push_back(se::Image<float3>(computation_size_.x / downsample, 
+      input_normal_.push_back(se::Image<Eigen::Vector3f>(computation_size_.x / downsample, 
             computation_size_.y / downsample));
     }
 
@@ -179,10 +180,9 @@ bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate
 				computation_size_.y / (int) pow(2, level));
 		for (int i = 0; i < iterations_[level]; ++i) {
 
-			trackKernel(tracking_result_.data(), input_vertex_[level].data(), 
-          input_normal_[level].data(),
-					localimagesize, vertex_.data(), normal_.data(), computation_size_, pose_,
-					projectReference, dist_threshold, normal_threshold);
+      trackKernel(tracking_result_.data(), input_vertex_[level], input_normal_[level],
+          vertex_, normal_, to_eigen(pose_), to_eigen(projectReference),
+          dist_threshold, normal_threshold);
 
 			reduceKernel(reduction_output_.data(), tracking_result_.data(), computation_size_,
 					localimagesize);

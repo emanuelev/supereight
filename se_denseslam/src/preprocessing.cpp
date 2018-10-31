@@ -175,7 +175,7 @@ void mm2metersKernel(se::Image<float> out, const ushort* in,
         shared(out), private(y)
 	for (y = 0; y < out.height(); y++)
 		for (int x = 0; x < out.width(); x++) {
-			out[x + out.width() * y] = in[x * ratio + in.width() * y * ratio]
+			out[x + out.width() * y] = in[x * ratio + inputSize.x() * y * ratio]
 					/ 1000.0f;
 		}
 	TOCK("mm2metersKernel", outSize.x * outSize.y);
