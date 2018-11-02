@@ -31,16 +31,16 @@
 #include <math_utils.h> 
 #include <type_traits>
 
-float4 raycast(const Volume<SDF>& volume, const float3 origin, 
-    const float3 direction, const float tnear, const float tfar, const float mu, 
-    const float step, const float largestep) { 
+inline Eigen::Vector4f raycast(const Volume<SDF>& volume, const Eigen::Vector3f& origin, 
+    const Eigen::Vector3f& direction, const float tnear, const float tfar, 
+    const float mu, const float step, const float largestep) { 
 
   auto select_depth = [](const auto& val){ return val.x; };
   if (tnear < tfar) {
     // first walk with largesteps until we found a hit
     float t = tnear;
     float stepsize = largestep;
-    float3 position = origin + direction * t;
+    Eigen::Vector3f position = origin + direction * t;
     float f_t = volume.interp(position, select_depth);
     float f_tt = 0;
     if (f_t > 0) { // ups, if we were already in it, then don't render anything here
@@ -64,39 +64,41 @@ float4 raycast(const Volume<SDF>& volume, const float3 origin,
       }
       if (f_tt < 0) {           // got it, calculate accurate intersection
         t = t + stepsize * f_tt / (f_t - f_tt);
-        return make_float4(origin + direction * t, t);
+        Eigen::Vector4f res = (origin + direction * t).homogeneous();
+        res.w() = t;
+        return res;
       }
     }
   }
-  return make_float4(0);
+  return Eigen::Vector4f::Constant(0);
 }
 
-float4 raycast(const Volume<SDF>& volume, const uint2 pos, const Matrix4 view,
-    const float nearPlane, const float farPlane, const float mu, 
-    const float step, const float largestep) { 
-
-  const float3 origin = get_translation(view);
-  const float3 direction = normalize(rotate(view, make_float3(pos.x, pos.y, 1.f)));
-
-  // intersect ray with a box
-  // http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter3.htm
-  // compute intersection of ray with all six bbox planes
-  const float3 invR = make_float3(1.0f) / direction;
-  const float3 tbot = -1 * invR * origin;
-  const float3 ttop = invR * (volume._dim - origin);
-
-  // re-order intersections to find smallest and largest on each axis
-  const float3 tmin = fminf(ttop, tbot);
-  const float3 tmax = fmaxf(ttop, tbot);
-
-  // find the largest tmin and the smallest tmax
-  const float largest_tmin = fmaxf(fmaxf(tmin.x, tmin.y),
-      fmaxf(tmin.x, tmin.z));
-  const float smallest_tmax = fminf(fminf(tmax.x, tmax.y),
-      fminf(tmax.x, tmax.z));
-
-  // check against near and far plane
-  const float tnear = fmaxf(largest_tmin, nearPlane);
-  const float tfar = fminf(smallest_tmax, farPlane);
-  return raycast(volume, origin, direction, tnear, tfar, mu, step,  largestep);
-}
+// float4 raycast(const Volume<SDF>& volume, const uint2 pos, const Matrix4 view,
+//     const float nearPlane, const float farPlane, const float mu, 
+//     const float step, const float largestep) { 
+// 
+//   const float3 origin = get_translation(view);
+//   const float3 direction = normalize(rotate(view, make_float3(pos.x, pos.y, 1.f)));
+// 
+//   // intersect ray with a box
+//   // http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter3.htm
+//   // compute intersection of ray with all six bbox planes
+//   const float3 invR = make_float3(1.0f) / direction;
+//   const float3 tbot = -1 * invR * origin;
+//   const float3 ttop = invR * (volume._dim - origin);
+// 
+//   // re-order intersections to find smallest and largest on each axis
+//   const float3 tmin = fminf(ttop, tbot);
+//   const float3 tmax = fmaxf(ttop, tbot);
+// 
+//   // find the largest tmin and the smallest tmax
+//   const float largest_tmin = fmaxf(fmaxf(tmin.x, tmin.y),
+//       fmaxf(tmin.x, tmin.z));
+//   const float smallest_tmax = fminf(fminf(tmax.x, tmax.y),
+//       fminf(tmax.x, tmax.z));
+// 
+//   // check against near and far plane
+//   const float tnear = fmaxf(largest_tmin, nearPlane);
+//   const float tfar = fminf(smallest_tmax, farPlane);
+//   return raycast(volume, origin, direction, tnear, tfar, mu, step,  largestep);
+// }

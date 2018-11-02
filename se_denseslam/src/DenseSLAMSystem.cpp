@@ -204,9 +204,9 @@ bool DenseSLAMSystem::raycasting(float4 k, float mu, uint frame) {
   if(frame > 2) {
     raycast_pose_ = pose_;
     float step = volume_dimension_.x / volume_resolution_.x;
-    raycastKernel(volume_, vertex_.data(), normal_.data(), computation_size_,
-        raycast_pose_ * getInverseCameraMatrix(k), nearPlane, farPlane, mu,
-        step, step*BLOCK_SIDE);
+    raycastKernel(volume_, vertex_, normal_,
+        to_eigen(raycast_pose_ * getInverseCameraMatrix(k)), nearPlane,
+        farPlane, mu, step, step*BLOCK_SIDE);
     doRaycast = true;
   }
   return doRaycast;
@@ -303,11 +303,11 @@ void DenseSLAMSystem::renderVolume(uchar4 * out, uint2 outputSize, int frame,
 	if (frame % raycast_rendering_rate == 0) {
     const float step = volume_dimension_.x / volume_resolution_.x;
 		renderVolumeKernel(volume_, out, outputSize,
-	*(this->viewPose_) * getInverseCameraMatrix(k), nearPlane,
+	to_eigen(*(this->viewPose_) * getInverseCameraMatrix(k)), nearPlane,
 	farPlane * 2.0f, mu_, step, largestep,
-        get_translation(*(this->viewPose_)), ambient,
-        !compareMatrix4(*(this->viewPose_), raycast_pose_), vertex_.data(), 
-        normal_.data());
+        to_eigen(*(this->viewPose_)).topRightCorner<3, 1>(), ambient,
+        !compareMatrix4(*(this->viewPose_), raycast_pose_), vertex_, 
+        normal_);
   }
 }
 

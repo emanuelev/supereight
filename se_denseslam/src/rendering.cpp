@@ -34,54 +34,56 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 #include <math_utils.h>
-#include "timings.h"
-#include <se/continuous/volume_template.hpp>
+#include <se/commons.h>
+#include <timings.h>
 #include <tuple>
+
 #include <sophus/se3.hpp>
+#include <se/continuous/volume_template.hpp>
+#include <se/image/image.hpp>
+#include <se/ray_iterator.hpp>
 
 /* Raycasting implementations */ 
 #include "bfusion/rendering_impl.hpp"
 #include "kfusion/rendering_impl.hpp"
 
 template<typename T>
-void raycastKernel(const Volume<T>& volume, float3* vertex, float3* normal, uint2 inputSize, 
-    const Matrix4 view, const float nearPlane, const float farPlane, 
-    const float mu, const float step, const float largestep) {
+void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
+   se::Image<Eigen::Vector3f>& normal,
+   const Eigen::Matrix4f& view, const float nearPlane, const float farPlane, 
+   const float mu, const float step, const float largestep) {
   TICK();
-
-  unsigned int y;
+  int y;
 #pragma omp parallel for shared(normal, vertex), private(y)
-  for (y = 0; y < inputSize.y; y++)
+  for (y = 0; y < vertex.height(); y++)
 #pragma simd
-    for (unsigned int x = 0; x < inputSize.x; x++) {
+    for (int x = 0; x < vertex.width(); x++) {
 
       uint2 pos = make_uint2(x, y);
       const Eigen::Vector3f dir = 
-        (to_eigen(view).topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
-      const float3 transl = get_translation(view);
-      se::ray_iterator<typename Volume<T>::field_type> ray(*volume._map_index,
-          Eigen::Vector3f(transl.x, transl.y, transl.z), dir, nearPlane, farPlane);
+        (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
+      const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
+      se::ray_iterator<T> ray(*volume._map_index, transl, dir, nearPlane, farPlane);
       ray.next();
       const float t_min = ray.tcmin(); /* Get distance to the first intersected block */
-      const float4 hit = t_min > 0.f ? 
-        raycast(volume, transl, make_float3(dir(0), dir(1), dir(2)), t_min, ray.tmax(), mu, step, largestep) : 
-        make_float4(0.f);
-      if(hit.w > 0.0) {
-        vertex[pos.x + pos.y * inputSize.x] = make_float3(hit);
-        Eigen::Vector3f tmp = volume.grad(make_float3(hit), 
+      const Eigen::Vector4f hit = t_min > 0.f ? 
+        raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, largestep) : 
+        Eigen::Vector4f::Constant(0.f);
+      if(hit.w() > 0.0) {
+        vertex[x + y * vertex.width()] = Eigen::Vector3f(hit);
+        Eigen::Vector3f surfNorm = volume.grad(hit.head<3>(), 
             [](const auto& val){ return val.x; });
-        float3 surfNorm = make_float3(tmp(0), tmp(1), tmp(2));
-        if (length(surfNorm) == 0) {
+        if (surfNorm.norm() == 0) {
           //normal[pos] = normalize(surfNorm); // APN added
-          normal[pos.x + pos.y * inputSize.x] = make_float3(INVALID, 0, 0);
+          normal[pos.x + pos.y * normal.width()] = Eigen::Vector3f(INVALID, 0, 0);
         } else {
           // Invert normals if SDF 
-          normal[pos.x + pos.y * inputSize.x] = std::is_same<T, SDF>::value ?
-            normalize(-1.f * surfNorm) : normalize(surfNorm);
+          normal[pos.x + pos.y * normal.width()] = std::is_same<T, SDF>::value ?
+            (-1.f * surfNorm).normalized() : surfNorm.normalized();
         }
       } else {
-        vertex[pos.x + pos.y * inputSize.x] = make_float3(0);
-        normal[pos.x + pos.y * inputSize.x] = make_float3(INVALID, 0, 0);
+        vertex[pos.x + pos.y * vertex.width()] = Eigen::Vector3f::Constant(0);
+        normal[pos.x + pos.y * normal.width()] = Eigen::Vector3f(INVALID, 0, 0);
       }
     }
   TOCK("raycastKernel", inputSize.x * inputSize.y);
@@ -174,36 +176,35 @@ void renderTrackKernel(uchar4* out, const TrackData* data, uint2 outSize) {
 }
 
 template <typename T>
-void renderVolumeKernel(const Volume<T>& volume, uchar4* out, const uint2 depthSize, const Matrix4 view, 
+void renderVolumeKernel(const Volume<T>& volume, uchar4* out, const uint2 depthSize, 
+    const Eigen::Matrix4f view, 
     const float nearPlane, const float farPlane, const float mu,
-		const float step, const float largestep, const float3 light,
-		const float3 ambient, bool render, const float3 * vertex, 
-    const float3 * normal) {
+		const float step, const float largestep, const Eigen::Vector3f light,
+		const Eigen::Vector3f ambient, bool render, const se::Image<Eigen::Vector3f>& vertex, 
+    const se::Image<Eigen::Vector3f>& normal) {
   TICK();
   unsigned int y;
 #pragma omp parallel for shared(out), private(y)
   for (y = 0; y < depthSize.y; y++) {
     for (unsigned int x = 0; x < depthSize.x; x++) {
-      float4 hit;
-      float3 test, surfNorm;
+      Eigen::Vector4f hit;
+      Eigen::Vector3f test, surfNorm;
 
       if(render) {
         const Eigen::Vector3f dir = 
-          (to_eigen(view).topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
-        const float3 transl = get_translation(view);
+          (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
+        const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
         se::ray_iterator<typename Volume<T>::field_type> ray(*volume._map_index, 
-            Eigen::Vector3f(transl.x, transl.y, transl.z), dir, nearPlane, 
-            farPlane);
+            transl, dir, nearPlane, farPlane);
         ray.next();
         const float t_min = ray.tmin(); /* Get distance to the first intersected block */
         hit = t_min > 0.f ? 
           raycast(volume, transl, make_float3(dir(0), dir(1), dir(2)), t_min, ray.tmax(), mu, step, largestep) : 
-          make_float4(0.f);
-        if (hit.w > 0) {
-          test = make_float3(hit);
-          Eigen::Vector3f tmp = volume.grad(make_float3(hit), 
+          Eigen::Vector3f::Constant(0.f);
+        if (hit.w() > 0) {
+          test = hit.head<3>();
+          Eigen::Vector3f surfNorm = volume.grad(test, 
               [](const auto& val){ return val.x; });
-          surfNorm = make_float3(tmp(0), tmp(1), tmp(2));
 
           // Invert normals if SDF 
           surfNorm = std::is_same<T, SDF>::value ? -1.f * surfNorm : surfNorm;
@@ -216,13 +217,13 @@ void renderVolumeKernel(const Volume<T>& volume, uchar4* out, const uint2 depthS
         surfNorm = normal[x + depthSize.x*y];
       }
 
-      if (surfNorm.x != INVALID && length(surfNorm) > 0) {
-        const float3 diff = normalize(test - light);
-        const float dir = fmaxf(dot(normalize(surfNorm), diff),
-            0.f);
-        const float3 col = clamp(make_float3(dir) + ambient, 0.f,
-            1.f) * 255;
-        out[x + depthSize.x*y] = make_uchar4(col.x, col.y, col.z, 0); // The forth value is a padding to align memory
+      if (surfNorm.x() != INVALID && surfNorm.norm() > 0) {
+        const Eigen::Vector3f diff = (test - light).normalized();
+        const Eigen::Vector3f dir = Eigen::Vector3f::Constant(fmaxf(surfNorm.normalized().dot(diff), 0.f));
+        Eigen::Vector3f col = dir + ambient;
+        clamp(col, Eigen::Vector3f::Constant(0.f), Eigen::Vector3f::Constant(1.f));
+        col *=  255.f;
+        out[x + depthSize.x*y] = make_uchar4(col.x(), col.y(), col.z(), 0); // The forth value is a padding to align memory
       } else {
         out[x + depthSize.x*y] = make_uchar4(0, 0, 0, 0); // The forth value is a padding to align memory
       }
