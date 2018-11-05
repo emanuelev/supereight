@@ -131,14 +131,14 @@ static inline std::ostream& operator<<(std::ostream& os, const uint3& val) {
   return os;
 }
 
-void clamp(Eigen::Ref<Eigen::VectorXf> res, const Eigen::Ref<const Eigen::VectorXf> a, 
+static inline void clamp(Eigen::Ref<Eigen::VectorXf> res, const Eigen::Ref<const Eigen::VectorXf> a, 
           const Eigen::Ref<Eigen::VectorXf> b) {
   res = (res.array() < a.array()).select(a, res);
   res = (res.array() >= b.array()).select(b, res);
 } 
 
 template <typename R, typename A, typename B>
-void clamp(Eigen::MatrixBase<R>& res, const Eigen::MatrixBase<A>& a, 
+static inline void clamp(Eigen::MatrixBase<R>& res, const Eigen::MatrixBase<A>& a, 
           const Eigen::MatrixBase<B>& b) {
  res = res.array().max(a.array());
  res = res.array().min(b.array());

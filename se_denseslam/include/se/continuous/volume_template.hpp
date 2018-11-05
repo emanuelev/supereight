@@ -68,15 +68,15 @@ class VolumeTemplate {
 
     void set(const  Eigen::Vector3f& , const value_type& ) {}
 
-    value_type operator[](const Eigen::Vector3f & p) const {
+    value_type operator[](const Eigen::Vector3f& p) const {
       const float inverseVoxelSize = _size/_dim;
-      const Eigen::Vector3i scaled_pos = (inverseVoxelSize * p).cast<int>();
+      const Eigen::Vector3i scaled_pos = (p * inverseVoxelSize).cast<int>();
       return _map_index->get(scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
     }
 
     value_type get(const Eigen::Vector3f & p) const {
       const float inverseVoxelSize = _size/_dim;
-      const Eigen::Vector4i scaled_pos = inverseVoxelSize * p.homogeneous();
+      const Eigen::Vector4i scaled_pos = (inverseVoxelSize * p.homogeneous()).cast<int>();
         return _map_index->get_fine(scaled_pos.x(), 
                                     scaled_pos.y(), 
                                     scaled_pos.z());

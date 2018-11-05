@@ -314,7 +314,7 @@ void trackKernel(TrackData* output,
 
 			const Eigen::Vector3f projectedVertex = (Ttrack * 
           inVertex[pixel.x() + pixel.y() * inSize.x()].homogeneous()).head<3>();
-			const Eigen::Vector3f projectedPos = view * projectedVertex;
+			const Eigen::Vector3f projectedPos = (view * projectedVertex.homogeneous()).head<3>();
 			const Eigen::Vector2f projPixel(
 					projectedPos.x() / projectedPos.z() + 0.5f,
 					projectedPos.y() / projectedPos.z() + 0.5f);

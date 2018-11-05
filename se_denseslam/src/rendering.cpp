@@ -70,7 +70,7 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
         raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, largestep) : 
         Eigen::Vector4f::Constant(0.f);
       if(hit.w() > 0.0) {
-        vertex[x + y * vertex.width()] = Eigen::Vector3f(hit);
+        vertex[x + y * vertex.width()] = hit.head<3>();
         Eigen::Vector3f surfNorm = volume.grad(hit.head<3>(), 
             [](const auto& val){ return val.x; });
         if (surfNorm.norm() == 0) {
@@ -199,8 +199,8 @@ void renderVolumeKernel(const Volume<T>& volume, uchar4* out, const uint2 depthS
         ray.next();
         const float t_min = ray.tmin(); /* Get distance to the first intersected block */
         hit = t_min > 0.f ? 
-          raycast(volume, transl, make_float3(dir(0), dir(1), dir(2)), t_min, ray.tmax(), mu, step, largestep) : 
-          Eigen::Vector3f::Constant(0.f);
+          raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, largestep) : 
+          Eigen::Vector4f::Constant(0.f);
         if (hit.w() > 0) {
           test = hit.head<3>();
           Eigen::Vector3f surfNorm = volume.grad(test, 
