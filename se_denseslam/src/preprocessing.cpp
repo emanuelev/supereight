@@ -152,7 +152,7 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out,
 	TOCK("vertex2normalKernel", width * height);
 }
 
-void mm2metersKernel(se::Image<float> out, const ushort* in, 
+void mm2metersKernel(se::Image<float>& out, const ushort* in, 
     const Eigen::Vector2i& inputSize) {
 	TICK();
 	// Check for unsupported conditions
