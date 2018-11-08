@@ -44,6 +44,9 @@ demo-kfusion:
 
 #### GENERAL GENERATION ####
 
+ctags :
+	ctags -R .
+
 doc :
 	doxygen
 
@@ -54,6 +57,7 @@ cleanall :
 	rm -rf living_room_traj*_loop livingRoom*.gt.freiburg living_room_traj*_loop.raw
 	rm -f *.log 
 	rm -f doc
+	rm -f tags TAGS
 
 
 .PHONY : clean bench test all validate doc

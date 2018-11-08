@@ -38,3 +38,7 @@ doc
 # vim temporary files
 .*.swp
 
+# ctags
+tags
+TAGS
+
