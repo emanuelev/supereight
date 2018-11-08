@@ -119,7 +119,7 @@ DenseSLAMSystem::DenseSLAMSystem(uint2              inputSize,
 
     // ********* END : Generate the gaussian *************
 
-    if(config_.groundtruth_file != ""){
+    if (config_.groundtruth_file != "") {
       parseGTFile(config_.groundtruth_file, poses);
       std::cout << "Parsed " << poses.size() << " poses" << std::endl;
     }
@@ -132,7 +132,7 @@ DenseSLAMSystem::DenseSLAMSystem(uint2              inputSize,
 
 bool DenseSLAMSystem::preprocessing(const ushort * inputDepth,
                                     const uint2    inputSize,
-                                    const bool     filterInput){
+                                    const bool     filterInput) {
 
     // Scale the depth frame to the size used internaly for computation and
     // convert the depth data from millimeters to meters.
@@ -141,7 +141,7 @@ bool DenseSLAMSystem::preprocessing(const ushort * inputDepth,
 
     // Optionally pass the depth frame through a bilateral filter to smooth the
     // data.
-    if(filterInput){
+    if (filterInput) {
         bilateralFilterKernel(scaled_depth_[0].data(), float_depth_.data(),
             computation_size_, gaussian_.data(), e_delta, radius);
     }
@@ -183,16 +183,21 @@ bool DenseSLAMSystem::tracking(float4 k,
   uint2 localimagesize = computation_size_;
   for (unsigned int i = 0; i < iterations_.size(); ++i) {
     Matrix4 invK = getInverseCameraMatrix(k / float(1 << i));
-    // Generate a 3D point for each depth frame pixel.
+
+    // Generate a 3D point for each depth frame pixel (vertex map) in
+    // input_vertex_.
     depth2vertexKernel(input_vertex_[i].data(), scaled_depth_[i].data(),
         localimagesize, invK);
-    // Generate a normal vector for each 3D point (normal map).
-    if(k.y < 0)
+
+    // Generate a normal vector for each 3D point (normal map) in
+    // input_normal_.
+    if (k.y < 0)
       vertex2normalKernel<true>(input_normal_[i].data(),
           input_vertex_[i].data(), localimagesize);
     else
       vertex2normalKernel<false>(input_normal_[i].data(),
           input_vertex_[i].data(), localimagesize);
+
     localimagesize = make_uint2(localimagesize.x / 2, localimagesize.y / 2);
   }
 
@@ -217,20 +222,23 @@ bool DenseSLAMSystem::tracking(float4 k,
 
       if (updatePoseKernel(pose_, reduction_output_.data(), icp_threshold))
         break;
-
     }
   }
   return checkPoseKernel(pose_, old_pose_, reduction_output_.data(),
       computation_size_, track_threshold);
 }
 
-bool DenseSLAMSystem::raycasting(float4 k, float mu, uint frame) {
+bool DenseSLAMSystem::raycasting(float4 k,
+                                 float  mu,
+                                 uint   frame) {
 
   bool doRaycast = false;
 
   if(frame > 2) {
     raycast_pose_ = pose_;
     float step = volume_dimension_.x / volume_resolution_.x;
+    // Raycast to create the vertex (vertex_) and normal (normal_) maps from
+    // the current pose.
     raycastKernel(volume_, vertex_.data(), normal_.data(), computation_size_,
         raycast_pose_ * getInverseCameraMatrix(k), nearPlane, farPlane, mu,
         step, step*BLOCK_SIDE);
@@ -244,6 +252,7 @@ bool DenseSLAMSystem::integration(float4 k,
                                   float  mu,
                                   uint   frame) {
 
+  // Integrate only if ground truth is used or if tracking was successful.
   bool doIntegrate = poses.empty() ? checkPoseKernel(pose_, old_pose_,
       reduction_output_.data(), computation_size_, track_threshold) : true;
 
@@ -254,6 +263,7 @@ bool DenseSLAMSystem::integration(float4 k,
     size_t total = num_vox_per_pix * computation_size_.x * computation_size_.y;
     allocation_list_.reserve(total);
 
+    // Allocation for octree.
     unsigned int allocated = 0;
     if(std::is_same<FieldType, SDF>::value) {
       allocated  = buildAllocationList(allocation_list_.data(),
@@ -270,7 +280,8 @@ bool DenseSLAMSystem::integration(float4 k,
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);
 
-    if(std::is_same<FieldType, SDF>::value) {
+    // Update octree data.
+    if (std::is_same<FieldType, SDF>::value) {
       struct sdf_update funct(float_depth_.data(),
           Eigen::Vector2i(computation_size_.x, computation_size_.y), mu, 100);
       se::functor::projective_map(*volume_._map_index,
@@ -278,7 +289,7 @@ bool DenseSLAMSystem::integration(float4 k,
           to_eigen(getCameraMatrix(k)),
           Eigen::Vector2i(computation_size_.x, computation_size_.y),
           funct);
-    } else if(std::is_same<FieldType, OFusion>::value) {
+    } else if (std::is_same<FieldType, OFusion>::value) {
 
       float timestamp = (1.f/30.f)*frame;
       struct bfusion_update funct(float_depth_.data(),
@@ -346,11 +357,11 @@ void DenseSLAMSystem::renderVolume(uchar4 * out,
 }
 
 void DenseSLAMSystem::renderTrack(uchar4 * out, uint2 outputSize) {
-        renderTrackKernel(out, tracking_result_.data(), outputSize);
+  renderTrackKernel(out, tracking_result_.data(), outputSize);
 }
 
 void DenseSLAMSystem::renderDepth(uchar4 * out, uint2 outputSize) {
-        renderDepthKernel(out, float_depth_.data(), outputSize, nearPlane, farPlane);
+  renderDepthKernel(out, float_depth_.data(), outputSize, nearPlane, farPlane);
 }
 
 void DenseSLAMSystem::dump_mesh(const std::string filename){
