@@ -57,29 +57,69 @@ using Volume = VolumeTemplate<T, se::Octree>;
 class DenseSLAMSystem {
 
   private:
+    /** The size (width and height) of the images used internaly. */
     uint2 computation_size_;
+
+    /** The current camera pose. */
     Matrix4 pose_;
+
+    /** The camera pose used to render the 3D reconstruction. */
     Matrix4 *viewPose_;
+
+    /** The x, y and z dimensions of the reconstructed volume in meters. */
     float3 volume_dimension_;
+
+    /** The x, y and z resolution of the reconstructed volume in voxels. */
     uint3 volume_resolution_;
+
+    /* TODO */
     std::vector<int> iterations_;
+
+    /* UNUSED */
     bool tracked_;
+
+    /* UNUSED */
     bool integrated_;
+
+    /** The initial camera position. */
     float3 init_pose_;
+
+    /**
+     * The TSDF truncation bound. Values of the TSDF are assumed to be in the
+     * interval ±mu. See Section 3.3 of \cite NewcombeISMAR2011 for more
+     * details.
+     */
     float mu_;
+
+    /* UNUSED */
     bool need_render_ = false;
+
+    /** Only used for legacy ground truth pose loading, to be removed. */
     Configuration config_;
 
+
+
     // input once
+    /** The Gaussian function used for the bilateral filter. */
     std::vector<float> gaussian_;
 
+
+
     // inter-frame
+    /**
+     * Vertex map of the current 3D reconstruction. Read in tracking and
+     * updated in rendering.
+     */
     se::Image<float3> vertex_;
+
+    /** The corresponding normal map for the above vertex map. */
     se::Image<float3> normal_;
 
     std::vector<se::key_t> allocation_list_;
     std::shared_ptr<se::Octree<FieldType> > discrete_vol_ptr_;
     Volume<FieldType> volume_;
+
+
 
     // intra-frame
     std::vector<float> reduction_output_;
@@ -87,12 +127,17 @@ class DenseSLAMSystem {
     std::vector<se::Image<float3> > input_vertex_;
     std::vector<se::Image<float3> > input_normal_;
     se::Image<float> float_depth_;
-    se::Image<TrackData>  tracking_result_;
+    se::Image<TrackData> tracking_result_;
+
+    /** The camera pose at the previous iteration. Used in tracking. */
     Matrix4 old_pose_;
+
+    /**
+     * The pose from which the current vertex_ and normal_ maps were raycasted.
+     */
     Matrix4 raycast_pose_;
 
   public:
-
     /**
      * Constructor using the initial camera position.
      *
@@ -112,8 +157,9 @@ class DenseSLAMSystem {
                     float3             initPose,
                     std::vector<int> & pyramid,
                     Configuration      config_);
+
     /**
-     * Constructor using the initial camera position.
+     * Constructor using the initial camera pose.
      *
      * \param[in] inputSize The size (width and height) of the input frames.
      * \param[in] volume_resolution_ The x, y and z resolution of the
@@ -133,13 +179,16 @@ class DenseSLAMSystem {
 
     /**
      * Preprocess a single depth measurement frame and add it to the pipeline.
-     * This is the first stage of the pipeline.
+     * The frame is scaled to the size used internally (see
+     * Configuration::compute_size_ratio) and it is optionally passed through a
+     * bilateral filter to reduce measurement noise. This is the first stage of
+     * the pipeline.
      *
      * \param[in] inputDepth Pointer to the depth frame.
      * \param[in] inputSize Size of the depth frame in pixels (width and
      * height).
      * \param[in] filterInput Whether to filter the frame using a bilateral
-     * filter to reduce the measurement noise.
+     * filter.
      * \return true (does not fail).
      */
     bool preprocessing(const ushort * inputDepth,
@@ -194,8 +243,9 @@ class DenseSLAMSystem {
                      uint   frame);
 
     /**
-     * Raycast the 3D reconstruction after integration to update the values of
-     * the TSDF. This is the fourth stage of the pipeline.
+     * Raycast the 3D reconstruction after integration to update the vertex and
+     * normal maps. The vertex and normal maps are used for both tracking and
+     * rendering. This is the fourth stage of the pipeline.
      *
      * @note Raycast is not performed on the first 3 frames (those with an
      * index up to 2).
@@ -297,14 +347,14 @@ class DenseSLAMSystem {
     }
 
     /*
-     * TODO Document this.
+     * UNUSED
      */
     bool getTracked() {
       return (tracked_);
     }
 
     /*
-     * TODO Document this.
+     * UNUSED
      */
     bool getIntegrated() {
       return (integrated_);
