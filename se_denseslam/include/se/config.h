@@ -84,8 +84,13 @@ struct Configuration {
 
   int voxel_block_size;
 
-  /*
-   * TODO
+  /**
+   * Defines the initial camera position relative to the reconstructed volume
+   * dimensions. The `initial_pos_factor` members `x`, `y` and `z` set the
+   * initial position's x, y and z coordinates respectively as a percentage of
+   * the volume's dimensions as stored in Configuration::volume_size. The
+   * default value (0.5, 0.5, 0) sets the initial position to the center of the
+   * bottom face of the volume.
    * <br>\em Default: (0.5, 0.5, 0)
    */
   float3 initial_pos_factor;
