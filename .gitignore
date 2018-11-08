@@ -35,3 +35,6 @@
 build
 doc
 
+# vim temporary files
+.*.swp
+
