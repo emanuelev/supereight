@@ -55,19 +55,26 @@ extern PerfStats Stats;
 // For debugging purposes, will be deleted once done.
 std::vector<Matrix4> poses;
 
-DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution, float3 volumeDimensions,
-			float3 initPose, std::vector<int> & pyramid, Configuration config):
-      DenseSLAMSystem(inputSize, volumeResolution, volumeDimensions, 
-          toMatrix4(initPose), pyramid, config) { }
+DenseSLAMSystem::DenseSLAMSystem(uint2              inputSize,
+                                 uint3              volumeResolution,
+                                 float3             volumeDimensions,
+                                 float3             initPose,
+                                 std::vector<int> & pyramid,
+                                 Configuration      config)
+  : DenseSLAMSystem(inputSize, volumeResolution, volumeDimensions,
+        toMatrix4(initPose), pyramid, config) { }
 
-DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution, 
-    float3 volumeDimensions, Matrix4 initPose, std::vector<int> & pyramid, 
-    Configuration config) :
-  computation_size_(make_uint2(inputSize.x, inputSize.y)),
-  vertex_(computation_size_.x, computation_size_.y),
-  normal_(computation_size_.x, computation_size_.y),
-  float_depth_(computation_size_.x, computation_size_.y),
-  tracking_result_(computation_size_.x, computation_size_.y) {
+DenseSLAMSystem::DenseSLAMSystem(uint2              inputSize,
+                                 uint3              volumeResolution,
+                                 float3             volumeDimensions,
+                                 Matrix4            initPose,
+                                 std::vector<int> & pyramid,
+                                 Configuration      config)
+  : computation_size_(make_uint2(inputSize.x, inputSize.y)),
+    vertex_(computation_size_.x, computation_size_.y),
+    normal_(computation_size_.x, computation_size_.y),
+    float_depth_(computation_size_.x, computation_size_.y),
+    tracking_result_(computation_size_.x, computation_size_.y) {
 
     this->init_pose_ = getPosition();
     this->volume_dimension_ = volumeDimensions;
@@ -91,13 +98,13 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution,
 
     for (unsigned int i = 0; i < iterations_.size(); ++i) {
       int downsample = 1 << i;
-      scaled_depth_.push_back(se::Image<float>(computation_size_.x / downsample, 
+      scaled_depth_.push_back(se::Image<float>(computation_size_.x / downsample,
             computation_size_.y / downsample));
 
-      input_vertex_.push_back(se::Image<float3>(computation_size_.x / downsample, 
+      input_vertex_.push_back(se::Image<float3>(computation_size_.x / downsample,
             computation_size_.y / downsample));
 
-      input_normal_.push_back(se::Image<float3>(computation_size_.x / downsample, 
+      input_normal_.push_back(se::Image<float3>(computation_size_.x / downsample,
             computation_size_.y / downsample));
     }
 
@@ -119,31 +126,41 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution,
 
     discrete_vol_ptr_ = std::make_shared<se::Octree<FieldType> >();
     discrete_vol_ptr_->init(volume_resolution_.x, volume_dimension_.x);
-    volume_ = Volume<FieldType>(volume_resolution_.x, volume_dimension_.x, 
+    volume_ = Volume<FieldType>(volume_resolution_.x, volume_dimension_.x,
         discrete_vol_ptr_.get());
 }
 
-bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, const uint2 inputSize, 
-    const bool filterInput){
+bool DenseSLAMSystem::preprocessing(const ushort * inputDepth,
+                                    const uint2    inputSize,
+                                    const bool     filterInput){
 
-    mm2metersKernel(float_depth_.data(), computation_size_, inputDepth, inputSize);
+    // Scale the depth frame to the size used internaly for computation and
+    // convert the depth data from millimeters to meters.
+    mm2metersKernel(float_depth_.data(), computation_size_,
+        inputDepth, inputSize);
+
+    // Optionally pass the depth frame through a bilateral filter to smooth the
+    // data.
     if(filterInput){
-        bilateralFilterKernel(scaled_depth_[0].data(), float_depth_.data(), 
+        bilateralFilterKernel(scaled_depth_[0].data(), float_depth_.data(),
             computation_size_, gaussian_.data(), e_delta, radius);
     }
     else {
       std::memcpy(scaled_depth_[0].data(), float_depth_.data(),
           sizeof(float) * computation_size_.x * computation_size_.y);
     }
-	return true;
+    return true;
 }
 
-bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate,
-		uint frame) {
+bool DenseSLAMSystem::tracking(float4 k,
+                               float  icp_threshold,
+                               uint   tracking_rate,
+                               uint   frame) {
 
-	if (frame % tracking_rate != 0)
-		return false;
+  if (frame % tracking_rate != 0)
+    return false;
 
+  // Legacy ground truth pose loading, to be removed.
   if(!poses.empty()) {
     old_pose_ = this->pose_;
     this->pose_ = poses[frame];
@@ -153,53 +170,58 @@ bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate
     return true;
   }
 
-	// half sample the input depth maps into the pyramid levels
-	for (unsigned int i = 1; i < iterations_.size(); ++i) {
-		halfSampleRobustImageKernel(scaled_depth_[i].data(), scaled_depth_[i - 1].data(),
-				make_uint2(computation_size_.x / (int) pow(2, i - 1),
-						computation_size_.y / (int) pow(2, i - 1)), e_delta * 3, 1);
-	}
+  // Half sample the input depth maps into the pyramid levels.
+  for (unsigned int i = 1; i < iterations_.size(); ++i) {
+    halfSampleRobustImageKernel(scaled_depth_[i].data(),
+        scaled_depth_[i - 1].data(),
+        make_uint2(computation_size_.x / (int) pow(2, i - 1),
+            computation_size_.y / (int) pow(2, i - 1)), e_delta * 3, 1);
+  }
 
-	// prepare the 3D information from the input depth maps
-	uint2 localimagesize = computation_size_;
-	for (unsigned int i = 0; i < iterations_.size(); ++i) {
-		Matrix4 invK = getInverseCameraMatrix(k / float(1 << i));
-		depth2vertexKernel(input_vertex_[i].data(), scaled_depth_[i].data(), localimagesize,
-				invK);
+  // Prepare the 3D information from the input depth maps for all pyramid
+  // levels.
+  uint2 localimagesize = computation_size_;
+  for (unsigned int i = 0; i < iterations_.size(); ++i) {
+    Matrix4 invK = getInverseCameraMatrix(k / float(1 << i));
+    // Generate a 3D point for each depth frame pixel.
+    depth2vertexKernel(input_vertex_[i].data(), scaled_depth_[i].data(),
+        localimagesize, invK);
+    // Generate a normal vector for each 3D point (normal map).
     if(k.y < 0)
-      vertex2normalKernel<true>(input_normal_[i].data(), 
+      vertex2normalKernel<true>(input_normal_[i].data(),
           input_vertex_[i].data(), localimagesize);
     else
-      vertex2normalKernel<false>(input_normal_[i].data(), 
+      vertex2normalKernel<false>(input_normal_[i].data(),
           input_vertex_[i].data(), localimagesize);
-		localimagesize = make_uint2(localimagesize.x / 2, localimagesize.y / 2);
-	}
+    localimagesize = make_uint2(localimagesize.x / 2, localimagesize.y / 2);
+  }
 
-	old_pose_ = pose_;
-	const Matrix4 projectReference = getCameraMatrix(k) * inverse(raycast_pose_);
+  old_pose_ = pose_;
+  const Matrix4 projectReference = getCameraMatrix(k) * inverse(raycast_pose_);
 
-	for (int level = iterations_.size() - 1; level >= 0; --level) {
-		uint2 localimagesize = make_uint2(
-				computation_size_.x / (int) pow(2, level),
-				computation_size_.y / (int) pow(2, level));
-		for (int i = 0; i < iterations_[level]; ++i) {
+  // Loop over the pyramid levels starting from the lowest resolution one.
+  for (int level = iterations_.size() - 1; level >= 0; --level) {
+    uint2 localimagesize = make_uint2(
+        computation_size_.x / (int) pow(2, level),
+        computation_size_.y / (int) pow(2, level));
+    // Repeat multiple times per level.
+    for (int i = 0; i < iterations_[level]; ++i) {
 
-			trackKernel(tracking_result_.data(), input_vertex_[level].data(), 
-          input_normal_[level].data(),
-					localimagesize, vertex_.data(), normal_.data(), computation_size_, pose_,
-					projectReference, dist_threshold, normal_threshold);
+      trackKernel(tracking_result_.data(), input_vertex_[level].data(),
+          input_normal_[level].data(), localimagesize,
+          vertex_.data(), normal_.data(), computation_size_,
+          pose_, projectReference, dist_threshold, normal_threshold);
 
-			reduceKernel(reduction_output_.data(), tracking_result_.data(), computation_size_,
-					localimagesize);
+      reduceKernel(reduction_output_.data(), tracking_result_.data(),
+          computation_size_, localimagesize);
 
-			if (updatePoseKernel(pose_, reduction_output_.data(), icp_threshold))
-				break;
+      if (updatePoseKernel(pose_, reduction_output_.data(), icp_threshold))
+        break;
 
-		}
-	}
-	return checkPoseKernel(pose_, old_pose_, reduction_output_.data(), computation_size_,
-			track_threshold);
-
+    }
+  }
+  return checkPoseKernel(pose_, old_pose_, reduction_output_.data(),
+      computation_size_, track_threshold);
 }
 
 bool DenseSLAMSystem::raycasting(float4 k, float mu, uint frame) {
@@ -217,10 +239,12 @@ bool DenseSLAMSystem::raycasting(float4 k, float mu, uint frame) {
   return doRaycast;
 }
 
-bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
-		uint frame) {
+bool DenseSLAMSystem::integration(float4 k,
+                                  uint   integration_rate,
+                                  float  mu,
+                                  uint   frame) {
 
-	bool doIntegrate = poses.empty() ? checkPoseKernel(pose_, old_pose_, 
+  bool doIntegrate = poses.empty() ? checkPoseKernel(pose_, old_pose_,
       reduction_output_.data(), computation_size_, track_threshold) : true;
 
   if ((doIntegrate && ((frame % integration_rate) == 0)) || (frame <= 3)) {
@@ -232,16 +256,16 @@ bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
 
     unsigned int allocated = 0;
     if(std::is_same<FieldType, SDF>::value) {
-     allocated  = buildAllocationList(allocation_list_.data(), 
-         allocation_list_.capacity(),
-        *volume_._map_index, pose_, getCameraMatrix(k), float_depth_.data(), 
-        computation_size_, volume_._size,
-      voxelsize, 2*mu);  
+      allocated  = buildAllocationList(allocation_list_.data(),
+          allocation_list_.capacity(),
+          *volume_._map_index, pose_, getCameraMatrix(k), float_depth_.data(),
+          computation_size_, volume_._size,
+          voxelsize, 2*mu);
     } else if(std::is_same<FieldType, OFusion>::value) {
-     allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(), 
-         *volume_._map_index,
-         pose_, getCameraMatrix(k), float_depth_.data(), computation_size_, voxelsize,
-         compute_stepsize, step_to_depth, 6*mu);  
+      allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(),
+          *volume_._map_index,
+          pose_, getCameraMatrix(k), float_depth_.data(), computation_size_, voxelsize,
+          compute_stepsize, step_to_depth, 6*mu);
     }
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);
@@ -251,18 +275,18 @@ bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
           Eigen::Vector2i(computation_size_.x, computation_size_.y), mu, 100);
       se::functor::projective_map(*volume_._map_index,
           to_sophus(pose_).inverse(),
-          to_eigen(getCameraMatrix(k)), 
+          to_eigen(getCameraMatrix(k)),
           Eigen::Vector2i(computation_size_.x, computation_size_.y),
           funct);
     } else if(std::is_same<FieldType, OFusion>::value) {
 
-      float timestamp = (1.f/30.f)*frame; 
+      float timestamp = (1.f/30.f)*frame;
       struct bfusion_update funct(float_depth_.data(),
           Eigen::Vector2i(computation_size_.x, computation_size_.y), mu, timestamp);
 
       se::functor::projective_map(*volume_._map_index,
           to_sophus(pose_).inverse(),
-          to_eigen(getCameraMatrix(k)), 
+          to_eigen(getCameraMatrix(k)),
           Eigen::Vector2i(computation_size_.x, computation_size_.y),
           funct);
     }
@@ -283,6 +307,8 @@ bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
     //       const int3 side = make_int3(1);
     //       auto test = [](const Octree<FieldType>::value_type & val) {
     //       if(val.x == 0.f) return collision_status::unseen;
+    //       auto test = [](const Octree<FieldType>::value_type & val) {
+    //       if(val.x == 0.f) return collision_status::unseen;
     //       if(val.x < 5) return collision_status::empty;
     //       return collision_status::occupied;
     //       };
@@ -295,23 +321,26 @@ bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
     doIntegrate = false;
   }
 
-	return doIntegrate;
-
+  return doIntegrate;
 }
 
 void DenseSLAMSystem::dump_volume(std::string ) {
 
 }
 
-void DenseSLAMSystem::renderVolume(uchar4 * out, uint2 outputSize, int frame,
-		int raycast_rendering_rate, float4 k, float largestep) {
-	if (frame % raycast_rendering_rate == 0) {
+void DenseSLAMSystem::renderVolume(uchar4 * out,
+                                   uint2    outputSize,
+                                   int      frame,
+                                   int      raycast_rendering_rate,
+                                   float4   k,
+                                   float    largestep) {
+  if (frame % raycast_rendering_rate == 0) {
     const float step = volume_dimension_.x / volume_resolution_.x;
-		renderVolumeKernel(volume_, out, outputSize,
-	*(this->viewPose_) * getInverseCameraMatrix(k), nearPlane,
-	farPlane * 2.0f, mu_, step, largestep,
+    renderVolumeKernel(volume_, out, outputSize,
+        *(this->viewPose_) * getInverseCameraMatrix(k), nearPlane,
+        farPlane * 2.0f, mu_, step, largestep,
         get_translation(*(this->viewPose_)), ambient,
-        !compareMatrix4(*(this->viewPose_), raycast_pose_), vertex_.data(), 
+        !compareMatrix4(*(this->viewPose_), raycast_pose_), vertex_.data(),
         normal_.data());
   }
 }
