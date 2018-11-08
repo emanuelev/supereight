@@ -232,19 +232,17 @@ bool DenseSLAMSystem::raycasting(float4 k,
                                  float  mu,
                                  uint   frame) {
 
-  bool doRaycast = false;
+  if (frame < 3)
+    return false;
 
-  if(frame > 2) {
-    raycast_pose_ = pose_;
-    float step = volume_dimension_.x / volume_resolution_.x;
-    // Raycast to create the vertex (vertex_) and normal (normal_) maps from
-    // the current pose.
-    raycastKernel(volume_, vertex_.data(), normal_.data(), computation_size_,
-        raycast_pose_ * getInverseCameraMatrix(k), nearPlane, farPlane, mu,
-        step, step*BLOCK_SIDE);
-    doRaycast = true;
-  }
-  return doRaycast;
+  raycast_pose_ = pose_;
+  float step = volume_dimension_.x / volume_resolution_.x;
+  // Raycast to create the vertex (vertex_) and normal (normal_) maps from the
+  // current pose.
+  raycastKernel(volume_, vertex_.data(), normal_.data(), computation_size_,
+      raycast_pose_ * getInverseCameraMatrix(k), nearPlane, farPlane, mu,
+      step, step*BLOCK_SIDE);
+  return true;
 }
 
 bool DenseSLAMSystem::integration(float4 k,
