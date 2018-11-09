@@ -220,7 +220,7 @@ bool DenseSLAMSystem::raycasting(float4 k, float mu, uint frame) {
 bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
 		uint frame) {
 
-  if (((frame % integration_rate == 0)) || (frame <= 3)) {
+  if (!poses.empty() || ((frame % integration_rate == 0)) || (frame <= 3)) {
 
     float voxelsize =  volume_._dim/volume_._size;
     int num_vox_per_pix = volume_._dim/((se::VoxelBlock<FieldType>::side)*voxelsize);
