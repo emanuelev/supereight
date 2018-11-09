@@ -74,6 +74,7 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution,
     this->volume_resolution_ = volumeResolution;
     this->mu_ = config.mu;
     pose_ = initPose;
+    raycast_pose_ = initPose;
 
     this->iterations_.clear();
     for (std::vector<int>::iterator it = pyramid.begin();
@@ -239,7 +240,6 @@ bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
          compute_stepsize, step_to_depth, 6*mu);  
     }
 
-    std::cout << "Allocating " << allocated << " voxels.." << std::endl;
     volume_._map_index->allocate(allocation_list_.data(), allocated);
 
     if(std::is_same<FieldType, SDF>::value) {

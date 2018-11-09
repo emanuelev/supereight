@@ -112,18 +112,24 @@ void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
 
 template <bool NegY>
 void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out, 
-                         const se::Image<Eigen::Vector3f>& in) {
-	TICK();
-	int x, y;
+    const se::Image<Eigen::Vector3f>& in) {
+  TICK();
+  int x, y;
   int width = in.width();
   int height = in.height();
 #pragma omp parallel for \
-        shared(out), private(x,y)
-	for (y = 0; y < height; y++) {
-		for (x = 0; x < width; x++) {
-			const Eigen::Vector2i pleft = Eigen::Vector2i(max(int(x) - 1, 0), y);
-			const Eigen::Vector2i pright = Eigen::Vector2i(min(x + 1, (int) width - 1),
-					y);
+  shared(out), private(x,y)
+  for (y = 0; y < height; y++) {
+    for (x = 0; x < width; x++) {
+      const Eigen::Vector3f center  = in[x + width * y];
+      if (center.z() == 0.f) {
+        out[x + y * width].x() = INVALID;
+        continue;
+      }
+
+      const Eigen::Vector2i pleft = Eigen::Vector2i(max(int(x) - 1, 0), y);
+      const Eigen::Vector2i pright = Eigen::Vector2i(min(x + 1, (int) width - 1),
+          y);
 
       // Swapped to match the left-handed coordinate system of ICL-NUIM
       Eigen::Vector2i pup, pdown;
@@ -135,21 +141,21 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out,
         pup = Eigen::Vector2i(x, min(y + 1, ((int) height) - 1));
       }
 
-			const Eigen::Vector3f left  = in[pleft.x() + width * pleft.y()];
-			const Eigen::Vector3f right = in[pright.x() + width * pright.y()];
-			const Eigen::Vector3f up    = in[pup.x() + width * pup.y()];
-			const Eigen::Vector3f down  = in[pdown.x() + width * pdown.y()];
+      const Eigen::Vector3f left  = in[pleft.x() + width * pleft.y()];
+      const Eigen::Vector3f right = in[pright.x() + width * pright.y()];
+      const Eigen::Vector3f up    = in[pup.x() + width * pup.y()];
+      const Eigen::Vector3f down  = in[pdown.x() + width * pdown.y()];
 
-			if (left.z() == 0 || right.z() == 0 || up.z() == 0 || down.z() == 0) {
-				out[x + y * width].x() = INVALID;
-				continue;
-			}
-			const Eigen::Vector3f dxv = right - left;
-			const Eigen::Vector3f dyv = up - down;
+      if (left.z() == 0 || right.z() == 0 || up.z() == 0 || down.z() == 0) {
+        out[x + y * width].x() = INVALID;
+        continue;
+      }
+      const Eigen::Vector3f dxv = right - left;
+      const Eigen::Vector3f dyv = up - down;
       out[x + y * width] =  dxv.cross(dyv).normalized();
-		}
-	}
-	TOCK("vertex2normalKernel", width * height);
+    }
+  }
+  TOCK("vertex2normalKernel", width * height);
 }
 
 void mm2metersKernel(se::Image<float>& out, const ushort* in, 
