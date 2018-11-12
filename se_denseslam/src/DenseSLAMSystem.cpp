@@ -132,10 +132,10 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
         discrete_vol_ptr_.get());
 }
 
-bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, const uint2 inputSize, 
-    const bool filterInput){
+bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, 
+    const Eigen::Vector2i& inputSize, const bool filterInput){
 
-    mm2metersKernel(float_depth_, inputDepth, Eigen::Vector2i(inputSize.x, inputSize.y));
+    mm2metersKernel(float_depth_, inputDepth, inputSize);
     if(filterInput){
         bilateralFilterKernel(scaled_depth_[0], float_depth_, gaussian_, 
             e_delta, radius);
@@ -147,8 +147,8 @@ bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, const uint2 input
 	return true;
 }
 
-bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate,
-		uint frame) {
+bool DenseSLAMSystem::tracking(const Eigen::Vector4f& k, 
+    float icp_threshold, unsigned tracking_rate, unsigned frame) {
 
 	if (frame % tracking_rate != 0)
 		return false;
@@ -172,7 +172,7 @@ bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate
 	for (unsigned int i = 0; i < iterations_.size(); ++i) {
 		Matrix4 invK = getInverseCameraMatrix(k / float(1 << i));
 		depth2vertexKernel(input_vertex_[i], scaled_depth_[i], to_eigen(invK));
-    if(k.y < 0)
+    if(k.y() < 0)
       vertex2normalKernel<true>(input_normal_[i], input_vertex_[i]);
     else
       vertex2normalKernel<false>(input_normal_[i], input_vertex_[i]);
@@ -204,7 +204,7 @@ bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate
       computation_size_, track_threshold);
 }
 
-bool DenseSLAMSystem::raycasting(float4 k, float mu, uint frame) {
+bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, uint frame) {
 
   bool doRaycast = false;
 
@@ -219,8 +219,8 @@ bool DenseSLAMSystem::raycasting(float4 k, float mu, uint frame) {
   return doRaycast;
 }
 
-bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
-		uint frame) {
+bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, uint integration_rate, 
+    float mu, uint frame) {
 
 	bool doIntegrate = poses.empty() ? checkPoseKernel(pose_, old_pose_, 
       reduction_output_.data(), computation_size_, track_threshold) : true;
@@ -306,8 +306,13 @@ void DenseSLAMSystem::dump_volume(std::string ) {
 
 }
 
-void DenseSLAMSystem::renderVolume(uchar4 * out, uint2 outputSize, int frame,
-		int raycast_rendering_rate, float4 k, float largestep) {
+void DenseSLAMSystem::renderVolume(uchar4 * out, 
+    const Eigen::Vector2i& outputSize, 
+    int frame,
+		int raycast_rendering_rate, 
+    const Eigen::Vector4f& k, 
+    float largestep) {
+
 	if (frame % raycast_rendering_rate == 0) {
     const float step = volume_dimension_.x() / volume_resolution_.x();
 		renderVolumeKernel(volume_, out, outputSize,
@@ -319,11 +324,13 @@ void DenseSLAMSystem::renderVolume(uchar4 * out, uint2 outputSize, int frame,
   }
 }
 
-void DenseSLAMSystem::renderTrack(uchar4 * out, uint2 outputSize) {
+void DenseSLAMSystem::renderTrack(uchar4 * out, 
+    const Eigen::Vector2i& outputSize) {
         renderTrackKernel(out, tracking_result_.data(), outputSize);
 }
 
-void DenseSLAMSystem::renderDepth(uchar4 * out, uint2 outputSize) {
+void DenseSLAMSystem::renderDepth(uchar4 * out, 
+    const Eigen::Vector2i& outputSize) {
         renderDepthKernel(out, float_depth_.data(), outputSize, nearPlane, farPlane);
 }
 

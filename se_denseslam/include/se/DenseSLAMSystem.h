@@ -143,17 +143,17 @@ class DenseSLAMSystem {
      * filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocessing(const ushort * inputDepth,
-                       const uint2    inputSize,
-                       const bool     filterInput);
+    bool preprocessing(const ushort *         inputDepth,
+                       const Eigen::Vector2i& inputSize,
+                       const bool             filterInput);
 
     /*
      * TODO Implement this.
      */
-    bool preprocessing(const ushort * inputDepth,
-                       const uchar3 * inputRGB,
-                       const uint2    inputSize,
-                       const bool     filterInput);
+    bool preprocessing(const ushort *         inputDepth,
+                       const uchar3 *         inputRGB,
+                       const Eigen::Vector2i& inputSize,
+                       const bool             filterInput);
 
     /**
      * Update the camera pose. Create a 3D reconstruction from the current
@@ -169,10 +169,10 @@ class DenseSLAMSystem {
      * \param[in] frame The index of the current frame (starts from 0).
      * \return true if the camera pose was updated and false if it wasn't.
      */
-    bool tracking(float4 k,
-                  float  icp_threshold,
-                  uint   tracking_rate,
-                  uint   frame);
+    bool tracking(const Eigen::Vector4f& k,
+                  const float            icp_threshold,
+                  const unsigned         tracking_rate,
+                  const unsigned         frame);
 
     /**
      * Integrate the 3D reconstruction resulting from the current frame to the
@@ -189,10 +189,10 @@ class DenseSLAMSystem {
      * \return true if the current 3D reconstruction was added to the octree
      * and false if it wasn't.
      */
-    bool integration(float4 k,
-                     uint   integration_rate,
-                     float  mu,
-                     uint   frame);
+    bool integration(const Eigen::Vector4f& k,
+                     unsigned               integration_rate,
+                     float                  mu,
+                     unsigned               frame);
 
     /**
      * Raycast the 3D reconstruction after integration to update the values of
@@ -208,9 +208,9 @@ class DenseSLAMSystem {
      * \param[in] frame The index of the current frame (starts from 0).
      * \return true if raycasting was performed and false if it wasn't.
      */
-    bool raycasting(float4 k,
-                    float  mu,
-                    uint   frame);
+    bool raycasting(const Eigen::Vector4f& k,
+                    float                  mu,
+                    uint                   frame);
 
     /*
      * TODO Implement this.
@@ -239,12 +239,12 @@ class DenseSLAMSystem {
      * \param[in] mu TSDF truncation bound. See ::Configuration.mu for more
      * details.
      */
-    void renderVolume(uchar4 *    out,
-                      const uint2 outputSize,
-                      int         frame,
-                      int         rate,
-                      float4      k,
-                      float       mu);
+    void renderVolume(uchar4 *               out,
+                      const Eigen::Vector2i& outputSize,
+                      int                    frame,
+                      int                    rate,
+                      const Eigen::Vector4f& k,
+                      float                  mu);
 
     /**
      * Render the output of the tracking algorithm. The meaning of the colors is as follows:
@@ -266,8 +266,8 @@ class DenseSLAMSystem {
      * \param[in] outputSize The dimensions of the output array (width and
      * height in pixels).
      */
-    void renderTrack(uchar4 *    out,
-                     const uint2 outputSize);
+    void renderTrack(uchar4 *               out,
+                     const Eigen::Vector2i& outputSize);
 
     /**
      * Render the current depth frame. The frame is rendered before
@@ -283,8 +283,8 @@ class DenseSLAMSystem {
      * \param[in] outputSize The dimensions of the output array (width and
      * height in pixels).
      */
-    void renderDepth(uchar4* out,
-                     uint2   outputSize);
+    void renderDepth(uchar4*                out,
+                     const Eigen::Vector2i& outputSize);
 
     //
     // Getters

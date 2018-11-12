@@ -343,10 +343,28 @@ inline Matrix4 getCameraMatrix(const float4 & k) {
 	return K;
 }
 
+inline Matrix4 getCameraMatrix(const Eigen::Vector4f& k) {
+	Matrix4 K;
+	K.data[0] = make_float4(k.x(), 0, k.z(), 0);
+	K.data[1] = make_float4(0, k.y(), k.w(), 0);
+	K.data[2] = make_float4(0, 0, 1, 0);
+	K.data[3] = make_float4(0, 0, 0, 1);
+	return K;
+}
+
 inline Matrix4 getInverseCameraMatrix(const float4 & k) {
 	Matrix4 invK;
 	invK.data[0] = make_float4(1.0f / k.x, 0, -k.z / k.x, 0);
 	invK.data[1] = make_float4(0, 1.0f / k.y, -k.w / k.y, 0);
+	invK.data[2] = make_float4(0, 0, 1, 0);
+	invK.data[3] = make_float4(0, 0, 0, 1);
+	return invK;
+}
+
+inline Matrix4 getInverseCameraMatrix(const Eigen::Vector4f& k) {
+	Matrix4 invK;
+	invK.data[0] = make_float4(1.0f / k.x(), 0, -k.z() / k.x(), 0);
+	invK.data[1] = make_float4(0, 1.0f / k.y(), -k.w() / k.y(), 0);
 	invK.data[2] = make_float4(0, 0, 1, 0);
 	invK.data[3] = make_float4(0, 0, 0, 1);
 	return invK;

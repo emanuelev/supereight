@@ -89,38 +89,38 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
   TOCK("raycastKernel", inputSize.x * inputSize.y);
 }
 
-void renderNormalKernel(uchar3* out, const float3* normal, uint2 normalSize) {
-	TICK();
-	unsigned int y;
-#pragma omp parallel for \
-        shared(out), private(y)
-	for (y = 0; y < normalSize.y; y++)
-		for (unsigned int x = 0; x < normalSize.x; x++) {
-			uint pos = (x + y * normalSize.x);
-			float3 n = normal[pos];
-			if (n.x == -2) {
-				out[pos] = make_uchar3(0, 0, 0);
-			} else {
-				n = normalize(n);
-				out[pos] = make_uchar3(n.x * 128 + 128, n.y * 128 + 128,
-						n.z * 128 + 128);
-			}
-		}
-	TOCK("renderNormalKernel", normalSize.x * normalSize.y);
-}
+// void renderNormalKernel(uchar3* out, const float3* normal, uint2 normalSize) {
+// 	TICK();
+// 	unsigned int y;
+// #pragma omp parallel for shared(out), private(y)
+// 	for (y = 0; y < normalSize.y; y++)
+// 		for (unsigned int x = 0; x < normalSize.x; x++) {
+// 			uint pos = (x + y * normalSize.x);
+// 			float3 n = normal[pos];
+// 			if (n.x == -2) {
+// 				out[pos] = make_uchar3(0, 0, 0);
+// 			} else {
+// 				n = normalize(n);
+// 				out[pos] = make_uchar3(n.x * 128 + 128, n.y * 128 + 128,
+// 						n.z * 128 + 128);
+// 			}
+// 		}
+// 	TOCK("renderNormalKernel", normalSize.x * normalSize.y);
+// }
 
-void renderDepthKernel(uchar4* out, float * depth, uint2 depthSize,
-		const float nearPlane, const float farPlane) {
+void renderDepthKernel(uchar4* out, float * depth, 
+    const Eigen::Vector2i& depthSize, const float nearPlane, 
+    const float farPlane) {
 	TICK();
 
 	float rangeScale = 1 / (farPlane - nearPlane);
 
-	unsigned int y;
+	int y;
 #pragma omp parallel for \
         shared(out), private(y)
-	for (y = 0; y < depthSize.y; y++) {
-		int rowOffeset = y * depthSize.x;
-		for (unsigned int x = 0; x < depthSize.x; x++) {
+	for (y = 0; y < depthSize.y(); y++) {
+		int rowOffeset = y * depthSize.x();
+		for (int x = 0; x < depthSize.x(); x++) {
 
 			unsigned int pos = rowOffeset + x;
 
@@ -139,15 +139,17 @@ void renderDepthKernel(uchar4* out, float * depth, uint2 depthSize,
 	TOCK("renderDepthKernel", depthSize.x * depthSize.y);
 }
 
-void renderTrackKernel(uchar4* out, const TrackData* data, uint2 outSize) {
+void renderTrackKernel(uchar4* out, 
+    const TrackData* data, 
+    const Eigen::Vector2i& outSize) {
   TICK();
 
-  unsigned int y;
+  int y;
 #pragma omp parallel for \
   shared(out), private(y)
-  for (y = 0; y < outSize.y; y++)
-    for (unsigned int x = 0; x < outSize.x; x++) {
-      uint pos = x + y * outSize.x;
+  for (y = 0; y < outSize.y(); y++)
+    for (int x = 0; x < outSize.x(); x++) {
+      uint pos = x + y * outSize.x();
       switch (data[pos].result) {
         case 1:
           out[pos] = make_uchar4(128, 128, 128, 0);  // ok	 GREY
@@ -176,17 +178,25 @@ void renderTrackKernel(uchar4* out, const TrackData* data, uint2 outSize) {
 }
 
 template <typename T>
-void renderVolumeKernel(const Volume<T>& volume, uchar4* out, const uint2 depthSize, 
+void renderVolumeKernel(const Volume<T>& volume, 
+    uchar4* out, 
+    const Eigen::Vector2i& depthSize, 
     const Eigen::Matrix4f view, 
-    const float nearPlane, const float farPlane, const float mu,
-		const float step, const float largestep, const Eigen::Vector3f light,
-		const Eigen::Vector3f ambient, bool render, const se::Image<Eigen::Vector3f>& vertex, 
+    const float nearPlane, 
+    const float farPlane, 
+    const float mu,
+		const float step, 
+    const float largestep, 
+    const Eigen::Vector3f light,
+		const Eigen::Vector3f ambient, 
+    bool render, 
+    const se::Image<Eigen::Vector3f>& vertex, 
     const se::Image<Eigen::Vector3f>& normal) {
   TICK();
-  unsigned int y;
+  int y;
 #pragma omp parallel for shared(out), private(y)
-  for (y = 0; y < depthSize.y; y++) {
-    for (unsigned int x = 0; x < depthSize.x; x++) {
+  for (y = 0; y < depthSize.y(); y++) {
+    for (int x = 0; x < depthSize.x(); x++) {
       Eigen::Vector4f hit;
       Eigen::Vector3f test, surfNorm;
 
@@ -209,12 +219,12 @@ void renderVolumeKernel(const Volume<T>& volume, uchar4* out, const uint2 depthS
           // Invert normals if SDF 
           surfNorm = std::is_same<T, SDF>::value ? -1.f * surfNorm : surfNorm;
         } else {
-          out[x + depthSize.x*y] = make_uchar4(0, 0, 0, 0); // The forth value is a padding to align memory
+          out[x + depthSize.x()*y] = make_uchar4(0, 0, 0, 0); // The forth value is a padding to align memory
         }
       }
       else {
-        test = vertex[x + depthSize.x*y];
-        surfNorm = normal[x + depthSize.x*y];
+        test = vertex[x + depthSize.x()*y];
+        surfNorm = normal[x + depthSize.x()*y];
       }
 
       if (surfNorm.x() != INVALID && surfNorm.norm() > 0) {
@@ -223,9 +233,9 @@ void renderVolumeKernel(const Volume<T>& volume, uchar4* out, const uint2 depthS
         Eigen::Vector3f col = dir + ambient;
         clamp(col, Eigen::Vector3f::Constant(0.f), Eigen::Vector3f::Constant(1.f));
         col *=  255.f;
-        out[x + depthSize.x*y] = make_uchar4(col.x(), col.y(), col.z(), 0); // The forth value is a padding to align memory
+        out[x + depthSize.x()*y] = make_uchar4(col.x(), col.y(), col.z(), 0); // The forth value is a padding to align memory
       } else {
-        out[x + depthSize.x*y] = make_uchar4(0, 0, 0, 0); // The forth value is a padding to align memory
+        out[x + depthSize.x()*y] = make_uchar4(0, 0, 0, 0); // The forth value is a padding to align memory
       }
     }
   }
