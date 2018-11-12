@@ -122,6 +122,17 @@ inline Matrix4 toMatrix4(const float3& trans) {
   return se3_mat;
 }
 
+// Converting quaternion and trans to SE3 matrix 
+// Following the implementation provided in TUM scripts.
+inline Matrix4 toMatrix4(const Eigen::Vector3f& trans) {
+  Matrix4 se3_mat;
+  se3_mat.data[0] = {1.f, 0.f, 0.f, trans.x()};
+  se3_mat.data[1] = {0.f, 1.f, 0.f, trans.y()};
+  se3_mat.data[2] = {0.f, 0.f, 1.f, trans.z()};
+  se3_mat.data[3] = {0.f, 0.f, 0.f, 1.f};
+  return se3_mat;
+}
+
 constexpr int log2_const(int n){
   return (n < 2 ? 0 : 1 + log2_const(n/2));
 }

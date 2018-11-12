@@ -46,6 +46,7 @@
 #include <se/image/image.hpp>
 #include "volume_traits.hpp"
 #include "continuous/volume_template.hpp"
+#include <Eigen/Dense>
 
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
@@ -57,15 +58,15 @@ using Volume = VolumeTemplate<T, se::Octree>;
 class DenseSLAMSystem {
 
   private:
-    uint2 computation_size_;
+    Eigen::Vector2i computation_size_;
     Matrix4 pose_;
     Matrix4 *viewPose_;
-    float3 volume_dimension_;
-    uint3 volume_resolution_;
+    Eigen::Vector3f volume_dimension_;
+    Eigen::Vector3i volume_resolution_;
     std::vector<int> iterations_;
     bool tracked_;
     bool integrated_;
-    float3 init_pose_;
+    Eigen::Vector3f init_pose_;
     float mu_;
     bool need_render_ = false;
     Configuration config_;
@@ -106,12 +107,12 @@ class DenseSLAMSystem {
      * \param[in] pyramid TODO See ::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
-    DenseSLAMSystem(uint2              inputSize,
-                    uint3              volume_resolution_,
-                    float3             volume_dimension_,
-                    float3             initPose,
-                    std::vector<int> & pyramid,
-                    Configuration      config_);
+    DenseSLAMSystem(const Eigen::Vector2i& inputSize,
+                    const Eigen::Vector3i& volume_resolution_,
+                    const Eigen::Vector3f& volume_dimension_,
+                    const Eigen::Vector3f& initPose,
+                    std::vector<int> &     pyramid,
+                    const Configuration&   config_);
     /**
      * Constructor using the initial camera position.
      *
@@ -124,12 +125,12 @@ class DenseSLAMSystem {
      * \param[in] pyramid TODO See ::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
-    DenseSLAMSystem(uint2              inputSize,
-                    uint3              volume_resolution_,
-                    float3             volume_dimension_,
-                    Matrix4            initPose,
-                    std::vector<int> & pyramid,
-                    Configuration      config_);
+    DenseSLAMSystem(const Eigen::Vector2i& inputSize,
+                    const Eigen::Vector3i& volume_resolution_,
+                    const Eigen::Vector3f& volume_dimension_,
+                    const Matrix4&         initPose,
+                    std::vector<int> &     pyramid,
+                    const Configuration&   config_);
 
     /**
      * Preprocess a single depth measurement frame and add it to the pipeline.
@@ -315,13 +316,13 @@ class DenseSLAMSystem {
      *
      * \return A vector containing the x, y and z coordinates of the camera.
      */
-    float3 getPosition() {
+    Eigen::Vector3f getPosition() {
       //std::cerr << "InitPose =" << _initPose.x << "," << _initPose.y  <<"," << _initPose.z << "    ";
       //std::cerr << "pose =" << pose.data[0].w << "," << pose.data[1].w  <<"," << pose.data[2].w << "    ";
-      float xt = pose_.data[0].w - init_pose_.x;
-      float yt = pose_.data[1].w - init_pose_.y;
-      float zt = pose_.data[2].w - init_pose_.z;
-      return (make_float3(xt, yt, zt));
+      float xt = pose_.data[0].w - init_pose_.x();
+      float yt = pose_.data[1].w - init_pose_.y();
+      float zt = pose_.data[2].w - init_pose_.z();
+      return Eigen::Vector3f(xt, yt, zt);
     }
 
     /**
@@ -329,7 +330,7 @@ class DenseSLAMSystem {
      *
      * \return A vector containing the x, y and z coordinates of the camera.
      */
-    float3 getInitPos(){
+    Eigen::Vector3f getInitPos(){
       return init_pose_;
     }
 
@@ -373,7 +374,7 @@ class DenseSLAMSystem {
      *
      * \return A vector containing the x, y and z dimensions of the volume.
      */
-    float3 getModelDimensions() {
+    Eigen::Vector3f getModelDimensions() {
       return (volume_dimension_);
     }
 
@@ -382,7 +383,7 @@ class DenseSLAMSystem {
      *
      * \return A vector containing the x, y and z resolution of the volume.
      */
-    uint3 getModelResolution() {
+    Eigen::Vector3i getModelResolution() {
       return (volume_resolution_);
     }
 
@@ -392,9 +393,11 @@ class DenseSLAMSystem {
      *
      * \return A vector containing the frame width and height.
      */
-    uint2 getComputationResolution() {
+    Eigen::Vector2i getComputationResolution() {
       return (computation_size_);
     }
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 /**

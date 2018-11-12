@@ -53,8 +53,8 @@
 template <typename FieldType, template <typename> class OctreeT, typename HashType>
 unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
     OctreeT<FieldType>& map_index, const Matrix4 &pose, const Matrix4& K, 
-    const float *depthmap, const uint2 &imageSize, const unsigned int size,  
-    const float voxelSize, const float band) {
+    const float *depthmap, const Eigen::Vector2i& imageSize, 
+    const unsigned int size,  const float voxelSize, const float band) {
 
   const float inverseVoxelSize = 1/voxelSize;
   const unsigned block_scale = log2(size) - log2_const(se::VoxelBlock<FieldType>::side);
@@ -69,17 +69,17 @@ unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
   unsigned int voxelCount;
 #endif
 
-  unsigned int x, y;
+  int x, y;
   const float3 camera = get_translation(pose);
   const int numSteps = ceil(band*inverseVoxelSize);
   voxelCount = 0;
 #pragma omp parallel for \
   private(y)
-  for (y = 0; y < imageSize.y; y++) {
-    for (x = 0; x < imageSize.x; x++) {
-      if(depthmap[x + y*imageSize.x] == 0)
+  for (y = 0; y < imageSize.y(); y++) {
+    for (x = 0; x < imageSize.x(); x++) {
+      if(depthmap[x + y*imageSize.x()] == 0)
         continue;
-      const float depth = depthmap[x + y*imageSize.x];
+      const float depth = depthmap[x + y*imageSize.x()];
       float3 worldVertex = (kPose * make_float3((x + 0.5f) * depth, 
             (y + 0.5f) * depth, depth));
 
