@@ -54,14 +54,14 @@ template <typename FieldType,
           template <typename> class OctreeT, typename HashType,
           typename StepF, typename DepthF>
 size_t buildOctantList(HashType* allocationList, size_t reserved,
-    OctreeT<FieldType>& map_index, const Matrix4 &pose, 
-    const Matrix4& K, const float *depthmap, const Eigen::Vector2i &imageSize, 
+    OctreeT<FieldType>& map_index, const Eigen::Matrix4f& pose, 
+    const Eigen::Matrix4f& K, const float *depthmap, const Eigen::Vector2i &imageSize, 
     const float voxelSize, StepF compute_stepsize, DepthF step_to_depth,
     const float band) {
 
   const float inverseVoxelSize = 1.f/voxelSize;
-  Matrix4 invK = inverse(K);
-  const Matrix4 kPose = pose * invK;
+  Eigen::Matrix4f invK = K.inverse();
+  const Eigen::Matrix4f kPose = pose * invK;
   const int size = map_index.size();
   const int max_depth = log2(size);
   const int leaves_depth = max_depth - log2_const(OctreeT<FieldType>::blockSide);
@@ -74,7 +74,7 @@ size_t buildOctantList(HashType* allocationList, size_t reserved,
 #endif
 
   int x, y;
-  const float3 camera = get_translation(pose);
+  const Eigen::Vector3f camera = pose.topRightCorner<1, 3>();
   voxelCount = 0;
 #pragma omp parallel for \
   private(y)
@@ -85,27 +85,27 @@ size_t buildOctantList(HashType* allocationList, size_t reserved,
       int tree_depth = max_depth; 
       float stepsize = voxelSize;
       const float depth = depthmap[x + y*imageSize.x()];
-      float3 worldVertex = (kPose * make_float3((x + 0.5f) * depth, 
-            (y + 0.5f) * depth, depth));
+      Eigen::Vector3f worldVertex = (kPose * Eigen::Vector3f((x + 0.5f) * depth, 
+            (y + 0.5f) * depth, depth).homogeneous()).head<3>();
 
-      float3 direction = normalize(camera - worldVertex);
-      const float3 origin = worldVertex - (band * 0.5f) * direction;
-      const float dist = length(camera - origin); 
-      float3 step = direction*stepsize;
+      Eigen::Vector3f direction = (camera - worldVertex).normalized();
+      const Eigen::Vector3f origin = worldVertex - (band * 0.5f) * direction;
+      const float dist = (camera - origin).norm(); 
+      Eigen::Vector3f step = direction*stepsize;
 
-      float3 voxelPos = origin;
+      Eigen::Vector3f voxelPos = origin;
       float travelled = 0.f;
       for(; travelled < dist; travelled += stepsize){
 
-        float3 voxelScaled = floorf(voxelPos * inverseVoxelSize);
-        if((voxelScaled.x < size) && (voxelScaled.y < size) &&
-           (voxelScaled.z < size) && (voxelScaled.x >= 0) &&
-           (voxelScaled.y >= 0) && (voxelScaled.z >= 0)){
-          const int3 voxel = make_int3(voxelScaled);
-          auto node_ptr = map_index.fetch_octant(voxel.x, voxel.y, voxel.z, 
+        Eigen::Vector3f voxelScaled = (voxelPos * inverseVoxelSize).array().floor();
+        if((voxelScaled.x() < size) && (voxelScaled.y() < size) &&
+           (voxelScaled.z() < size) && (voxelScaled.x() >= 0) &&
+           (voxelScaled.y() >= 0)   && (voxelScaled.z() >= 0)){
+          const Eigen::Vector3i voxel = voxelScaled.cast<int>();
+          auto node_ptr = map_index.fetch_octant(voxel.x(), voxel.y(), voxel.z(), 
               tree_depth);
           if(!node_ptr){
-            HashType k = map_index.hash(voxel.x, voxel.y, voxel.z, 
+            HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(), 
                 std::min(tree_depth, leaves_depth));
             unsigned int idx = ++(voxelCount);
             if(idx < reserved) {

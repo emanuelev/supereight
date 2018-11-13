@@ -83,7 +83,7 @@ extern PowerMonitor *powerMonitor;
 
 // We can pass this to the QT and it will allow us to change features in the DenseSLAMSystem
 static void newDenseSLAMSystem(bool resetPose) {
-	Matrix4 init_pose = (*pipeline_pp)->getPose();
+  Eigen::Matrix4f init_pose = (*pipeline_pp)->getPose();
 
 	if (*pipeline_pp)
 		delete *pipeline_pp;
@@ -222,7 +222,7 @@ CameraState setEnableCamera(CameraState state, string inputFile) {
 void qtIdle(void) {
 	static bool shod = false;
 	//This will set the view for rendering the model, either to the tracked camera view or the static view    
-	Matrix4 pose = toMatrix4(trans * rot);
+  Eigen::Matrix4f pose = toMatrix4f(trans * rot);
 	if (usePOV)
 		(*pipeline_pp)->setViewPose(); //current position as found by track
 	else

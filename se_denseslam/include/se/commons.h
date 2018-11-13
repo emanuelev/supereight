@@ -333,57 +333,24 @@ struct TrackData {
 	float J[6];
 };
 
-
-inline Matrix4 getCameraMatrix(const float4 & k) {
-	Matrix4 K;
-	K.data[0] = make_float4(k.x, 0, k.z, 0);
-	K.data[1] = make_float4(0, k.y, k.w, 0);
-	K.data[2] = make_float4(0, 0, 1, 0);
-	K.data[3] = make_float4(0, 0, 0, 1);
+inline Eigen::Matrix4f getCameraMatrix(const Eigen::Vector4f& k) {
+  Eigen::Matrix4f K;
+	K << k.x(), 0, k.z(), 0,
+       0, k.y(), k.w(), 0,
+       0, 0, 1, 0,
+       0, 0, 0, 1;
 	return K;
 }
 
-inline Matrix4 getCameraMatrix(const Eigen::Vector4f& k) {
-	Matrix4 K;
-	K.data[0] = make_float4(k.x(), 0, k.z(), 0);
-	K.data[1] = make_float4(0, k.y(), k.w(), 0);
-	K.data[2] = make_float4(0, 0, 1, 0);
-	K.data[3] = make_float4(0, 0, 0, 1);
-	return K;
-}
-
-inline Matrix4 getInverseCameraMatrix(const float4 & k) {
-	Matrix4 invK;
-	invK.data[0] = make_float4(1.0f / k.x, 0, -k.z / k.x, 0);
-	invK.data[1] = make_float4(0, 1.0f / k.y, -k.w / k.y, 0);
-	invK.data[2] = make_float4(0, 0, 1, 0);
-	invK.data[3] = make_float4(0, 0, 0, 1);
+inline Eigen::Matrix4f getInverseCameraMatrix(const Eigen::Vector4f& k) {
+  Eigen::Matrix4f invK;
+  invK << 1.0f / k.x(), 0, -k.z() / k.x(), 0,
+       0, 1.0f / k.y(), -k.w() / k.y(), 0,
+       0, 0, 1, 0,
+       0, 0, 0, 1;
 	return invK;
 }
 
-inline Matrix4 getInverseCameraMatrix(const Eigen::Vector4f& k) {
-	Matrix4 invK;
-	invK.data[0] = make_float4(1.0f / k.x(), 0, -k.z() / k.x(), 0);
-	invK.data[1] = make_float4(0, 1.0f / k.y(), -k.w() / k.y(), 0);
-	invK.data[2] = make_float4(0, 0, 1, 0);
-	invK.data[3] = make_float4(0, 0, 0, 1);
-	return invK;
-}
-
-inline Matrix4 inverse(const Matrix4 & A) {
-	static TooN::Matrix<4, 4, float> I = TooN::Identity;
-	TooN::Matrix<4, 4, float> temp = TooN::wrapMatrix<4, 4>(&A.data[0].x);
-	Matrix4 R;
-	TooN::wrapMatrix<4, 4>(&R.data[0].x) = TooN::gaussian_elimination(temp, I);
-	return R;
-}
-
-inline Matrix4 operator*(const Matrix4 & A, const Matrix4 & B) {
-	Matrix4 R;
-	TooN::wrapMatrix<4, 4>(&R.data[0].x) = TooN::wrapMatrix<4, 4>(&A.data[0].x)
-			* TooN::wrapMatrix<4, 4>(&B.data[0].x);
-	return R;
-}
 
 //std::ostream& operator<<(std::ostream& os, const uint3 val) {
 //    os << val.x << ", " << val.y << ", " << val.z;
@@ -417,10 +384,10 @@ TooN::Vector<6> solve(const TooN::Vector<27, T, A> & vals) {
 }
 
 template<typename P>
-inline Matrix4 toMatrix4(const TooN::SE3<P> & p) {
+inline Eigen::Matrix4f toMatrix4f(const TooN::SE3<P> & p) {
 	const TooN::Matrix<4, 4, float> I = TooN::Identity;
-	Matrix4 R;
-	TooN::wrapMatrix<4, 4>(&R.data[0].x) = p * I;
+  Eigen::Matrix<float, 4, 4, Eigen::RowMajor>  R;
+	TooN::wrapMatrix<4, 4>(R.data()) = p * I;
 	return R;
 }
 
@@ -498,9 +465,6 @@ inline void compareFloat4(std::string str, float4* l, float4 * r, uint size) {
 	}
 }
 
-inline void compareMatrix4(std::string str, Matrix4 l, Matrix4 r) {
-	compareFloat4(str, l.data, r.data, 4);
-}
 
 inline bool compareFloat4(float4* l, float4 * r, uint size) {
 	for (unsigned int i = 0; i < size; i++) {
@@ -513,17 +477,6 @@ inline bool compareFloat4(float4* l, float4 * r, uint size) {
   return true;
 }
 
-inline bool compareMatrix4(Matrix4 l, Matrix4 r) {
-	return compareFloat4(l.data, r.data, 4);
-}
-
-inline void printMatrix4(std::string str, Matrix4 l) {
-	std::cout << "printMatrix4 : " << str << std::endl;
-	for (int i = 0; i < 4; i++) {
-		std::cout << "  [" << l.data[i].x << "," << l.data[i].y << ","
-				<< l.data[i].z << "," << l.data[i].w << "]" << std::endl;
-	}
-}
 inline void compareNormal(std::string str, float3* l, float3 * r, uint size) {
 	for (unsigned int i = 0; i < size; i++) {
 		if (std::abs(l[i].x - r[i].x) > epsilon) {
@@ -566,33 +519,6 @@ void writefile(std::string prefix, int idx, T * data, uint size) {
 template<typename T>
 void writefile(std::string prefix, int idx, T * data, uint2 size) {
 	writefile(prefix, idx, data, size.x * size.y);
-}
-inline
-void writeposfile(std::string prefix, int idx, Matrix4 m, uint) {
-
-	writefile("BINARY_" + prefix, idx, m.data, 4);
-
-	std::string filename = prefix + NumberToString(idx);
-	std::ofstream pFile;
-	pFile.open(filename.c_str());
-
-	if (pFile.fail()) {
-		std::cout << "File opening failed : " << filename << std::endl;
-		exit(1);
-	}
-
-	pFile << m.data[0].x << " " << m.data[0].y << " " << m.data[0].z << " "
-			<< m.data[0].w << std::endl;
-	pFile << m.data[1].x << " " << m.data[1].y << " " << m.data[1].z << " "
-			<< m.data[1].w << std::endl;
-	pFile << m.data[2].x << " " << m.data[2].y << " " << m.data[2].z << " "
-			<< m.data[2].w << std::endl;
-	pFile << m.data[3].x << " " << m.data[3].y << " " << m.data[3].z << " "
-			<< m.data[3].w << std::endl;
-
-	std::cout << "Pose File " << filename << std::endl;
-
-	pFile.close();
 }
 
 // void writeVolume(std::string filename, Volume v) {
@@ -716,13 +642,5 @@ inline void writeObjMesh(const char * filename,
   f.close();
   std::cout << "Written " << face_count << " faces and " << point_count 
             << " points" << std::endl;
-}
-
-static inline Sophus::SE3f to_sophus(const Matrix4& m) {
-  return Sophus::SE3f(Eigen::Matrix<float, 4, 4, Eigen::RowMajor>(&m.data[0].x));
-}
-
-static inline Eigen::Matrix4f to_eigen(const Matrix4& m) {
-  return Eigen::Matrix<float, 4, 4, Eigen::RowMajor>(&m.data[0].x);
 }
 #endif

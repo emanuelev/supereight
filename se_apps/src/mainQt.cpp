@@ -224,7 +224,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 	if (processFrame) {
 		Stats.start();
 	}
-	Matrix4 pose;
+  Eigen::Matrix4f pose;
 	timings[0] = std::chrono::steady_clock::now();
 	if (processFrame && (reader->readNextDepthFrame(inputRGB, inputDepth))) {
 		frame = reader->getFrameNumber() - frameOffset;
@@ -283,9 +283,9 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		if (powerMonitor != NULL && !firstFrame)
 			powerMonitor->sample();
 
-		float xt = pose.data[0].w - init_pose.x;
-		float yt = pose.data[1].w - init_pose.y;
-		float zt = pose.data[2].w - init_pose.z;
+		float xt = pose(0, 3) - init_pose.x;
+		float yt = pose(1, 3) - init_pose.y;
+		float zt = pose(2, 3) - init_pose.z;
 		storeStats(frame, timings, pos, tracked, integrated);
     if(config->no_gui){
       *logstream << reader->getFrameNumber() << "\t" << xt << "\t" << yt << "\t" << zt << "\t" << std::endl;

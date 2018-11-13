@@ -52,15 +52,16 @@
  */
 template <typename FieldType, template <typename> class OctreeT, typename HashType>
 unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
-    OctreeT<FieldType>& map_index, const Matrix4 &pose, const Matrix4& K, 
+    OctreeT<FieldType>& map_index, const Eigen::Matrix4f& pose, 
+    const Eigen::Matrix4f& K, 
     const float *depthmap, const Eigen::Vector2i& imageSize, 
     const unsigned int size,  const float voxelSize, const float band) {
 
   const float inverseVoxelSize = 1/voxelSize;
   const unsigned block_scale = log2(size) - log2_const(se::VoxelBlock<FieldType>::side);
 
-  Matrix4 invK = inverse(K);
-  const Matrix4 kPose = pose * invK;
+  Eigen::Matrix4f invK = K.inverse();
+  const Eigen::Matrix4f kPose = pose * invK;
   
 
 #ifdef _OPENMP
@@ -70,7 +71,7 @@ unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
 #endif
 
   int x, y;
-  const float3 camera = get_translation(pose);
+  const Eigen::Vector3f camera = pose.topRightCorner<1, 3>();
   const int numSteps = ceil(band*inverseVoxelSize);
   voxelCount = 0;
 #pragma omp parallel for \
@@ -80,24 +81,25 @@ unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
       if(depthmap[x + y*imageSize.x()] == 0)
         continue;
       const float depth = depthmap[x + y*imageSize.x()];
-      float3 worldVertex = (kPose * make_float3((x + 0.5f) * depth, 
-            (y + 0.5f) * depth, depth));
+      Eigen::Vector3f worldVertex = (kPose * Eigen::Vector3f((x + 0.5f) * depth, 
+            (y + 0.5f) * depth, depth).homogeneous()).head<3>();
 
-      float3 direction = normalize(camera - worldVertex);
-      const float3 origin = worldVertex - (band * 0.5f) * direction;
-      const float3 step = (direction*band)/numSteps;
+      Eigen::Vector3f direction = (camera - worldVertex).normalized();
+      const Eigen::Vector3f origin = worldVertex - (band * 0.5f) * direction;
+      const Eigen::Vector3f step = (direction*band)/numSteps;
 
-      int3 voxel;
-      float3 voxelPos = origin;
+      Eigen::Vector3i voxel;
+      Eigen::Vector3f voxelPos = origin;
       for(int i = 0; i < numSteps; i++){
-        float3 voxelScaled = floorf(voxelPos * inverseVoxelSize);
-        if((voxelScaled.x < size) && (voxelScaled.y < size) &&
-            (voxelScaled.z < size) && (voxelScaled.x >= 0) &&
-            (voxelScaled.y >= 0) && (voxelScaled.z >= 0)){
-          voxel = make_int3(voxelScaled);
-          se::VoxelBlock<FieldType> * n = map_index.fetch(voxel.x, voxel.y, voxel.z);
+        Eigen::Vector3f voxelScaled = (voxelPos * inverseVoxelSize).array().floor();
+        if( (voxelScaled.x() < size) && (voxelScaled.y() < size) &&
+            (voxelScaled.z() < size) && (voxelScaled.x() >= 0) &&
+            (voxelScaled.y() >= 0) &&   (voxelScaled.z() >= 0)){
+          voxel = voxelScaled.cast<int>();
+          se::VoxelBlock<FieldType> * n = map_index.fetch(voxel.x(), 
+              voxel.y(), voxel.z());
           if(!n){
-            HashType k = map_index.hash(voxel.x, voxel.y, voxel.z, 
+            HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(), 
                 block_scale);
             unsigned int idx = ++voxelCount;
             if(idx < reserved) {

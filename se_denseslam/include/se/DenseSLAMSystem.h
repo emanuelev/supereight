@@ -59,8 +59,8 @@ class DenseSLAMSystem {
 
   private:
     Eigen::Vector2i computation_size_;
-    Matrix4 pose_;
-    Matrix4 *viewPose_;
+    Eigen::Matrix4f pose_;
+    Eigen::Matrix4f *viewPose_;
     Eigen::Vector3f volume_dimension_;
     Eigen::Vector3i volume_resolution_;
     std::vector<int> iterations_;
@@ -89,8 +89,8 @@ class DenseSLAMSystem {
     std::vector<se::Image<Eigen::Vector3f> > input_normal_;
     se::Image<float> float_depth_;
     std::vector<TrackData>  tracking_result_;
-    Matrix4 old_pose_;
-    Matrix4 raycast_pose_;
+    Eigen::Matrix4f old_pose_;
+    Eigen::Matrix4f raycast_pose_;
 
   public:
 
@@ -128,7 +128,7 @@ class DenseSLAMSystem {
     DenseSLAMSystem(const Eigen::Vector2i& inputSize,
                     const Eigen::Vector3i& volume_resolution_,
                     const Eigen::Vector3f& volume_dimension_,
-                    const Matrix4&         initPose,
+                    const Eigen::Matrix4f& initPose,
                     std::vector<int> &     pyramid,
                     const Configuration&   config_);
 
@@ -319,9 +319,9 @@ class DenseSLAMSystem {
     Eigen::Vector3f getPosition() {
       //std::cerr << "InitPose =" << _initPose.x << "," << _initPose.y  <<"," << _initPose.z << "    ";
       //std::cerr << "pose =" << pose.data[0].w << "," << pose.data[1].w  <<"," << pose.data[2].w << "    ";
-      float xt = pose_.data[0].w - init_pose_.x();
-      float yt = pose_.data[1].w - init_pose_.y();
-      float zt = pose_.data[2].w - init_pose_.z();
+      float xt = pose_(0, 3) - init_pose_.x();
+      float yt = pose_(1, 3) - init_pose_.y();
+      float zt = pose_(2, 3) - init_pose_.z();
       return Eigen::Vector3f(xt, yt, zt);
     }
 
@@ -339,7 +339,7 @@ class DenseSLAMSystem {
      *
      * \return The current camera pose encoded in a 4x4 matrix.
      */
-    Matrix4 getPose() {
+    Eigen::Matrix4f getPose() {
       return pose_;
     }
 
@@ -348,7 +348,7 @@ class DenseSLAMSystem {
      *
      * \param[in] value The desired camera pose encoded in a 4x4 matrix.
      */
-    void setViewPose(Matrix4 *value = NULL) {
+    void setViewPose(Eigen::Matrix4f *value = NULL) {
       if (value == NULL){
         viewPose_ = &pose_;
         need_render_ = false;
@@ -365,7 +365,7 @@ class DenseSLAMSystem {
      *
      * \return The current camera pose encoded in a 4x4 matrix.
      */
-    Matrix4 *getViewPose() {
+    Eigen::Matrix4f *getViewPose() {
       return (viewPose_);
     }
 
