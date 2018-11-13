@@ -27,8 +27,6 @@
 
 PerfStats Stats;
 
-
-
 /***
  * This program loop over a scene recording
  */
@@ -100,8 +98,12 @@ int main(int argc, char ** argv) {
 
 	uint frame = 0;
 
-	DenseSLAMSystem pipeline(computationSize, config.volume_resolution,
-			config.volume_size, init_pose, config.pyramid, config);
+	DenseSLAMSystem pipeline(
+      Eigen::Vector2i(computationSize.x, computationSize.y), 
+      Eigen::Vector3i::Constant(static_cast<int>(config.volume_resolution.x)),
+			Eigen::Vector3f::Constant(config.volume_size.x), 
+      Eigen::Vector3f(init_pose.x, init_pose.y, init_pose.z), 
+      config.pyramid, config);
      
   bool bilateralfilter = false;
 	std::chrono::time_point<std::chrono::steady_clock> timings[7];
@@ -116,11 +118,14 @@ int main(int argc, char ** argv) {
 
 		timings[1] = std::chrono::steady_clock::now();
 
-		pipeline.preprocessing(inputDepth, inputSize, config.bilateralFilter);
+		pipeline.preprocessing(inputDepth, 
+        Eigen::Vector2i(inputSize.x, inputSize.y), config.bilateralFilter);
 
 		timings[2] = std::chrono::steady_clock::now();
 
-		bool tracked = pipeline.tracking(camera, config.icp_threshold,
+		bool tracked = pipeline.tracking(
+        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
+        config.icp_threshold,
 				config.tracking_rate, frame);
 
 
@@ -133,19 +138,26 @@ int main(int argc, char ** argv) {
 		float zt = pose.data[2].w - init_pose.z;
 
 
-		bool integrated = pipeline.integration(camera, config.integration_rate,
+		bool integrated = pipeline.integration(
+        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
+        config.integration_rate,
 				config.mu, frame);
 
 		timings[4] = std::chrono::steady_clock::now();
 
-		bool raycast = pipeline.raycasting(camera, config.mu, frame);
+		bool raycast = pipeline.raycasting(
+        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
+        config.mu, frame);
 
 		timings[5] = std::chrono::steady_clock::now();
 
-		pipeline.renderDepth(depthRender, computationSize);
-		pipeline.renderTrack(trackRender, computationSize);
-		pipeline.renderVolume(volumeRender, computationSize, frame,
-				config.rendering_rate, camera, 0.75 * config.mu);
+		pipeline.renderDepth(depthRender,   Eigen::Vector2i(computationSize.x, computationSize.y));
+		pipeline.renderTrack(trackRender,   Eigen::Vector2i(computationSize.x, computationSize.y));
+		pipeline.renderVolume(volumeRender, 
+        Eigen::Vector2i(computationSize.x, computationSize.y), frame,
+				config.rendering_rate, 
+        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
+        0.75 * config.mu);
 
 		timings[6] = std::chrono::steady_clock::now();
 

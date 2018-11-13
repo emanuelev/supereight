@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 #include <QMessageBox>
 #include <QApplication>
+#include <Eigen/Dense>
 
 // #ifdef __APPLE__
 // #include <GLUT/glut.h>
@@ -88,12 +89,11 @@ static void newDenseSLAMSystem(bool resetPose) {
 		delete *pipeline_pp;
 	if (!resetPose)
 		*pipeline_pp = new DenseSLAMSystem(
-				make_uint2(640 / config->compute_size_ratio,
-						480 / config->compute_size_ratio),
-				make_uint3(config->volume_resolution.x,
+				Eigen::Vector2i(640 / config->compute_size_ratio, 480 / config->compute_size_ratio),
+				Eigen::Vector3i(config->volume_resolution.x,
 						config->volume_resolution.x,
 						config->volume_resolution.x),
-        make_float3(config->volume_size.x, config->volume_size.x,
+        Eigen::Vector3f(config->volume_size.x, config->volume_size.x,
                     config->volume_size.x), init_pose, config->pyramid, *config);
 	else {
 		trans = SE3<float>::exp(
@@ -102,18 +102,17 @@ static void newDenseSLAMSystem(bool resetPose) {
 						config->initial_pos_factor.z, 0, 0, 0)
 						* config->volume_size.x);
 		rot = makeVector(0.0, 0, 0, 0, 0, 0);
+	  float3 init_pose = config->initial_pos_factor * config->volume_size;
 		*pipeline_pp = new DenseSLAMSystem(
-				make_uint2(640 / config->compute_size_ratio,
+				Eigen::Vector2i(640 / config->compute_size_ratio,
 						480 / config->compute_size_ratio),
-				make_uint3(config->volume_resolution.x,
+				Eigen::Vector3i(config->volume_resolution.x,
 						config->volume_resolution.x,
 						config->volume_resolution.x),
-				make_float3(config->volume_size.x, config->volume_size.x,
+				Eigen::Vector3f(config->volume_size.x, config->volume_size.x,
 						config->volume_size.x),
-				config->initial_pos_factor
-						* make_float3(config->volume_size.x,
-								config->volume_size.x, config->volume_size.x),
-				        config->pyramid, *config);
+        Eigen::Vector3f(init_pose.x, init_pose.y, init_pose.z), 
+        config->pyramid, *config);
 	}
 	appWindow->viewers->setBufferSize(640 / config->compute_size_ratio,
 			480 / config->compute_size_ratio);

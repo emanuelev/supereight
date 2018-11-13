@@ -117,8 +117,12 @@ int main(int argc, char ** argv) {
         (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
 
 	init_pose = config.initial_pos_factor * config.volume_size;
-	pipeline = new DenseSLAMSystem(computationSize, config.volume_resolution,
-			config.volume_size, init_pose, config.pyramid, config);
+	pipeline = new DenseSLAMSystem(
+      Eigen::Vector2i(computationSize.x, computationSize.y), 
+      Eigen::Vector3i::Constant(static_cast<int>(config.volume_resolution.x)),
+			Eigen::Vector3f::Constant(config.volume_size.x), 
+      Eigen::Vector3f(init_pose.x, init_pose.y, init_pose.z), 
+      config.pyramid, config);
 
 	if (config.log_file != "") {
 		logfilestream.open(config.log_file.c_str());
@@ -228,24 +232,32 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 			powerMonitor->start();
 
 		timings[1] = std::chrono::steady_clock::now();
-		pipeline->preprocessing(inputDepth, inputSize, config->bilateralFilter);
+		pipeline->preprocessing(inputDepth, 
+        Eigen::Vector2i(inputSize.x, inputSize.y), config->bilateralFilter);
 
 		timings[2] = std::chrono::steady_clock::now();
 
-		tracked = pipeline->tracking(camera, config->icp_threshold,
+		tracked = pipeline->tracking(
+        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
+        config->icp_threshold,
 				config->tracking_rate, frame);
 
-		pos = pipeline->getPosition();
-		pose = pipeline->getPose();
+    Eigen::Vector3f tmp = pipeline->getPosition();
+		pos = make_float3(tmp.x(), tmp.y(), tmp.z());
+    pose = pipeline->getPose();
 
 		timings[3] = std::chrono::steady_clock::now();
 
-		integrated = pipeline->integration(camera, config->integration_rate,
+		integrated = pipeline->integration(
+        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
+        config->integration_rate,
 				config->mu, frame);
 
 		timings[4] = std::chrono::steady_clock::now();
 
-		raycasted = pipeline->raycasting(camera, config->mu, frame);
+		raycasted = pipeline->raycasting(
+        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
+        config->mu, frame);
 
 		timings[5] = std::chrono::steady_clock::now();
 
@@ -261,7 +273,9 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		pipeline->renderTrack(trackRender, pipeline->getComputationResolution());
 		pipeline->renderVolume(volumeRender, pipeline->getComputationResolution(),
 				(processFrame ? reader->getFrameNumber() - frameOffset : 0),
-				config->rendering_rate, camera, 0.75 * config->mu);
+				config->rendering_rate, 
+        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
+        0.75 * config->mu);
 		timings[6] = std::chrono::steady_clock::now();
 	}
 
