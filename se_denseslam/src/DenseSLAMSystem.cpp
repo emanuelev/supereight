@@ -66,7 +66,7 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution,
   float_depth_(computation_size_.x, computation_size_.y),
   tracking_result_(computation_size_.x, computation_size_.y) {
 
-    this->init_pose_ = getPosition();
+    this->init_pose_ = get_translation(initPose);
     this->volume_dimension_ = volumeDimensions;
     this->volume_resolution_ = volumeResolution;
     this->mu_ = config.mu;
@@ -203,10 +203,7 @@ bool DenseSLAMSystem::raycasting(float4 k, float mu, uint frame) {
 bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
 		uint frame) {
 
-	bool doIntegrate = checkPoseKernel(pose_, old_pose_,
-      reduction_output_.data(), computation_size_, track_threshold);
-
-  if ((doIntegrate && ((frame % integration_rate) == 0)) || (frame <= 3)) {
+  if (((frame % integration_rate) == 0) || (frame <= 3)) {
 
     float voxelsize =  volume_._dim/volume_._size;
     int num_vox_per_pix = volume_._dim/((se::VoxelBlock<FieldType>::side)*voxelsize);
@@ -273,13 +270,10 @@ bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
     //     }, // end lambda
     //     make_int3(0, volume_._size/2, 0),
     //     make_int3(volume_._size, volume_._size/2 + 1, volume_._size), make_int3(volume_._size), f.str().c_str());
-    doIntegrate = true;
   } else {
-    doIntegrate = false;
+    return false;
   }
-
-	return doIntegrate;
-
+  return true;
 }
 
 void DenseSLAMSystem::dump_volume(std::string ) {

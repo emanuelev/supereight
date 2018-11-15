@@ -114,13 +114,15 @@ int main(int argc, char ** argv) {
 
     while (reader->readNextDepthFrame(inputDepth)) {
 
+		bool tracked, integrated, raycasted;
+
 		timings[1] = std::chrono::steady_clock::now();
 
 		pipeline.preprocessing(inputDepth, inputSize, config.bilateralFilter);
 
 		timings[2] = std::chrono::steady_clock::now();
 
-		bool tracked = pipeline.tracking(camera, config.icp_threshold,
+		tracked = pipeline.tracking(camera, config.icp_threshold,
 				config.tracking_rate, frame);
 
 
@@ -133,12 +135,18 @@ int main(int argc, char ** argv) {
 		float zt = pose.data[2].w - init_pose.z;
 
 
-		bool integrated = pipeline.integration(camera, config.integration_rate,
-				config.mu, frame);
+		// Integrate only if tracking was successful or it is one of the first
+		// 4 frames.
+		if (tracked || (frame <=3)) {
+			integrated = pipeline.integration(camera, config.integration_rate,
+					config.mu, frame);
+		} else {
+			integrated = false;
+		}
 
 		timings[4] = std::chrono::steady_clock::now();
 
-		bool raycast = pipeline.raycasting(camera, config.mu, frame);
+		raycasted = pipeline.raycasting(camera, config.mu, frame);
 
 		timings[5] = std::chrono::steady_clock::now();
 

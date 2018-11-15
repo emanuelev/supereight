@@ -240,8 +240,14 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 		timings[3] = std::chrono::steady_clock::now();
 
-		integrated = pipeline->integration(camera, config->integration_rate,
-				config->mu, frame);
+		// Integrate only if tracking was successful or it is one of the first
+		// 4 frames.
+		if (tracked || (frame <= 3)) {
+			integrated = pipeline->integration(camera,
+					config->integration_rate, config->mu, frame);
+		} else {
+			integrated = false;
+		}
 
 		timings[4] = std::chrono::steady_clock::now();
 
