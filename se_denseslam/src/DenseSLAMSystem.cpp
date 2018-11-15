@@ -52,9 +52,6 @@
 
 extern PerfStats Stats;
 
-// For debugging purposes, will be deleted once done.
-std::vector<Matrix4> poses;
-
 DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution, float3 volumeDimensions,
 			float3 initPose, std::vector<int> & pyramid, Configuration config):
       DenseSLAMSystem(inputSize, volumeResolution, volumeDimensions, 
@@ -112,11 +109,6 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution,
 
     // ********* END : Generate the gaussian *************
 
-    if(config_.groundtruth_file != ""){
-      parseGTFile(config_.groundtruth_file, poses);
-      std::cout << "Parsed " << poses.size() << " poses" << std::endl;
-    }
-
     discrete_vol_ptr_ = std::make_shared<se::Octree<FieldType> >();
     discrete_vol_ptr_->init(volume_resolution_.x, volume_dimension_.x);
     volume_ = Volume<FieldType>(volume_resolution_.x, volume_dimension_.x, 
@@ -143,15 +135,6 @@ bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate
 
 	if (frame % tracking_rate != 0)
 		return false;
-
-  if(!poses.empty()) {
-    old_pose_ = this->pose_;
-    this->pose_ = poses[frame];
-    this->pose_.data[0].w = (this->pose_.data[0].w - poses[0].data[0].w) + this->init_pose_.x;
-    this->pose_.data[1].w = (this->pose_.data[1].w - poses[0].data[1].w) + this->init_pose_.y;
-    this->pose_.data[2].w = (this->pose_.data[2].w - poses[0].data[2].w) + this->init_pose_.z;
-    return true;
-  }
 
 	// half sample the input depth maps into the pyramid levels
 	for (unsigned int i = 1; i < iterations_.size(); ++i) {
@@ -220,8 +203,8 @@ bool DenseSLAMSystem::raycasting(float4 k, float mu, uint frame) {
 bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
 		uint frame) {
 
-	bool doIntegrate = poses.empty() ? checkPoseKernel(pose_, old_pose_, 
-      reduction_output_.data(), computation_size_, track_threshold) : true;
+	bool doIntegrate = checkPoseKernel(pose_, old_pose_,
+      reduction_output_.data(), computation_size_, track_threshold);
 
   if ((doIntegrate && ((frame % integration_rate) == 0)) || (frame <= 3)) {
 
