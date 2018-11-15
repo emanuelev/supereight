@@ -343,6 +343,21 @@ class DenseSLAMSystem {
     }
 
     /**
+     * Set the current camera pose.
+     *
+     * @note The value of the DenseSLAMSystem::init_pose_ member is added to
+     * the position encoded in `pose`.
+     *
+     * \param[in] pose The desired camera pose encoded in a 4x4 matrix.
+     */
+    void setPose(const Matrix4& pose) {
+      pose_ = pose;
+      pose_.data[0].w += init_pose_.x;
+      pose_.data[1].w += init_pose_.y;
+      pose_.data[2].w += init_pose_.z;
+    }
+
+    /**
      * Set the camera pose used to render the 3D reconstruction.
      *
      * \param[in] value The desired camera pose encoded in a 4x4 matrix.
