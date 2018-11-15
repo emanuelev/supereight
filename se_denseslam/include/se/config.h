@@ -128,6 +128,15 @@ struct Configuration {
   std::string groundtruth_file;
 
   /**
+   * A 4x4 transformation matrix applied to all poses read from the ground
+   * truth file.
+   *
+   * @todo Fix Eigen alignment.
+   * <br>\em Default: Eigen::Matrix4f::Identity()
+   */
+  Eigen::Matrix<float,4,4,Eigen::DontAlign> gt_transform;
+
+  /**
    * The intrinsic camera parameters. camera.x, camera.y, camera.z and
    * camera.w are the x-axis focal length, y-axis focal length, horizontal
    * resolution (pixels) and vertical resolution (pixels) respectively.
