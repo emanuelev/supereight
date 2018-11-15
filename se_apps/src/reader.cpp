@@ -7,6 +7,7 @@
 
  */
 // #include <DenseSLAMSystem.h>
+#include <str_utils.h>
 #include <se/commons.h>
 #include <interface.h>
 #include <se/constant_parameters.h>
@@ -17,21 +18,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sstream>
-
-std::vector<std::string> &split(const std::string &s, char delim,
-		std::vector<std::string> &elems) {
-	std::stringstream ss(s);
-	std::string item;
-	while (std::getline(ss, item, delim)) {
-		elems.push_back(item);
-	}
-	return elems;
-}
-std::vector<std::string> split(const std::string &s, char delim) {
-	std::vector<std::string> elems;
-	split(s, delim, elems);
-	return elems;
-}
 
 DepthReader *createReader(Configuration *config, std::string filename) {
 	DepthReader *reader = NULL;
@@ -44,21 +30,21 @@ DepthReader *createReader(Configuration *config, std::string filename) {
 		bool newFile = false;
 		std::string line;
 		std::ifstream infile(filename.c_str());
-		std::vector<std::string> path = split(filename, '/');
+		std::vector<std::string> path = splitString(filename, '/');
 		std::string rpath = "";
 		if (path.size() > 1)
 			for (int i = 0; i < path.size() - 1; i++)
 				rpath = rpath + path[i] + "/";
 		while (std::getline(infile, line)) {
 			if (line.substr(0, 1) != "#") {
-				std::vector<std::string> key_value = split(line, '=');
+				std::vector<std::string> key_value = splitString(line, '=');
 
 				if (key_value.size() > 1) {
 
 					std::string key = key_value[0];
 					std::transform(key.begin(), key.end(), key.begin(),
 							::tolower);
-					std::vector<std::string> values = split(key_value[1], '\"');
+					std::vector<std::string> values = splitString(key_value[1], '\"');
 					std::string value;
 
 					if (values.size() > 1)
@@ -66,7 +52,7 @@ DepthReader *createReader(Configuration *config, std::string filename) {
 					else
 						value = values[0];
 					if (key == "volume-resolution") {
-						std::vector<std::string> dims = split(value, ',');
+						std::vector<std::string> dims = splitString(value, ',');
 
 						if (dims.size() == 3) {
 							config->volume_resolution.x = ::atoi(
@@ -92,7 +78,7 @@ DepthReader *createReader(Configuration *config, std::string filename) {
 					}
 
 					if (key == "volume-size") {
-						std::vector<std::string> dims = split(value, ',');
+						std::vector<std::string> dims = splitString(value, ',');
 
 						if (dims.size() == 3) {
 							config->volume_size.x = ::atof(dims[0].c_str());
@@ -114,7 +100,7 @@ DepthReader *createReader(Configuration *config, std::string filename) {
 					}
 
 					if (key == "initial-position") {
-						std::vector<std::string> dims = split(value, ',');
+						std::vector<std::string> dims = splitString(value, ',');
 						if (dims.size() == 3) {
 							config->initial_pos_factor.x = ::atof(
 									dims[0].c_str());
@@ -136,7 +122,7 @@ DepthReader *createReader(Configuration *config, std::string filename) {
 						continue;
 					}
 					if (key == "camera") {
-						std::vector<std::string> dims = split(value, ',');
+						std::vector<std::string> dims = splitString(value, ',');
 						if (dims.size() == 4) {
 							config->camera.x = ::atof(dims[0].c_str());
 							config->camera.y = ::atof(dims[1].c_str());
