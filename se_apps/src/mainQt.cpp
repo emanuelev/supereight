@@ -221,46 +221,62 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		Stats.start();
 	}
 	Matrix4 pose;
+	Eigen::Matrix4f gt_pose;
 	timings[0] = std::chrono::steady_clock::now();
-	if (processFrame && (reader->readNextDepthFrame(inputRGB, inputDepth))) {
-		frame = reader->getFrameNumber() - frameOffset;
-		if (powerMonitor != NULL && !firstFrame)
-			powerMonitor->start();
+	if (processFrame) {
 
-		timings[1] = std::chrono::steady_clock::now();
-		pipeline->preprocessing(inputDepth, inputSize, config->bilateralFilter);
-
-		timings[2] = std::chrono::steady_clock::now();
-
-		tracked = pipeline->tracking(camera, config->icp_threshold,
-				config->tracking_rate, frame);
-
-		pos = pipeline->getPosition();
-		pose = pipeline->getPose();
-
-		timings[3] = std::chrono::steady_clock::now();
-
-		// Integrate only if tracking was successful or it is one of the first
-		// 4 frames.
-		if (tracked || (frame <= 3)) {
-			integrated = pipeline->integration(camera,
-					config->integration_rate, config->mu, frame);
+		// Read frames and ground truth data if set
+		bool read_ok;
+		if (config->groundtruth_file == "") {
+			read_ok = reader->readNextDepthFrame(inputRGB, inputDepth);
 		} else {
-			integrated = false;
+			read_ok = reader->readNextData(inputRGB, inputDepth, gt_pose);
 		}
 
-		timings[4] = std::chrono::steady_clock::now();
+		// Process read frames 
+		if (read_ok) {
+			frame = reader->getFrameNumber() - frameOffset;
+			if (powerMonitor != NULL && !firstFrame)
+				powerMonitor->start();
 
-		raycasted = pipeline->raycasting(camera, config->mu, frame);
+			timings[1] = std::chrono::steady_clock::now();
+			pipeline->preprocessing(inputDepth, inputSize, config->bilateralFilter);
 
-		timings[5] = std::chrono::steady_clock::now();
+			timings[2] = std::chrono::steady_clock::now();
 
-	} else {
-		if (processFrame) {
+			if (config->groundtruth_file == "") {
+				// No ground truth used, call tracking.
+				tracked = pipeline->tracking(camera, config->icp_threshold,
+						config->tracking_rate, frame);
+			} else {
+				// Set the pose to the ground truth.
+				pipeline->setPose(toMatrix4(gt_pose));
+				tracked = true;
+			}
+
+			pos = pipeline->getPosition();
+			pose = pipeline->getPose();
+
+			timings[3] = std::chrono::steady_clock::now();
+
+			// Integrate only if tracking was successful or it is one of the
+			// first 4 frames.
+			if (tracked || (frame <= 3)) {
+				integrated = pipeline->integration(camera,
+						config->integration_rate, config->mu, frame);
+			} else {
+				integrated = false;
+			}
+
+			timings[4] = std::chrono::steady_clock::now();
+
+			raycasted = pipeline->raycasting(camera, config->mu, frame);
+
+			timings[5] = std::chrono::steady_clock::now();
+		} else {
 			finished = true;
 			timings[0] = std::chrono::steady_clock::now();
 		}
-
 	}
 	if (renderImages) {
 		pipeline->renderDepth(depthRender, pipeline->getComputationResolution());

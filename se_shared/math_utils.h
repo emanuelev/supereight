@@ -121,6 +121,17 @@ inline Matrix4 toMatrix4(const float3& trans) {
   return se3_mat;
 }
 
+
+// Convert Eigen matrix to Matrix4
+inline Matrix4 toMatrix4(const Eigen::Matrix4f& eigen_mat) {
+  Matrix4 mat;
+  mat.data[0] = {eigen_mat(0,0), eigen_mat(0,1), eigen_mat(0,2), eigen_mat(0,3)};
+  mat.data[1] = {eigen_mat(1,0), eigen_mat(1,1), eigen_mat(1,2), eigen_mat(1,3)};
+  mat.data[2] = {eigen_mat(2,0), eigen_mat(2,1), eigen_mat(2,2), eigen_mat(2,3)};
+  mat.data[3] = {eigen_mat(3,0), eigen_mat(3,1), eigen_mat(3,2), eigen_mat(3,3)};
+  return mat;
+}
+
 constexpr int log2_const(int n){
   return (n < 2 ? 0 : 1 + log2_const(n/2));
 }
