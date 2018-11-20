@@ -74,7 +74,7 @@ size_t buildOctantList(HashType* allocationList, size_t reserved,
 #endif
 
   int x, y;
-  const Eigen::Vector3f camera = pose.topRightCorner<1, 3>();
+  const Eigen::Vector3f camera = pose.topRightCorner<3, 1>();
   voxelCount = 0;
 #pragma omp parallel for \
   private(y)
