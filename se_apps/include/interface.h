@@ -22,6 +22,8 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <time.h>
+#include <Eigen/Dense>
+#include <thirdparty/cutil_math.h>
 
 #include "sys/stat.h"
 
@@ -39,7 +41,7 @@ public:
 	}
 	virtual bool readNextDepthFrame(uchar3* raw_rgb,
 			unsigned short int * depthMap) = 0;
-	virtual float4 getK() = 0;
+	virtual Eigen::Vector4f getK() = 0;
 	virtual uint2 getinputSize() = 0;
 	virtual void restart()=0;
 	bool isValid() {
@@ -138,8 +140,8 @@ public:
 	ReaderType getType() {
 		return (READER_SCENE);
 	}
-	inline float4 getK() {
-		return make_float4(481.20, 480.00, 319.50, 239.50);
+	inline Eigen::Vector4f getK() {
+		return Eigen::Vector4f(481.20, 480.00, 319.50, 239.50);
 
 	}
 	inline uint2 getinputSize() {
@@ -326,8 +328,8 @@ public:
 	inline uint2 getinputSize() {
 		return _size;
 	}
-	inline float4 getK() {
-		return make_float4(531.15, 531.15, 640 / 2, 480 / 2);
+	inline Eigen::Vector4f getK() {
+		return Eigen::Vector4f(531.15, 531.15, 640 / 2, 480 / 2);
 	}
 
 };
@@ -598,8 +600,8 @@ public:
 	inline uint2 getinputSize() {
 		return _size;
 	}
-	inline float4 getK() {
-		return make_float4(481.2, 480, 640/2, 480/2);
+	inline Eigen::Vector4f getK() {
+		return Eigen::Vector4f(481.2, 480, 640/2, 480/2);
 
 	}
 
@@ -617,7 +619,7 @@ public:
 	}
 	bool readNextDepthFrame(uchar3* raw_rgb, unsigned short int * depthMap) {
 	}
-	float4 getK() {
+  Eigen::Vector4f getK() {
 	}
 	uint2 getinputSize() {
 	}

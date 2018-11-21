@@ -289,7 +289,7 @@ void DenseSLAMSystem::dump_volume(std::string ) {
 
 }
 
-void DenseSLAMSystem::renderVolume(uchar4 * out, 
+void DenseSLAMSystem::renderVolume(unsigned char* out, 
     const Eigen::Vector2i& outputSize, 
     int frame,
 		int raycast_rendering_rate, 
@@ -307,12 +307,12 @@ void DenseSLAMSystem::renderVolume(uchar4 * out,
   }
 }
 
-void DenseSLAMSystem::renderTrack(uchar4 * out, 
+void DenseSLAMSystem::renderTrack(unsigned char* out, 
     const Eigen::Vector2i& outputSize) {
         renderTrackKernel(out, tracking_result_.data(), outputSize);
 }
 
-void DenseSLAMSystem::renderDepth(uchar4 * out, 
+void DenseSLAMSystem::renderDepth(unsigned char* out, 
     const Eigen::Vector2i& outputSize) {
         renderDepthKernel(out, float_depth_.data(), outputSize, nearPlane, farPlane);
 }

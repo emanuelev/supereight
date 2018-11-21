@@ -17,6 +17,7 @@
 
 #include <se/constant_parameters.h>
 #include <se/config.h>
+#include <Eigen/Dense>
 
 ////////////////////////// RUNTIME PARAMETERS //////////////////////
 
@@ -31,9 +32,9 @@ const int default_compute_size_ratio = 1;
 const int default_integration_rate = 2;
 const int default_rendering_rate = 4;
 const int default_tracking_rate = 1;
-const uint3 default_volume_resolution = make_uint3(256, 256, 256);
-const float3 default_volume_size = make_float3(2.f, 2.f, 2.f);
-const float3 default_initial_pos_factor = make_float3(0.5f, 0.5f, 0.0f);
+const Eigen::Vector3i default_volume_resolution(256, 256, 256);
+const Eigen::Vector3f default_volume_size(2.f, 2.f, 2.f);
+const Eigen::Vector3f default_initial_pos_factor(0.5f, 0.5f, 0.0f);
 const bool default_no_gui = false;
 const bool default_render_volume_fullsize = false;
 const bool default_bilateralFilter = false;
@@ -100,90 +101,90 @@ void print_arguments() {
   std::cerr << "-l  (--icp-threshold)                : default is " << default_icp_threshold << std::endl;
   std::cerr << "-o  (--log-file) <filename>      : default is stdout               " << std::endl;
   std::cerr << "-m  (--mu)                       : default is " << default_mu << "               " << std::endl;
-  std::cerr << "-p  (--init-pose)                : default is " << default_initial_pos_factor.x << "," << default_initial_pos_factor.y << "," << default_initial_pos_factor.z << "     " << std::endl;
+  std::cerr << "-p  (--init-pose)                : default is " << default_initial_pos_factor.x() << "," << default_initial_pos_factor.y() << "," << default_initial_pos_factor.z() << "     " << std::endl;
   std::cerr << "-q  (--no-gui)                   : default is to display gui"<<std::endl;
   std::cerr << "-r  (--integration-rate)         : default is " << default_integration_rate << "     " << std::endl;
-  std::cerr << "-s  (--volume-size)              : default is " << default_volume_size.x << "," << default_volume_size.y << "," << default_volume_size.z << "      " << std::endl;
+  std::cerr << "-s  (--volume-size)              : default is " << default_volume_size.x() << "," << default_volume_size.y() << "," << default_volume_size.z() << "      " << std::endl;
   std::cerr << "-t  (--tracking-rate)            : default is " << default_tracking_rate << "     " << std::endl;
-  std::cerr << "-v  (--volume-resolution)        : default is " << default_volume_resolution.x << "," << default_volume_resolution.y << "," << default_volume_resolution.z << "    " << std::endl;
+  std::cerr << "-v  (--volume-resolution)        : default is " << default_volume_resolution.x() << "," << default_volume_resolution.y() << "," << default_volume_resolution.z() << "    " << std::endl;
   std::cerr << "-y  (--pyramid-levels)           : default is 10,5,4     " << std::endl;
   std::cerr << "-z  (--rendering-rate)   : default is " << default_rendering_rate << std::endl;
 
 }
 
-inline float3 atof3(char * optarg) {
-  float3 res;
+inline Eigen::Vector3f atof3(char * optarg) {
+  Eigen::Vector3f res;
   std::istringstream dotargs(optarg);
   std::string s;
   if (getline(dotargs, s, ',')) {
-    res.x = atof(s.c_str());
+    res.x() = atof(s.c_str());
   } else
     return res;
   if (getline(dotargs, s, ',')) {
-    res.y = atof(s.c_str());
+    res.y() = atof(s.c_str());
   } else {
-    res.y = res.x;
-    res.z = res.y;
+    res.y() = res.x();
+    res.z() = res.y();
     return res;
   }
   if (getline(dotargs, s, ',')) {
-    res.z = atof(s.c_str());
+    res.z() = atof(s.c_str());
   } else {
-    res.z = res.y;
+    res.z() = res.y();
   }
   return res;
 }
 
-inline uint3 atoi3(char * optarg) {
-  uint3 res;
+inline Eigen::Vector3i atoi3(char * optarg) {
+  Eigen::Vector3i res;
   std::istringstream dotargs(optarg);
   std::string s;
   if (getline(dotargs, s, ',')) {
-    res.x = atoi(s.c_str());
+    res.x() = atoi(s.c_str());
   } else
     return res;
   if (getline(dotargs, s, ',')) {
-    res.y = atoi(s.c_str());
+    res.y() = atoi(s.c_str());
   } else {
-    res.y = res.x;
-    res.z = res.y;
+    res.y() = res.x();
+    res.z() = res.y();
     return res;
   }
   if (getline(dotargs, s, ',')) {
-    res.z = atoi(s.c_str());
+    res.z() = atoi(s.c_str());
   } else {
-    res.z = res.y;
+    res.z() = res.y();
   }
   return res;
 }
 
-inline float4 atof4(char * optarg) {
-  float4 res;
+inline Eigen::Vector4f atof4(char * optarg) {
+  Eigen::Vector4f res;
   std::istringstream dotargs(optarg);
   std::string s;
   if (getline(dotargs, s, ',')) {
-    res.x = atof(s.c_str());
+    res.x() = atof(s.c_str());
   } else
     return res;
   if (getline(dotargs, s, ',')) {
-    res.y = atof(s.c_str());
+    res.y() = atof(s.c_str());
   } else {
-    res.y = res.x;
-    res.z = res.y;
-    res.w = res.z;
+    res.y() = res.x();
+    res.z() = res.y();
+    res.w() = res.z();
     return res;
   }
   if (getline(dotargs, s, ',')) {
-    res.z = atof(s.c_str());
+    res.z() = atof(s.c_str());
   } else {
-    res.z = res.y;
-    res.w = res.z;
+    res.z() = res.y();
+    res.w() = res.z();
     return res;
   }
   if (getline(dotargs, s, ',')) {
-    res.w = atof(s.c_str());
+    res.w() = atof(s.c_str());
   } else {
-    res.w = res.z;
+    res.w() = res.z();
   }
   return res;
 }
@@ -298,9 +299,9 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
       case 'k':    //   -k  (--camera)
         config.camera = atof4(optarg);
         config.camera_overrided = true;
-        std::cerr << "update camera to " << config.camera.x << ","
-          << config.camera.y << "," << config.camera.z << ","
-          << config.camera.w << std::endl;
+        std::cerr << "update camera to " << config.camera.x() << ","
+          << config.camera.y() << "," << config.camera.z() << ","
+          << config.camera.w() << std::endl;
         break;
       case 'o':    //   -o  (--log-file)
         config.log_file = optarg;
@@ -319,9 +320,9 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
       case 'p':    //   -p  (--init-pose)
         config.initial_pos_factor = atof3(optarg);
         std::cerr << "update init_poseFactors to "
-          << config.initial_pos_factor.x << ","
-          << config.initial_pos_factor.y << ","
-          << config.initial_pos_factor.z << std::endl;
+          << config.initial_pos_factor.x() << ","
+          << config.initial_pos_factor.y() << ","
+          << config.initial_pos_factor.z() << std::endl;
         break;
       case 'q':
         config.no_gui = true;
@@ -339,11 +340,11 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
         break;
       case 's':    //   -s  (--map-size)
         config.volume_size = atof3(optarg);
-        std::cerr << "update map_size to " << config.volume_size.x
-          << "mx" << config.volume_size.y << "mx"
-          << config.volume_size.z << "m" << std::endl;
-        if ((config.volume_size.x <= 0) || (config.volume_size.y <= 0)
-            || (config.volume_size.z <= 0)) {
+        std::cerr << "update map_size to " << config.volume_size.x()
+          << "mx" << config.volume_size.y() << "mx"
+          << config.volume_size.z() << "m" << std::endl;
+        if ((config.volume_size.x() <= 0) || (config.volume_size.y() <= 0)
+            || (config.volume_size.z() <= 0)) {
           std::cerr
             << "ERROR: --volume-size (-s) all dimensions must > 0 (was "
             << optarg << ")\n";
@@ -363,12 +364,12 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
       case 'v':    //   -v  (--volumetric-size)
         config.volume_resolution = atoi3(optarg);
         std::cerr << "update volumetric_size to "
-          << config.volume_resolution.x << "x"
-          << config.volume_resolution.y << "x"
-          << config.volume_resolution.z << std::endl;
-        if ((config.volume_resolution.x <= 0)
-            || (config.volume_resolution.y <= 0)
-            || (config.volume_resolution.z <= 0)) {
+          << config.volume_resolution.x() << "x"
+          << config.volume_resolution.y() << "x"
+          << config.volume_resolution.z() << std::endl;
+        if ((config.volume_resolution.x() <= 0)
+            || (config.volume_resolution.y() <= 0)
+            || (config.volume_resolution.z() <= 0)) {
           std::cerr
             << "ERROR: --volume-size (-s) all dimensions must > 0 (was "
             << optarg << ")\n";

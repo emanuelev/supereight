@@ -41,8 +41,8 @@ int main(int argc, char ** argv) {
 	std::ofstream logfilestream;
 	assert(config.compute_size_ratio > 0);
 	assert(config.integration_rate > 0);
-	assert(config.volume_size.x > 0);
-	assert(config.volume_resolution.x > 0);
+	assert(config.volume_size.x() > 0);
+	assert(config.volume_resolution.x() > 0);
 
 	if (config.log_file != "") {
 		logfilestream.open(config.log_file.c_str());
@@ -70,7 +70,7 @@ int main(int argc, char ** argv) {
 	std::cout.precision(10);
 	std::cerr.precision(10);
 
-	float3 init_pose = config.initial_pos_factor * config.volume_size;
+  Eigen::Vector3f init_pose = config.initial_pos_factor.cwiseProduct(config.volume_size);
 	const uint2 inputSize = reader->getinputSize();
 	std::cerr << "input Size is = " << inputSize.x << "," << inputSize.y
 			<< std::endl;
@@ -80,7 +80,7 @@ int main(int argc, char ** argv) {
 	const uint2 computationSize = make_uint2(
 			inputSize.x / config.compute_size_ratio,
 			inputSize.y / config.compute_size_ratio);
-	float4 camera = reader->getK() / config.compute_size_ratio;
+  Eigen::Vector4f camera = reader->getK() / config.compute_size_ratio;
 
 	if (config.camera_overrided)
 		camera = config.camera / config.compute_size_ratio;
@@ -100,9 +100,8 @@ int main(int argc, char ** argv) {
 
 	DenseSLAMSystem pipeline(
       Eigen::Vector2i(computationSize.x, computationSize.y), 
-      Eigen::Vector3i::Constant(static_cast<int>(config.volume_resolution.x)),
-			Eigen::Vector3f::Constant(config.volume_size.x), 
-      Eigen::Vector3f(init_pose.x, init_pose.y, init_pose.z), 
+      config.volume_resolution, config.volume_size, 
+      init_pose,
       config.pyramid, config);
      
   bool bilateralfilter = false;
@@ -123,41 +122,31 @@ int main(int argc, char ** argv) {
 
 		timings[2] = std::chrono::steady_clock::now();
 
-		bool tracked = pipeline.tracking(
-        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
-        config.icp_threshold,
-				config.tracking_rate, frame);
+		bool tracked = pipeline.tracking(camera, config.icp_threshold, config.tracking_rate, frame);
 
 
 		timings[3] = std::chrono::steady_clock::now();
 
     Eigen::Matrix4f pose = pipeline.getPose();
 
-		float xt = pose(0, 3) - init_pose.x;
-		float yt = pose(1, 3) - init_pose.y;
-		float zt = pose(2, 3) - init_pose.z;
+		float xt = pose(0, 3) - init_pose.x();
+		float yt = pose(1, 3) - init_pose.y();
+		float zt = pose(2, 3) - init_pose.z();
 
 
-		bool integrated = pipeline.integration(
-        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
-        config.integration_rate,
-				config.mu, frame);
+		bool integrated = pipeline.integration(camera, config.integration_rate, config.mu, frame);
 
 		timings[4] = std::chrono::steady_clock::now();
 
-		bool raycast = pipeline.raycasting(
-        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
-        config.mu, frame);
+		bool raycast = pipeline.raycasting(camera, config.mu, frame);
 
 		timings[5] = std::chrono::steady_clock::now();
 
-		pipeline.renderDepth(depthRender,   Eigen::Vector2i(computationSize.x, computationSize.y));
-		pipeline.renderTrack(trackRender,   Eigen::Vector2i(computationSize.x, computationSize.y));
-		pipeline.renderVolume(volumeRender, 
+		pipeline.renderDepth( (unsigned char*)depthRender, Eigen::Vector2i(computationSize.x, computationSize.y));
+		pipeline.renderTrack( (unsigned char*)trackRender, Eigen::Vector2i(computationSize.x, computationSize.y));
+		pipeline.renderVolume((unsigned char*)volumeRender, 
         Eigen::Vector2i(computationSize.x, computationSize.y), frame,
-				config.rendering_rate, 
-        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
-        0.75 * config.mu);
+				config.rendering_rate, camera, 0.75 * config.mu);
 
 		timings[6] = std::chrono::steady_clock::now();
 

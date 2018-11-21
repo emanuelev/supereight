@@ -103,9 +103,7 @@ void read_input(std::string inputfile, T * in) {
 	}
 }
 
-
-inline uchar4 gs2rgb(double h) {
-	uchar4 rgb;
+inline void gs2rgb(double h, unsigned char rgbw[4]) {
 	double v = 0;
 	double r = 0, g = 0, b = 0;
 	v = 0.75;
@@ -160,11 +158,10 @@ inline uchar4 gs2rgb(double h) {
 			break;
 		}
 	}
-	rgb.x = r * 255;
-	rgb.y = g * 255;
-	rgb.z = b * 255;
-	rgb.w = 0; // Only for padding purposes 
-	return rgb;
+	rgbw[0] = r * 255;
+	rgbw[1] = g * 255;
+	rgbw[2] = b * 255;
+	rgbw[3] = 0; // Only for padding purposes 
 }
 
 typedef struct Triangle {
@@ -250,83 +247,6 @@ typedef struct Triangle {
 
 } Triangle;
 
-struct RGBVolume {
-    uint3 size;
-    float3 dim;
-    short4 * data;
-
-    RGBVolume() { size = make_uint3(0); dim = make_float3(1); data = NULL; }
-
-    __device__ float4 operator[]( const uint3 & pos ) const {
-        const short4 d = data[pos.x + pos.y * size.x + pos.z * size.x * size.y];
-        return make_float4(d.x * 0.00003051944088f, d.y * 0.00003051944088f, d.z * 0.00003051944088f, d.w); //  / 32766.0f
-    }
-
-    __device__ float3 v(const uint3 & pos) const {
-        const float4 val = operator[](pos);
-        return make_float3(val.x,val.y,val.z);
-    }
-
-    __device__ float3 vs(const uint3 & pos) const {
-        const short4 val = data[pos.x + pos.y * size.x + pos.z * size.x * size.y];
-        return make_float3(val.x,val.y,val.z);
-    }
-
-    __device__ void set(const uint3 & pos, const float4 & d ){
-        data[pos.x + pos.y * size.x + pos.z * size.x * size.y] = make_short4(d.x * 32766.0f, d.y * 32766.0f, d.z * 32766.0f, d.w);
-    }
-
-    __device__ float3 pos( const uint3 & p ) const {
-        return make_float3((p.x + 0.5f) * dim.x / size.x, (p.y + 0.5f) * dim.y / size.y, (p.z + 0.5f) * dim.z / size.z);
-    }
-
-    __device__ float3 interp( const float3 & pos ) const {
-#if 0   // only for testing without linear interpolation
-        const float3 scaled_pos = make_float3((pos.x * size.x / dim.x) , (pos.y * size.y / dim.y) , (pos.z * size.z / dim.z) );
-        return v(make_uint3(clamp(make_int3(scaled_pos), make_int3(0), make_int3(size) - make_int3(1))));
-
-#else
-        const float3 scaled_pos = make_float3((pos.x * size.x / dim.x) - 0.5f, (pos.y * size.y / dim.y) - 0.5f, (pos.z * size.z / dim.z) - 0.5f);
-        const int3 base = make_int3(floorf(scaled_pos));
-        const float3 factor = fracf(scaled_pos);
-        const int3 lower = max(base, make_int3(0));
-        const int3 upper = min(base + make_int3(1), make_int3(size) - make_int3(1));
-        return (
-              ((vs(make_uint3(lower.x, lower.y, lower.z)) * (1-factor.x) + vs(make_uint3(upper.x, lower.y, lower.z)) * factor.x) * (1-factor.y)
-             + (vs(make_uint3(lower.x, upper.y, lower.z)) * (1-factor.x) + vs(make_uint3(upper.x, upper.y, lower.z)) * factor.x) * factor.y) * (1-factor.z)
-            + ((vs(make_uint3(lower.x, lower.y, upper.z)) * (1-factor.x) + vs(make_uint3(upper.x, lower.y, upper.z)) * factor.x) * (1-factor.y)
-             + (vs(make_uint3(lower.x, upper.y, upper.z)) * (1-factor.x) + vs(make_uint3(upper.x, upper.y, upper.z)) * factor.x) * factor.y) * factor.z
-            ) * 0.00003051944088f;
-#endif
-    }
-
-    void init(uint3 s, float3 d){
-        size = s;
-        dim = d;
-	 #ifdef CUDABASED
-            cudaMalloc( &data,  size.x * size.y * size.z * sizeof(short4) ); 
-         #else
-	    std::cout << sizeof(short4) << std::endl;
-	    data = (short4 *) malloc(size.x * size.y * size.z * sizeof(short4)); 
-	    assert(data != (0));
-         #endif
-        //cudaMalloc(&data, size.x * size.y * size.z * sizeof(short4));
-    }
-
-    void release(){
-      //cudaFree(data);
-      //data = NULL;
-           #ifdef ZEROCOPY_OPENCL
-    	    clEnqueueUnmapMemObject(commandQueue, oclbuffer, data, 0, NULL, NULL);
-    		clReleaseMemObject(oclbuffer);
-		#else
-        	free(data);
-        	data = NULL;
-		#endif // if def ZEROCOPY_OPENCL
-    }
-};
-
-
 struct TrackData {
 	int result;
 	float error;
@@ -407,7 +327,6 @@ inline void compareTrackData(std::string str, TrackData* l, TrackData * r,
 			std::cout << "l.result =  " << l[i].result << std::endl;
 			std::cout << "r.result =  " << r[i].result << std::endl;
 		}
-
 	}
 }
 
@@ -417,83 +336,6 @@ inline void compareFloat(std::string str, float* l, float * r, uint size) {
 			std::cout << "Error into " << str << " at " << i << std::endl;
 			std::cout << "l =  " << l[i] << std::endl;
 			std::cout << "r =  " << r[i] << std::endl;
-		}
-	}
-}
-inline void compareFloat3(std::string str, float3* l, float3 * r, uint size) {
-	for (unsigned int i = 0; i < size; i++) {
-		if (std::abs(l[i].x - r[i].x) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.x =  " << l[i].x << std::endl;
-			std::cout << "r.x =  " << r[i].x << std::endl;
-		}
-		if (std::abs(l[i].y - r[i].y) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.y =  " << l[i].y << std::endl;
-			std::cout << "r.y =  " << r[i].y << std::endl;
-		}
-		if (std::abs(l[i].z - r[i].z) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.z =  " << l[i].z << std::endl;
-			std::cout << "r.z =  " << r[i].z << std::endl;
-		}
-	}
-}
-
-inline void compareFloat4(std::string str, float4* l, float4 * r, uint size) {
-	for (unsigned int i = 0; i < size; i++) {
-		if (std::abs(l[i].x - r[i].x) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.x =  " << l[i].x << std::endl;
-			std::cout << "r.x =  " << r[i].x << std::endl;
-		}
-		if (std::abs(l[i].y - r[i].y) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.y =  " << l[i].y << std::endl;
-			std::cout << "r.y =  " << r[i].y << std::endl;
-		}
-		if (std::abs(l[i].z - r[i].z) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.z =  " << l[i].z << std::endl;
-			std::cout << "r.z =  " << r[i].z << std::endl;
-		}
-		if (std::abs(l[i].w - r[i].w) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.w =  " << l[i].w << std::endl;
-			std::cout << "r.w =  " << r[i].w << std::endl;
-		}
-	}
-}
-
-
-inline bool compareFloat4(float4* l, float4 * r, uint size) {
-	for (unsigned int i = 0; i < size; i++) {
-		if ((std::abs(l[i].x - r[i].x) > epsilon) ||
-		    (std::abs(l[i].y - r[i].y) > epsilon) ||
-		    (std::abs(l[i].z - r[i].z) > epsilon) ||
-		    (std::abs(l[i].w - r[i].w) > epsilon))
-     return false; 
-	}
-  return true;
-}
-
-inline void compareNormal(std::string str, float3* l, float3 * r, uint size) {
-	for (unsigned int i = 0; i < size; i++) {
-		if (std::abs(l[i].x - r[i].x) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.x =  " << l[i].x << std::endl;
-			std::cout << "r.x =  " << r[i].x << std::endl;
-		} else if (r[i].x != INVALID) {
-			if (std::abs(l[i].y - r[i].y) > epsilon) {
-				std::cout << "Error into " << str << " at " << i << std::endl;
-				std::cout << "l.y =  " << l[i].y << std::endl;
-				std::cout << "r.y =  " << r[i].y << std::endl;
-			}
-			if (std::abs(l[i].z - r[i].z) > epsilon) {
-				std::cout << "Error into " << str << " at " << i << std::endl;
-				std::cout << "l.z =  " << l[i].z << std::endl;
-				std::cout << "r.z =  " << r[i].z << std::endl;
-			}
 		}
 	}
 }
@@ -515,32 +357,6 @@ void writefile(std::string prefix, int idx, T * data, uint size) {
 
 	fclose(pFile);
 }
-
-template<typename T>
-void writefile(std::string prefix, int idx, T * data, uint2 size) {
-	writefile(prefix, idx, data, size.x * size.y);
-}
-
-// void writeVolume(std::string filename, Volume v) {
-// 
-// 	std::ofstream fDumpFile;
-// 	fDumpFile.open(filename.c_str(), std::ios::out | std::ios::binary);
-// 
-// 	if (fDumpFile.fail()) {
-// 		std::cout << "Error opening file: " << filename << std::endl;
-// 		exit(1);
-// 	}
-// 
-// 	// Retrieve the volumetric representation data
-// 	short2 *hostData = (short2 *) v.data;
-// 
-// 	// Dump on file without the y component of the short2 variable
-// 	for (unsigned int i = 0; i < v.size.x * v.size.y * v.size.z; i++) {
-// 		fDumpFile.write((char *) (hostData + i), sizeof(short));
-// 	}
-// 
-// 	fDumpFile.close();
-// }
 
 inline void writeVtkMesh(const char * filename, 
                          const std::vector<Triangle>& mesh,

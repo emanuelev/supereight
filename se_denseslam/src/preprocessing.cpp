@@ -127,18 +127,18 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out,
         continue;
       }
 
-      const Eigen::Vector2i pleft = Eigen::Vector2i(max(int(x) - 1, 0), y);
-      const Eigen::Vector2i pright = Eigen::Vector2i(min(x + 1, (int) width - 1),
+      const Eigen::Vector2i pleft = Eigen::Vector2i(std::max(int(x) - 1, 0), y);
+      const Eigen::Vector2i pright = Eigen::Vector2i(std::min(x + 1, (int) width - 1),
           y);
 
       // Swapped to match the left-handed coordinate system of ICL-NUIM
       Eigen::Vector2i pup, pdown;
       if(NegY) {
-        pup = Eigen::Vector2i(x, max(int(y) - 1, 0));
-        pdown = Eigen::Vector2i(x, min(y + 1, ((int) height) - 1));
+        pup = Eigen::Vector2i(x, std::max(int(y) - 1, 0));
+        pdown = Eigen::Vector2i(x, std::min(y + 1, ((int) height) - 1));
       } else {
-        pdown = Eigen::Vector2i(x, max(int(y) - 1, 0));
-        pup = Eigen::Vector2i(x, min(y + 1, ((int) height) - 1));
+        pdown = Eigen::Vector2i(x, std::max(int(y) - 1, 0));
+        pup = Eigen::Vector2i(x, std::min(y + 1, ((int) height) - 1));
       }
 
       const Eigen::Vector3f left  = in[pleft.x() + width * pleft.y()];

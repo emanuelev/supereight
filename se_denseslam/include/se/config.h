@@ -74,13 +74,13 @@ struct Configuration {
    * The x, y and z resolution of the reconstructed volume in voxels.
    * <br>\em Default: (256, 256, 256)
    */
-  uint3 volume_resolution;
+  Eigen::Vector3i volume_resolution;
 
   /**
    * The x, y and z dimensions of the reconstructed volume in meters.
    * <br>\em Default: (2, 2, 2)
    */
-  float3 volume_size;
+  Eigen::Vector3f volume_size;
 
   int voxel_block_size;
 
@@ -88,7 +88,7 @@ struct Configuration {
    * TODO
    * <br>\em Default: (0.5, 0.5, 0)
    */
-  float3 initial_pos_factor;
+  Eigen::Vector3f initial_pos_factor;
 
   /**
    * TODO
@@ -125,7 +125,7 @@ struct Configuration {
    * camera.w are the x-axis focal length, y-axis focal length, horizontal
    * resolution (pixels) and vertical resolution (pixels) respectively.
    */
-  float4 camera;
+  Eigen::Vector4f camera;
 
   /**
    * Whether the default intrinsic camera parameters have been overriden.

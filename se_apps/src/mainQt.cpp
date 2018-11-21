@@ -24,6 +24,8 @@
 #include <perfstats.h>
 #include <PowerMonitor.h>
 
+#include <Eigen/Dense>
+
 #include <chrono>
 
 #ifndef __QT__
@@ -41,7 +43,7 @@ static uchar4 * volumeRender = NULL;
 static DepthReader *reader = NULL;
 static DenseSLAMSystem *pipeline = NULL;
 
-static float3 init_pose;
+static Eigen::Vector3f init_pose;
 static std::ostream* logstream = &std::cout;
 static std::ofstream logfilestream;
 /*
@@ -116,12 +118,12 @@ int main(int argc, char ** argv) {
 	volumeRender = 
         (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
 
-	init_pose = config.initial_pos_factor * config.volume_size;
+	init_pose = config.initial_pos_factor.cwiseProduct(config.volume_size);
 	pipeline = new DenseSLAMSystem(
       Eigen::Vector2i(computationSize.x, computationSize.y), 
-      Eigen::Vector3i::Constant(static_cast<int>(config.volume_resolution.x)),
-			Eigen::Vector3f::Constant(config.volume_size.x), 
-      Eigen::Vector3f(init_pose.x, init_pose.y, init_pose.z), 
+      Eigen::Vector3i::Constant(static_cast<int>(config.volume_resolution.x())),
+			Eigen::Vector3f::Constant(config.volume_size.x()), 
+      init_pose, 
       config.pyramid, config);
 
 	if (config.log_file != "") {
@@ -209,10 +211,10 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 	int frame;
 	const uint2 inputSize =
 			(reader != NULL) ? reader->getinputSize() : make_uint2(640, 480);
-	float4 camera =
-			(reader != NULL) ?
-					(reader->getK() / config->compute_size_ratio) :
-					make_float4(0.0);
+  Eigen::Vector4f camera =
+			(reader != NULL) ? reader->getK() : Eigen::Vector4f::Constant(0.0f);
+  camera /= config->compute_size_ratio;
+
 	if (config->camera_overrided)
 		camera = config->camera / config->compute_size_ratio;
 
@@ -237,10 +239,8 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 		timings[2] = std::chrono::steady_clock::now();
 
-		tracked = pipeline->tracking(
-        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
-        config->icp_threshold,
-				config->tracking_rate, frame);
+		tracked = pipeline->tracking(camera, config->icp_threshold, 
+        config->tracking_rate, frame); 
 
     Eigen::Vector3f tmp = pipeline->getPosition();
 		pos = make_float3(tmp.x(), tmp.y(), tmp.z());
@@ -248,16 +248,12 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 		timings[3] = std::chrono::steady_clock::now();
 
-		integrated = pipeline->integration(
-        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
-        config->integration_rate,
-				config->mu, frame);
+		integrated = pipeline->integration( camera, config->integration_rate, 
+        config->mu, frame);
 
 		timings[4] = std::chrono::steady_clock::now();
 
-		raycasted = pipeline->raycasting(
-        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
-        config->mu, frame);
+		raycasted = pipeline->raycasting(camera, config->mu, frame);
 
 		timings[5] = std::chrono::steady_clock::now();
 
@@ -269,13 +265,11 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 	}
 	if (renderImages) {
-		pipeline->renderDepth(depthRender, pipeline->getComputationResolution());
-		pipeline->renderTrack(trackRender, pipeline->getComputationResolution());
-		pipeline->renderVolume(volumeRender, pipeline->getComputationResolution(),
+		pipeline->renderDepth((unsigned char*)depthRender, pipeline->getComputationResolution());
+		pipeline->renderTrack((unsigned char*)trackRender, pipeline->getComputationResolution());
+		pipeline->renderVolume((unsigned char*)volumeRender, pipeline->getComputationResolution(),
 				(processFrame ? reader->getFrameNumber() - frameOffset : 0),
-				config->rendering_rate, 
-        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
-        0.75 * config->mu);
+				config->rendering_rate, camera, 0.75 * config->mu);
 		timings[6] = std::chrono::steady_clock::now();
 	}
 
@@ -283,9 +277,9 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		if (powerMonitor != NULL && !firstFrame)
 			powerMonitor->sample();
 
-		float xt = pose(0, 3) - init_pose.x;
-		float yt = pose(1, 3) - init_pose.y;
-		float zt = pose(2, 3) - init_pose.z;
+		float xt = pose(0, 3) - init_pose.x();
+		float yt = pose(1, 3) - init_pose.y();
+		float zt = pose(2, 3) - init_pose.z();
 		storeStats(frame, timings, pos, tracked, integrated);
     if(config->no_gui){
       *logstream << reader->getFrameNumber() << "\t" << xt << "\t" << yt << "\t" << zt << "\t" << std::endl;
