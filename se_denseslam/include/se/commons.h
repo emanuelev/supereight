@@ -314,7 +314,7 @@ inline Eigen::Matrix4f toMatrix4f(const TooN::SE3<P> & p) {
 static const float epsilon = 0.0000001;
 
 inline void compareTrackData(std::string str, TrackData* l, TrackData * r,
-		uint size) {
+		unsigned int size) {
 	for (unsigned int i = 0; i < size; i++) {
 		if (std::abs(l[i].error - r[i].error) > epsilon) {
 			std::cout << "Error into " << str << " at " << i << std::endl;
@@ -330,7 +330,7 @@ inline void compareTrackData(std::string str, TrackData* l, TrackData * r,
 	}
 }
 
-inline void compareFloat(std::string str, float* l, float * r, uint size) {
+inline void compareFloat(std::string str, float* l, float * r, unsigned int size) {
 	for (unsigned int i = 0; i < size; i++) {
 		if (std::abs(l[i] - r[i]) > epsilon) {
 			std::cout << "Error into " << str << " at " << i << std::endl;
@@ -341,7 +341,7 @@ inline void compareFloat(std::string str, float* l, float * r, uint size) {
 }
 
 template<typename T>
-void writefile(std::string prefix, int idx, T * data, uint size) {
+void writefile(std::string prefix, int idx, T * data, unsigned int size) {
 
 	std::string filename = prefix + NumberToString(idx);
 	FILE* pFile = fopen(filename.c_str(), "wb");

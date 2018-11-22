@@ -95,7 +95,7 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
 // #pragma omp parallel for shared(out), private(y)
 // 	for (y = 0; y < normalSize.y; y++)
 // 		for (unsigned int x = 0; x < normalSize.x; x++) {
-// 			uint pos = (x + y * normalSize.x);
+// 			unsigned int pos = (x + y * normalSize.x);
 // 			float3 n = normal[pos];
 // 			if (n.x == -2) {
 // 				out[pos] = make_uchar3(0, 0, 0);

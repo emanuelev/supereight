@@ -143,14 +143,14 @@ class DenseSLAMSystem {
      * filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocessing(const ushort *         inputDepth,
+    bool preprocessing(const unsigned short *         inputDepth,
                        const Eigen::Vector2i& inputSize,
                        const bool             filterInput);
 
     /*
      * TODO Implement this.
      */
-    bool preprocessing(const ushort*          inputDepth,
+    bool preprocessing(const unsigned short*          inputDepth,
                        const unsigned char*   inputRGB,
                        const Eigen::Vector2i& inputSize,
                        const bool             filterInput);
@@ -210,7 +210,7 @@ class DenseSLAMSystem {
      */
     bool raycasting(const Eigen::Vector4f& k,
                     float                  mu,
-                    uint                   frame);
+                    unsigned int                   frame);
 
     /*
      * TODO Implement this.

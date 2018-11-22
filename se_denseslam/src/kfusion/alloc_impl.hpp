@@ -115,7 +115,7 @@ unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
       }
     }
   }
-  const uint written = voxelCount;
+  const unsigned int written = voxelCount;
   return written >= reserved ? reserved : written;
 }
 

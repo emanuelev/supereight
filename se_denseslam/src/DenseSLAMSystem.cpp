@@ -124,7 +124,7 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
         discrete_vol_ptr_.get());
 }
 
-bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, 
+bool DenseSLAMSystem::preprocessing(const unsigned short * inputDepth, 
     const Eigen::Vector2i& inputSize, const bool filterInput){
 
     mm2metersKernel(float_depth_, inputDepth, inputSize);
@@ -187,7 +187,7 @@ bool DenseSLAMSystem::tracking(const Eigen::Vector4f& k,
       computation_size_, track_threshold);
 }
 
-bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, uint frame) {
+bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, unsigned int frame) {
 
   bool doRaycast = false;
 
@@ -202,8 +202,8 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, uint frame)
   return doRaycast;
 }
 
-bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, uint integration_rate, 
-    float mu, uint frame) {
+bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integration_rate, 
+    float mu, unsigned int frame) {
 
 	bool doIntegrate = checkPoseKernel(pose_, old_pose_, 
       reduction_output_.data(), computation_size_, track_threshold);

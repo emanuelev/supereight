@@ -56,7 +56,7 @@ void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
 	    shared(out),private(y)   
 		for (y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
-				uint pos = x + y * width;
+				unsigned int pos = x + y * width;
 				if (in[pos] == 0) {
 					out[pos] = 0;
 					continue;
@@ -158,7 +158,7 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out,
   TOCK("vertex2normalKernel", width * height);
 }
 
-void mm2metersKernel(se::Image<float>& out, const ushort* in, 
+void mm2metersKernel(se::Image<float>& out, const unsigned short* in, 
     const Eigen::Vector2i& inputSize) {
 	TICK();
 	// Check for unsupported conditions
