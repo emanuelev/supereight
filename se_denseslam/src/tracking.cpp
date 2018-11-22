@@ -33,7 +33,7 @@
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
-#include <math_utils.h>
+#include <se/utils/math_utils.h>
 #include "timings.h"
 
 #include <se/commons.h>

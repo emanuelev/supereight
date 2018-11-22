@@ -33,7 +33,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <math_utils.h>
+#include <se/utils/math_utils.h>
 #include <algorithm>
 
 //http://stackoverflow.com/questions/236129/split-a-string-in-c

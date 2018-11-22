@@ -143,7 +143,7 @@ static inline float HNew(const float val,const  float ){
 }
 
 static inline float updateLogs(const float prior, const float sample){
-  // return (prior + clamp(log2(sample / (1.f - sample)), -100, 100));
+  // return (prior + se::math::clamp(log2(sample / (1.f - sample)), -100, 100));
   return (prior + log2(sample / (1.f - sample)));
 }
 
@@ -165,14 +165,14 @@ struct bfusion_update {
     if (depthSample <=  0) return;
 
     const float diff = (pos(2) - depthSample)
-      * std::sqrt( 1 + sq(pos(0) / pos(2)) + sq(pos(1) / pos(2)));
-    float sample = HNew(diff/(noiseFactor *sq(pos(2))), pos(2));
+      * std::sqrt( 1 + se::math::sq(pos(0) / pos(2)) + se::math::sq(pos(1) / pos(2)));
+    float sample = HNew(diff/(noiseFactor * se::math::sq(pos(2))), pos(2));
     if(sample == 0.5f) return;
-    sample = clamp(sample, 0.03f, 0.97f);
+    sample = se::math::clamp(sample, 0.03f, 0.97f);
     auto data = handler.get();
     const double delta_t = timestamp - data.y;
     data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
-    data.x = clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
+    data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
     data.y = timestamp;
     handler.set(data);
   } 

@@ -58,7 +58,7 @@
 #include <set>
 
 // Internal dependencies
-#include <math_utils.h>
+#include <se/utils/math_utils.h>
 #include <se/constant_parameters.h>
 
 //External dependencies

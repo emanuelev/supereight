@@ -29,7 +29,7 @@
 #ifndef AABB_COLLISION_HPP
 #define AABB_COLLISION_HPP
 #include <cmath>
-#include "../utils/se_common.h"
+#include "../utils/math_utils.h"
 
 namespace se {
 namespace geometry {

@@ -33,7 +33,7 @@
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
-#include <math_utils.h>
+#include <se/utils/math_utils.h>
 #include <se/commons.h>
 #include <timings.h>
 #include <tuple>
@@ -269,7 +269,7 @@ void renderVolumeKernel(const Volume<T>& volume,
         const Eigen::Vector3f diff = (test - light).normalized();
         const Eigen::Vector3f dir = Eigen::Vector3f::Constant(fmaxf(surfNorm.normalized().dot(diff), 0.f));
         Eigen::Vector3f col = dir + ambient;
-        clamp(col, Eigen::Vector3f::Constant(0.f), Eigen::Vector3f::Constant(1.f));
+        se::math::clamp(col, Eigen::Vector3f::Constant(0.f), Eigen::Vector3f::Constant(1.f));
         col *=  255.f;
         out[idx + 0] = col.x();
         out[idx + 1] = col.y();

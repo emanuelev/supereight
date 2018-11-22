@@ -31,7 +31,7 @@
  * */
 #ifndef BFUSION_ALLOC_H
 #define BFUSION_ALLOC_H
-#include "math_utils.h"
+#include <se/utils/math_utils.h>
 
 /* Compute step size based on distance travelled along the ray */ 
 static inline float compute_stepsize(const float dist_travelled, const float hf_band,
@@ -64,7 +64,7 @@ size_t buildOctantList(HashType* allocationList, size_t reserved,
   const Eigen::Matrix4f kPose = pose * invK;
   const int size = map_index.size();
   const int max_depth = log2(size);
-  const int leaves_depth = max_depth - log2_const(OctreeT<FieldType>::blockSide);
+  const int leaves_depth = max_depth - se::math::log2_const(OctreeT<FieldType>::blockSide);
 
 #ifdef _OPENMP
   std::atomic<unsigned int> voxelCount;

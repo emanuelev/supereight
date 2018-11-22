@@ -29,7 +29,7 @@
 #ifndef OCTANT_OPS_HPP
 #define OCTANT_OPS_HPP
 #include "utils/morton_utils.hpp"
-#include "utils/se_common.h"
+#include "utils/math_utils.h"
 #include "octree_defines.h"
 #include <iostream>
 #include <bitset>

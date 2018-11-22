@@ -26,7 +26,7 @@
 #ifndef ACTIVE_LIST_HPP
 #define ACTIVE_LIST_HPP
 
-#include "../utils/se_common.h" 
+#include "../utils/math_utils.h" 
 #include "../node.hpp"
 #include "../utils/memory_pool.hpp"
 #include "../utils/morton_utils.hpp"

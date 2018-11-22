@@ -46,7 +46,7 @@ struct sdf_update {
     if (diff > -mu) {
       const float sdf = fminf(1.f, diff / mu);
       auto data = handler.get();
-      data.x = clamp(
+      data.x = se::math::clamp(
           (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f), 
           -1.f,
           1.f);

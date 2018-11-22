@@ -29,7 +29,7 @@
  *
  * */
 
-#include <math_utils.h>
+#include <se/utils/math_utils.h>
 #include <type_traits>
 
 inline Eigen::Vector4f raycast(const Volume<OFusion>& volume, 

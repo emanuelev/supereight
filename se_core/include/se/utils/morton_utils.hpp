@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MORTON_UTILS_HPP
 #include <cstdint>
 #include "../octree_defines.h"
-#include "se_common.h"
+#include "math_utils.h"
 
 inline uint64_t expand(unsigned long long value) {
   uint64_t x = value & 0x1fffff;

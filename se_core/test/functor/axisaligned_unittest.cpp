@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "octree.hpp"
-#include "utils/se_common.h"
+#include "utils/math_utils.h"
 #include "gtest/gtest.h"
 #include "functors/axis_aligned_functor.hpp"
 

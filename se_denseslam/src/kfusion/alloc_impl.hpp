@@ -30,7 +30,7 @@
  * */
 #ifndef SDF_ALLOC_H
 #define SDF_ALLOC_H
-#include <math_utils.h> 
+#include <se/utils/math_utils.h> 
 #include <se/node.hpp>
 #include <se/utils/morton_utils.hpp>
 
@@ -58,7 +58,7 @@ unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
     const unsigned int size,  const float voxelSize, const float band) {
 
   const float inverseVoxelSize = 1/voxelSize;
-  const unsigned block_scale = log2(size) - log2_const(se::VoxelBlock<FieldType>::side);
+  const unsigned block_scale = log2(size) - se::math::log2_const(se::VoxelBlock<FieldType>::side);
 
   Eigen::Matrix4f invK = K.inverse();
   const Eigen::Matrix4f kPose = pose * invK;

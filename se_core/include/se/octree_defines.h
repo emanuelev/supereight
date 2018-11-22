@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define OCTREE_CONFIG_H
 
 #include <cstdint>
-#include "utils/se_common.h"
+#include "utils/math_utils.h"
 
 #define BLOCK_SIDE 8
 #define MAX_BITS 21

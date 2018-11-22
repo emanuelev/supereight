@@ -34,7 +34,7 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 #include "timings.h"
-#include <math_utils.h>
+#include <se/utils/math_utils.h>
 
 #include <functional>
 #include <se/image/image.hpp>
@@ -69,11 +69,11 @@ void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
 
 				for (int i = -r; i <= r; ++i) {
 					for (int j = -r; j <= r; ++j) {
-            Eigen::Vector2i curPos = Eigen::Vector2i(clamp(x + i, 0, width - 1),
-								clamp(y + j, 0, height - 1));
+            Eigen::Vector2i curPos = Eigen::Vector2i(se::math::clamp(x + i, 0, width - 1),
+								se::math::clamp(y + j, 0, height - 1));
 						const float curPix = in[curPos.x() + curPos.y()* width];
 						if (curPix > 0) {
-							const float mod = sq(curPix - center);
+							const float mod = se::math::sq(curPix - center);
 							const float factor = gaussian[i + r]
 									* gaussian[j + r]
 									* expf(-mod / e_d_squared_2);
@@ -209,7 +209,7 @@ void halfSampleRobustImageKernel(se::Image<float>& out,
 			for (int i = -r + 1; i <= r; ++i) {
 				for (int j = -r + 1; j <= r; ++j) {
           Eigen::Vector2i cur = centerPixel + Eigen::Vector2i(j, i); 
-          clamp(cur, 
+          se::math::clamp(cur, 
                 Eigen::Vector2i::Constant(0), 
                 Eigen::Vector2i(2 * out.width() - 1, 2 * out.height() - 1));
 					float current = in[cur.x() + cur.y() * in.width()];

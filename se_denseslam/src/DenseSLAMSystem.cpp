@@ -59,7 +59,7 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
                                  std::vector<int> & pyramid, 
                                  const Configuration& config):
       DenseSLAMSystem(inputSize, volumeResolution, volumeDimensions, 
-          toMatrix4f(initPose), pyramid, config) { }
+          se::math::toMatrix4f(initPose), pyramid, config) { }
 
 DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize, 
                                  const Eigen::Vector3i& volumeResolution, 

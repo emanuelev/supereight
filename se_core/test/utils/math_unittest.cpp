@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <math_utils.h>
+#include <se/utils/math_utils.h>
 #include <Eigen/Core>
 #include "gtest/gtest.h"
 
@@ -37,7 +37,7 @@ TEST(EigenUtils, ClampFixVec3) {
   Eigen::Vector3i base{0, 20, -1};
   Eigen::Vector3i min{0, 0, 0};
   Eigen::Vector3i max{10, 10, 10};
-  clamp(base, min, max);
+  se::math::clamp(base, min, max);
 
   ASSERT_TRUE(base.x() >= 0 && base.x() <= 10);
   ASSERT_TRUE(base.y() >= 0 && base.y() <= 10);
@@ -48,7 +48,7 @@ TEST(EigenUtils, ClampFixVec2) {
   Eigen::Vector2f base{-100.f, 34.f};
   Eigen::Vector2f min{0.f, 0.f};
   Eigen::Vector2f max{20.f, 10.f};
-  clamp(base, min, max);
+  se::math::clamp(base, min, max);
 
   ASSERT_TRUE(base.x() >= min.x() && base.x() <= max.x());
   ASSERT_TRUE(base.y() >= min.y() && base.y() <= max.y());
