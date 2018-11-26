@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 #include <QMessageBox>
 #include <QApplication>
+#include <Eigen/Dense>
 
 // #ifdef __APPLE__
 // #include <GLUT/glut.h>
@@ -82,38 +83,30 @@ extern PowerMonitor *powerMonitor;
 
 // We can pass this to the QT and it will allow us to change features in the DenseSLAMSystem
 static void newDenseSLAMSystem(bool resetPose) {
-	Matrix4 init_pose = (*pipeline_pp)->getPose();
+  Eigen::Matrix4f init_pose = (*pipeline_pp)->getPose();
 
 	if (*pipeline_pp)
 		delete *pipeline_pp;
 	if (!resetPose)
 		*pipeline_pp = new DenseSLAMSystem(
-				make_uint2(640 / config->compute_size_ratio,
-						480 / config->compute_size_ratio),
-				make_uint3(config->volume_resolution.x,
-						config->volume_resolution.x,
-						config->volume_resolution.x),
-        make_float3(config->volume_size.x, config->volume_size.x,
-                    config->volume_size.x), init_pose, config->pyramid, *config);
+				Eigen::Vector2i(640 / config->compute_size_ratio, 480 / config->compute_size_ratio),
+				config->volume_resolution,
+        config->volume_size, init_pose, config->pyramid, *config);
 	else {
 		trans = SE3<float>::exp(
-				makeVector(config->initial_pos_factor.x,
-						config->initial_pos_factor.y,
-						config->initial_pos_factor.z, 0, 0, 0)
-						* config->volume_size.x);
+				makeVector(config->initial_pos_factor.x(),
+						config->initial_pos_factor.y(),
+						config->initial_pos_factor.z(), 0, 0, 0)
+						* config->volume_size.x());
 		rot = makeVector(0.0, 0, 0, 0, 0, 0);
+    Eigen::Vector3f init_pose = config->initial_pos_factor.cwiseProduct(config->volume_size);
 		*pipeline_pp = new DenseSLAMSystem(
-				make_uint2(640 / config->compute_size_ratio,
+				Eigen::Vector2i(640 / config->compute_size_ratio,
 						480 / config->compute_size_ratio),
-				make_uint3(config->volume_resolution.x,
-						config->volume_resolution.x,
-						config->volume_resolution.x),
-				make_float3(config->volume_size.x, config->volume_size.x,
-						config->volume_size.x),
-				config->initial_pos_factor
-						* make_float3(config->volume_size.x,
-								config->volume_size.x, config->volume_size.x),
-				        config->pyramid, *config);
+				config->volume_resolution,
+				config->volume_size,
+        init_pose,
+        config->pyramid, *config);
 	}
 	appWindow->viewers->setBufferSize(640 / config->compute_size_ratio,
 			480 / config->compute_size_ratio);
@@ -223,7 +216,7 @@ CameraState setEnableCamera(CameraState state, string inputFile) {
 void qtIdle(void) {
 	static bool shod = false;
 	//This will set the view for rendering the model, either to the tracked camera view or the static view    
-	Matrix4 pose = toMatrix4(trans * rot);
+  Eigen::Matrix4f pose = toMatrix4f(trans * rot);
 	if (usePOV)
 		(*pipeline_pp)->setViewPose(); //current position as found by track
 	else
@@ -299,9 +292,9 @@ void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
 	config = _config;
 	reader_pp = _depthReader;
 	trans = SE3<float>(
-			makeVector(config->initial_pos_factor.x * config->volume_size.x,
-					config->initial_pos_factor.y * config->volume_size.x,
-					config->volume_size.x * config->initial_pos_factor.z, 0, 0,
+			makeVector(config->initial_pos_factor.x() * config->volume_size.x(),
+					config->initial_pos_factor.y() * config->volume_size.x(),
+					config->volume_size.x() * config->initial_pos_factor.z(), 0, 0,
 					0));
 	QApplication a(argc, argv);
 
@@ -346,10 +339,10 @@ appWindow	->addButtonChoices("Compute Res",
 			&(config->compute_size_ratio), continueWithNewDenseSLAMSystem);
 	appWindow->addButtonChoices("Vol. Size", { "4.0mx4.0mx4.0m",
 			"2.0mx2.0mx2.0m", "1.0mx1.0mx1.0m" }, { 4.0, 2.0, 1.0 },
-			(float *) (&(config->volume_size.x)), continueWithNewDenseSLAMSystem);
+			(float *) (&(config->volume_size.x())), continueWithNewDenseSLAMSystem);
 	appWindow->addButtonChoices("Vol. Res", { "1024x1024x1024", "512x512x512",
 			"256x256x256", "128x128x128", "64x64x64", "32x32x32" }, { 1024, 512,
-			256, 128, 64, 32 }, (int *) &(config->volume_resolution.x),
+			256, 128, 64, 32 }, (int *) &(config->volume_resolution.x()),
 			continueWithNewDenseSLAMSystem);
 
 	appWindow->addButtonChoices("ICP threshold", { "1e-4", "1e-5", "1e-6" }, {

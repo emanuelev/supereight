@@ -58,7 +58,7 @@
 #include <set>
 
 // Internal dependencies
-#include <math_utils.h>
+#include <se/utils/math_utils.h>
 #include <se/constant_parameters.h>
 
 //External dependencies
@@ -103,9 +103,7 @@ void read_input(std::string inputfile, T * in) {
 	}
 }
 
-
-inline uchar4 gs2rgb(double h) {
-	uchar4 rgb;
+inline void gs2rgb(double h, unsigned char rgbw[4]) {
 	double v = 0;
 	double r = 0, g = 0, b = 0;
 	v = 0.75;
@@ -160,11 +158,10 @@ inline uchar4 gs2rgb(double h) {
 			break;
 		}
 	}
-	rgb.x = r * 255;
-	rgb.y = g * 255;
-	rgb.z = b * 255;
-	rgb.w = 0; // Only for padding purposes 
-	return rgb;
+	rgbw[0] = r * 255;
+	rgbw[1] = g * 255;
+	rgbw[2] = b * 255;
+	rgbw[3] = 0; // Only for padding purposes 
 }
 
 typedef struct Triangle {
@@ -250,122 +247,30 @@ typedef struct Triangle {
 
 } Triangle;
 
-struct RGBVolume {
-    uint3 size;
-    float3 dim;
-    short4 * data;
-
-    RGBVolume() { size = make_uint3(0); dim = make_float3(1); data = NULL; }
-
-    __device__ float4 operator[]( const uint3 & pos ) const {
-        const short4 d = data[pos.x + pos.y * size.x + pos.z * size.x * size.y];
-        return make_float4(d.x * 0.00003051944088f, d.y * 0.00003051944088f, d.z * 0.00003051944088f, d.w); //  / 32766.0f
-    }
-
-    __device__ float3 v(const uint3 & pos) const {
-        const float4 val = operator[](pos);
-        return make_float3(val.x,val.y,val.z);
-    }
-
-    __device__ float3 vs(const uint3 & pos) const {
-        const short4 val = data[pos.x + pos.y * size.x + pos.z * size.x * size.y];
-        return make_float3(val.x,val.y,val.z);
-    }
-
-    __device__ void set(const uint3 & pos, const float4 & d ){
-        data[pos.x + pos.y * size.x + pos.z * size.x * size.y] = make_short4(d.x * 32766.0f, d.y * 32766.0f, d.z * 32766.0f, d.w);
-    }
-
-    __device__ float3 pos( const uint3 & p ) const {
-        return make_float3((p.x + 0.5f) * dim.x / size.x, (p.y + 0.5f) * dim.y / size.y, (p.z + 0.5f) * dim.z / size.z);
-    }
-
-    __device__ float3 interp( const float3 & pos ) const {
-#if 0   // only for testing without linear interpolation
-        const float3 scaled_pos = make_float3((pos.x * size.x / dim.x) , (pos.y * size.y / dim.y) , (pos.z * size.z / dim.z) );
-        return v(make_uint3(clamp(make_int3(scaled_pos), make_int3(0), make_int3(size) - make_int3(1))));
-
-#else
-        const float3 scaled_pos = make_float3((pos.x * size.x / dim.x) - 0.5f, (pos.y * size.y / dim.y) - 0.5f, (pos.z * size.z / dim.z) - 0.5f);
-        const int3 base = make_int3(floorf(scaled_pos));
-        const float3 factor = fracf(scaled_pos);
-        const int3 lower = max(base, make_int3(0));
-        const int3 upper = min(base + make_int3(1), make_int3(size) - make_int3(1));
-        return (
-              ((vs(make_uint3(lower.x, lower.y, lower.z)) * (1-factor.x) + vs(make_uint3(upper.x, lower.y, lower.z)) * factor.x) * (1-factor.y)
-             + (vs(make_uint3(lower.x, upper.y, lower.z)) * (1-factor.x) + vs(make_uint3(upper.x, upper.y, lower.z)) * factor.x) * factor.y) * (1-factor.z)
-            + ((vs(make_uint3(lower.x, lower.y, upper.z)) * (1-factor.x) + vs(make_uint3(upper.x, lower.y, upper.z)) * factor.x) * (1-factor.y)
-             + (vs(make_uint3(lower.x, upper.y, upper.z)) * (1-factor.x) + vs(make_uint3(upper.x, upper.y, upper.z)) * factor.x) * factor.y) * factor.z
-            ) * 0.00003051944088f;
-#endif
-    }
-
-    void init(uint3 s, float3 d){
-        size = s;
-        dim = d;
-	 #ifdef CUDABASED
-            cudaMalloc( &data,  size.x * size.y * size.z * sizeof(short4) ); 
-         #else
-	    std::cout << sizeof(short4) << std::endl;
-	    data = (short4 *) malloc(size.x * size.y * size.z * sizeof(short4)); 
-	    assert(data != (0));
-         #endif
-        //cudaMalloc(&data, size.x * size.y * size.z * sizeof(short4));
-    }
-
-    void release(){
-      //cudaFree(data);
-      //data = NULL;
-           #ifdef ZEROCOPY_OPENCL
-    	    clEnqueueUnmapMemObject(commandQueue, oclbuffer, data, 0, NULL, NULL);
-    		clReleaseMemObject(oclbuffer);
-		#else
-        	free(data);
-        	data = NULL;
-		#endif // if def ZEROCOPY_OPENCL
-    }
-};
-
-
 struct TrackData {
 	int result;
 	float error;
 	float J[6];
 };
 
-
-inline Matrix4 getCameraMatrix(const float4 & k) {
-	Matrix4 K;
-	K.data[0] = make_float4(k.x, 0, k.z, 0);
-	K.data[1] = make_float4(0, k.y, k.w, 0);
-	K.data[2] = make_float4(0, 0, 1, 0);
-	K.data[3] = make_float4(0, 0, 0, 1);
+inline Eigen::Matrix4f getCameraMatrix(const Eigen::Vector4f& k) {
+  Eigen::Matrix4f K;
+	K << k.x(), 0, k.z(), 0,
+       0, k.y(), k.w(), 0,
+       0, 0, 1, 0,
+       0, 0, 0, 1;
 	return K;
 }
 
-inline Matrix4 getInverseCameraMatrix(const float4 & k) {
-	Matrix4 invK;
-	invK.data[0] = make_float4(1.0f / k.x, 0, -k.z / k.x, 0);
-	invK.data[1] = make_float4(0, 1.0f / k.y, -k.w / k.y, 0);
-	invK.data[2] = make_float4(0, 0, 1, 0);
-	invK.data[3] = make_float4(0, 0, 0, 1);
+inline Eigen::Matrix4f getInverseCameraMatrix(const Eigen::Vector4f& k) {
+  Eigen::Matrix4f invK;
+  invK << 1.0f / k.x(), 0, -k.z() / k.x(), 0,
+       0, 1.0f / k.y(), -k.w() / k.y(), 0,
+       0, 0, 1, 0,
+       0, 0, 0, 1;
 	return invK;
 }
 
-inline Matrix4 inverse(const Matrix4 & A) {
-	static TooN::Matrix<4, 4, float> I = TooN::Identity;
-	TooN::Matrix<4, 4, float> temp = TooN::wrapMatrix<4, 4>(&A.data[0].x);
-	Matrix4 R;
-	TooN::wrapMatrix<4, 4>(&R.data[0].x) = TooN::gaussian_elimination(temp, I);
-	return R;
-}
-
-inline Matrix4 operator*(const Matrix4 & A, const Matrix4 & B) {
-	Matrix4 R;
-	TooN::wrapMatrix<4, 4>(&R.data[0].x) = TooN::wrapMatrix<4, 4>(&A.data[0].x)
-			* TooN::wrapMatrix<4, 4>(&B.data[0].x);
-	return R;
-}
 
 //std::ostream& operator<<(std::ostream& os, const uint3 val) {
 //    os << val.x << ", " << val.y << ", " << val.z;
@@ -399,17 +304,17 @@ TooN::Vector<6> solve(const TooN::Vector<27, T, A> & vals) {
 }
 
 template<typename P>
-inline Matrix4 toMatrix4(const TooN::SE3<P> & p) {
+inline Eigen::Matrix4f toMatrix4f(const TooN::SE3<P> & p) {
 	const TooN::Matrix<4, 4, float> I = TooN::Identity;
-	Matrix4 R;
-	TooN::wrapMatrix<4, 4>(&R.data[0].x) = p * I;
+  Eigen::Matrix<float, 4, 4, Eigen::RowMajor>  R;
+	TooN::wrapMatrix<4, 4>(R.data()) = p * I;
 	return R;
 }
 
 static const float epsilon = 0.0000001;
 
 inline void compareTrackData(std::string str, TrackData* l, TrackData * r,
-		uint size) {
+		unsigned int size) {
 	for (unsigned int i = 0; i < size; i++) {
 		if (std::abs(l[i].error - r[i].error) > epsilon) {
 			std::cout << "Error into " << str << " at " << i << std::endl;
@@ -422,11 +327,10 @@ inline void compareTrackData(std::string str, TrackData* l, TrackData * r,
 			std::cout << "l.result =  " << l[i].result << std::endl;
 			std::cout << "r.result =  " << r[i].result << std::endl;
 		}
-
 	}
 }
 
-inline void compareFloat(std::string str, float* l, float * r, uint size) {
+inline void compareFloat(std::string str, float* l, float * r, unsigned int size) {
 	for (unsigned int i = 0; i < size; i++) {
 		if (std::abs(l[i] - r[i]) > epsilon) {
 			std::cout << "Error into " << str << " at " << i << std::endl;
@@ -435,100 +339,9 @@ inline void compareFloat(std::string str, float* l, float * r, uint size) {
 		}
 	}
 }
-inline void compareFloat3(std::string str, float3* l, float3 * r, uint size) {
-	for (unsigned int i = 0; i < size; i++) {
-		if (std::abs(l[i].x - r[i].x) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.x =  " << l[i].x << std::endl;
-			std::cout << "r.x =  " << r[i].x << std::endl;
-		}
-		if (std::abs(l[i].y - r[i].y) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.y =  " << l[i].y << std::endl;
-			std::cout << "r.y =  " << r[i].y << std::endl;
-		}
-		if (std::abs(l[i].z - r[i].z) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.z =  " << l[i].z << std::endl;
-			std::cout << "r.z =  " << r[i].z << std::endl;
-		}
-	}
-}
-
-inline void compareFloat4(std::string str, float4* l, float4 * r, uint size) {
-	for (unsigned int i = 0; i < size; i++) {
-		if (std::abs(l[i].x - r[i].x) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.x =  " << l[i].x << std::endl;
-			std::cout << "r.x =  " << r[i].x << std::endl;
-		}
-		if (std::abs(l[i].y - r[i].y) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.y =  " << l[i].y << std::endl;
-			std::cout << "r.y =  " << r[i].y << std::endl;
-		}
-		if (std::abs(l[i].z - r[i].z) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.z =  " << l[i].z << std::endl;
-			std::cout << "r.z =  " << r[i].z << std::endl;
-		}
-		if (std::abs(l[i].w - r[i].w) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.w =  " << l[i].w << std::endl;
-			std::cout << "r.w =  " << r[i].w << std::endl;
-		}
-	}
-}
-
-inline void compareMatrix4(std::string str, Matrix4 l, Matrix4 r) {
-	compareFloat4(str, l.data, r.data, 4);
-}
-
-inline bool compareFloat4(float4* l, float4 * r, uint size) {
-	for (unsigned int i = 0; i < size; i++) {
-		if ((std::abs(l[i].x - r[i].x) > epsilon) ||
-		    (std::abs(l[i].y - r[i].y) > epsilon) ||
-		    (std::abs(l[i].z - r[i].z) > epsilon) ||
-		    (std::abs(l[i].w - r[i].w) > epsilon))
-     return false; 
-	}
-  return true;
-}
-
-inline bool compareMatrix4(Matrix4 l, Matrix4 r) {
-	return compareFloat4(l.data, r.data, 4);
-}
-
-inline void printMatrix4(std::string str, Matrix4 l) {
-	std::cout << "printMatrix4 : " << str << std::endl;
-	for (int i = 0; i < 4; i++) {
-		std::cout << "  [" << l.data[i].x << "," << l.data[i].y << ","
-				<< l.data[i].z << "," << l.data[i].w << "]" << std::endl;
-	}
-}
-inline void compareNormal(std::string str, float3* l, float3 * r, uint size) {
-	for (unsigned int i = 0; i < size; i++) {
-		if (std::abs(l[i].x - r[i].x) > epsilon) {
-			std::cout << "Error into " << str << " at " << i << std::endl;
-			std::cout << "l.x =  " << l[i].x << std::endl;
-			std::cout << "r.x =  " << r[i].x << std::endl;
-		} else if (r[i].x != INVALID) {
-			if (std::abs(l[i].y - r[i].y) > epsilon) {
-				std::cout << "Error into " << str << " at " << i << std::endl;
-				std::cout << "l.y =  " << l[i].y << std::endl;
-				std::cout << "r.y =  " << r[i].y << std::endl;
-			}
-			if (std::abs(l[i].z - r[i].z) > epsilon) {
-				std::cout << "Error into " << str << " at " << i << std::endl;
-				std::cout << "l.z =  " << l[i].z << std::endl;
-				std::cout << "r.z =  " << r[i].z << std::endl;
-			}
-		}
-	}
-}
 
 template<typename T>
-void writefile(std::string prefix, int idx, T * data, uint size) {
+void writefile(std::string prefix, int idx, T * data, unsigned int size) {
 
 	std::string filename = prefix + NumberToString(idx);
 	FILE* pFile = fopen(filename.c_str(), "wb");
@@ -544,59 +357,6 @@ void writefile(std::string prefix, int idx, T * data, uint size) {
 
 	fclose(pFile);
 }
-
-template<typename T>
-void writefile(std::string prefix, int idx, T * data, uint2 size) {
-	writefile(prefix, idx, data, size.x * size.y);
-}
-inline
-void writeposfile(std::string prefix, int idx, Matrix4 m, uint) {
-
-	writefile("BINARY_" + prefix, idx, m.data, 4);
-
-	std::string filename = prefix + NumberToString(idx);
-	std::ofstream pFile;
-	pFile.open(filename.c_str());
-
-	if (pFile.fail()) {
-		std::cout << "File opening failed : " << filename << std::endl;
-		exit(1);
-	}
-
-	pFile << m.data[0].x << " " << m.data[0].y << " " << m.data[0].z << " "
-			<< m.data[0].w << std::endl;
-	pFile << m.data[1].x << " " << m.data[1].y << " " << m.data[1].z << " "
-			<< m.data[1].w << std::endl;
-	pFile << m.data[2].x << " " << m.data[2].y << " " << m.data[2].z << " "
-			<< m.data[2].w << std::endl;
-	pFile << m.data[3].x << " " << m.data[3].y << " " << m.data[3].z << " "
-			<< m.data[3].w << std::endl;
-
-	std::cout << "Pose File " << filename << std::endl;
-
-	pFile.close();
-}
-
-// void writeVolume(std::string filename, Volume v) {
-// 
-// 	std::ofstream fDumpFile;
-// 	fDumpFile.open(filename.c_str(), std::ios::out | std::ios::binary);
-// 
-// 	if (fDumpFile.fail()) {
-// 		std::cout << "Error opening file: " << filename << std::endl;
-// 		exit(1);
-// 	}
-// 
-// 	// Retrieve the volumetric representation data
-// 	short2 *hostData = (short2 *) v.data;
-// 
-// 	// Dump on file without the y component of the short2 variable
-// 	for (unsigned int i = 0; i < v.size.x * v.size.y * v.size.z; i++) {
-// 		fDumpFile.write((char *) (hostData + i), sizeof(short));
-// 	}
-// 
-// 	fDumpFile.close();
-// }
 
 inline void writeVtkMesh(const char * filename, 
                          const std::vector<Triangle>& mesh,
@@ -698,13 +458,5 @@ inline void writeObjMesh(const char * filename,
   f.close();
   std::cout << "Written " << face_count << " faces and " << point_count 
             << " points" << std::endl;
-}
-
-static inline Sophus::SE3f to_sophus(const Matrix4& m) {
-  return Sophus::SE3f(Eigen::Matrix<float, 4, 4, Eigen::RowMajor>(&m.data[0].x));
-}
-
-static inline Eigen::Matrix4f to_eigen(const Matrix4& m) {
-  return Eigen::Matrix<float, 4, 4, Eigen::RowMajor>(&m.data[0].x);
 }
 #endif

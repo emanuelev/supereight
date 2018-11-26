@@ -28,31 +28,28 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 
 */
-#ifndef SE_COMMON_H
-#define SE_COMMON_H
 
-#include <cmath>
+#include <se/utils/math_utils.h>
+#include <Eigen/Core>
+#include "gtest/gtest.h"
 
-#define SOPHUS_DISABLE_ENSURES
+TEST(EigenUtils, ClampFixVec3) {
+  Eigen::Vector3i base{0, 20, -1};
+  Eigen::Vector3i min{0, 0, 0};
+  Eigen::Vector3i max{10, 10, 10};
+  se::math::clamp(base, min, max);
 
-/* 
- * When compiling in debug mode Eigen compilation fails 
- * due to -Wunused-parameter. Disable it if compiling with GCC.
- */
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#if __GNUC__ > 6
-#pragma GCC diagnostic ignored "-Wint-in-bool-context"
-#endif
-#include <Eigen/Dense>
-#include <sophus/se3.hpp>
-#pragma GCC diagnostic pop
-#else
-#include <Eigen/Dense>
-#include <sophus/se3.hpp>
-#endif
+  ASSERT_TRUE(base.x() >= 0 && base.x() <= 10);
+  ASSERT_TRUE(base.y() >= 0 && base.y() <= 10);
+  ASSERT_TRUE(base.z() >= 0 && base.z() <= 10);
+}
 
-#include "se_math_helper.h"
+TEST(EigenUtils, ClampFixVec2) {
+  Eigen::Vector2f base{-100.f, 34.f};
+  Eigen::Vector2f min{0.f, 0.f};
+  Eigen::Vector2f max{20.f, 10.f};
+  se::math::clamp(base, min, max);
 
-#endif
+  ASSERT_TRUE(base.x() >= min.x() && base.x() <= max.x());
+  ASSERT_TRUE(base.y() >= min.y() && base.y() <= max.y());
+}

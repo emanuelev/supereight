@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "octree.hpp"
 #include "octant_ops.hpp"
 #include "node_iterator.hpp"
-#include "utils/se_common.h"
+#include "utils/math_utils.h"
 #include "gtest/gtest.h"
 #include <random>
 

@@ -10,6 +10,8 @@
 #ifndef CONSTANT_PARAMETERS_H_
 #define CONSTANT_PARAMETERS_H_
 
+#include <Eigen/Dense>
+
 ////////////////////////// COMPILATION PARAMETERS //////////////////////
 
 const float e_delta = 0.1f;
@@ -31,7 +33,7 @@ const float farPlane = 4.0f;
 
 const float delta = 4.0f;
 
-const float3 light = make_float3(1, 1, -1.0);
-const float3 ambient = make_float3(0.1, 0.1, 0.1);
+const Eigen::Vector3f light{1, 1, -1.0};
+const Eigen::Vector3f ambient{ 0.1, 0.1, 0.1};
 
 #endif /* CONSTANT_PARAMETERS_H_ */

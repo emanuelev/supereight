@@ -33,8 +33,10 @@
 #include <memory>
 #include <se/voxel_traits.hpp>
 #include <se/utils/memory_pool.hpp>
+#include <se/octree.hpp>
 #include <type_traits>
 #include <cstring>
+#include <Eigen/Dense>
 
 template <typename T>
 class Void {};
@@ -59,48 +61,44 @@ class VolumeTemplate {
         _dim = d;
       };
 
-    inline float3 pos(const uint3 & p) const {
+    inline Eigen::Vector3f pos(const Eigen::Vector3i & p) const {
       static const float voxelSize = _dim/_size;
-      return make_float3(p.x * voxelSize, p.y * voxelSize, p.z * voxelSize);
+      return p.cast<float>() * voxelSize;
     }
 
-    void set(const uint3 & , const value_type& ) {}
+    void set(const  Eigen::Vector3f& , const value_type& ) {}
 
-    value_type operator[](const float3 & p) const {
+    value_type operator[](const Eigen::Vector3f& p) const {
       const float inverseVoxelSize = _size/_dim;
-      const int3 scaled_pos = make_int3(make_float3((p.x * inverseVoxelSize),
-          (p.y * inverseVoxelSize), (p.z * inverseVoxelSize)));
-      return _map_index->get(scaled_pos.x, scaled_pos.y, scaled_pos.z);
+      const Eigen::Vector3i scaled_pos = (p * inverseVoxelSize).cast<int>();
+      return _map_index->get(scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
     }
 
-    value_type get(const float3 & p) const {
+    value_type get(const Eigen::Vector3f & p) const {
       const float inverseVoxelSize = _size/_dim;
-      const int3 scaled_pos = make_int3(make_float3((p.x * inverseVoxelSize),
-          (p.y * inverseVoxelSize), (p.z * inverseVoxelSize)));
-      return _map_index->get_fine(scaled_pos.x, scaled_pos.y, scaled_pos.z);
+      const Eigen::Vector4i scaled_pos = (inverseVoxelSize * p.homogeneous()).cast<int>();
+        return _map_index->get_fine(scaled_pos.x(), 
+                                    scaled_pos.y(), 
+                                    scaled_pos.z());
     }
 
-    value_type operator[](const uint3 p) const {
-      return _map_index->get(p.x, p.y, p.z);
+    value_type operator[](const Eigen::Vector3f p) const {
+      return _map_index->get(p.x(), p.y(), p.z());
     }
 
     template <typename FieldSelector>
-    float interp(const float3 & pos, FieldSelector select) const {
+    float interp(Eigen::Vector3f pos, FieldSelector select) const {
       const float inverseVoxelSize = _size / _dim;
-      const Eigen::Vector3f scaled_pos((pos.x * inverseVoxelSize),
-          (pos.y * inverseVoxelSize),
-          (pos.z * inverseVoxelSize));
-      return _map_index->interp(scaled_pos, select);
+      pos *= inverseVoxelSize;
+      return _map_index->interp(pos, select);
     }
 
     template <typename FieldSelector>
-    Eigen::Vector3f grad(const float3 & pos, FieldSelector select) const {
+    Eigen::Vector3f grad(Eigen::Vector3f pos, FieldSelector select) const {
 
       const float inverseVoxelSize = _size / _dim;
-      const Eigen::Vector3f scaled_pos((pos.x * inverseVoxelSize),
-          (pos.y * inverseVoxelSize),
-          (pos.z * inverseVoxelSize));
-      return _map_index->grad(scaled_pos, select);
+      pos *= inverseVoxelSize;
+      return _map_index->grad(pos, select);
     }
 
     unsigned int _size;
@@ -110,10 +108,9 @@ class VolumeTemplate {
 
   private:
 
-    inline uint3 pos(const float3 & p) const {
+    inline Eigen::Vector3i pos(const Eigen::Vector3f & p) const {
       static const float inverseVoxelSize = _size/_dim;
-      return make_uint3(p.x * inverseVoxelSize, p.y * inverseVoxelSize, 
-          p.z * inverseVoxelSize);
+      return (inverseVoxelSize * p).cast<int>();
     }
 };
 #endif

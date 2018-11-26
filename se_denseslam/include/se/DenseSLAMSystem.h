@@ -46,6 +46,7 @@
 #include <se/image/image.hpp>
 #include "volume_traits.hpp"
 #include "continuous/volume_template.hpp"
+#include <Eigen/Dense>
 
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
@@ -57,15 +58,15 @@ using Volume = VolumeTemplate<T, se::Octree>;
 class DenseSLAMSystem {
 
   private:
-    uint2 computation_size_;
-    Matrix4 pose_;
-    Matrix4 *viewPose_;
-    float3 volume_dimension_;
-    uint3 volume_resolution_;
+    Eigen::Vector2i computation_size_;
+    Eigen::Matrix4f pose_;
+    Eigen::Matrix4f *viewPose_;
+    Eigen::Vector3f volume_dimension_;
+    Eigen::Vector3i volume_resolution_;
     std::vector<int> iterations_;
     bool tracked_;
     bool integrated_;
-    float3 init_pose_;
+    Eigen::Vector3f init_pose_;
     float mu_;
     bool need_render_ = false;
     Configuration config_;
@@ -74,8 +75,8 @@ class DenseSLAMSystem {
     std::vector<float> gaussian_;
 
     // inter-frame
-    se::Image<float3> vertex_;
-    se::Image<float3> normal_;
+    se::Image<Eigen::Vector3f> vertex_;
+    se::Image<Eigen::Vector3f> normal_;
 
     std::vector<se::key_t> allocation_list_;
     std::shared_ptr<se::Octree<FieldType> > discrete_vol_ptr_;
@@ -84,17 +85,14 @@ class DenseSLAMSystem {
     // intra-frame
     std::vector<float> reduction_output_;
     std::vector<se::Image<float>  > scaled_depth_;
-    std::vector<se::Image<float3> > input_vertex_;
-    std::vector<se::Image<float3> > input_normal_;
+    std::vector<se::Image<Eigen::Vector3f> > input_vertex_;
+    std::vector<se::Image<Eigen::Vector3f> > input_normal_;
     se::Image<float> float_depth_;
-    se::Image<TrackData>  tracking_result_;
-    Matrix4 old_pose_;
-    Matrix4 raycast_pose_;
+    std::vector<TrackData>  tracking_result_;
+    Eigen::Matrix4f old_pose_;
+    Eigen::Matrix4f raycast_pose_;
 
   public:
-    // Needed for the config_ member.
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
     /**
      * Constructor using the initial camera position.
      *
@@ -108,12 +106,12 @@ class DenseSLAMSystem {
      * \param[in] pyramid TODO See ::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
-    DenseSLAMSystem(uint2              inputSize,
-                    uint3              volume_resolution_,
-                    float3             volume_dimension_,
-                    float3             initPose,
-                    std::vector<int> & pyramid,
-                    Configuration      config_);
+    DenseSLAMSystem(const Eigen::Vector2i& inputSize,
+                    const Eigen::Vector3i& volume_resolution_,
+                    const Eigen::Vector3f& volume_dimension_,
+                    const Eigen::Vector3f& initPose,
+                    std::vector<int> &     pyramid,
+                    const Configuration&   config_);
     /**
      * Constructor using the initial camera position.
      *
@@ -126,12 +124,12 @@ class DenseSLAMSystem {
      * \param[in] pyramid TODO See ::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
-    DenseSLAMSystem(uint2              inputSize,
-                    uint3              volume_resolution_,
-                    float3             volume_dimension_,
-                    Matrix4            initPose,
-                    std::vector<int> & pyramid,
-                    Configuration      config_);
+    DenseSLAMSystem(const Eigen::Vector2i& inputSize,
+                    const Eigen::Vector3i& volume_resolution_,
+                    const Eigen::Vector3f& volume_dimension_,
+                    const Eigen::Matrix4f& initPose,
+                    std::vector<int> &     pyramid,
+                    const Configuration&   config_);
 
     /**
      * Preprocess a single depth measurement frame and add it to the pipeline.
@@ -144,17 +142,17 @@ class DenseSLAMSystem {
      * filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocessing(const ushort * inputDepth,
-                       const uint2    inputSize,
-                       const bool     filterInput);
+    bool preprocessing(const unsigned short * inputDepth,
+                       const Eigen::Vector2i& inputSize,
+                       const bool             filterInput);
 
     /*
      * TODO Implement this.
      */
-    bool preprocessing(const ushort * inputDepth,
-                       const uchar3 * inputRGB,
-                       const uint2    inputSize,
-                       const bool     filterInput);
+    bool preprocessing(const unsigned short*  inputDepth,
+                       const unsigned char*   inputRGB,
+                       const Eigen::Vector2i& inputSize,
+                       const bool             filterInput);
 
     /**
      * Update the camera pose. Create a 3D reconstruction from the current
@@ -170,10 +168,10 @@ class DenseSLAMSystem {
      * \param[in] frame The index of the current frame (starts from 0).
      * \return true if the camera pose was updated and false if it wasn't.
      */
-    bool tracking(float4 k,
-                  float  icp_threshold,
-                  uint   tracking_rate,
-                  uint   frame);
+    bool tracking(const Eigen::Vector4f& k,
+                  const float            icp_threshold,
+                  const unsigned         tracking_rate,
+                  const unsigned         frame);
 
     /**
      * Integrate the 3D reconstruction resulting from the current frame to the
@@ -190,10 +188,10 @@ class DenseSLAMSystem {
      * \return true if the current 3D reconstruction was added to the octree
      * and false if it wasn't.
      */
-    bool integration(float4 k,
-                     uint   integration_rate,
-                     float  mu,
-                     uint   frame);
+    bool integration(const Eigen::Vector4f& k,
+                     unsigned               integration_rate,
+                     float                  mu,
+                     unsigned               frame);
 
     /**
      * Raycast the 3D reconstruction after integration to update the values of
@@ -209,9 +207,9 @@ class DenseSLAMSystem {
      * \param[in] frame The index of the current frame (starts from 0).
      * \return true if raycasting was performed and false if it wasn't.
      */
-    bool raycasting(float4 k,
-                    float  mu,
-                    uint   frame);
+    bool raycasting(const Eigen::Vector4f& k,
+                    float                  mu,
+                    unsigned int           frame);
 
     /*
      * TODO Implement this.
@@ -227,10 +225,8 @@ class DenseSLAMSystem {
      * Render the current 3D reconstruction.
      *
      * \param[out] out A pointer to an array containing the rendered frame.
-     * The array must be allocated before calling this function. The x, y and
-     * z members of each element of the array contain the R, G and B values of
-     * the image respectively. The w member of each element of the array is
-     * always 0 and is used for padding.
+     * The array must be allocated before calling this function. The storage
+     * layout is rgbwrgbwrgbw.
      * \param[in] outputSize The dimensions of the output array (width and
      * height in pixels).
      * \param[in] frame The index of the current frame (starts from 0).
@@ -240,12 +236,12 @@ class DenseSLAMSystem {
      * \param[in] mu TSDF truncation bound. See ::Configuration.mu for more
      * details.
      */
-    void renderVolume(uchar4 *    out,
-                      const uint2 outputSize,
-                      int         frame,
-                      int         rate,
-                      float4      k,
-                      float       mu);
+    void renderVolume(unsigned char*         out,
+                      const Eigen::Vector2i& outputSize,
+                      int                    frame,
+                      int                    rate,
+                      const Eigen::Vector4f& k,
+                      float                  mu);
 
     /**
      * Render the output of the tracking algorithm. The meaning of the colors is as follows:
@@ -267,8 +263,8 @@ class DenseSLAMSystem {
      * \param[in] outputSize The dimensions of the output array (width and
      * height in pixels).
      */
-    void renderTrack(uchar4 *    out,
-                     const uint2 outputSize);
+    void renderTrack(unsigned char*         out,
+                     const Eigen::Vector2i& outputSize);
 
     /**
      * Render the current depth frame. The frame is rendered before
@@ -284,8 +280,8 @@ class DenseSLAMSystem {
      * \param[in] outputSize The dimensions of the output array (width and
      * height in pixels).
      */
-    void renderDepth(uchar4* out,
-                     uint2   outputSize);
+    void renderDepth(unsigned char*         out,
+                     const Eigen::Vector2i& outputSize);
 
     //
     // Getters
@@ -317,13 +313,13 @@ class DenseSLAMSystem {
      *
      * \return A vector containing the x, y and z coordinates of the camera.
      */
-    float3 getPosition() {
+    Eigen::Vector3f getPosition() {
       //std::cerr << "InitPose =" << _initPose.x << "," << _initPose.y  <<"," << _initPose.z << "    ";
       //std::cerr << "pose =" << pose.data[0].w << "," << pose.data[1].w  <<"," << pose.data[2].w << "    ";
-      float xt = pose_.data[0].w - init_pose_.x;
-      float yt = pose_.data[1].w - init_pose_.y;
-      float zt = pose_.data[2].w - init_pose_.z;
-      return (make_float3(xt, yt, zt));
+      float xt = pose_(0, 3) - init_pose_.x();
+      float yt = pose_(1, 3) - init_pose_.y();
+      float zt = pose_(2, 3) - init_pose_.z();
+      return Eigen::Vector3f(xt, yt, zt);
     }
 
     /**
@@ -331,7 +327,7 @@ class DenseSLAMSystem {
      *
      * \return A vector containing the x, y and z coordinates of the camera.
      */
-    float3 getInitPos(){
+    Eigen::Vector3f getInitPos(){
       return init_pose_;
     }
 
@@ -340,7 +336,7 @@ class DenseSLAMSystem {
      *
      * \return The current camera pose encoded in a 4x4 matrix.
      */
-    Matrix4 getPose() {
+    Eigen::Matrix4f getPose() {
       return pose_;
     }
 
@@ -352,11 +348,9 @@ class DenseSLAMSystem {
      *
      * \param[in] pose The desired camera pose encoded in a 4x4 matrix.
      */
-    void setPose(const Matrix4& pose) {
+    void setPose(const Eigen::Matrix4f pose) {
       pose_ = pose;
-      pose_.data[0].w += init_pose_.x;
-      pose_.data[1].w += init_pose_.y;
-      pose_.data[2].w += init_pose_.z;
+      pose_.block<3,1>(0,3) += init_pose_;
     }
 
     /**
@@ -364,7 +358,7 @@ class DenseSLAMSystem {
      *
      * \param[in] value The desired camera pose encoded in a 4x4 matrix.
      */
-    void setViewPose(Matrix4 *value = NULL) {
+    void setViewPose(Eigen::Matrix4f *value = NULL) {
       if (value == NULL){
         viewPose_ = &pose_;
         need_render_ = false;
@@ -381,7 +375,7 @@ class DenseSLAMSystem {
      *
      * \return The current camera pose encoded in a 4x4 matrix.
      */
-    Matrix4 *getViewPose() {
+    Eigen::Matrix4f *getViewPose() {
       return (viewPose_);
     }
 
@@ -390,7 +384,7 @@ class DenseSLAMSystem {
      *
      * \return A vector containing the x, y and z dimensions of the volume.
      */
-    float3 getModelDimensions() {
+    Eigen::Vector3f getModelDimensions() {
       return (volume_dimension_);
     }
 
@@ -399,7 +393,7 @@ class DenseSLAMSystem {
      *
      * \return A vector containing the x, y and z resolution of the volume.
      */
-    uint3 getModelResolution() {
+    Eigen::Vector3i getModelResolution() {
       return (volume_resolution_);
     }
 
@@ -409,9 +403,11 @@ class DenseSLAMSystem {
      *
      * \return A vector containing the frame width and height.
      */
-    uint2 getComputationResolution() {
+    Eigen::Vector2i getComputationResolution() {
       return (computation_size_);
     }
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 /**

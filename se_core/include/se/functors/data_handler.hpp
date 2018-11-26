@@ -28,7 +28,7 @@
 */
 #ifndef DATA_HANDLER_HPP
 #define DATA_HANDLER_HPP
-#include "../utils/se_common.h"
+#include "../utils/math_utils.h"
 #include "../node.hpp"
 
 template <typename SpecialisedHandlerT, typename NodeT>

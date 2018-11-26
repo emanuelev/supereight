@@ -55,25 +55,25 @@ DepthReader *createReader(Configuration *config, std::string filename) {
             std::vector<std::string> dims = splitString(value, ',');
 
             if (dims.size() == 3) {
-              config->volume_resolution.x = ::atoi(
+              config->volume_resolution.x() = ::atoi(
                   dims[0].c_str());
-              config->volume_resolution.y = ::atoi(
+              config->volume_resolution.y() = ::atoi(
                   dims[1].c_str());
-              config->volume_resolution.z = ::atoi(
+              config->volume_resolution.z() = ::atoi(
                   dims[2].c_str());
             } else {
               if (dims.size() == 0)
-                config->volume_resolution.x = 256;
+                config->volume_resolution.x() = 256;
               else
-                config->volume_resolution.x = ::atoi(
+                config->volume_resolution.x() = ::atoi(
                     dims[0].c_str());
-              config->volume_resolution.y = config->volume_size.x;
-              config->volume_resolution.z = config->volume_size.x;
+              config->volume_resolution.y() = config->volume_size.x();
+              config->volume_resolution.z() = config->volume_size.x();
             }
             std::cout << "volumetric-size: "
-              << config->volume_resolution.x << "x"
-              << config->volume_resolution.y << "x"
-              << config->volume_resolution.z << std::endl;
+              << config->volume_resolution.x() << "x"
+              << config->volume_resolution.y() << "x"
+              << config->volume_resolution.z() << std::endl;
             continue;
           }
 
@@ -81,37 +81,37 @@ DepthReader *createReader(Configuration *config, std::string filename) {
             std::vector<std::string> dims = splitString(value, ',');
 
             if (dims.size() == 3) {
-              config->volume_size.x = ::atof(dims[0].c_str());
-              config->volume_size.y = ::atof(dims[1].c_str());
-              config->volume_size.z = ::atof(dims[2].c_str());
+              config->volume_size.x() = ::atof(dims[0].c_str());
+              config->volume_size.y() = ::atof(dims[1].c_str());
+              config->volume_size.z() = ::atof(dims[2].c_str());
             } else {
               if (dims.size() == 0)
-                config->volume_size.x = 2.0;
+                config->volume_size.x() = 2.0;
               else {
-                config->volume_size.x = ::atof(dims[0].c_str());
-                config->volume_size.y = config->volume_size.x;
-                config->volume_size.z = config->volume_size.x;
+                config->volume_size.x() = ::atof(dims[0].c_str());
+                config->volume_size.y() = config->volume_size.x();
+                config->volume_size.z() = config->volume_size.x();
               }
             }
-            std::cout << "volume-size: " << config->volume_size.x
-              << "x" << config->volume_size.y << "x"
-              << config->volume_size.z << std::endl;
+            std::cout << "volume-size: " << config->volume_size.x()
+              << "x" << config->volume_size.y() << "x"
+              << config->volume_size.z() << std::endl;
             continue;
           }
 
           if (key == "initial-position") {
             std::vector<std::string> dims = splitString(value, ',');
             if (dims.size() == 3) {
-              config->initial_pos_factor.x = ::atof(
+              config->initial_pos_factor.x() = ::atof(
                   dims[0].c_str());
-              config->initial_pos_factor.y = ::atof(
+              config->initial_pos_factor.y() = ::atof(
                   dims[1].c_str());
-              config->initial_pos_factor.z = ::atof(
+              config->initial_pos_factor.z() = ::atof(
                   dims[2].c_str());
               std::cout << "initial-position: "
-                << config->initial_pos_factor.x << ", "
-                << config->initial_pos_factor.y << ", "
-                << config->initial_pos_factor.z
+                << config->initial_pos_factor.x() << ", "
+                << config->initial_pos_factor.y() << ", "
+                << config->initial_pos_factor.z()
                 << std::endl;
             } else {
               std::cerr
@@ -124,15 +124,15 @@ DepthReader *createReader(Configuration *config, std::string filename) {
           if (key == "camera") {
             std::vector<std::string> dims = splitString(value, ',');
             if (dims.size() == 4) {
-              config->camera.x = ::atof(dims[0].c_str());
-              config->camera.y = ::atof(dims[1].c_str());
-              config->camera.z = ::atof(dims[2].c_str());
-              config->camera.w = ::atof(dims[3].c_str());
+              config->camera.x() = ::atof(dims[0].c_str());
+              config->camera.y() = ::atof(dims[1].c_str());
+              config->camera.z() = ::atof(dims[2].c_str());
+              config->camera.w() = ::atof(dims[3].c_str());
               config->camera_overrided = true;
-              std::cout << "camera: " << config->camera.x << ","
-                << config->camera.y << ","
-                << config->camera.z << ","
-                << config->camera.w << std::endl;
+              std::cout << "camera: " << config->camera.x() << ","
+                << config->camera.y() << ","
+                << config->camera.z() << ","
+                << config->camera.w() << std::endl;
             } else {
               std::cerr
                 << "ERROR: camera specified with incorrect data. (was "

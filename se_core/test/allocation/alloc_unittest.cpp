@@ -27,7 +27,7 @@
 */
 #include <random>
 #include "octree.hpp"
-#include "utils/se_common.h"
+#include "utils/math_utils.h"
 #include "utils/morton_utils.hpp"
 #include "gtest/gtest.h"
 

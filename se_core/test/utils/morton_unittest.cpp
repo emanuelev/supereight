@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include <random>
-#include "utils/se_common.h"
+#include "utils/math_utils.h"
 #include "utils/morton_utils.hpp"
 #include "octree_defines.h"
 #include "gtest/gtest.h"

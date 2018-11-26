@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstring>
 #include <algorithm>
-#include "utils/se_common.h"
+#include "utils/math_utils.h"
 #include "octree_defines.h"
 #include "voxel_traits.hpp"
 #include "utils/morton_utils.hpp"
@@ -386,7 +386,7 @@ inline typename Octree<T>::value_type Octree<T>::get(const int x,
     const Eigen::Vector3i lower = cached->coordinates();
     const Eigen::Vector3i upper = lower + Eigen::Vector3i::Constant(blockSide-1);
     const int contained = 
-      ((pos.array() >= lower.array()) * (pos.array() <= upper.array())).all();
+      ((pos.array() >= lower.array()) && (pos.array() <= upper.array())).all();
     if(contained){
       return cached->data(Eigen::Vector3i(x, y, z));
     }

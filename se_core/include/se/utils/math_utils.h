@@ -30,33 +30,54 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #ifndef SE_MATH_HELPER_H
 #define SE_MATH_HELPER_H
+#include <iostream>
+#include <cmath>
+#include <Eigen/Dense>
 
-#include "se_common.h"
+#define SOPHUS_DISABLE_ENSURES
+/* 
+ * When compiling in debug mode Eigen compilation fails 
+ * due to -Wunused-parameter. Disable it if compiling with GCC.
+ */
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#if __GNUC__ > 6
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
+#endif
+#include <Eigen/Dense>
+#include <sophus/se3.hpp>
+#pragma GCC diagnostic pop
+#else
+#include <Eigen/Dense>
+#include <sophus/se3.hpp>
+#endif
+
 
 namespace se {
   namespace math {
     template <typename T>
-      T fracf(const T& v) {
+    static inline T fracf(const T& v) {
         return v - v.array().floor().matrix();
       }
 
     template <typename T>
-      T floorf(const T& v) {
+    static inline T floorf(const T& v) {
         return v.array().floor();
       }
 
     template <typename T>
-    inline T fabs(const T& v) {
+    static inline T fabs(const T& v) {
         return v.cwiseAbs();
       }
 
     template <typename Scalar>
-      inline Scalar sq(Scalar a) {
+    static inline Scalar sq(Scalar a) {
         return a*a;
       };
 
     template <typename Scalar>
-    inline bool in(const Scalar v, const Scalar a, 
+    static inline bool in(const Scalar v, const Scalar a, 
           const Scalar b) {
         return v >= a && v <= b;
       }
@@ -64,7 +85,35 @@ namespace se {
     constexpr int log2_const(int n){
       return (n < 2 ? 0 : 1 + log2_const(n/2));
     }
+
+    static inline Eigen::Matrix4f toMatrix4f(const Eigen::Vector3f& trans) {
+      Eigen::Matrix4f se3_mat;  
+      se3_mat << 1.f ,  0.f ,  0.f , trans.x(), 
+              0.f ,  1.f ,  0.f , trans.y(), 
+              0.f ,  0.f ,  1.f , trans.z(), 
+              0.f ,  0.f ,  0.f ,  1.f;
+      return se3_mat;
+    }
+
+
+    template <typename T>
+      static inline typename std::enable_if<std::is_arithmetic<T>::value, T>::type
+      clamp(const T& f, const T& a, const T& b) {
+        return std::max(a, std::min(f, b));
+      }
+
+    static inline void clamp(Eigen::Ref<Eigen::VectorXf> res, const Eigen::Ref<const Eigen::VectorXf> a, 
+        const Eigen::Ref<Eigen::VectorXf> b) {
+      res = (res.array() < a.array()).select(a, res);
+      res = (res.array() >= b.array()).select(b, res);
+    } 
+
+    template <typename R, typename A, typename B>
+      static inline void clamp(Eigen::MatrixBase<R>& res, const Eigen::MatrixBase<A>& a, 
+          const Eigen::MatrixBase<B>& b) {
+        res = res.array().max(a.array());
+        res = res.array().min(b.array());
+      }
   }
 }
-
 #endif

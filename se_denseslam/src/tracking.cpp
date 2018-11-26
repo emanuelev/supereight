@@ -33,14 +33,18 @@
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
-#include <math_utils.h>
+#include <se/utils/math_utils.h>
 #include "timings.h"
 
-void new_reduce(int blockIndex, float * out, TrackData* J, const uint2 Jsize,
-		const uint2 size) {
+#include <se/commons.h>
+#include <se/image/image.hpp>
+
+void new_reduce(int blockIndex, float * out, TrackData* J, 
+    const Eigen::Vector2i& Jsize,
+		const Eigen::Vector2i& size) {
 	float *sums = out + blockIndex * 32;
 
-	for (uint i = 0; i < 32; ++i)
+	for (unsigned int i = 0; i < 32; ++i)
 		sums[i] = 0;
 	float sums0, sums1, sums2, sums3, sums4, sums5, sums6, sums7, sums8, sums9,
 			sums10, sums11, sums12, sums13, sums14, sums15, sums16, sums17,
@@ -80,10 +84,10 @@ void new_reduce(int blockIndex, float * out, TrackData* J, const uint2 Jsize,
 	sums31 = 0.0f;
 // comment me out to try coarse grain parallelism 
 #pragma omp parallel for reduction(+:sums0,sums1,sums2,sums3,sums4,sums5,sums6,sums7,sums8,sums9,sums10,sums11,sums12,sums13,sums14,sums15,sums16,sums17,sums18,sums19,sums20,sums21,sums22,sums23,sums24,sums25,sums26,sums27,sums28,sums29,sums30,sums31)
-	for (uint y = blockIndex; y < size.y; y += 8) {
-		for (uint x = 0; x < size.x; x++) {
+	for (int y = blockIndex; y < size.y(); y += 8) {
+		for (int x = 0; x < size.x(); x++) {
 
-			const TrackData & row = J[(x + y * Jsize.x)]; // ...
+			const TrackData & row = J[(x + y * Jsize.x())]; // ...
 			if (row.result < 1) {
 				// accesses sums[28..31]
 				/*(sums+28)[1]*/sums29 += row.result == -4 ? 1 : 0;
@@ -174,100 +178,15 @@ void new_reduce(int blockIndex, float * out, TrackData* J, const uint2 Jsize,
 	sums[31] = sums31;
 
 }
-void reduceKernel(float * out, TrackData* J, const uint2 Jsize,
-		const uint2 size) {
+void reduceKernel(float * out, TrackData* J, const Eigen::Vector2i Jsize,
+		const Eigen::Vector2i size) {
 	TICK();
 	int blockIndex;
 #ifdef OLDREDUCE
 #pragma omp parallel for private (blockIndex)
 #endif
 	for (blockIndex = 0; blockIndex < 8; blockIndex++) {
-
-#ifdef OLDREDUCE
-		float S[112][32]; // this is for the final accumulation
-		// we have 112 threads in a blockdim
-		// and 8 blocks in a gridDim?
-		// ie it was launched as <<<8,112>>>
-		uint sline;// threadIndex.x
-		float sums[32];
-
-		for(int threadIndex = 0; threadIndex < 112; threadIndex++) {
-			sline = threadIndex;
-			float * jtj = sums+7;
-			float * info = sums+28;
-			for(uint i = 0; i < 32; ++i) sums[i] = 0;
-
-			for(uint y = blockIndex; y < size.y; y += 8 /*gridDim.x*/) {
-				for(uint x = sline; x < size.x; x += 112 /*blockDim.x*/) {
-					const TrackData & row = J[(x + y * Jsize.x)]; // ...
-
-					if(row.result < 1) {
-						// accesses S[threadIndex][28..31]
-						info[1] += row.result == -4 ? 1 : 0;
-						info[2] += row.result == -5 ? 1 : 0;
-						info[3] += row.result > -4 ? 1 : 0;
-						continue;
-					}
-					// Error part
-					sums[0] += row.error * row.error;
-
-					// JTe part
-					for(int i = 0; i < 6; ++i)
-					sums[i+1] += row.error * row.J[i];
-
-					// JTJ part, unfortunatly the double loop is not unrolled well...
-					jtj[0] += row.J[0] * row.J[0];
-					jtj[1] += row.J[0] * row.J[1];
-					jtj[2] += row.J[0] * row.J[2];
-					jtj[3] += row.J[0] * row.J[3];
-
-					jtj[4] += row.J[0] * row.J[4];
-					jtj[5] += row.J[0] * row.J[5];
-
-					jtj[6] += row.J[1] * row.J[1];
-					jtj[7] += row.J[1] * row.J[2];
-					jtj[8] += row.J[1] * row.J[3];
-					jtj[9] += row.J[1] * row.J[4];
-
-					jtj[10] += row.J[1] * row.J[5];
-
-					jtj[11] += row.J[2] * row.J[2];
-					jtj[12] += row.J[2] * row.J[3];
-					jtj[13] += row.J[2] * row.J[4];
-					jtj[14] += row.J[2] * row.J[5];
-
-					jtj[15] += row.J[3] * row.J[3];
-					jtj[16] += row.J[3] * row.J[4];
-					jtj[17] += row.J[3] * row.J[5];
-
-					jtj[18] += row.J[4] * row.J[4];
-					jtj[19] += row.J[4] * row.J[5];
-
-					jtj[20] += row.J[5] * row.J[5];
-
-					// extra info here
-					info[0] += 1;
-				}
-			}
-
-			for(int i = 0; i < 32; ++i) { // copy over to shared memory
-				S[sline][i] = sums[i];
-			}
-			// WE NO LONGER NEED TO DO THIS AS the threads execute sequentially inside a for loop
-
-		} // threads now execute as a for loop.
-		  //so the __syncthreads() is irrelevant
-
-		for(int ssline = 0; ssline < 32; ssline++) { // sum up columns and copy to global memory in the final 32 threads
-			for(unsigned i = 1; i < 112 /*blockDim.x*/; ++i) {
-				S[0][ssline] += S[i][ssline];
-			}
-			out[ssline+blockIndex*32] = S[0][ssline];
-		}
-#else 
 		new_reduce(blockIndex, out, J, Jsize, size);
-#endif
-
 	}
 
 	TooN::Matrix<8, 32, float, TooN::Reference::RowMajor> values(out);
@@ -280,82 +199,93 @@ void reduceKernel(float * out, TrackData* J, const uint2 Jsize,
 	TOCK("reduceKernel", 512);
 }
 
-void trackKernel(TrackData* output, const float3* inVertex,
-		const float3* inNormal, uint2 inSize, const float3* refVertex,
-		const float3* refNormal, uint2 refSize, const Matrix4 Ttrack,
-		const Matrix4 view, const float dist_threshold,
+void trackKernel(TrackData* output, 
+    const se::Image<Eigen::Vector3f>& inVertex,
+		const se::Image<Eigen::Vector3f>& inNormal, 
+    const se::Image<Eigen::Vector3f>&  refVertex,
+		const se::Image<Eigen::Vector3f>& refNormal, 
+    const Eigen::Matrix4f& Ttrack,
+		const Eigen::Matrix4f& view, 
+    const float dist_threshold,
 		const float normal_threshold) {
 	TICK();
-	uint2 pixel = make_uint2(0, 0);
-	unsigned int pixely, pixelx;
+	Eigen::Vector2i   pixel(0, 0);
+  Eigen::Vector2i  inSize( inVertex.width(),  inVertex.height());
+  Eigen::Vector2i refSize(refVertex.width(), refVertex.height());
+
+	int pixely, pixelx;
 #pragma omp parallel for \
 	    shared(output), private(pixel,pixelx,pixely)
-	for (pixely = 0; pixely < inSize.y; pixely++) {
-		for (pixelx = 0; pixelx < inSize.x; pixelx++) {
-			pixel.x = pixelx;
-			pixel.y = pixely;
+	for (pixely = 0; pixely < inSize.y(); pixely++) {
+		for (pixelx = 0; pixelx < inSize.x(); pixelx++) {
+			pixel.x() = pixelx;
+			pixel.y() = pixely;
 
-			TrackData & row = output[pixel.x + pixel.y * refSize.x];
+			TrackData & row = output[pixel.x() + pixel.y() * refSize.x()];
 
-			if (inNormal[pixel.x + pixel.y * inSize.x].x == INVALID) {
+			if (inNormal[pixel.x() + pixel.y() * inSize.x()].x() == INVALID) {
 				row.result = -1;
 				continue;
 			}
 
-			const float3 projectedVertex = Ttrack
-					* inVertex[pixel.x + pixel.y * inSize.x];
-			const float3 projectedPos = view * projectedVertex;
-			const float2 projPixel = make_float2(
-					projectedPos.x / projectedPos.z + 0.5f,
-					projectedPos.y / projectedPos.z + 0.5f);
-			if (projPixel.x < 0 || projPixel.x > refSize.x - 1
-					|| projPixel.y < 0 || projPixel.y > refSize.y - 1) {
+			const Eigen::Vector3f projectedVertex = (Ttrack * 
+          inVertex[pixel.x() + pixel.y() * inSize.x()].homogeneous()).head<3>();
+			const Eigen::Vector3f projectedPos = (view * projectedVertex.homogeneous()).head<3>();
+			const Eigen::Vector2f projPixel(
+					projectedPos.x() / projectedPos.z() + 0.5f,
+					projectedPos.y() / projectedPos.z() + 0.5f);
+			if (projPixel.x() < 0 || projPixel.x() > refSize.x() - 1
+					|| projPixel.y() < 0 || projPixel.y() > refSize.y() - 1) {
 				row.result = -2;
 				continue;
 			}
 
-			const uint2 refPixel = make_uint2(projPixel.x, projPixel.y);
-			const float3 referenceNormal = refNormal[refPixel.x
-					+ refPixel.y * refSize.x];
+			const Eigen::Vector2i refPixel = projPixel.cast<int>();
+			const Eigen::Vector3f referenceNormal = refNormal[refPixel.x()
+					+ refPixel.y() * refSize.x()];
 
-			if (referenceNormal.x == INVALID) {
+			if (referenceNormal.x() == INVALID) {
 				row.result = -3;
 				continue;
 			}
 
-			const float3 diff = refVertex[refPixel.x + refPixel.y * refSize.x]
+			const Eigen::Vector3f diff = refVertex[refPixel.x() + refPixel.y() * refSize.x()]
 					- projectedVertex;
-			const float3 projectedNormal = rotate(Ttrack,
-					inNormal[pixel.x + pixel.y * inSize.x]);
+			const Eigen::Vector3f projectedNormal = Ttrack.topLeftCorner<3, 3>() * 
+					inNormal[pixel.x() + pixel.y() * inSize.x()];
 
-			if (length(diff) > dist_threshold) {
+			if (diff.norm() > dist_threshold) {
 				row.result = -4;
 				continue;
 			}
-			if (dot(projectedNormal, referenceNormal) < normal_threshold) {
+			if (projectedNormal.dot(referenceNormal) < normal_threshold) {
 				row.result = -5;
 				continue;
 			}
 			row.result = 1;
-			row.error = dot(referenceNormal, diff);
-			((float3 *) row.J)[0] = referenceNormal;
-			((float3 *) row.J)[1] = cross(projectedVertex, referenceNormal);
+			row.error = referenceNormal.dot(diff);
+			row.J[0] = referenceNormal.x();
+			row.J[1] = referenceNormal.y();
+			row.J[2] = referenceNormal.z();
+
+      Eigen::Vector3f crossRes = projectedVertex.cross(referenceNormal);
+			row.J[3] = crossRes.x();
+			row.J[4] = crossRes.y();
+			row.J[5] = crossRes.z();
 		}
 	}
 	TOCK("trackKernel", inSize.x * inSize.y);
 }
 
-bool updatePoseKernel(Matrix4 & pose, const float * output,
+bool updatePoseKernel(Eigen::Matrix4f & pose, const float * output,
 		float icp_threshold) {
 	bool res = false;
 	TICK();
-	// Update the pose regarding the tracking result
 	TooN::Matrix<8, 32, const float, TooN::Reference::RowMajor> values(output);
 	TooN::Vector<6> x = solve(values[0].slice<1, 27>());
 	TooN::SE3<> delta(x);
-	pose = toMatrix4(delta) * pose;
+	pose = toMatrix4f(delta) * pose;
 
-	// Return validity test result of the tracking
 	if (norm(x) < icp_threshold)
 		res = true;
 
@@ -363,15 +293,16 @@ bool updatePoseKernel(Matrix4 & pose, const float * output,
 	return res;
 }
 
-bool checkPoseKernel(Matrix4 & pose, Matrix4 oldPose, const float * output,
-		uint2 imageSize, float track_threshold) {
+bool checkPoseKernel(Eigen::Matrix4f& pose, Eigen::Matrix4f oldPose, 
+    const float * output, const Eigen::Vector2i& imageSize, 
+    float track_threshold) {
 
 	// Check the tracking result, and go back to the previous camera position if necessary
 
 	TooN::Matrix<8, 32, const float, TooN::Reference::RowMajor> values(output);
 
 	if ((std::sqrt(values(0, 0) / values(0, 28)) > 2e-2)
-			|| (values(0, 28) / (imageSize.x * imageSize.y) < track_threshold)) {
+			|| (values(0, 28) / (imageSize.x() * imageSize.y()) < track_threshold)) {
 		pose = oldPose;
 		return false;
 	} else {

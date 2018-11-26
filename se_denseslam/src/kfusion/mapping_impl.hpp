@@ -42,11 +42,13 @@ struct sdf_update {
     const float depthSample = depth[px(0) + depthSize(0)*px(1)];
     if (depthSample <=  0) return;
     const float diff = (depthSample - pos(2)) 
-      * std::sqrt( 1 + sq(pos(0) / pos(2)) + sq(pos(1) / pos(2)));
+      * std::sqrt( 1 + se::math::sq(pos(0) / pos(2)) + se::math::sq(pos(1) / pos(2)));
     if (diff > -mu) {
       const float sdf = fminf(1.f, diff / mu);
       auto data = handler.get();
-      data.x = clamp((data.y * data.x + sdf) / (data.y + 1), -1.f,
+      data.x = se::math::clamp(
+          (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f), 
+          -1.f,
           1.f);
       data.y = fminf(data.y + 1, maxweight);
       handler.set(data);

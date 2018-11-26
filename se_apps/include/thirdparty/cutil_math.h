@@ -32,6 +32,7 @@ typedef unsigned short ushort;
 #ifndef __host__
 #define __host__
 #define __device__
+#include "vector_types.h"
 #endif
 #include <math.h>
 #include <stdlib.h>

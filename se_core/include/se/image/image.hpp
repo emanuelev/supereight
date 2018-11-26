@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cassert>
+#include <Eigen/StdVector>
 
 namespace se {
 
@@ -36,7 +37,7 @@ namespace se {
       private:
         const int width_;
         const int height_;
-        std::vector<T> data_;
+        std::vector<T, Eigen::aligned_allocator<T> > data_;
     };
 
 } // end namespace se

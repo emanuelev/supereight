@@ -35,17 +35,17 @@
 #include <se/node.hpp>
 #include <se/functors/projective_functor.hpp>
 #include <se/constant_parameters.h>
+#include <se/image/image.hpp>
 #include "bspline_lookup.cc"
 
-float interpDepth(const float * depth, const uint2 depthSize, 
-    const float2 proj) {
+float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f proj) {
   // https://en.wikipedia.org/wiki/Bilinear_interpolation
 
   // Pixels version
-  const float x1 = (floorf(proj.x));
-  const float y1 = (floorf(proj.y + 1));
-  const float x2 = (floorf(proj.x + 1));
-  const float y2 = (floorf(proj.y));
+  const float x1 = (floorf(proj.x()));
+  const float y1 = (floorf(proj.y() + 1));
+  const float x2 = (floorf(proj.x() + 1));
+  const float y2 = (floorf(proj.y()));
 
   // Half pixels
   // const float x1 = (float) (int(proj.x - 0.5f)) + 0.5f;
@@ -53,10 +53,10 @@ float interpDepth(const float * depth, const uint2 depthSize,
   // const float x2 = (float) (int(proj.x + 0.5f)) + 0.5f;
   // const float y2 = (float) (int(proj.y - 0.5f)) + 0.5f;
 
-  const float d11 = depth[int(x1) +  depthSize.x*int(y1)];
-  const float d12 = depth[int(x1) +  depthSize.x*int(y2)];
-  const float d21 = depth[int(x2) +  depthSize.x*int(y1)];
-  const float d22 = depth[int(x2) +  depthSize.x*int(y2)];
+  const float d11 = depth[int(x1) +  depth.width()*int(y1)];
+  const float d12 = depth[int(x1) +  depth.width()*int(y2)];
+  const float d21 = depth[int(x2) +  depth.width()*int(y1)];
+  const float d22 = depth[int(x2) +  depth.width()*int(y2)];
   
   if( d11 == 0.f || d12 == 0.f || d21 == 0.f || d22 == 0.f ) return 0.f;
 
@@ -67,10 +67,10 @@ float interpDepth(const float * depth, const uint2 depthSize,
   
   // Filtering version
   const float d =  1.f / 
-                    ( (   f11 * (x2 - proj.x) * (y2 - proj.y)
-                        + f21 * (proj.x - x1) * (y2 - proj.y)
-                        + f12 * (x2 - proj.x) * (proj.y - y1)
-                        + f22 * (proj.x - x1) * (proj.y - y1)
+                    ( (   f11 * (x2 - proj.x()) * (y2 - proj.y())
+                        + f21 * (proj.x() - x1) * (y2 - proj.y())
+                        + f12 * (x2 - proj.x()) * (proj.y() - y1)
+                        + f22 * (proj.x() - x1) * (proj.y() - y1)
                       ) / ((x2 - x1) * (y2 - y1))
                     );
 
@@ -79,7 +79,7 @@ float interpDepth(const float * depth, const uint2 depthSize,
       fabs(d - d21) < interp_thresh && fabs(d - d22) < interp_thresh) 
     return d;
   else 
-    return depth[int(proj.x + 0.5f) + depthSize.x*int(proj.y+0.5f)];
+    return depth[int(proj.x() + 0.5f) + depth.width()*int(proj.y()+0.5f)];
 
   // Non-Filtering version
   // return  1.f / 
@@ -123,7 +123,7 @@ static inline float const_offset_integral(float t){
   return value;
 }
 
-static inline float __device__ bspline_memoized(float t){
+static inline float bspline_memoized(float t){
   float value = 0.f;
   constexpr float inverseRange = 1/6.f;
   if(t >= -3.0f && t <= 3.0f) {
@@ -143,7 +143,7 @@ static inline float HNew(const float val,const  float ){
 }
 
 static inline float updateLogs(const float prior, const float sample){
-  // return (prior + clamp(log2(sample / (1.f - sample)), -100, 100));
+  // return (prior + se::math::clamp(log2(sample / (1.f - sample)), -100, 100));
   return (prior + log2(sample / (1.f - sample)));
 }
 
@@ -165,14 +165,14 @@ struct bfusion_update {
     if (depthSample <=  0) return;
 
     const float diff = (pos(2) - depthSample)
-      * std::sqrt( 1 + sq(pos(0) / pos(2)) + sq(pos(1) / pos(2)));
-    float sample = HNew(diff/(noiseFactor *sq(pos(2))), pos(2));
+      * std::sqrt( 1 + se::math::sq(pos(0) / pos(2)) + se::math::sq(pos(1) / pos(2)));
+    float sample = HNew(diff/(noiseFactor * se::math::sq(pos(2))), pos(2));
     if(sample == 0.5f) return;
-    sample = clamp(sample, 0.03f, 0.97f);
+    sample = se::math::clamp(sample, 0.03f, 0.97f);
     auto data = handler.get();
     const double delta_t = timestamp - data.y;
     data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
-    data.x = clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
+    data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
     data.y = timestamp;
     handler.set(data);
   } 

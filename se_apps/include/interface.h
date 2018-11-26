@@ -23,6 +23,8 @@
 #include <unistd.h>
 #include <time.h>
 #include <str_utils.h>
+#include <Eigen/Dense>
+#include <thirdparty/cutil_math.h>
 
 #include "sys/stat.h"
 
@@ -58,7 +60,7 @@ class DepthReader {
                               uint16_t*        depth_image,
                               Eigen::Matrix4f& pose) {};
 
-    virtual float4 getK() = 0;
+    virtual Eigen::Vector4f getK() = 0;
 
     virtual uint2 getinputSize() = 0;
 
@@ -216,8 +218,8 @@ class SceneDepthReader: public DepthReader {
       return (READER_SCENE);
     }
 
-    inline float4 getK() {
-      return make_float4(481.20, 480.00, 319.50, 239.50);
+	inline Eigen::Vector4f getK() {
+		return Eigen::Vector4f(481.20, 480.00, 319.50, 239.50);
     }
 
     inline uint2 getinputSize() {
@@ -504,8 +506,8 @@ class RawDepthReader: public DepthReader {
      * and `w` elements are the x-axis focal length, y-axis focal length,
      * x-axis optical center and y-axis optical center.
      */
-    inline float4 getK() {
-      return make_float4(531.15, 531.15, 640 / 2, 480 / 2);
+	inline Eigen::Vector4f getK() {
+		return Eigen::Vector4f(531.15, 531.15, 640 / 2, 480 / 2);
     }
 
 };
@@ -783,8 +785,8 @@ class OpenNIDepthReader: public DepthReader {
       return _size;
     }
 
-    inline float4 getK() {
-      return make_float4(481.2, 480, 640/2, 480/2);
+	inline Eigen::Vector4f getK() {
+		return Eigen::Vector4f(481.2, 480, 640/2, 480/2);
     }
 
 };
@@ -807,7 +809,7 @@ class OpenNIDepthReader: public DepthReader {
     bool readNextDepthFrame(uchar3* raw_rgb, unsigned short int * depthMap) {
     }
 
-    float4 getK() {
+    Eigen::Vector4f getK() {
     }
 
     uint2 getinputSize() {
