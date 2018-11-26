@@ -181,17 +181,8 @@ DepthReader *createReader(Configuration *config, std::string filename) {
     reader = NULL;
 #endif
   } else if (S_ISDIR(st.st_mode)) {
-    if ((filename.find("freiburg") != std::string::npos)
-        || (filename.find("tum") != std::string::npos)
-        || (filename.find("TUM") != std::string::npos)) {
-      // TUM reader
-      std::cerr << "Input path contains \'freiburg\', \'tum\' or \'TUM\', assuming TUM dataset"
-          << std::endl;
-      reader = new TUMDepthReader(reader_config);
-    } else {
-      // ICL-NUIM reader
-      reader = new SceneDepthReader(reader_config);
-    }
+    // ICL-NUIM reader
+    reader = new SceneDepthReader(reader_config);
   }
 #ifdef DO_OPENNI
   else if(filename.substr(filename.length()-4, 4)==".oni") {

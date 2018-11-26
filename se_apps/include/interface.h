@@ -27,7 +27,7 @@
 #include "sys/stat.h"
 
 enum ReaderType {
-  READER_RAW, READER_SCENE, READER_OPENNI, READER_TUM
+  READER_RAW, READER_SCENE, READER_OPENNI
 };
 
 struct ReaderConfiguration {
@@ -41,6 +41,8 @@ struct ReaderConfiguration {
 
 class DepthReader {
   public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     virtual ~DepthReader() { }
 
     virtual bool readNextDepthFrame(float * depthMap)= 0;
@@ -111,14 +113,60 @@ class DepthReader {
 
     }
 
+    inline bool readNextPose(Eigen::Matrix4f& pose) {
+      std::string line;
+      while (true) {
+        std::getline(_gt_file,line);
+        // EOF reached
+        if (!_gt_file.good()) {
+          //std::cout << "EOF reached" << std::endl;
+          return false;
+        }
+        // Ignore comment lines
+        if (line[0] == '#') {
+          //std::cout << "Skipping comment" << std::endl;
+          continue;
+        }
+        // Data line read, split on spaces
+        std::vector<std::string> data;
+        splitString(line, ' ', data);
+        size_t N = data.size();
+        if (N < 7) {
+          std::cout << "Invalid ground truth file format."
+            << "Expected line format: ... tx ty tz qx qy qz qw" << std::endl;
+          return false;
+        }
+        // Read the last 7 columns
+        Eigen::Vector3f tran (std::stof(data[N-7]), std::stof(data[N-6]),
+          std::stof(data[N-5]));
+        Eigen::Quaternionf quat (std::stof(data[N-1]), std::stof(data[N-4]),
+          std::stof(data[N-3]), std::stof(data[N-2]));
+        pose = Eigen::Matrix4f::Identity();
+        pose.block<3,3>(0,0) = quat.toRotationMatrix();
+        pose.block<3,1>(0,3) = tran;
+        _pose_num++;
+        // Subtract the first position from the current position
+        if (_pose_num == 1) {
+          _initialPose = pose;
+        }
+        pose.block<3,1>(0,3) -= _initialPose.block<3,1>(0,3);
+        // Apply the transform to the pose
+        pose = _transform * pose;
+        return true;
+      }
+    }
+
     bool cameraActive;
     bool cameraOpen;
   protected:
     int _frame;
+    size_t _pose_num;
     int _fps;
     bool _blocking_read;
     std::string _data_path;
     std::string _groundtruth_path;
+    std::ifstream _gt_file;
+    Eigen::Matrix4f _initialPose;
     Eigen::Matrix4f _transform;
 };
 
@@ -236,15 +284,63 @@ class SceneDepthReader: public DepthReader {
 
 };
 
+/**
+ * Reader for Slambench 1.0 datasets.
+ *
+ * @note When loading ground truth poses from a file, the initial ground truth
+ * position is subtracted from all positions read so that the initial position
+ * is always at `[0 0 0]`.
+ */
 class RawDepthReader: public DepthReader {
   private:
-    FILE* _pFile;
-    uint2 _size;
+    FILE* _pFile; /** Pointer to the open .raw file. */
+    uint2 _size; /** Dimensions of the input images. */
 
   public:
+    /**
+     * Constructor using the ::ReaderConfiguration struct.
+     */
     RawDepthReader(const ReaderConfiguration& config)
-      : RawDepthReader(config.data_path, config.fps, config.blocking_read){ }
+      : DepthReader() {
+        // Copy configuration
+        _data_path = config.data_path;
+        _groundtruth_path = config.groundtruth_path;
+        _transform = config.transform;
+        // Open ground truth association file if supplied
+        if (_groundtruth_path != "") {
+          _gt_file.open(_groundtruth_path.c_str());
+          if(!_gt_file.is_open()) {
+            std::cout << "Failed to open ground truth association file "
+              << _groundtruth_path << std::endl;
+            _pFile = NULL;
+            return;
+          }
+          _pose_num = -1;
+        }
+        // Open raw file
+        std::string raw_filename = _data_path;
+        _pFile = fopen(raw_filename.c_str(), "rb");
+        size_t res = fread(&(_size), sizeof(_size), 1, _pFile);
+        cameraOpen = false;
+        cameraActive = false;
+        if (res != 1) {
+          std::cerr << "Invalid Raw file " << raw_filename << std::endl;
+          return;
+        } else {
+          cameraOpen = true;
+          cameraActive = true;
+          _frame = -1;
+          _fps = config.fps;
+          _blocking_read = config.blocking_read;
+          fseeko(_pFile, 0, SEEK_SET);
+        }
+      };
 
+    /**
+     * Old style constructor. Does not support ground truth loading.
+     *
+     * @deprecated Might be removed in the future.
+     */
     RawDepthReader(std::string filename, int fps, bool blocking_read) :
       DepthReader(), _pFile(fopen(filename.c_str(), "rb")) {
 
@@ -263,11 +359,21 @@ class RawDepthReader: public DepthReader {
           fseeko(_pFile, 0, SEEK_SET);
         }
       };
+
+    /**
+     * Get the type of the reader.
+     *
+     * \return ReaderType::READER_RAW
+     */
     ReaderType getType() {
       return (READER_RAW);
     }
-    inline bool readNextDepthFrame(uchar3* raw_rgb,
-        unsigned short int * depthMap) {
+
+    /**
+     * Read the next pair of RGB and depth frames.
+     */
+    inline bool readNextDepthFrame(uchar3*              raw_rgb,
+                                   unsigned short int * depthMap) {
 
       int total = 0;
       int expected_size = 0;
@@ -339,12 +445,20 @@ class RawDepthReader: public DepthReader {
       }
     }
 
+    /**
+     * Restart the reader from the beginning.
+     */
     inline void restart() {
       _frame = -1;
+      _pose_num = -1;
       rewind(_pFile);
-
+      if (_gt_file.is_open())
+        _gt_file.seekg(0, _gt_file.beg);
     }
 
+    /**
+     * Read the next depth frame.
+     */
     inline bool readNextDepthFrame(float * depthMap) {
 
       unsigned short int* UintdepthMap = (unsigned short int*) malloc(
@@ -358,9 +472,38 @@ class RawDepthReader: public DepthReader {
       return res;
     }
 
+    /**
+     * Read the RGB, depth and ground truth pose data corresponding to the next
+     * measurement.
+     *
+     * \param[out] rgb_image The RGB frame.
+     * \param[out] depth_image The depth frame.
+     * \param[out] pose The ground truth pose.
+     * \return true on success, false on failure to read.
+     */
+    inline bool readNextData(uchar3*          rgb_image,
+                             uint16_t*        depth_image,
+                             Eigen::Matrix4f& pose) {
+      bool res;
+      // _pose_num is incremented inside readNextPose()
+      res = readNextPose(pose);
+      // _frame is incremented inside readNextDepthFrame()
+      res = res && readNextDepthFrame(rgb_image, depth_image);
+      return res;
+    }
+
+    /**
+     * Returns the dimensions of the frames read.
+     */
     inline uint2 getinputSize() {
       return _size;
     }
+
+    /**
+     * Returns a vector with the camera matrix parameters. The `x`, `y`, `z`
+     * and `w` elements are the x-axis focal length, y-axis focal length,
+     * x-axis optical center and y-axis optical center.
+     */
     inline float4 getK() {
       return make_float4(531.15, 531.15, 640 / 2, 480 / 2);
     }
@@ -678,236 +821,5 @@ class OpenNIDepthReader: public DepthReader {
     }
 };
 #endif /* DO_OPENNI*/
-
-
-/**
- * Reader for TUM datasets.
- *
- * @note Currently the reader assumes that the dataset images have been
- * combined into a `.raw` file named `scene.raw` using the `scene2raw_tum`
- * script and that the corresponding association file is named `scene.raw.txt`.
- *
- * @todo Create the ground truth association by reading the TUM txt files in
- * the dataset directory.
- * @todo Do not use the .raw format. Load images directly.
- */
-class TUMDepthReader: public DepthReader {
-  private:
-    FILE* _pFile;
-    uint2 _size;
-    std::ifstream _GTFile;
-    size_t _poseNum;
-    Eigen::Matrix4f _initialPose;
-
-    bool readNextPose(Eigen::Matrix4f& pose) {
-      std::string line;
-      while (true) {
-        std::getline(_GTFile,line);
-        // EOF reached
-        if (!_GTFile.good()) {
-          //std::cout << "EOF reached" << std::endl;
-          return false;
-        }
-        // Ignore comment lines
-        if (line[0] == '#') {
-          //std::cout << "Skipping comment" << std::endl;
-          continue;
-        }
-        // Data line read, split on spaces
-        std::vector<std::string> data;
-        splitString(line, ' ', data);
-        size_t N = data.size();
-        if (N < 7) {
-          std::cout << "Invalid ground truth file format."
-            << "Expected line format: ... tx ty tz qx qy qz qw" << std::endl;
-          return false;
-        }
-        // Read the last 7 columns
-        Eigen::Vector3f tran (std::stof(data[N-7]), std::stof(data[N-6]),
-          std::stof(data[N-5]));
-        Eigen::Quaternionf quat (std::stof(data[N-1]), std::stof(data[N-4]),
-          std::stof(data[N-3]), std::stof(data[N-2]));
-        pose = Eigen::Matrix4f::Identity();
-        pose.block<3,3>(0,0) = quat.toRotationMatrix();
-        pose.block<3,1>(0,3) = tran;
-        _poseNum++;
-        // Subtract the first position from the current position
-        if (_poseNum == 1) {
-          _initialPose = pose;
-        }
-        pose.block<3,1>(0,3) -= _initialPose.block<3,1>(0,3);
-        // Apply the transform to the pose
-        pose = _transform * pose;
-        return true;
-      }
-    }
-
-  public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-    /**
-     * Constructor.
-     */
-    TUMDepthReader(const ReaderConfiguration& config)
-      : DepthReader(), _poseNum(-1) {
-        // Copy configuration
-        _data_path = config.data_path;
-        _groundtruth_path = config.groundtruth_path;
-        _transform = config.transform;
-        // Test if the directory exists
-        struct stat st;
-		lstat(_data_path.c_str(), &st);
-        if (S_ISDIR(st.st_mode)) {
-          cameraOpen = true;
-          cameraActive = true;
-          _frame = -1;
-          _fps = config.fps;
-          _blocking_read = config.blocking_read;
-        } else {
-          std::cerr << "No such directory " << _data_path << std::endl;
-          cameraOpen = false;
-          cameraActive = false;
-          return;
-        }
-        // Open ground truth association file if supplied
-        if (_groundtruth_path != "") {
-          _GTFile.open(_groundtruth_path.c_str());
-          if(!_GTFile.is_open()) {
-            std::cout << "Failed to open ground truth association file "
-              << _groundtruth_path << std::endl;
-            _pFile = NULL;
-            return;
-          }
-        }
-        // Open raw file
-        std::string raw_filename = _data_path + "/scene.raw";
-        _pFile = fopen(raw_filename.c_str(), "rb");
-        size_t res = fread(&(_size), sizeof(_size), 1, _pFile);
-        cameraOpen = false;
-        cameraActive = false;
-        if (res != 1) {
-          std::cerr << "Invalid Raw file " << raw_filename << std::endl;
-          return;
-        } else {
-          cameraOpen = true;
-          cameraActive = true;
-          _frame = -1;
-          _fps = config.fps;
-          _blocking_read = config.blocking_read;
-          fseeko(_pFile, 0, SEEK_SET);
-        }
-      };
-
-    /**
-     * Return the type of the reader.
-     *
-     * \return ::READER_GROUNDTRUTH
-     */
-    ReaderType getType() {
-      return (READER_TUM);
-    }
-
-    inline bool readNextDepthFrame(uchar3*              raw_rgb,
-                                   unsigned short int * depthMap) {
-      int total = 0;
-      int expected_size = 0;
-      unsigned int newImageSize[2];
-      get_next_frame();
-#ifdef LIGHT_RAW // This LightRaw mode is used to get smaller raw files
-      unsigned int size_of_frame = (sizeof(unsigned int) * 2 + _size.x * _size.y * sizeof(unsigned short int) );
-#else
-      off_t size_of_frame = (sizeof(unsigned int) * 4
-          + _size.x * _size.y * sizeof(unsigned short int)
-          + _size.x * _size.y * sizeof(uchar3));
-#endif
-      // std::cout << "Seek: " << size_of_frame * _frame << std::endl;
-      fseeko(_pFile, size_of_frame * _frame, SEEK_SET);
-      total += fread(&(newImageSize), sizeof(newImageSize), 1, _pFile);
-      if (depthMap) {
-        total += fread(depthMap, sizeof(unsigned short int),
-            newImageSize[0] * newImageSize[1], _pFile);
-        expected_size += 1 + newImageSize[0] * newImageSize[1];
-      } else {
-        total += newImageSize[0] * newImageSize[1];
-        fseeko(_pFile,
-            newImageSize[0] * newImageSize[1]
-            * sizeof(unsigned short int), SEEK_CUR);
-        expected_size += 1 + newImageSize[0] * newImageSize[1];
-      }
-#ifdef LIGHT_RAW // This LightRaw mode is used to get smaller raw files
-      if (raw_rgb) {
-        raw_rgb[0].x = 0;
-      } else {
-      }
-#else
-      total += fread(&(newImageSize), sizeof(newImageSize), 1, _pFile);
-      if (raw_rgb) {
-        total += fread(raw_rgb, sizeof(uchar3),
-            newImageSize[0] * newImageSize[1], _pFile);
-        expected_size += 1 + newImageSize[0] * newImageSize[1];
-      } else {
-        total += newImageSize[0] * newImageSize[1];
-        fseeko(_pFile, newImageSize[0] * newImageSize[1] * sizeof(uchar3),
-            SEEK_CUR);
-        expected_size += 1 + newImageSize[0] * newImageSize[1];
-      }
-#endif
-      if (total != expected_size) {
-        std::cout << "End of file" << (total == 0 ? "" : "(garbage found)")
-          << "." << std::endl;
-        return false;
-      } else {
-        return true;
-      }
-    }
-
-    inline void restart() {
-      _frame = -1;
-      _poseNum = -1;
-      rewind(_pFile);
-      _GTFile.seekg(0, _GTFile.beg);
-    }
-
-    inline bool readNextDepthFrame(float * depthMap) {
-      unsigned short int* UintdepthMap = (unsigned short int*) malloc(
-          _size.x * _size.y * sizeof(unsigned short int));
-      bool res = readNextDepthFrame(NULL, UintdepthMap);
-      for (unsigned int i = 0; i < _size.x * _size.y; i++) {
-        depthMap[i] = (float) UintdepthMap[i] / 1000.0f;
-      }
-      free(UintdepthMap);
-      return res;
-    }
-
-    /**
-     * Read the RGB, depth and ground truth pose data corresponding to the next
-     * measurement.
-     *
-     * \param[out] rgb_image The RGB frame.
-     * \param[out] depth_image The depth frame.
-     * \param[out] pose The ground truth pose.
-     * \return true on success, false on failure to read.
-     */
-    bool readNextData(uchar3*          rgb_image,
-                      uint16_t*        depth_image,
-                      Eigen::Matrix4f& pose) {
-      bool res;
-      // _poseNum is incremented inside readNextPose()
-      res = readNextPose(pose);
-      // _frame is incremented inside readNextDepthFrame()
-      res = res && readNextDepthFrame(rgb_image, depth_image);
-      return res;
-    }
-
-    inline uint2 getinputSize() {
-      return _size;
-    }
-
-    inline float4 getK() {
-      // TODO return correct parameters depending on dataset.
-    
-      return make_float4(525, 525, 319.5, 239.5);
-    }
-};
 
 #endif /* INTERFACE_H_ */
