@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 struct Configuration {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   //
   // KFusion configuration parameters
@@ -131,10 +132,9 @@ struct Configuration {
    * A 4x4 transformation matrix applied to all poses read from the ground
    * truth file.
    *
-   * @todo Fix Eigen alignment.
    * <br>\em Default: Eigen::Matrix4f::Identity()
    */
-  Eigen::Matrix<float,4,4,Eigen::DontAlign> gt_transform;
+  Eigen::Matrix4f gt_transform;
 
   /**
    * The intrinsic camera parameters. camera.x, camera.y, camera.z and

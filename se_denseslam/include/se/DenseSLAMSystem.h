@@ -92,6 +92,8 @@ class DenseSLAMSystem {
     Matrix4 raycast_pose_;
 
   public:
+    // Needed for the config_ member.
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     /**
      * Constructor using the initial camera position.
