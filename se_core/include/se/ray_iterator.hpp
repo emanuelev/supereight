@@ -50,8 +50,8 @@ template <typename T>
 class se::ray_iterator {
 
   public:
-    ray_iterator(const Octree<T>& m, const Eigen::Vector3f origin, 
-        const Eigen::Vector3f direction, float nearPlane, float farPlane) : map_(m) {
+    ray_iterator(const Octree<T>& m, const Eigen::Vector3f& origin, 
+        const Eigen::Vector3f& direction, float nearPlane, float farPlane) : map_(m) {
 
       pos_ = Eigen::Vector3f(1.0f, 1.0f, 1.0f);
       idx_ = 0;
@@ -248,6 +248,8 @@ class se::ray_iterator {
      * the ray to exit the currently intersected grid.
      */
     float tcmax() { return tc_max_ * map_.dim_; }
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   private:
     struct stack_entry {
