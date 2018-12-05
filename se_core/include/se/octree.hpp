@@ -175,17 +175,17 @@ public:
    */
 
   template <typename FieldSelect>
-  float interp(const Eigen::Vector3f pos, FieldSelect f) const;
+  float interp(const Eigen::Vector3f& pos, FieldSelect f) const;
 
   /*! \brief Compute the gradient at voxel position  (x,y,z)
    * \param pos three-dimensional coordinates in which each component belongs 
    * to the interval [0, size]
    * \return gradient at voxel position pos
    */
-  Eigen::Vector3f grad(const Eigen::Vector3f pos) const;
+  Eigen::Vector3f grad(const Eigen::Vector3f& pos) const;
 
   template <typename FieldSelect>
-  Eigen::Vector3f grad(const Eigen::Vector3f pos, FieldSelect selector) const;
+  Eigen::Vector3f grad(const Eigen::Vector3f& pos, FieldSelect selector) const;
 
   /*! \brief Get the list of allocated block. If the active switch is set to
    * true then only the visible blocks are retrieved.
@@ -253,7 +253,7 @@ private:
 
   // Private implementation of cached methods
   value_type get(const int x, const int y, const int z, VoxelBlock<T>* cached) const;
-  value_type get(const Eigen::Vector3f pos, VoxelBlock<T>* cached) const;
+  value_type get(const Eigen::Vector3f& pos, VoxelBlock<T>* cached) const;
 
   // Parallel allocation of a given tree level for a set of input keys.
   // Pre: levels above target_level must have been already allocated
@@ -274,12 +274,11 @@ private:
 
 
 template <typename T>
-inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f p, 
+inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f& p, 
     VoxelBlock<T>* cached) const {
 
-  const Eigen::Vector3i pos = Eigen::Vector3i{(p(0) * size_ / dim_),
-                                              (p(1) * size_ / dim_),
-                                              (p(2) * size_ / dim_)};
+  const Eigen::Vector3i pos = (p.homogeneous() * 
+      Eigen::Vector4f::Constant(size_/dim_)).head<3>().cast<int>();
 
   if(cached != NULL){
     Eigen::Vector3i lower = cached->coordinates();
@@ -541,7 +540,7 @@ VoxelBlock<T> * Octree<T>::insert(const int x, const int y, const int z) {
 
 template <typename T>
 template <typename FieldSelector>
-float Octree<T>::interp(Eigen::Vector3f pos, FieldSelector select) const {
+float Octree<T>::interp(const Eigen::Vector3f& pos, FieldSelector select) const {
   
   const Eigen::Vector3i base = math::floorf(pos).cast<int>();
   const Eigen::Vector3f factor = math::fracf(pos);
@@ -565,7 +564,7 @@ float Octree<T>::interp(Eigen::Vector3f pos, FieldSelector select) const {
 
 
 template <typename T>
-Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f pos) const {
+Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos) const {
 
    Eigen::Vector3i base = Eigen::Vector3i(math::floorf(pos).cast<int>());
    Eigen::Vector3f factor = math::fracf(pos);
@@ -652,7 +651,7 @@ Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f pos) const {
 
 template <typename T>
 template <typename FieldSelector>
-Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f pos, FieldSelector select) const {
+Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos, FieldSelector select) const {
 
    Eigen::Vector3i base = Eigen::Vector3i(math::floorf(pos).cast<int>());
    Eigen::Vector3f factor = math::fracf(pos);
