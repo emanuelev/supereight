@@ -29,8 +29,7 @@ function(add_version appname libraries)# includes)
         ${main_common_libraries}
         ${OPENNI2_LIBRARIES})
     set(main_common_compile_flags
-        "-DDO_OPENNI
-        ${main_common_compile_flags}")
+        "-DDO_OPENNI ${main_common_compile_flags}")
   endif(OPENNI2_FOUND)
 
   #  ------ BENCHMARK --------
@@ -104,7 +103,7 @@ function(add_version appname libraries)# includes)
      include_directories(${Qt5Gui_INCLUDE_DIRS})
 
      SET_TARGET_PROPERTIES(${appname}-qt PROPERTIES COMPILE_FLAGS
-         "${main_common_compile_flags} -std=c++0x  -D__QT__")
+         "${main_common_compile_flags} -D__QT__")
 
      if(APPLE)
        target_link_libraries(${appname}-qt
