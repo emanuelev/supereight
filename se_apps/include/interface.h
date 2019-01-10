@@ -147,11 +147,16 @@ class DepthReader {
         pose.block<3,3>(0,0) = quat.toRotationMatrix();
         pose.block<3,1>(0,3) = tran;
         _pose_num++;
+		// TODO
+		// [0,0,0] is currently a corner of the volume. It is not possible to
+		// set the initial position to the volume center because its dimensions
+		// are not known to the reader.
         // Subtract the first position from the current position
-        if (_pose_num == 1) {
-          _initialPose = pose;
-        }
-        pose.block<3,1>(0,3) -= _initialPose.block<3,1>(0,3);
+        //if (_pose_num == 1) {
+        //  _initialPose = pose;
+        //}
+        //pose.block<3,1>(0,3) -= _initialPose.block<3,1>(0,3);
+
         // Apply the transform to the pose
         pose = _transform * pose;
         return true;
@@ -288,10 +293,6 @@ class SceneDepthReader: public DepthReader {
 
 /**
  * Reader for Slambench 1.0 datasets.
- *
- * @note When loading ground truth poses from a file, the initial ground truth
- * position is subtracted from all positions read so that the initial position
- * is always at `[0 0 0]`.
  */
 class RawDepthReader: public DepthReader {
   private:
