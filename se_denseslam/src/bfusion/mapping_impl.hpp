@@ -166,7 +166,8 @@ struct bfusion_update {
 
     const float diff = (pos(2) - depthSample)
       * std::sqrt( 1 + se::math::sq(pos(0) / pos(2)) + se::math::sq(pos(1) / pos(2)));
-    float sample = HNew(diff/(noiseFactor * se::math::sq(pos(2))), pos(2));
+    float sigma = se::math::clamp(noiseFactor * se::math::sq(pos(2)), 0.005f, 0.05f);
+    float sample = HNew(diff/sigma, pos(2));
     if(sample == 0.5f) return;
     sample = se::math::clamp(sample, 0.03f, 0.97f);
     auto data = handler.get();

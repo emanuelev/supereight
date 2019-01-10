@@ -6,7 +6,7 @@
  This code is licensed under the MIT License.
 
 
- Copyright 2016 Emanuele Vespa, Imperial College London 
+ Copyright 2016 Emanuele Vespa, Imperial College London
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
@@ -31,7 +31,7 @@
  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <se/DenseSLAMSystem.h>
@@ -52,20 +52,20 @@
 
 extern PerfStats Stats;
 
-DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize, 
-                                 const Eigen::Vector3i& volumeResolution, 
+DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
+                                 const Eigen::Vector3i& volumeResolution,
                                  const Eigen::Vector3f& volumeDimensions,
-			                           const Eigen::Vector3f& initPose, 
-                                 std::vector<int> & pyramid, 
+			                           const Eigen::Vector3f& initPose,
+                                 std::vector<int> & pyramid,
                                  const Configuration& config):
-      DenseSLAMSystem(inputSize, volumeResolution, volumeDimensions, 
+      DenseSLAMSystem(inputSize, volumeResolution, volumeDimensions,
           se::math::toMatrix4f(initPose), pyramid, config) { }
 
-DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize, 
-                                 const Eigen::Vector3i& volumeResolution, 
-                                 const Eigen::Vector3f& volumeDimensions, 
-                                 const Eigen::Matrix4f& initPose, 
-                                 std::vector<int> & pyramid, 
+DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
+                                 const Eigen::Vector3i& volumeResolution,
+                                 const Eigen::Vector3f& volumeDimensions,
+                                 const Eigen::Matrix4f& initPose,
+                                 std::vector<int> & pyramid,
                                  const Configuration& config) :
   computation_size_(inputSize),
   vertex_(computation_size_.x(), computation_size_.y()),
@@ -97,13 +97,13 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
 
     for (unsigned int i = 0; i < iterations_.size(); ++i) {
       int downsample = 1 << i;
-      scaled_depth_.push_back(se::Image<float>(computation_size_.x() / downsample, 
+      scaled_depth_.push_back(se::Image<float>(computation_size_.x() / downsample,
             computation_size_.y() / downsample));
 
-      input_vertex_.push_back(se::Image<Eigen::Vector3f>(computation_size_.x() / downsample, 
+      input_vertex_.push_back(se::Image<Eigen::Vector3f>(computation_size_.x() / downsample,
             computation_size_.y() / downsample));
 
-      input_normal_.push_back(se::Image<Eigen::Vector3f>(computation_size_.x() / downsample, 
+      input_normal_.push_back(se::Image<Eigen::Vector3f>(computation_size_.x() / downsample,
             computation_size_.y() / downsample));
     }
 
@@ -120,16 +120,16 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
 
     discrete_vol_ptr_ = std::make_shared<se::Octree<FieldType> >();
     discrete_vol_ptr_->init(volume_resolution_.x(), volume_dimension_.x());
-    volume_ = Volume<FieldType>(volume_resolution_.x(), volume_dimension_.x(), 
+    volume_ = Volume<FieldType>(volume_resolution_.x(), volume_dimension_.x(),
         discrete_vol_ptr_.get());
 }
 
-bool DenseSLAMSystem::preprocessing(const unsigned short * inputDepth, 
+bool DenseSLAMSystem::preprocessing(const unsigned short * inputDepth,
     const Eigen::Vector2i& inputSize, const bool filterInput){
 
     mm2metersKernel(float_depth_, inputDepth, inputSize);
     if(filterInput){
-        bilateralFilterKernel(scaled_depth_[0], float_depth_, gaussian_, 
+        bilateralFilterKernel(scaled_depth_[0], float_depth_, gaussian_,
             e_delta, radius);
     }
     else {
@@ -139,7 +139,7 @@ bool DenseSLAMSystem::preprocessing(const unsigned short * inputDepth,
 	return true;
 }
 
-bool DenseSLAMSystem::tracking(const Eigen::Vector4f& k, 
+bool DenseSLAMSystem::tracking(const Eigen::Vector4f& k,
     float icp_threshold, unsigned tracking_rate, unsigned frame) {
 
 	if (frame % tracking_rate != 0)
@@ -183,7 +183,7 @@ bool DenseSLAMSystem::tracking(const Eigen::Vector4f& k,
 
 		}
 	}
-	return checkPoseKernel(pose_, old_pose_, reduction_output_.data(), 
+	return checkPoseKernel(pose_, old_pose_, reduction_output_.data(),
       computation_size_, track_threshold);
 }
 
@@ -202,29 +202,29 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, unsigned in
   return doRaycast;
 }
 
-bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integration_rate, 
+bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integration_rate,
     float mu, unsigned int frame) {
 
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
 
     float voxelsize =  volume_._dim/volume_._size;
     int num_vox_per_pix = volume_._dim/((se::VoxelBlock<FieldType>::side)*voxelsize);
-    size_t total = num_vox_per_pix * computation_size_.x() * 
+    size_t total = num_vox_per_pix * computation_size_.x() *
       computation_size_.y();
     allocation_list_.reserve(total);
 
     unsigned int allocated = 0;
     if(std::is_same<FieldType, SDF>::value) {
-     allocated  = buildAllocationList(allocation_list_.data(), 
+     allocated  = buildAllocationList(allocation_list_.data(),
          allocation_list_.capacity(),
-        *volume_._map_index, pose_, getCameraMatrix(k), float_depth_.data(), 
+        *volume_._map_index, pose_, getCameraMatrix(k), float_depth_.data(),
         computation_size_, volume_._size,
-      voxelsize, 2*mu);  
+      voxelsize, 2*mu);
     } else if(std::is_same<FieldType, OFusion>::value) {
-     allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(), 
+     allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(),
          *volume_._map_index,
          pose_, getCameraMatrix(k), float_depth_.data(), computation_size_, voxelsize,
-         compute_stepsize, step_to_depth, 6*mu);  
+         compute_stepsize, step_to_depth, 6*mu);
     }
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);
@@ -234,18 +234,18 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
           Eigen::Vector2i(computation_size_.x(), computation_size_.y()), mu, 100);
       se::functor::projective_map(*volume_._map_index,
           Sophus::SE3f(pose_).inverse(),
-          getCameraMatrix(k), 
+          getCameraMatrix(k),
           Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
           funct);
     } else if(std::is_same<FieldType, OFusion>::value) {
 
-      float timestamp = (1.f/30.f)*frame; 
+      float timestamp = (1.f/30.f)*frame;
       struct bfusion_update funct(float_depth_.data(),
           Eigen::Vector2i(computation_size_.x(), computation_size_.y()), mu, timestamp);
 
       se::functor::projective_map(*volume_._map_index,
           Sophus::SE3f(pose_).inverse(),
-          getCameraMatrix(k), 
+          getCameraMatrix(k),
           Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
           funct);
     }
@@ -253,26 +253,12 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
     // if(frame % 15 == 0) {
     //   std::stringstream f;
     //   f << "./slices/integration_" << frame << ".vtk";
-    //   save3DSlice(volume_._map_index, make_int3(0, volume_._size/2, 0),
-    //       make_int3(volume_._size, volume_._size/2 + 1, volume_._size), make_int3(volume_._size), f.str().c_str());
+    //   save3DSlice(*volume_._map_index, Eigen::Vector3i(0, 200, 0),
+    //       Eigen::Vector3i(volume_._size, 201, volume_._size),
+    //       Eigen::Vector3i::Constant(volume_._size), f.str().c_str());
     //   f.str("");
     //   f.clear();
-    //   }
-
-    // f << "./slices/collision_" << frame << ".vtk";
-    // save3DSlice(volume_._map_index, [](const Octree<FieldType>& map,
-    //       const int x, const int y, const int z) {
-    //       const int3 bbox = make_int3(x, y, z);
-    //       const int3 side = make_int3(1);
-    //       auto test = [](const Octree<FieldType>::value_type & val) {
-    //       if(val.x == 0.f) return collision_status::unseen;
-    //       if(val.x < 5) return collision_status::empty;
-    //       return collision_status::occupied;
-    //       };
-    //       return (float) collides_with(map, bbox, side, test);
-    //     }, // end lambda
-    //     make_int3(0, volume_._size/2, 0),
-    //     make_int3(volume_._size, volume_._size/2 + 1, volume_._size), make_int3(volume_._size), f.str().c_str());
+    // }
   } else {
     return false;
   }
@@ -283,11 +269,11 @@ void DenseSLAMSystem::dump_volume(std::string ) {
 
 }
 
-void DenseSLAMSystem::renderVolume(unsigned char* out, 
-    const Eigen::Vector2i& outputSize, 
+void DenseSLAMSystem::renderVolume(unsigned char* out,
+    const Eigen::Vector2i& outputSize,
     int frame,
-		int raycast_rendering_rate, 
-    const Eigen::Vector4f& k, 
+		int raycast_rendering_rate,
+    const Eigen::Vector4f& k,
     float largestep) {
 
 	if (frame % raycast_rendering_rate == 0) {
@@ -296,17 +282,17 @@ void DenseSLAMSystem::renderVolume(unsigned char* out,
 	*(this->viewPose_) * getInverseCameraMatrix(k), nearPlane,
 	farPlane * 2.0f, mu_, step, largestep,
         this->viewPose_->topRightCorner<3, 1>(), ambient,
-        !(this->viewPose_->isApprox(raycast_pose_)), vertex_, 
+        !(this->viewPose_->isApprox(raycast_pose_)), vertex_,
         normal_);
   }
 }
 
-void DenseSLAMSystem::renderTrack(unsigned char* out, 
+void DenseSLAMSystem::renderTrack(unsigned char* out,
     const Eigen::Vector2i& outputSize) {
         renderTrackKernel(out, tracking_result_.data(), outputSize);
 }
 
-void DenseSLAMSystem::renderDepth(unsigned char* out, 
+void DenseSLAMSystem::renderDepth(unsigned char* out,
     const Eigen::Vector2i& outputSize) {
         renderDepthKernel(out, float_depth_.data(), outputSize, nearPlane, farPlane);
 }
@@ -316,9 +302,9 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
   std::vector<Triangle> mesh;
   auto inside = [](const Volume<FieldType>::value_type& val) {
     // meshing::status code;
-    // if(val.y == 0.f) 
+    // if(val.y == 0.f)
     //   code = meshing::status::UNKNOWN;
-    // else 
+    // else
     //   code = val.x < 0.f ? meshing::status::INSIDE : meshing::status::OUTSIDE;
     // return code;
     // std::cerr << val.x << " ";

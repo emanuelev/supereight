@@ -87,18 +87,18 @@ class VolumeTemplate {
     }
 
     template <typename FieldSelector>
-    float interp(Eigen::Vector3f pos, FieldSelector select) const {
+    float interp(const Eigen::Vector3f& pos, FieldSelector select) const {
       const float inverseVoxelSize = _size / _dim;
-      pos *= inverseVoxelSize;
-      return _map_index->interp(pos, select);
+      Eigen::Vector3f discrete_pos = inverseVoxelSize * pos;
+      return _map_index->interp(discrete_pos, select);
     }
 
     template <typename FieldSelector>
-    Eigen::Vector3f grad(Eigen::Vector3f pos, FieldSelector select) const {
+    Eigen::Vector3f grad(const Eigen::Vector3f& pos, FieldSelector select) const {
 
       const float inverseVoxelSize = _size / _dim;
-      pos *= inverseVoxelSize;
-      return _map_index->grad(pos, select);
+      Eigen::Vector3f discrete_pos = inverseVoxelSize * pos;
+      return _map_index->grad(discrete_pos, select);
     }
 
     unsigned int _size;

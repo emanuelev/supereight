@@ -139,7 +139,7 @@ void save3DSlice(const MapType& in, const Eigen::Vector3i lower,
   for(int z = lower.z(); z < upper.z(); ++z)
     for(int y = lower.y(); y < upper.y(); ++y)
       for(int x = lower.x(); x < upper.x(); ++x) {
-        const float data = in.get(x, y, z).x();
+        const float data = in.get(x, y, z).x;
         scalars << data  << std::endl;
       }
 

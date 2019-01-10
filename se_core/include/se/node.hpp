@@ -112,10 +112,10 @@ class VoxelBlock: public Node<T> {
     bool isLeaf(){ return true; }
 
     Eigen::Vector3i coordinates() const { return coordinates_; }
-    void coordinates(const Eigen::Vector3i c){ coordinates_ = c; }
+    void coordinates(const Eigen::Vector3i& c){ coordinates_ = c; }
 
-    value_type data(const Eigen::Vector3i pos) const;
-    void data(const Eigen::Vector3i pos, const value_type& value);
+    value_type data(const Eigen::Vector3i& pos) const;
+    void data(const Eigen::Vector3i& pos, const value_type& value);
 
     value_type data(const int i) const;
     void data(const int i, const value_type& value);
@@ -125,6 +125,8 @@ class VoxelBlock: public Node<T> {
 
     value_type * getBlockRawPtr(){ return voxel_block_; }
     static constexpr int size(){ return sizeof(VoxelBlock<T>); }
+    
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   private:
     VoxelBlock(const VoxelBlock&) = delete;
@@ -139,7 +141,7 @@ class VoxelBlock: public Node<T> {
 
 template <typename T>
 inline typename VoxelBlock<T>::value_type 
-VoxelBlock<T>::data(const Eigen::Vector3i pos) const {
+VoxelBlock<T>::data(const Eigen::Vector3i& pos) const {
   Eigen::Vector3i offset = pos - coordinates_;
   const value_type& data = voxel_block_[offset(0) + offset(1)*side +
                                          offset(2)*sideSq];
@@ -147,7 +149,7 @@ VoxelBlock<T>::data(const Eigen::Vector3i pos) const {
 }
 
 template <typename T>
-inline void VoxelBlock<T>::data(const Eigen::Vector3i pos, 
+inline void VoxelBlock<T>::data(const Eigen::Vector3i& pos, 
                                 const value_type &value){
   Eigen::Vector3i offset = pos - coordinates_;
   voxel_block_[offset(0) + offset(1)*side + offset(2)*sideSq] = value;
