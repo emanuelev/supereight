@@ -256,26 +256,13 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
     // if(frame % 15 == 0) {
     //   std::stringstream f;
     //   f << "./slices/integration_" << frame << ".vtk";
-    //   save3DSlice(volume_._map_index, make_int3(0, volume_._size/2, 0),
-    //       make_int3(volume_._size, volume_._size/2 + 1, volume_._size), make_int3(volume_._size), f.str().c_str());
+    //   save3DSlice(*volume_._map_index, Eigen::Vector3i(0, 200, 0),
+    //       Eigen::Vector3i(volume_._size, 201, volume_._size), 
+    //       Eigen::Vector3i::Constant(volume_._size), f.str().c_str());
     //   f.str("");
     //   f.clear();
-    //   }
+    // }
 
-    // f << "./slices/collision_" << frame << ".vtk";
-    // save3DSlice(volume_._map_index, [](const Octree<FieldType>& map,
-    //       const int x, const int y, const int z) {
-    //       const int3 bbox = make_int3(x, y, z);
-    //       const int3 side = make_int3(1);
-    //       auto test = [](const Octree<FieldType>::value_type & val) {
-    //       if(val.x == 0.f) return collision_status::unseen;
-    //       if(val.x < 5) return collision_status::empty;
-    //       return collision_status::occupied;
-    //       };
-    //       return (float) collides_with(map, bbox, side, test);
-    //     }, // end lambda
-    //     make_int3(0, volume_._size/2, 0),
-    //     make_int3(volume_._size, volume_._size/2 + 1, volume_._size), make_int3(volume_._size), f.str().c_str());
     doIntegrate = true;
   } else {
     doIntegrate = false;
