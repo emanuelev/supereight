@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 struct Configuration {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   //
   // KFusion configuration parameters
@@ -115,10 +116,25 @@ struct Configuration {
   std::string log_file;
 
   /*
-   * TODO
+   * The path to a text file containing the ground truth poses. Each line of
+   * the file should correspond to a single pose. The pose should be encoded in
+   * the format `tx ty tz qx qy qz qw` where `tx`, `ty` and `tz` are the
+   * position coordinates and `qx`, `qy`, `qz` and `qw` the orientation
+   * quaternion. Each line in the file should be in the format `... tx ty tz qx
+   * qy qz qw`, that is the pose is encoded in the last 7 columns of the line.
+   * The other columns of the file are ignored.  Lines beginning with # are
+   * comments.
    * <br>\em Default: ""
    */
   std::string groundtruth_file;
+
+  /**
+   * A 4x4 transformation matrix applied to all poses read from the ground
+   * truth file.
+   *
+   * <br>\em Default: Eigen::Matrix4f::Identity()
+   */
+  Eigen::Matrix4f gt_transform;
 
   /**
    * The intrinsic camera parameters. camera.x, camera.y, camera.z and

@@ -93,7 +93,6 @@ class DenseSLAMSystem {
     Eigen::Matrix4f raycast_pose_;
 
   public:
-
     /**
      * Constructor using the initial camera position.
      *
@@ -143,14 +142,14 @@ class DenseSLAMSystem {
      * filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocessing(const unsigned short *         inputDepth,
+    bool preprocessing(const unsigned short * inputDepth,
                        const Eigen::Vector2i& inputSize,
                        const bool             filterInput);
 
     /*
      * TODO Implement this.
      */
-    bool preprocessing(const unsigned short*          inputDepth,
+    bool preprocessing(const unsigned short*  inputDepth,
                        const unsigned char*   inputRGB,
                        const Eigen::Vector2i& inputSize,
                        const bool             filterInput);
@@ -210,7 +209,7 @@ class DenseSLAMSystem {
      */
     bool raycasting(const Eigen::Vector4f& k,
                     float                  mu,
-                    unsigned int                   frame);
+                    unsigned int           frame);
 
     /*
      * TODO Implement this.
@@ -237,7 +236,7 @@ class DenseSLAMSystem {
      * \param[in] mu TSDF truncation bound. See ::Configuration.mu for more
      * details.
      */
-    void renderVolume(unsigned char*               out,
+    void renderVolume(unsigned char*         out,
                       const Eigen::Vector2i& outputSize,
                       int                    frame,
                       int                    rate,
@@ -264,7 +263,7 @@ class DenseSLAMSystem {
      * \param[in] outputSize The dimensions of the output array (width and
      * height in pixels).
      */
-    void renderTrack(unsigned char*               out,
+    void renderTrack(unsigned char*         out,
                      const Eigen::Vector2i& outputSize);
 
     /**
@@ -281,7 +280,7 @@ class DenseSLAMSystem {
      * \param[in] outputSize The dimensions of the output array (width and
      * height in pixels).
      */
-    void renderDepth(unsigned char*                out,
+    void renderDepth(unsigned char*         out,
                      const Eigen::Vector2i& outputSize);
 
     //
@@ -339,6 +338,19 @@ class DenseSLAMSystem {
      */
     Eigen::Matrix4f getPose() {
       return pose_;
+    }
+
+    /**
+     * Set the current camera pose.
+     *
+     * @note The value of the DenseSLAMSystem::init_pose_ member is added to
+     * the position encoded in `pose`.
+     *
+     * \param[in] pose The desired camera pose encoded in a 4x4 matrix.
+     */
+    void setPose(const Eigen::Matrix4f pose) {
+      pose_ = pose;
+      pose_.block<3,1>(0,3) += init_pose_;
     }
 
     /**

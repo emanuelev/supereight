@@ -64,8 +64,8 @@ void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipeline,
 		DepthReader **_depthReader, Configuration *config, void *depthRender,
 		void *trackRender, void *volumeModel, void *inputRGB);
 
-void storeStats(int frame, 
-    std::chrono::time_point<std::chrono::steady_clock> *timings, 
+void storeStats(int frame,
+    std::chrono::time_point<std::chrono::steady_clock> *timings,
     float3 pos, bool tracked,
 		bool integrated) {
 	Stats.sample("frame", frame, PerfStats::FRAME);
@@ -107,23 +107,23 @@ int main(int argc, char ** argv) {
 
 	// Construction Scene reader and input buffer
 	//we could allocate a more appropriate amount of memory (less) but this makes life hard if we switch up resolution later;
-	inputDepth = 
+	inputDepth =
         (uint16_t*) malloc(sizeof(uint16_t) * inputSize.x*inputSize.y);
-	inputRGB = 
+	inputRGB =
         (uchar3*) malloc(sizeof(uchar3) * inputSize.x*inputSize.y);
-	depthRender = 
+	depthRender =
         (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
-	trackRender = 
+	trackRender =
         (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
-	volumeRender = 
+	volumeRender =
         (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
 
 	init_pose = config.initial_pos_factor.cwiseProduct(config.volume_size);
 	pipeline = new DenseSLAMSystem(
-      Eigen::Vector2i(computationSize.x, computationSize.y), 
+      Eigen::Vector2i(computationSize.x, computationSize.y),
       Eigen::Vector3i::Constant(static_cast<int>(config.volume_resolution.x())),
-			Eigen::Vector3f::Constant(config.volume_size.x()), 
-      init_pose, 
+			Eigen::Vector3f::Constant(config.volume_size.x()),
+      init_pose,
       config.pyramid, config);
 
 	if (config.log_file != "") {
@@ -148,7 +148,7 @@ int main(int argc, char ** argv) {
 		}
 		while (processAll(reader, true, true, &config, false) == 0) {
 			drawthem(inputRGB, depthRender, trackRender, volumeRender,
-					trackRender, inputSize, computationSize, 
+					trackRender, inputSize, computationSize,
                     computationSize, computationSize);
 		}
 #endif
@@ -167,8 +167,8 @@ int main(int argc, char ** argv) {
     auto start = std::chrono::steady_clock::now();
 		pipeline->dump_mesh(config.dump_volume_file.c_str());
     auto end = std::chrono::steady_clock::now();
-	  Stats.sample("meshing", 
-        std::chrono::duration<double>(end - start).count(), 
+	  Stats.sample("meshing",
+        std::chrono::duration<double>(end - start).count(),
         PerfStats::TIME);
 	}
 
@@ -221,48 +221,72 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 	if (reset) {
 		frameOffset = reader->getFrameNumber();
 	}
-	bool finished = false;
 
 	if (processFrame) {
 		Stats.start();
 	}
-  Eigen::Matrix4f pose;
+    Eigen::Matrix4f pose;
+	Eigen::Matrix4f gt_pose;
 	timings[0] = std::chrono::steady_clock::now();
-	if (processFrame && (reader->readNextDepthFrame(inputRGB, inputDepth))) {
+	if (processFrame) {
+
+		// Read frames and ground truth data if set
+		bool read_ok;
+		if (config->groundtruth_file == "") {
+			read_ok = reader->readNextDepthFrame(inputRGB, inputDepth);
+		} else {
+			read_ok = reader->readNextData(inputRGB, inputDepth, gt_pose);
+		}
+
+		// Finish processing if the next frame could not be read
+		if (!read_ok) {
+			timings[0] = std::chrono::steady_clock::now();
+			return true;
+		}
+
+		// Process read frames
 		frame = reader->getFrameNumber() - frameOffset;
 		if (powerMonitor != NULL && !firstFrame)
 			powerMonitor->start();
 
 		timings[1] = std::chrono::steady_clock::now();
-		pipeline->preprocessing(inputDepth, 
-        Eigen::Vector2i(inputSize.x, inputSize.y), config->bilateralFilter);
+
+		pipeline->preprocessing(inputDepth,
+			Eigen::Vector2i(inputSize.x, inputSize.y),
+			config->bilateralFilter);
 
 		timings[2] = std::chrono::steady_clock::now();
 
-		tracked = pipeline->tracking(camera, config->icp_threshold, 
-        config->tracking_rate, frame); 
+		if (config->groundtruth_file == "") {
+			// No ground truth used, call tracking.
+			tracked = pipeline->tracking(camera, config->icp_threshold,
+					config->tracking_rate, frame);
+		} else {
+			// Set the pose to the ground truth.
+			pipeline->setPose(gt_pose);
+			tracked = true;
+		}
 
-    Eigen::Vector3f tmp = pipeline->getPosition();
+		Eigen::Vector3f tmp = pipeline->getPosition();
 		pos = make_float3(tmp.x(), tmp.y(), tmp.z());
-    pose = pipeline->getPose();
+		pose = pipeline->getPose();
 
 		timings[3] = std::chrono::steady_clock::now();
 
-		integrated = pipeline->integration( camera, config->integration_rate, 
-        config->mu, frame);
+		// Integrate only if tracking was successful or it is one of the
+		// first 4 frames.
+		if (tracked || (frame <= 3)) {
+			integrated = pipeline->integration(camera,
+					config->integration_rate, config->mu, frame);
+		} else {
+			integrated = false;
+		}
 
 		timings[4] = std::chrono::steady_clock::now();
 
 		raycasted = pipeline->raycasting(camera, config->mu, frame);
 
 		timings[5] = std::chrono::steady_clock::now();
-
-	} else {
-		if (processFrame) {
-			finished = true;
-			timings[0] = std::chrono::steady_clock::now();
-		}
-
 	}
 	if (renderImages) {
 		pipeline->renderDepth((unsigned char*)depthRender, pipeline->getComputationResolution());
@@ -273,22 +297,21 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		timings[6] = std::chrono::steady_clock::now();
 	}
 
-	if (!finished) {
-		if (powerMonitor != NULL && !firstFrame)
-			powerMonitor->sample();
+	if (powerMonitor != NULL && !firstFrame)
+		powerMonitor->sample();
 
-		float xt = pose(0, 3) - init_pose.x();
-		float yt = pose(1, 3) - init_pose.y();
-		float zt = pose(2, 3) - init_pose.z();
-		storeStats(frame, timings, pos, tracked, integrated);
-    if(config->no_gui){
-      *logstream << reader->getFrameNumber() << "\t" << xt << "\t" << yt << "\t" << zt << "\t" << std::endl;
-    }
-
-		//if (config->no_gui && (config->log_file == ""))
-		//	Stats.print();
-		firstFrame = false;
+	float xt = pose(0, 3) - init_pose.x();
+	float yt = pose(1, 3) - init_pose.y();
+	float zt = pose(2, 3) - init_pose.z();
+	storeStats(frame, timings, pos, tracked, integrated);
+	if(config->no_gui){
+		*logstream << reader->getFrameNumber() << "\t" << xt << "\t" << yt << "\t" << zt << "\t" << std::endl;
 	}
-	return (finished);
+
+	//if (config->no_gui && (config->log_file == ""))
+	//	Stats.print();
+	firstFrame = false;
+
+	return false;
 }
 

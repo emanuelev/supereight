@@ -10,6 +10,7 @@
 #ifndef DEFAULT_PARAMETERS_H_
 #define DEFAULT_PARAMETERS_H_
 
+#include <str_utils.h>
 #include <se/utils/math_utils.h>
 #include <vector>
 #include <sstream>
@@ -45,71 +46,73 @@ const int default_color_integration = false;
 const int default_multi_resolution = false;
 const bool default_bayesian = false;
 const std::string default_groundtruth_file = "";
+const Eigen::Matrix4f default_gt_transform = Eigen::Matrix4f::Identity();
 
 inline std::string pyramid2str(std::vector<int> v) {
-	std::ostringstream ss;
-	for (std::vector<int>::iterator it = v.begin(); it != v.end(); it++)
-		ss << *it << " ";
-	return ss.str();
+  std::ostringstream ss;
+  for (std::vector<int>::iterator it = v.begin(); it != v.end(); it++)
+    ss << *it << " ";
+  return ss.str();
 
 }
 
-static std::string short_options = "a:qc:d:f:g:hi:l:m:k:o:p:r:s:t:v:y:z:FC:M";
+static std::string short_options = "a:qc:d:f:g:G:hi:l:m:k:o:p:r:s:t:v:y:z:FC:M";
 
 static struct option long_options[] =
-  {
-		    {"quaternion",  				   required_argument, 0, 'a'},
-			  {"block-read",  				   no_argument, 0, 'b'},
-		    {"compute-size-ratio",     required_argument, 0, 'c'},
-		    {"dump-volume",  		   required_argument, 0, 'd'},
-			  {"invert-y",  		   			no_argument, 0, 'e'},
-		    {"fps",  				   required_argument, 0, 'f'},
-		    {"input-file",  		   required_argument, 0, 'i'},
-		    {"camera",  			   required_argument, 0, 'k'},
-		    {"icp-threshold", 	 	   required_argument, 0, 'l'},
-		    {"log-file",  			   required_argument, 0, 'o'},
-		    {"mu", 			 		   required_argument, 0, 'm'},
-		    {"init-pose",  			   required_argument, 0, 'p'},
-		    {"no-gui",  			   no_argument,       0, 'q'},
-		    {"integration-rate",  	   required_argument, 0, 'r'},
-		    {"volume-size",  		   required_argument, 0, 's'},
-		    {"tracking-rate", 		   required_argument, 0, 't'},
-		    {"volume-resolution",      required_argument, 0, 'v'},
-		    {"pyramid-levels", 		   required_argument, 0, 'y'},
-		    {"rendering-rate",         required_argument, 0, 'z'},
-        {"voxel-block-size",       required_argument, 0, 'B'},
-        {"bilateral-filter",       no_argument, 0, 'F'},
-        {"colour-voxels",       no_argument, 0, 'C'},
-        {"multi-res",       no_argument, 0, 'M'},
-        {"bayesian",       no_argument, 0, 'h'},
-        {"ground-truth",       no_argument, 0, 'g'},
-		    {0, 0, 0, 0}
-
+{
+  {"quaternion",         required_argument, 0, 'a'},
+  {"block-read",         no_argument, 0, 'b'},
+  {"compute-size-ratio", required_argument, 0, 'c'},
+  {"dump-volume",        required_argument, 0, 'd'},
+  {"invert-y",           no_argument, 0, 'e'},
+  {"fps",                required_argument, 0, 'f'},
+  {"input-file",         required_argument, 0, 'i'},
+  {"camera",             required_argument, 0, 'k'},
+  {"icp-threshold",      required_argument, 0, 'l'},
+  {"log-file",           required_argument, 0, 'o'},
+  {"mu",                 required_argument, 0, 'm'},
+  {"init-pose",          required_argument, 0, 'p'},
+  {"no-gui",             no_argument,       0, 'q'},
+  {"integration-rate",   required_argument, 0, 'r'},
+  {"volume-size",        required_argument, 0, 's'},
+  {"tracking-rate",      required_argument, 0, 't'},
+  {"volume-resolution",  required_argument, 0, 'v'},
+  {"pyramid-levels",     required_argument, 0, 'y'},
+  {"rendering-rate",     required_argument, 0, 'z'},
+  {"voxel-block-size",   required_argument, 0, 'B'},
+  {"bilateral-filter",   no_argument, 0, 'F'},
+  {"colour-voxels",      no_argument, 0, 'C'},
+  {"multi-res",          no_argument, 0, 'M'},
+  {"bayesian",           no_argument, 0, 'h'},
+  {"ground-truth",       required_argument, 0, 'g'},
+  {"gt-transform",       required_argument, 0, 'G'},
+  {0, 0, 0, 0}
 };
 
 inline
 void print_arguments() {
-  std::cerr << "-b  (--block-read)       		: default is False: Block on read " << std::endl;
-  std::cerr << "-c  (--compute-size-ratio)       : default is " << default_compute_size_ratio << "   (same size)      " << std::endl;
-  std::cerr << "-e  (--invert-y)       			: default is False: Block on read " << std::endl;
-  std::cerr << "-d  (--dump-volume) <filename>   : Output volume file              " << std::endl;
-  std::cerr << "-f  (--fps)                      : default is " << default_fps       << std::endl;
-  std::cerr << "-F  (--bilateral-filter          : default is disabled"               << std::endl;
-  std::cerr << "-h  (--bayesian                  : default is disabled"               << std::endl;
-  std::cerr << "-i  (--input-file) <filename>    : Input camera file               " << std::endl;
-  std::cerr << "-k  (--camera)                   : default is defined by input     " << std::endl;
-  std::cerr << "-l  (--icp-threshold)                : default is " << default_icp_threshold << std::endl;
-  std::cerr << "-o  (--log-file) <filename>      : default is stdout               " << std::endl;
-  std::cerr << "-m  (--mu)                       : default is " << default_mu << "               " << std::endl;
-  std::cerr << "-p  (--init-pose)                : default is " << default_initial_pos_factor.x() << "," << default_initial_pos_factor.y() << "," << default_initial_pos_factor.z() << "     " << std::endl;
-  std::cerr << "-q  (--no-gui)                   : default is to display gui"<<std::endl;
-  std::cerr << "-r  (--integration-rate)         : default is " << default_integration_rate << "     " << std::endl;
-  std::cerr << "-s  (--volume-size)              : default is " << default_volume_size.x() << "," << default_volume_size.y() << "," << default_volume_size.z() << "      " << std::endl;
-  std::cerr << "-t  (--tracking-rate)            : default is " << default_tracking_rate << "     " << std::endl;
-  std::cerr << "-v  (--volume-resolution)        : default is " << default_volume_resolution.x() << "," << default_volume_resolution.y() << "," << default_volume_resolution.z() << "    " << std::endl;
-  std::cerr << "-y  (--pyramid-levels)           : default is 10,5,4     " << std::endl;
-  std::cerr << "-z  (--rendering-rate)   : default is " << default_rendering_rate << std::endl;
-
+  std::cerr << "-b  (--block-read)                        : default is False: Block on read " << std::endl;
+  std::cerr << "-c  (--compute-size-ratio)                : default is " << default_compute_size_ratio << "   (same size)      " << std::endl;
+  std::cerr << "-e  (--invert-y)                          : default is False: Block on read " << std::endl;
+  std::cerr << "-d  (--dump-volume) <filename>            : Output volume file              " << std::endl;
+  std::cerr << "-f  (--fps)                               : default is " << default_fps       << std::endl;
+  std::cerr << "-F  (--bilateral-filter                   : default is disabled"               << std::endl;
+  std::cerr << "-h  (--bayesian                           : default is disabled"               << std::endl;
+  std::cerr << "-i  (--input-file) <filename>             : Input camera file               " << std::endl;
+  std::cerr << "-k  (--camera)                            : default is defined by input     " << std::endl;
+  std::cerr << "-l  (--icp-threshold)                     : default is " << default_icp_threshold << std::endl;
+  std::cerr << "-o  (--log-file) <filename>               : default is stdout               " << std::endl;
+  std::cerr << "-m  (--mu)                                : default is " << default_mu << "               " << std::endl;
+  std::cerr << "-p  (--init-pose)                         : default is " << default_initial_pos_factor.x() << "," << default_initial_pos_factor.y() << "," << default_initial_pos_factor.z() << "     " << std::endl;
+  std::cerr << "-q  (--no-gui)                            : default is to display gui"<<std::endl;
+  std::cerr << "-r  (--integration-rate)                  : default is " << default_integration_rate << "     " << std::endl;
+  std::cerr << "-s  (--volume-size)                       : default is " << default_volume_size.x() << "," << default_volume_size.y() << "," << default_volume_size.z() << "      " << std::endl;
+  std::cerr << "-t  (--tracking-rate)                     : default is " << default_tracking_rate << "     " << std::endl;
+  std::cerr << "-v  (--volume-resolution)                 : default is " << default_volume_resolution.x() << "," << default_volume_resolution.y() << "," << default_volume_resolution.z() << "    " << std::endl;
+  std::cerr << "-y  (--pyramid-levels)                    : default is 10,5,4     " << std::endl;
+  std::cerr << "-z  (--rendering-rate)                    : default is " << default_rendering_rate << std::endl;
+  std::cerr << "-g  (--ground-truth) <filename>           : Ground truth file" << std::endl;
+  std::cerr << "-G  (--gt-transform) tx,ty,tz,qx,qy,qz,qw : Ground truth pose tranform (translation and/or rotation)" << std::endl;
 }
 
 inline Eigen::Vector3f atof3(char * optarg) {
@@ -207,6 +210,7 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
   config.input_file = default_input_file;
   config.log_file = default_log_file;
   config.groundtruth_file = default_groundtruth_file;
+  config.gt_transform = default_gt_transform;
 
   config.mu = default_mu;
   config.fps = default_fps;
@@ -226,6 +230,9 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
   int c;
   int option_index = 0;
   int flagErr = 0;
+  std::vector<std::string> tokens;
+  Eigen::Vector3f gt_transform_tran;
+  Eigen::Quaternionf gt_transform_quat;
   while ((c = getopt_long(argc, argv, short_options.c_str(), long_options,
           &option_index)) != -1)
     switch (c) {
@@ -277,10 +284,48 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
           flagErr++;
         }
         break;
-      case 'g':
+      case 'g': // -g (--ground-truth)
         config.groundtruth_file = optarg;
         std::cerr << "using the groundtruth file " << config.groundtruth_file
           << std::endl;
+        break;
+      case 'G': // -G (--gt-transform)
+        // Split argument into substrings
+        tokens = splitString(optarg, ',');
+        switch (tokens.size()) {
+          case 3:
+            // Translation
+            gt_transform_tran = Eigen::Vector3f(std::stof(tokens[0]),
+                std::stof(tokens[1]), std::stof(tokens[2]));
+            config.gt_transform.topRightCorner<3,1>() = gt_transform_tran;
+            break;
+          case 4:
+            // Rotation
+            // Create a quaternion and get the equivalent rotation matrix
+            gt_transform_quat = Eigen::Quaternionf(std::stof(tokens[3]),
+                std::stof(tokens[0]), std::stof(tokens[1]), std::stof(tokens[2]));
+            config.gt_transform.block<3,3>(0,0) = gt_transform_quat.toRotationMatrix();
+            break;
+          case 7:
+            // Translation and rotation
+            gt_transform_tran = Eigen::Vector3f(std::stof(tokens[0]),
+                std::stof(tokens[1]), std::stof(tokens[2]));
+            gt_transform_quat = Eigen::Quaternionf(std::stof(tokens[6]),
+                std::stof(tokens[3]), std::stof(tokens[4]), std::stof(tokens[5]));
+            config.gt_transform.topRightCorner<3,1>() = gt_transform_tran;
+            config.gt_transform.block<3,3>(0,0) = gt_transform_quat.toRotationMatrix();
+            break;
+          default:
+            std::cerr << "Invalid number of parameters for argument gt-transform. Valid parameters are:\n"
+                << "3 parameters (translation): tx,ty,tz\n"
+                << "4 parameters (rotation in quaternion form): qx,qy,qz,qw\n"
+                << "7 parameters (translation and rotation): tx,ty,tz,qx,qy,qz,qw"
+                << std::endl;
+            flagErr++;
+            break;
+        }
+        std::cerr << "using the groundtruth transform\n"
+          << config.gt_transform << std::endl;
         break;
       case 'h': // -h (--bayesian)
         config.bayesian = true;

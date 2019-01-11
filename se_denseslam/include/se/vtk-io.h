@@ -36,15 +36,6 @@
 #include <se/utils/math_utils.h>
 #include <algorithm>
 
-//http://stackoverflow.com/questions/236129/split-a-string-in-c
-static inline void split(const std::string &s, char delim, std::vector<std::string> &elems) {
-    std::stringstream ss(s);
-    std::string item;
-    while (std::getline(ss, item, delim)) {
-        elems.push_back(item);
-    }
-}
-
 template <typename T>
 void savePointCloud(const T* in, const int num_points, 
     const char* filename, const Eigen::Vector3f init_pose){
@@ -301,31 +292,4 @@ void printNormals(const se::Image<Eigen::Vector3f> in, const unsigned int xdim,
       image, xdim, ydim);
 } 
 
-// void parseGTFile(const std::string& filename, std::vector<Matrix4>& poses){
-// 
-//   std::ifstream file;
-//   file.open(filename.c_str());
-// 
-//   if(!file.is_open()) {
-//     std::cout << "Failed to open GT file " << filename << std::endl;
-//     return;
-//   }
-// 
-//   std::string line;
-//   while (getline(file,line))
-//   {
-//     std::vector<std::string> data;
-//     split(line, ' ', data);
-// 
-//     if (data.size() != 8)
-//     {
-//       continue;
-//     }
-//     const float3 trans = make_float3(std::stof(data[1]), std::stof(data[2]),
-//         std::stof(data[3]));
-//     const float4 quat = make_float4(std::stof(data[4]), std::stof(data[5]),
-//         std::stof(data[6]), std::stof(data[7]));
-//     poses.push_back(toMatrix4(quat, trans));
-//   }
-// }
 #endif
