@@ -121,42 +121,32 @@ class DepthReader {
         std::getline(_gt_file,line);
         // EOF reached
         if (!_gt_file.good()) {
-          //std::cout << "EOF reached" << std::endl;
           return false;
         }
         // Ignore comment lines
         if (line[0] == '#') {
-          //std::cout << "Skipping comment" << std::endl;
           continue;
         }
         // Data line read, split on spaces
-        std::vector<std::string> data;
-        splitString(line, ' ', data);
-        size_t N = data.size();
-        if (N < 7) {
+        const std::vector<std::string> line_data = splitString(line, ' ');
+        const size_t num_cols = line_data.size();
+        if (num_cols < 7) {
           std::cout << "Invalid ground truth file format."
             << "Expected line format: ... tx ty tz qx qy qz qw" << std::endl;
           return false;
         }
         // Read the last 7 columns
-        Eigen::Vector3f tran (std::stof(data[N-7]), std::stof(data[N-6]),
-          std::stof(data[N-5]));
-        Eigen::Quaternionf quat (std::stof(data[N-1]), std::stof(data[N-4]),
-          std::stof(data[N-3]), std::stof(data[N-2]));
+        Eigen::Vector3f tran (std::stof(line_data[num_cols-7]),
+                              std::stof(line_data[num_cols-6]),
+                              std::stof(line_data[num_cols-5]));
+        Eigen::Quaternionf quat (std::stof(line_data[num_cols-1]),
+                                 std::stof(line_data[num_cols-4]),
+                                 std::stof(line_data[num_cols-3]),
+                                 std::stof(line_data[num_cols-2]));
         pose = Eigen::Matrix4f::Identity();
         pose.block<3,3>(0,0) = quat.toRotationMatrix();
         pose.block<3,1>(0,3) = tran;
         _pose_num++;
-		// TODO
-		// [0,0,0] is currently a corner of the volume. It is not possible to
-		// set the initial position to the volume center because its dimensions
-		// are not known to the reader.
-        // Subtract the first position from the current position
-        //if (_pose_num == 1) {
-        //  _initialPose = pose;
-        //}
-        //pose.block<3,1>(0,3) -= _initialPose.block<3,1>(0,3);
-
         // Apply the transform to the pose
         pose = _transform * pose;
         return true;
@@ -173,7 +163,6 @@ class DepthReader {
     std::string _data_path;
     std::string _groundtruth_path;
     std::ifstream _gt_file;
-    Eigen::Matrix4f _initialPose;
     Eigen::Matrix4f _transform;
 };
 
@@ -191,7 +180,7 @@ class SceneDepthReader: public DepthReader {
   private:
 
     std::string _dir;
-    uint2 _size;
+    uint2 _inSize;
 
   public:
     ~SceneDepthReader() { };
@@ -200,7 +189,7 @@ class SceneDepthReader: public DepthReader {
       : SceneDepthReader(config.data_path, config.fps, config.blocking_read){ }
 
     SceneDepthReader(std::string dir, int fps, bool blocking_read) :
-      DepthReader(), _dir(dir), _size(make_uint2(640, 480)) {
+      DepthReader(), _dir(dir), _inSize(make_uint2(640, 480)) {
         std::cerr << "No such directory " << dir << std::endl;
         struct stat st;
         lstat(dir.c_str(), &st);
@@ -223,12 +212,12 @@ class SceneDepthReader: public DepthReader {
       return (READER_SCENE);
     }
 
-	inline Eigen::Vector4f getK() {
-		return Eigen::Vector4f(481.20, 480.00, 319.50, 239.50);
+    inline Eigen::Vector4f getK() {
+      return Eigen::Vector4f(481.20, 480.00, 319.50, 239.50);
     }
 
     inline uint2 getinputSize() {
-      return _size;
+      return _inSize;
     }
 
     inline void restart() {
@@ -238,10 +227,10 @@ class SceneDepthReader: public DepthReader {
     inline bool readNextDepthFrame(uchar3*, unsigned short int * depthMap) {
 
       float* FloatdepthMap = (float*) malloc(
-          _size.x * _size.y * sizeof(float));
+          _inSize.x * _inSize.y * sizeof(float));
       bool res = readNextDepthFrame(FloatdepthMap);
 
-      for (unsigned int i = 0; i < _size.x * _size.y; i++) {
+      for (unsigned int i = 0; i < _inSize.x * _inSize.y; i++) {
         depthMap[i] = FloatdepthMap[i] * 1000.0f;
       }
       free(FloatdepthMap);
@@ -296,8 +285,8 @@ class SceneDepthReader: public DepthReader {
  */
 class RawDepthReader: public DepthReader {
   private:
-    FILE* _pFile; /** Pointer to the open .raw file. */
-    uint2 _size; /** Dimensions of the input images. */
+    FILE* _rawFilePtr; /** Pointer to the open .raw file. */
+    uint2 _inSize; /** Dimensions of the input images. */
 
   public:
     /**
@@ -315,15 +304,15 @@ class RawDepthReader: public DepthReader {
           if(!_gt_file.is_open()) {
             std::cout << "Failed to open ground truth association file "
               << _groundtruth_path << std::endl;
-            _pFile = NULL;
+            _rawFilePtr = NULL;
             return;
           }
           _pose_num = -1;
         }
         // Open raw file
-        std::string raw_filename = _data_path;
-        _pFile = fopen(raw_filename.c_str(), "rb");
-        size_t res = fread(&(_size), sizeof(_size), 1, _pFile);
+        const std::string raw_filename = _data_path;
+        _rawFilePtr = fopen(raw_filename.c_str(), "rb");
+        const size_t res = fread(&(_inSize), sizeof(_inSize), 1, _rawFilePtr);
         cameraOpen = false;
         cameraActive = false;
         if (res != 1) {
@@ -335,7 +324,7 @@ class RawDepthReader: public DepthReader {
           _frame = -1;
           _fps = config.fps;
           _blocking_read = config.blocking_read;
-          fseeko(_pFile, 0, SEEK_SET);
+          fseeko(_rawFilePtr, 0, SEEK_SET);
         }
       };
 
@@ -345,9 +334,9 @@ class RawDepthReader: public DepthReader {
      * @deprecated Might be removed in the future.
      */
     RawDepthReader(std::string filename, int fps, bool blocking_read) :
-      DepthReader(), _pFile(fopen(filename.c_str(), "rb")) {
+      DepthReader(), _rawFilePtr(fopen(filename.c_str(), "rb")) {
 
-        size_t res = fread(&(_size), sizeof(_size), 1, _pFile);
+        size_t res = fread(&(_inSize), sizeof(_inSize), 1, _rawFilePtr);
         cameraOpen = false;
         cameraActive = false;
         if (res != 1) {
@@ -359,7 +348,7 @@ class RawDepthReader: public DepthReader {
           _frame = -1;
           _fps = fps;
           _blocking_read = blocking_read;
-          fseeko(_pFile, 0, SEEK_SET);
+          fseeko(_rawFilePtr, 0, SEEK_SET);
         }
       };
 
@@ -372,9 +361,6 @@ class RawDepthReader: public DepthReader {
       return (READER_RAW);
     }
 
-    /**
-     * Read the next pair of RGB and depth frames.
-     */
     inline bool readNextDepthFrame(uchar3*              raw_rgb,
                                    unsigned short int * depthMap) {
 
@@ -393,25 +379,25 @@ class RawDepthReader: public DepthReader {
 
 
 #ifdef LIGHT_RAW // This LightRaw mode is used to get smaller raw files
-      unsigned int size_of_frame = (sizeof(unsigned int) * 2 + _size.x * _size.y * sizeof(unsigned short int) );
+      unsigned int size_of_frame = (sizeof(unsigned int) * 2 + _inSize.x * _inSize.y * sizeof(unsigned short int) );
 #else
       off_t size_of_frame = (sizeof(unsigned int) * 4
-          + _size.x * _size.y * sizeof(unsigned short int)
-          + _size.x * _size.y * sizeof(uchar3));
+          + _inSize.x * _inSize.y * sizeof(unsigned short int)
+          + _inSize.x * _inSize.y * sizeof(uchar3));
 #endif
       // std::cout << "Seek: " << size_of_frame * _frame << std::endl;
 
-      fseeko(_pFile, size_of_frame * _frame, SEEK_SET);
+      fseeko(_rawFilePtr, size_of_frame * _frame, SEEK_SET);
 
-      total += fread(&(newImageSize), sizeof(newImageSize), 1, _pFile);
+      total += fread(&(newImageSize), sizeof(newImageSize), 1, _rawFilePtr);
 
       if (depthMap) {
         total += fread(depthMap, sizeof(unsigned short int),
-            newImageSize[0] * newImageSize[1], _pFile);
+            newImageSize[0] * newImageSize[1], _rawFilePtr);
         expected_size += 1 + newImageSize[0] * newImageSize[1];
       } else {
         total += newImageSize[0] * newImageSize[1];
-        fseeko(_pFile,
+        fseeko(_rawFilePtr,
             newImageSize[0] * newImageSize[1]
             * sizeof(unsigned short int), SEEK_CUR);
         expected_size += 1 + newImageSize[0] * newImageSize[1];
@@ -425,15 +411,15 @@ class RawDepthReader: public DepthReader {
       }
 
 #else
-      total += fread(&(newImageSize), sizeof(newImageSize), 1, _pFile);
+      total += fread(&(newImageSize), sizeof(newImageSize), 1, _rawFilePtr);
 
       if (raw_rgb) {
         total += fread(raw_rgb, sizeof(uchar3),
-            newImageSize[0] * newImageSize[1], _pFile);
+            newImageSize[0] * newImageSize[1], _rawFilePtr);
         expected_size += 1 + newImageSize[0] * newImageSize[1];
       } else {
         total += newImageSize[0] * newImageSize[1];
-        fseeko(_pFile, newImageSize[0] * newImageSize[1] * sizeof(uchar3),
+        fseeko(_rawFilePtr, newImageSize[0] * newImageSize[1] * sizeof(uchar3),
             SEEK_CUR);
         expected_size += 1 + newImageSize[0] * newImageSize[1];
       }
@@ -454,21 +440,18 @@ class RawDepthReader: public DepthReader {
     inline void restart() {
       _frame = -1;
       _pose_num = -1;
-      rewind(_pFile);
+      rewind(_rawFilePtr);
       if (_gt_file.is_open())
         _gt_file.seekg(0, _gt_file.beg);
     }
 
-    /**
-     * Read the next depth frame.
-     */
     inline bool readNextDepthFrame(float * depthMap) {
 
       unsigned short int* UintdepthMap = (unsigned short int*) malloc(
-          _size.x * _size.y * sizeof(unsigned short int));
+          _inSize.x * _inSize.y * sizeof(unsigned short int));
       bool res = readNextDepthFrame(NULL, UintdepthMap);
 
-      for (unsigned int i = 0; i < _size.x * _size.y; i++) {
+      for (unsigned int i = 0; i < _inSize.x * _inSize.y; i++) {
         depthMap[i] = (float) UintdepthMap[i] / 1000.0f;
       }
       free(UintdepthMap);
@@ -499,7 +482,7 @@ class RawDepthReader: public DepthReader {
      * Returns the dimensions of the frames read.
      */
     inline uint2 getinputSize() {
-      return _size;
+      return _inSize;
     }
 
     /**
@@ -507,8 +490,8 @@ class RawDepthReader: public DepthReader {
      * and `w` elements are the x-axis focal length, y-axis focal length,
      * x-axis optical center and y-axis optical center.
      */
-	inline Eigen::Vector4f getK() {
-		return Eigen::Vector4f(531.15, 531.15, 640 / 2, 480 / 2);
+    inline Eigen::Vector4f getK() {
+      return Eigen::Vector4f(531.15, 531.15, 640 / 2, 480 / 2);
     }
 
 };
@@ -549,7 +532,7 @@ class MyColorFrameAllocator: public openni::VideoStream::FrameAllocator {
 class OpenNIDepthReader: public DepthReader {
   private:
     FILE* _pFile;
-    uint2 _size;
+    uint2 _inSize;
 
     openni::Device device;
     openni::VideoStream depth;
@@ -568,9 +551,9 @@ class OpenNIDepthReader: public DepthReader {
         //std::cout << "Stopping depth stream..." << std::endl;
 
         depth.stop();
-        //std::cout << "Stopping rgb stream..." << std::endl;       
+        //std::cout << "Stopping rgb stream..." << std::endl;
         rgb.stop();
-        //std::cout << "Destroying depth stream..." << std::endl;       
+        //std::cout << "Destroying depth stream..." << std::endl;
         depth.destroy();
         // std::cout << "Destroying rgb stream..." << std::endl;
         rgb.destroy();
@@ -681,17 +664,17 @@ class OpenNIDepthReader: public DepthReader {
         openni::VideoMode depthMode = depth.getVideoMode();
         openni::VideoMode colorMode = rgb.getVideoMode();
 
-        _size.x = depthMode.getResolutionX();
-        _size.y = depthMode.getResolutionY();
+        _inSize.x = depthMode.getResolutionX();
+        _inSize.y = depthMode.getResolutionY();
 
-        if (colorMode.getResolutionX() != _size.x || colorMode.getResolutionY() != _size.y) {
+        if (colorMode.getResolutionX() != _inSize.x || colorMode.getResolutionY() != _inSize.y) {
           std::cout << "Incorrect rgb resolution: " << colorMode.getResolutionX() << " " << colorMode.getResolutionY() << std::endl;
           //exit(3);
           return;
         }
 
-        depthImage = (uint16_t*) malloc(_size.x * _size.y * sizeof(uint16_t));
-        rgbImage = (uchar3*) malloc(_size.x * _size.y * sizeof(uchar3));
+        depthImage = (uint16_t*) malloc(_inSize.x * _inSize.y * sizeof(uint16_t));
+        rgbImage = (uchar3*) malloc(_inSize.x * _inSize.y * sizeof(uchar3));
 
         rgb.setMirroringEnabled(false);
         depth.setMirroringEnabled(false);
@@ -752,10 +735,10 @@ class OpenNIDepthReader: public DepthReader {
       }
 
       if (raw_rgb) {
-        memcpy(raw_rgb,rgbImage,_size.x * _size.y*sizeof(uchar3));
+        memcpy(raw_rgb,rgbImage,_inSize.x * _inSize.y*sizeof(uchar3));
       }
       if (depthMap) {
-        memcpy(depthMap,depthImage,_size.x * _size.y*sizeof(uint16_t));
+        memcpy(depthMap,depthImage,_inSize.x * _inSize.y*sizeof(uint16_t));
       }
 
       get_next_frame ();
@@ -772,10 +755,10 @@ class OpenNIDepthReader: public DepthReader {
 
     inline bool readNextDepthFrame(float * depthMap) {
 
-      unsigned short int* UintdepthMap = (unsigned short int*) malloc(_size.x * _size.y * sizeof(unsigned short int));
+      unsigned short int* UintdepthMap = (unsigned short int*) malloc(_inSize.x * _inSize.y * sizeof(unsigned short int));
       bool res = readNextDepthFrame(NULL,UintdepthMap);
 
-      for (unsigned int i = 0; i < _size.x * _size.y; i++) {
+      for (unsigned int i = 0; i < _inSize.x * _inSize.y; i++) {
         depthMap[i] = (float) UintdepthMap[i] / 1000.0f;
       }
       free(UintdepthMap);
@@ -783,11 +766,11 @@ class OpenNIDepthReader: public DepthReader {
     }
 
     inline uint2 getinputSize() {
-      return _size;
+      return _inSize;
     }
 
-	inline Eigen::Vector4f getK() {
-		return Eigen::Vector4f(481.2, 480, 640/2, 480/2);
+    inline Eigen::Vector4f getK() {
+      return Eigen::Vector4f(481.2, 480, 640/2, 480/2);
     }
 
 };
