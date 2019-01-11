@@ -15,7 +15,8 @@
  * \param[in] delim The delimiter to use.
  * \return The vector containing the substrings.
  */
-static std::vector<std::string> splitString(const std::string& s, char delim) {
+static std::vector<std::string> splitString(const std::string& s,
+                                            const char         delim) {
   std::vector<std::string> elems;
   std::stringstream ss(s);
   std::string item;

@@ -285,8 +285,8 @@ class SceneDepthReader: public DepthReader {
  */
 class RawDepthReader: public DepthReader {
   private:
-    FILE* _rawFilePtr; /** Pointer to the open .raw file. */
-    uint2 _inSize; /** Dimensions of the input images. */
+    FILE* _rawFilePtr;
+    uint2 _inSize;
 
   public:
     /**
