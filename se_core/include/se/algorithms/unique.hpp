@@ -47,27 +47,17 @@ namespace algorithms {
     }
 
   template <typename KeyT>
-    inline int unique_multiscale(KeyT* keys, int num_keys,
-      const KeyT level_mask){
-      int end = 1;
-      const KeyT key_mask = ~level_mask; 
-      if(num_keys < 2) return end;
-      KeyT prev_key = keys[0] & key_mask;
-      KeyT prev_level = keys[0] & level_mask;
-      for (int i = 1; i < num_keys; ++i){
-        const KeyT key = keys[i] & key_mask;
-        const KeyT level = keys[i] & level_mask;
-        if(key != prev_key){
-          keys[end] = keys[i];
-          ++end;
-        } else if(level > prev_level) { 
+    inline int filter_ancestors(KeyT* keys, int num_keys, const int max_depth) {
+      int e = 0;
+      for (int i = 0; i < num_keys; ++i){
+        if(descendant(keys[i], keys[e], max_depth)){
+          keys[e] = keys[i];
+        } else { 
           /* end does not advance but previous entry is overwritten */
-          keys[end-1] = keys[i];
+          keys[++e] = keys[i];
         }
-        prev_key = key;
-        prev_level = level;
       }
-      return end;
+      return e + 1;
     }
 
   template <typename KeyT>

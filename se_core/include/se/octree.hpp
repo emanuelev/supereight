@@ -798,7 +798,7 @@ bool Octree<T>::allocate(key_t *keys, int num_elem){
 std::sort(keys, keys+num_elem);
 #endif
 
-  num_elem = algorithms::unique_multiscale(keys, num_elem, SCALE_MASK);
+  num_elem = algorithms::filter_ancestors(keys, num_elem, max_level_);
   reserveBuffers(num_elem);
 
   int last_elem = 0;

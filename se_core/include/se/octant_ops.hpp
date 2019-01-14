@@ -76,10 +76,14 @@ inline Eigen::Vector3i face_neighbour(const se::key_t o,
  * \brief Return true if octant is a descendant of ancestor
  * \param octant 
  * \param ancestor 
+ * \param max_depth max depth of the tree on which the octant lives
  */
-inline bool descendant(se::key_t octant, se::key_t ancestor) {
+inline bool descendant(se::key_t octant, se::key_t ancestor, 
+    const int max_depth) {
+  const int level = se::keyops::level(ancestor);
+  const int idx = MAX_BITS - max_depth + level - 1;
   ancestor = se::keyops::code(ancestor);
-  octant = ancestor & se::keyops::code(octant);
+  octant = se::keyops::code(octant) & MASK[idx];
   return (ancestor ^ octant) == 0;
 }
 
