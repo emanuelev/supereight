@@ -132,6 +132,16 @@ function(add_version appname libraries)# includes)
 
    endif(Qt5OpenGL_FOUND)
 
+  #  ------ READER LIB --------
+  add_library(${appname}-reader
+      src/PowerMonitor.cpp
+      src/reader.cpp)
+  target_include_directories(${appname}-reader PUBLIC
+      include)
+  target_link_libraries(${appname}-reader
+      ${appname}
+      ${main_common_libraries})
+
 endfunction()
 
 find_package(GLUT   )
