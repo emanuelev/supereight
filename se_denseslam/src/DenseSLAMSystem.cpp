@@ -50,7 +50,7 @@
 #include "kfusion/alloc_impl.hpp"
 
 
-extern PerfStats Stats;
+PerfStats Stats;
 static bool print_kernel_timing = false;
 
 DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,

@@ -33,7 +33,6 @@
 #include <draw.h>
 #endif
 
-PerfStats Stats;
 PowerMonitor *powerMonitor = NULL;
 uint16_t * inputDepth = NULL;
 static uchar3 * inputRGB = NULL;
@@ -250,7 +249,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 		pipeline->preprocessing(inputDepth,
 			Eigen::Vector2i(inputSize.x, inputSize.y),
-			config->bilateralFilter);
+			config->bilateral_filter);
 
 		timings[2] = std::chrono::steady_clock::now();
 

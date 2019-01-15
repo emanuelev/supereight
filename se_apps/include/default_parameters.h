@@ -25,28 +25,28 @@
 #define DEFAULT_ITERATION_COUNT 3
 static const int default_iterations[DEFAULT_ITERATION_COUNT] = { 10, 5, 4 };
 
-const float default_mu = 0.1f;
-const bool default_blocking_read = false;
-const int default_fps = 0;
-const float default_icp_threshold = 1e-5;
 const int default_compute_size_ratio = 1;
+const int default_tracking_rate = 1;
 const int default_integration_rate = 2;
 const int default_rendering_rate = 4;
-const int default_tracking_rate = 1;
 const Eigen::Vector3i default_volume_resolution(256, 256, 256);
 const Eigen::Vector3f default_volume_size(2.f, 2.f, 2.f);
 const Eigen::Vector3f default_initial_pos_factor(0.5f, 0.5f, 0.0f);
-const bool default_no_gui = false;
-const bool default_render_volume_fullsize = false;
-const bool default_bilateralFilter = false;
 const std::string default_dump_volume_file = "";
 const std::string default_input_file = "";
 const std::string default_log_file = "";
-const int default_color_integration = false;
-const int default_multi_resolution = false;
-const bool default_bayesian = false;
 const std::string default_groundtruth_file = "";
 const Eigen::Matrix4f default_gt_transform = Eigen::Matrix4f::Identity();
+const float default_mu = 0.1f;
+const int default_fps = 0;
+const bool default_blocking_read = false;
+const float default_icp_threshold = 1e-5;
+const bool default_no_gui = false;
+const bool default_render_volume_fullsize = false;
+const bool default_bilateral_filter = false;
+const int default_coloured_voxels = false;
+const int default_multi_resolution = false;
+const bool default_bayesian = false;
 
 inline std::string pyramid2str(std::vector<int> v) {
   std::ostringstream ss;
@@ -192,19 +192,21 @@ inline Eigen::Vector4f atof4(char * optarg) {
   return res;
 }
 
-Configuration parseArgs(unsigned int argc, char ** argv) {
-
+Configuration createDefaultConfig() {
   Configuration config;
 
   config.compute_size_ratio = default_compute_size_ratio;
-  config.integration_rate = default_integration_rate;
   config.tracking_rate = default_tracking_rate;
+  config.integration_rate = default_integration_rate;
   config.rendering_rate = default_rendering_rate;
   config.volume_resolution = default_volume_resolution;
   config.volume_size = default_volume_size;
   config.initial_pos_factor = default_initial_pos_factor;
-  //initial_pose_quant.setIdentity();
-  //invert_y = false;
+//voxel_block_size;
+  config.pyramid.clear();
+  for (int i = 0; i < DEFAULT_ITERATION_COUNT; i++) {
+    config.pyramid.push_back(default_iterations[i]);
+  }
 
   config.dump_volume_file = default_dump_volume_file;
   config.input_file = default_input_file;
@@ -212,20 +214,25 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
   config.groundtruth_file = default_groundtruth_file;
   config.gt_transform = default_gt_transform;
 
+//camera;
+  config.camera_overrided = false;
+
   config.mu = default_mu;
   config.fps = default_fps;
   config.blocking_read = default_blocking_read;
   config.icp_threshold = default_icp_threshold;
   config.no_gui = default_no_gui;
   config.render_volume_fullsize = default_render_volume_fullsize;
-  config.camera_overrided = false;
-  config.bilateralFilter = default_bilateralFilter;
+  config.bilateral_filter = default_bilateral_filter;
   config.bayesian = default_bayesian;
 
-  config.pyramid.clear();
-  for (int i = 0; i < DEFAULT_ITERATION_COUNT; i++) {
-    config.pyramid.push_back(default_iterations[i]);
-  }
+  return config;
+};
+
+
+Configuration parseArgs(unsigned int argc, char ** argv) {
+
+  Configuration config = createDefaultConfig();
 
   int c;
   int option_index = 0;
@@ -434,15 +441,15 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
                   << std::endl;
                 break;
       case 'F':
-                config.bilateralFilter = true;
+                config.bilateral_filter = true;
                 std::cerr << "using bilateral filter" << std::endl;
                 break;
       case 'C':
-                config.colouredVoxels = true;
+                config.coloured_voxels = true;
                 std::cerr << "using coloured voxels" << std::endl;
                 break;
       case 'M':
-                config.multiResolution = true;
+                config.multi_resolution = true;
                 std::cerr << "using multi-resolution integration" << std::endl;
                 break;
       case 0:

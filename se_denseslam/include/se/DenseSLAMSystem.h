@@ -55,6 +55,8 @@ typedef SE_FIELD_TYPE FieldType;
 template <typename T>
 using Volume = VolumeTemplate<T, se::Octree>;
 
+extern PerfStats Stats;
+
 class DenseSLAMSystem {
 
   private:
