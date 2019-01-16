@@ -64,10 +64,11 @@
 //External dependencies
 #undef isnan
 #undef isfinite
+////////////////////////// MATh STUFF //////////////////////
+//
 #include <TooN/TooN.h>
 #include <TooN/se3.h>
-#include <TooN/GR_SVD.h>
-////////////////////////// MATh STUFF //////////////////////
+
 
 #define INVALID -2
 // DATA TYPE
@@ -271,45 +272,18 @@ inline Eigen::Matrix4f getInverseCameraMatrix(const Eigen::Vector4f& k) {
 	return invK;
 }
 
+template<typename P>
+inline Eigen::Matrix4f toMatrix4f(const TooN::SE3<P> & p) {
+       const TooN::Matrix<4, 4, float> I = TooN::Identity;
+  Eigen::Matrix<float, 4, 4, Eigen::RowMajor>  R;
+       TooN::wrapMatrix<4, 4>(R.data()) = p * I;
+       return R;
+}
 
 //std::ostream& operator<<(std::ostream& os, const uint3 val) {
 //    os << val.x << ", " << val.y << ", " << val.z;
 //    return os;
 //}
-
-template<typename P, typename A>
-TooN::Matrix<6> makeJTJ(const TooN::Vector<21, P, A> & v) {
-	TooN::Matrix<6> C = TooN::Zeros;
-	C[0] = v.template slice<0, 6>();
-	C[1].template slice<1, 5>() = v.template slice<6, 5>();
-	C[2].template slice<2, 4>() = v.template slice<11, 4>();
-	C[3].template slice<3, 3>() = v.template slice<15, 3>();
-	C[4].template slice<4, 2>() = v.template slice<18, 2>();
-	C[5][5] = v[20];
-
-	for (int r = 1; r < 6; ++r)
-		for (int c = 0; c < r; ++c)
-			C[r][c] = C[c][r];
-
-	return C;
-}
-
-template<typename T, typename A>
-TooN::Vector<6> solve(const TooN::Vector<27, T, A> & vals) {
-	const TooN::Vector<6> b = vals.template slice<0, 6>();
-	const TooN::Matrix<6> C = makeJTJ(vals.template slice<6, 21>());
-
-	TooN::GR_SVD<6, 6> svd(C);
-	return svd.backsub(b, 1e6);
-}
-
-template<typename P>
-inline Eigen::Matrix4f toMatrix4f(const TooN::SE3<P> & p) {
-	const TooN::Matrix<4, 4, float> I = TooN::Identity;
-  Eigen::Matrix<float, 4, 4, Eigen::RowMajor>  R;
-	TooN::wrapMatrix<4, 4>(R.data()) = p * I;
-	return R;
-}
 
 static const float epsilon = 0.0000001;
 

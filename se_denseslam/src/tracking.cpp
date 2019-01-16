@@ -39,6 +39,30 @@
 #include <se/commons.h>
 #include <se/image/image.hpp>
 
+static inline Eigen::Matrix<float, 6, 6> makeJTJ(const Eigen::Matrix<float, 1, 21>& v) {
+	Eigen::Matrix<float, 6, 6> C = Eigen::Matrix<float, 6, 6>::Zero();
+	C.row(0) = v.segment(0, 6);
+	C.row(1).segment(1, 5) = v.segment(6,  5);
+	C.row(2).segment(2, 4) = v.segment(11, 4);
+	C.row(3).segment(3, 3) = v.segment(15, 3);
+	C.row(4).segment(4, 2) = v.segment(18, 2);
+	C(5,5) = v(20);
+
+	for (int r = 1; r < 6; ++r)
+		for (int c = 0; c < r; ++c)
+			C(r, c) = C(c, r);
+	return C;
+}
+
+static inline Eigen::Matrix<float, 6, 1> solve(const Eigen::Matrix<float, 1, 27>& vals) {
+	const Eigen::Matrix<float, 6, 1> b = vals.segment(0, 6);
+	const Eigen::Matrix<float, 6, 6> C = makeJTJ(vals.segment(6, 21));
+  Eigen::LDLT <Eigen::Matrix<float, 6, 6> > llt;
+  llt.compute(C);
+  Eigen::Matrix<float, 6, 1> res = llt.solve(b);
+	return llt.info() == Eigen::Success ? res : Eigen::Matrix<float, 6, 1>::Constant(0.f);
+}
+
 void new_reduce(int blockIndex, float * out, TrackData* J, 
     const Eigen::Vector2i& Jsize,
 		const Eigen::Vector2i& size) {
@@ -189,12 +213,12 @@ void reduceKernel(float * out, TrackData* J, const Eigen::Vector2i Jsize,
 		new_reduce(blockIndex, out, J, Jsize, size);
 	}
 
-	TooN::Matrix<8, 32, float, TooN::Reference::RowMajor> values(out);
+  Eigen::Map<Eigen::Matrix<float, 8, 32, Eigen::RowMajor> > values(out);
 	for (int j = 1; j < 8; ++j) {
-		values[0] += values[j];
-		//std::cerr << "REDUCE ";for(int ii = 0; ii < 32;ii++)
-		//std::cerr << values[0][ii] << " ";
-		//std::cerr << "\n";
+		values.row(0) += values.row(j);
+		// std::cerr << "REDUCE ";for(int ii = 0; ii < 32;ii++)
+		// std::cerr << values(0, ii) << " ";
+		// std::cerr << "\n";
 	}
 	TOCK("reduceKernel", 512);
 }
@@ -281,12 +305,12 @@ bool updatePoseKernel(Eigen::Matrix4f & pose, const float * output,
 		float icp_threshold) {
 	bool res = false;
 	TICK();
-	TooN::Matrix<8, 32, const float, TooN::Reference::RowMajor> values(output);
-	TooN::Vector<6> x = solve(values[0].slice<1, 27>());
-	TooN::SE3<> delta(x);
-	pose = toMatrix4f(delta) * pose;
+  Eigen::Map<const Eigen::Matrix<float, 8, 32, Eigen::RowMajor> > values(output);
+  Eigen::Matrix<float, 6, 1> x = solve(values.row(0).segment(1, 27));
+  Eigen::Matrix4f delta = Sophus::SE3<float>::exp(x).matrix();
+	pose = delta * pose;
 
-	if (norm(x) < icp_threshold)
+	if (x.norm() < icp_threshold)
 		res = true;
 
 	TOCK("updatePoseKernel", 1);
@@ -299,7 +323,7 @@ bool checkPoseKernel(Eigen::Matrix4f& pose, Eigen::Matrix4f oldPose,
 
 	// Check the tracking result, and go back to the previous camera position if necessary
 
-	TooN::Matrix<8, 32, const float, TooN::Reference::RowMajor> values(output);
+	const Eigen::Matrix<float, 8, 32, Eigen::RowMajor> values(output);
 
 	if ((std::sqrt(values(0, 0) / values(0, 28)) > 2e-2)
 			|| (values(0, 28) / (imageSize.x() * imageSize.y()) < track_threshold)) {
@@ -310,5 +334,3 @@ bool checkPoseKernel(Eigen::Matrix4f& pose, Eigen::Matrix4f oldPose,
 	}
 
 }
-
-
