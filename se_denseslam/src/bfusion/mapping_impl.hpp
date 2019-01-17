@@ -166,7 +166,8 @@ struct bfusion_update {
 
     const float diff = (pos(2) - depthSample)
       * std::sqrt( 1 + se::math::sq(pos(0) / pos(2)) + se::math::sq(pos(1) / pos(2)));
-    float sigma = se::math::clamp(noiseFactor * se::math::sq(pos(2)), 0.005f, 0.05f);
+    float sigma = se::math::clamp(noiseFactor * se::math::sq(pos(2)), 
+        2*voxelsize, 0.05f);
     float sample = HNew(diff/sigma, pos(2));
     if(sample == 0.5f) return;
     sample = se::math::clamp(sample, 0.03f, 0.97f);
@@ -179,11 +180,13 @@ struct bfusion_update {
   } 
 
   bfusion_update(const float * d, const Eigen::Vector2i framesize, float n, 
-      float t): depth(d), depthSize(framesize), noiseFactor(n), timestamp(t){};
+      float t, float vs): depth(d), depthSize(framesize), noiseFactor(n), 
+  timestamp(t), voxelsize(vs){};
 
   const float * depth;
   Eigen::Vector2i depthSize;
   float noiseFactor;
   float timestamp;
+  float voxelsize;
 };
 #endif

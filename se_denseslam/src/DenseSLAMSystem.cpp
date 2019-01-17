@@ -241,7 +241,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
 
       float timestamp = (1.f/30.f)*frame;
       struct bfusion_update funct(float_depth_.data(),
-          Eigen::Vector2i(computation_size_.x(), computation_size_.y()), mu, timestamp);
+          Eigen::Vector2i(computation_size_.x(), computation_size_.y()), 
+          mu, timestamp, voxelsize);
 
       se::functor::projective_map(*volume_._map_index,
           Sophus::SE3f(pose_).inverse(),
