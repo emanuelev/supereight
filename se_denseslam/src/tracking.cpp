@@ -57,7 +57,7 @@ static inline Eigen::Matrix<float, 6, 6> makeJTJ(const Eigen::Matrix<float, 1, 2
 static inline Eigen::Matrix<float, 6, 1> solve(const Eigen::Matrix<float, 1, 27>& vals) {
 	const Eigen::Matrix<float, 6, 1> b = vals.segment(0, 6);
 	const Eigen::Matrix<float, 6, 6> C = makeJTJ(vals.segment(6, 21));
-  Eigen::LDLT <Eigen::Matrix<float, 6, 6> > llt;
+  Eigen::LLT <Eigen::Matrix<float, 6, 6> > llt;
   llt.compute(C);
   Eigen::Matrix<float, 6, 1> res = llt.solve(b);
 	return llt.info() == Eigen::Success ? res : Eigen::Matrix<float, 6, 1>::Constant(0.f);
