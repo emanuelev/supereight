@@ -32,7 +32,6 @@
 // #include <GL/glut.h>
 // #endif
 
-using namespace TooN;
 using namespace std;
 //The main application window
 static ApplicationWindow *appWindow = NULL;
@@ -63,8 +62,8 @@ static void setThreads() {
 static bool reset = false;
 
 // The following control the view of the model if we aren't using camera track
-static SE3<float> rot(makeVector(0.0, 0, 0, 0, 0, 0));
-static SE3<float> trans; // = SE3<float>::exp(makeVector(0.34,0.5,0.24,0,0,0) * 4.8);
+static Sophus::SE3<float> rot;
+static Sophus::SE3<float> trans;
 
 //usePOV tells us to position the model according to the camera pose, setCameraView is passed to the QT and
 //is called if we interact with the view button
@@ -87,18 +86,19 @@ static void newDenseSLAMSystem(bool resetPose) {
 
 	if (*pipeline_pp)
 		delete *pipeline_pp;
-	if (!resetPose)
+	if (!resetPose) {
 		*pipeline_pp = new DenseSLAMSystem(
 				Eigen::Vector2i(640 / config->compute_size_ratio, 480 / config->compute_size_ratio),
 				config->volume_resolution,
         config->volume_size, init_pose, config->pyramid, *config);
+  }
 	else {
-		trans = SE3<float>::exp(
-				makeVector(config->initial_pos_factor.x(),
-						config->initial_pos_factor.y(),
-						config->initial_pos_factor.z(), 0, 0, 0)
-						* config->volume_size.x());
-		rot = makeVector(0.0, 0, 0, 0, 0, 0);
+    Eigen::Matrix<float, 6, 1> twist;
+  twist << config->initial_pos_factor.x() * config->volume_size.x(),
+					 config->initial_pos_factor.y() * config->volume_size.x(),
+				   config->initial_pos_factor.z() * config->volume_size.x(), 0, 0, 0;
+		trans = Sophus::SE3<float>::exp(twist);
+		rot = Sophus::SE3<float>();
     Eigen::Vector3f init_pose = config->initial_pos_factor.cwiseProduct(config->volume_size);
 		*pipeline_pp = new DenseSLAMSystem(
 				Eigen::Vector2i(640 / config->compute_size_ratio,
@@ -216,7 +216,7 @@ CameraState setEnableCamera(CameraState state, string inputFile) {
 void qtIdle(void) {
 	static bool shod = false;
 	//This will set the view for rendering the model, either to the tracked camera view or the static view    
-  Eigen::Matrix4f pose = toMatrix4f(trans * rot);
+  Eigen::Matrix4f pose = (rot * trans).matrix();
 	if (usePOV)
 		(*pipeline_pp)->setViewPose(); //current position as found by track
 	else
@@ -291,11 +291,11 @@ void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
 	pipeline_pp = _pipe;
 	config = _config;
 	reader_pp = _depthReader;
-	trans = SE3<float>(
-			makeVector(config->initial_pos_factor.x() * config->volume_size.x(),
-					config->initial_pos_factor.y() * config->volume_size.x(),
-					config->volume_size.x() * config->initial_pos_factor.z(), 0, 0,
-					0));
+  Eigen::Matrix<float, 6, 1> twist;
+  twist << config->initial_pos_factor.x() * config->volume_size.x(),
+					 config->initial_pos_factor.y() * config->volume_size.x(),
+				   config->initial_pos_factor.z() * config->volume_size.x(), 0, 0, 0;
+	trans = Sophus::SE3<float>::exp(twist);
 	QApplication a(argc, argv);
 
 	//Create a new ApplicationWindow (which holds everything)

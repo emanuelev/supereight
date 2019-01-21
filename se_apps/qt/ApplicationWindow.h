@@ -18,6 +18,7 @@
 #include <QLineEdit>
 #include <QFormLayout>
 #include <QToolButton>
+#include <sophus/se3.hpp>
 #include <initializer_list>
 #include "MainWindow.h"
 #include <string>
@@ -135,7 +136,7 @@ public:
 	void setCameraViewFunction(void (*_callback)(bool), bool initial);
 	void setResetFunction(void (*_callback)());
 	void setRenderModelPointer(bool *doRender);
-	void setRotPointer(TooN::SE3<float> *rotVar);
+	void setRotPointer(Sophus::SE3<float> *rotVar);
 	void setRenderTexturePointer(bool *value);
 	void setFilenamePointer(std::string *filename);
 	//void setShouldIntegratePointer(bool *value);
@@ -193,7 +194,7 @@ private:
 	//QSlider *integrateDelay;
 	QPushButton *cameraButton;
 	QPushButton *threadsButton;
-	TooN::SE3<float> *rot;
+	Sophus::SE3<float> *rot;
 	QList<int> breakpoints;
 	QList<ConditionalBreakpoint *> conditionalBreakpoints;
 	int _conditionalStart;
