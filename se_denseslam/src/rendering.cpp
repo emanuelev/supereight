@@ -248,16 +248,12 @@ void renderVolumeKernel(const Volume<T>& volume,
           Eigen::Vector4f::Constant(0.f);
         if (hit.w() > 0) {
           test = hit.head<3>();
-          Eigen::Vector3f surfNorm = volume.grad(test, 
-              [](const auto& val){ return val.x; });
+          surfNorm = volume.grad(test, [](const auto& val){ return val.x; });
 
           // Invert normals if SDF 
           surfNorm = std::is_same<T, SDF>::value ? -1.f * surfNorm : surfNorm;
         } else {
-          out[idx + 0] = 0;
-          out[idx + 1] = 0;
-          out[idx + 2] = 0;
-          out[idx + 3] = 0;
+          surfNorm = Eigen::Vector3f(INVALID, 0, 0);
         }
       }
       else {
