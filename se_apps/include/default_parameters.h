@@ -192,7 +192,8 @@ inline Eigen::Vector4f atof4(char * optarg) {
   return res;
 }
 
-Configuration createDefaultConfig() {
+Configuration parseArgs(unsigned int argc, char ** argv) {
+  
   Configuration config;
 
   config.compute_size_ratio = default_compute_size_ratio;
@@ -225,14 +226,6 @@ Configuration createDefaultConfig() {
   config.render_volume_fullsize = default_render_volume_fullsize;
   config.bilateral_filter = default_bilateral_filter;
   config.bayesian = default_bayesian;
-
-  return config;
-};
-
-
-Configuration parseArgs(unsigned int argc, char ** argv) {
-
-  Configuration config = createDefaultConfig();
 
   int c;
   int option_index = 0;
