@@ -8,7 +8,6 @@ endif(APPLE)
 
 find_package(Eigen3 REQUIRED)
 find_package(Sophus REQUIRED)
-find_package(TooN REQUIRED)
 if(WITH_OPENMP)
   find_package(OpenMP)
   if(OPENMP_FOUND)

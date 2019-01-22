@@ -66,9 +66,6 @@
 #undef isfinite
 ////////////////////////// MATh STUFF //////////////////////
 //
-#include <TooN/TooN.h>
-#include <TooN/se3.h>
-
 
 #define INVALID -2
 // DATA TYPE
@@ -270,14 +267,6 @@ inline Eigen::Matrix4f getInverseCameraMatrix(const Eigen::Vector4f& k) {
        0, 0, 1, 0,
        0, 0, 0, 1;
 	return invK;
-}
-
-template<typename P>
-inline Eigen::Matrix4f toMatrix4f(const TooN::SE3<P> & p) {
-       const TooN::Matrix<4, 4, float> I = TooN::Identity;
-  Eigen::Matrix<float, 4, 4, Eigen::RowMajor>  R;
-       TooN::wrapMatrix<4, 4>(R.data()) = p * I;
-       return R;
 }
 
 //std::ostream& operator<<(std::ostream& os, const uint3 val) {

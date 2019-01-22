@@ -21,7 +21,6 @@
 #include "OpenGLWidget.h"
 
 #include <QGridLayout>
-#include <TooN/se3.h>
 namespace Ui {
 class Viewers;
 }

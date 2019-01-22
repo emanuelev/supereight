@@ -45,7 +45,6 @@ The following packages are required to build the `se-denseslam` library:
 * CMake >= 3.10
 * Eigen3 
 * Sophus
-* TooN
 * OpenMP (optional)
 * GTest
 
