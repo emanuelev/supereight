@@ -52,13 +52,13 @@ function(add_version appname libraries)# includes)
          include)
 
      if(APPLE)
-       target_link_libraries(${appname}-main
+        target_link_libraries(${appname}-main
            ${appname}
            ${GLUT_LIBRARIES}
            ${OPENGL_LIBRARIES}
            ${main_common_libraries} )
      else(APPLE)
-       target_link_libraries(${appname}-main
+        target_link_libraries(${appname}-main
            ${appname}
            ${GLUT_LIBRARIES}
            ${OPENGL_LIBRARIES}
@@ -66,6 +66,7 @@ function(add_version appname libraries)# includes)
            GL )
      endif(APPLE)
    endif(GLUT_FOUND)
+
    #  ------ QT --------
    if (Qt5OpenGL_FOUND)
 
