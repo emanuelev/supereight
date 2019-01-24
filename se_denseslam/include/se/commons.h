@@ -56,6 +56,7 @@
 #include <cmath>
 #include <iterator>
 #include <set>
+#include <vector>
 
 // Internal dependencies
 #include <se/utils/math_utils.h>
