@@ -52,7 +52,6 @@ The benchmarking and GUI apps additionally require:
 * GLut
 * OpenGL
 * OpenNI2
-* PAPI
 * PkgConfig/Qt5
 * Python/Numpy for evaluation scripts
 
