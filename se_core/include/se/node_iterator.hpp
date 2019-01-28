@@ -72,6 +72,7 @@ class node_iterator {
       case FINISHED:
         return nullptr;
     }
+    return nullptr;
   }
 
   private:
