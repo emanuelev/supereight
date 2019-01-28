@@ -56,7 +56,6 @@ namespace se {
       return unpack_morton(key & ~SCALE_MASK);
     }
   }
-}
 
 /*
  * Algorithm 5 of p4est paper: https://epubs.siam.org/doi/abs/10.1137/100791634
@@ -180,5 +179,6 @@ inline void siblings(se::key_t result[8],
   for(int i = 0; i < 8; ++i) {
     result[i] = p | (i << shift);
   }
+}
 }
 #endif
