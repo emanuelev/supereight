@@ -46,6 +46,30 @@
  * 
 *****************************************************************************/
 
+static inline int __float_as_int(float value){
+
+  union float_as_int {
+    float f;
+    int i;
+  };
+
+  float_as_int u;
+  u.f = value;
+  return u.i;
+}
+
+static inline float __int_as_float(int value){
+
+  union int_as_float {
+    int i;
+    float f;
+  };
+
+  int_as_float u;
+  u.i = value;
+  return u.f;
+}
+
 template <typename T>
 class se::ray_iterator {
 

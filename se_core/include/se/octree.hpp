@@ -52,31 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "geometry/aabb_collision.hpp"
 #include "interpolation/interp_gather.hpp"
 
-
-inline int __float_as_int(float value){
-
-  union float_as_int {
-    float f;
-    int i;
-  };
-
-  float_as_int u;
-  u.f = value;
-  return u.i;
-}
-
-inline float __int_as_float(int value){
-
-  union int_as_float {
-    int i;
-    float f;
-  };
-
-  int_as_float u;
-  u.i = value;
-  return u.f;
-}
-
 namespace se {
 
 template <typename T>
