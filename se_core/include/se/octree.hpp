@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <tuple>
 #include <queue>
+#include <unordered_set>
 #include "node.hpp"
 #include "utils/memory_pool.hpp"
 #include "algorithms/unique.hpp"
@@ -192,6 +193,12 @@ public:
    * \param number of keys in the keys array
    */
   bool allocate(key_t *keys, int num_elem);
+
+  /*! \brief Enforces 2:1 balance on the tree.
+   * 
+   *
+   * */
+  void balance();
 
   void save(const std::string& filename);
   void load(const std::string& filename);
@@ -923,6 +930,15 @@ void Octree<T>::load(const std::string& filename) {
     }
   }
 }
-;
+
+template <typename T>
+void Octree<T>::balance() {
+  std::unordered_set<key_t> octants;
+  std::vector<key_t> alloc_buffer;
+
+  for(int i = 0; i < nodes_buffer_.size(); ++i) {
+    
+  }
+}
 }
 #endif // OCTREE_H

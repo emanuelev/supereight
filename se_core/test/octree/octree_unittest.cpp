@@ -217,3 +217,26 @@ TEST(Octree, OctantSiblings) {
     ASSERT_TRUE(p.x() == po.x() && p.y() == po.y() && p.z() == po.z());
   }
 }
+
+TEST(Octree, OctantOneNeighbours) {
+  const int max_depth = 8;
+  const int level = 5;
+  const unsigned size = std::pow(2, max_depth);
+  Eigen::Matrix<int, 4, 6> N;
+  Eigen::Vector3i pos;
+  
+  // Inside cube
+  //
+  pos << 127, 56, 3;
+  se::one_neighbourhood(N, se::keyops::encode(pos.x(), pos.y(), pos.z(), 
+        level, max_depth), max_depth);
+  ASSERT_TRUE((N.array() >= 0).all() && (N.array() < size).all());
+
+  
+  // At edge cube
+  //
+  pos << size-1, 56, 3;
+  se::one_neighbourhood(N, se::keyops::encode(pos.x(), pos.y(), pos.z(), 
+        level, max_depth), max_depth);
+  ASSERT_TRUE((N.array() >= 0).all() && (N.array() < size).all());
+}

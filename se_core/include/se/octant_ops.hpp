@@ -49,7 +49,7 @@ namespace se {
     inline se::key_t encode(const int x, const int y, const int z, 
         const int level, const int max_depth) {
       const int offset = MAX_BITS - max_depth + level - 1;
-      return (compute_morton(x, y, z) & MASK[offset]) | level;
+      return (compute_morton(x, y, z) & MASK[offset] & ~SCALE_MASK) | level;
     }
 
     inline Eigen::Vector3i decode(const se::key_t key) {
@@ -163,6 +163,54 @@ inline void exterior_neighbours(se::key_t result[7],
  result[6] = se::keyops::encode(base(0) + dir(0), base(1) + dir(1), 
      base(2) + dir(2), level, max_depth); 
 }
+
+/*
+ * \brief Computes the six face neighbours of an octant. These are stored in an
+ * 4x6 matrix in which each column represents the homogeneous coordinates of a 
+ * neighbouring octant. The neighbours along the x axis come first, followed by
+ * neighbours along the y axis and finally along the z axis. All coordinates are 
+ * clamped to be in the range between [0, max_size] where max size is given 
+ * by pow(2, max_depth).
+ * \param res 4x6 matrix containing the neighbours
+ * \param octant octant coordinates
+ * \param level level of the octant
+ * \param max_depth max depth of the tree on which the octant lives
+ */
+
+static inline void one_neighbourhood(Eigen::Ref<Eigen::Matrix<int, 4, 6>> res, 
+    const Eigen::Vector3i& octant, const int level, const int max_depth) {
+  const Eigen::Vector3i base = octant;
+  const int size = 1 << max_depth;
+  const int step = 1 << (max_depth - level);
+  Eigen::Matrix<int, 4, 6> cross;
+  res << 
+    -step, step,     0,    0,     0,    0,
+        0,    0, -step, step,     0,    0,
+        0,    0,     0,    0, -step, step,
+        0,    0,     0,    0,     0,    0;
+    res.colwise() += base.homogeneous();
+    res = res.unaryExpr([size](const int a) {
+        return std::max(std::min(a, size-1), 0);
+        });
+} 
+
+/*
+ * \brief Computes the six face neighbours of an octant. These are stored in an
+ * 4x6 matrix in which each column represents the homogeneous coordinates of a 
+ * neighbouring octant. The neighbours along the x axis come first, followed by
+ * neighbours along the y axis and finally along the z axis. All coordinates are 
+ * clamped to be in the range between [0, max_size] where max size is given 
+ * by pow(2, max_depth).
+ * \param res 4x6 matrix containing the neighbours
+ * \param octant octant key
+ * \param max_depth max depth of the tree on which the octant lives
+ */
+
+static inline void one_neighbourhood(Eigen::Ref<Eigen::Matrix<int, 4, 6>> res, 
+    const se::key_t octant, const int max_depth) {
+  one_neighbourhood(res, se::keyops::decode(octant), se::keyops::level(octant),
+      max_depth);
+} 
 
 /*
  * \brief Computes the morton number of all siblings around an octant,
