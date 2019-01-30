@@ -253,7 +253,7 @@ inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f& p,
     VoxelBlock<T>* cached) const {
 
   const Eigen::Vector3i pos = (p.homogeneous() * 
-      Eigen::Vector4f::Constant(size_/dim_)).head<3>().cast<int>();
+      Eigen::Vector4f::Constant(size_/dim_)).template head<3>().template cast<int>();
 
   if(cached != NULL){
     Eigen::Vector3i lower = cached->coordinates();
