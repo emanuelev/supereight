@@ -209,9 +209,11 @@ TEST(Octree, OctantSiblings) {
 
   const int childidx = se::child_id(cell, level, max_depth);
   ASSERT_EQ(s[childidx], cell);
-  
+  const Eigen::Vector3i p = se::keyops::decode(cell); 
   for(int i = 0; i < 8; ++i) {
     // std::cout << (unpack_morton(s[i] & ~SCALE_MASK)) << std::endl;
+    const Eigen::Vector3i po = se::keyops::decode(se::parent(s[i], max_depth));
     ASSERT_TRUE(se::parent(s[i], max_depth) == se::parent(cell, max_depth));
+    ASSERT_TRUE(p.x() == po.x() && p.y() == po.y() && p.z() == po.z());
   }
 }
