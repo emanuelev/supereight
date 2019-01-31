@@ -61,18 +61,14 @@ namespace algorithms {
     }
 
   template <typename KeyT>
-    inline int unique_multiscale(KeyT* keys, int num_keys,
-        const KeyT , const unsigned current_level){
+    inline int unique_multiscale(KeyT* keys, int num_keys) {
       int e = 0;
-      for (int i = 1; i < num_keys; ++i){
-        const KeyT level = se::keyops::level(keys[i]);
-        if(level >= current_level) {
-          if(se::keyops::code(keys[i]) != se::keyops::code(keys[e])){
-            keys[++e] = keys[i];
-          } else if(se::keyops::level(keys[i]) > se::keyops::level(keys[e])) { 
-            /* end does not advance but previous entry is overwritten */
-            keys[e] = keys[i];
-          }
+      for (int i = 0; i < num_keys; ++i){
+        if(se::keyops::code(keys[i]) != se::keyops::code(keys[e])){
+          keys[++e] = keys[i];
+        } else if(se::keyops::level(keys[i]) > se::keyops::level(keys[e])) { 
+          /* end does not advance but previous entry is overwritten */
+          keys[e] = keys[i];
         }
       }
       return e + 1;

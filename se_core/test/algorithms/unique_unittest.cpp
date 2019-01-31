@@ -109,7 +109,7 @@ TEST_F(UniqueMultiscaleTest, FilterDuplicatesTillLevel) {
    * 0x1FFu extracts the last 9 bits of a morton number,
    * corresponding to the edge of a voxel block: 3*log2(se::VoxelBlock<T>::side)
    */
-  const int last = se::algorithms::unique_multiscale(keys.data(), keys.size(), 0x1FFu, 4);
+  const int last = se::algorithms::unique_multiscale(keys.data(), keys.size());
   for(int i = 1; i < last; ++i) { 
     // std::cout << std::bitset<64>(keys[i]) << std::endl;
     ASSERT_TRUE(keys[i] != keys[i-1]);

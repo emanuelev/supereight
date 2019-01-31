@@ -194,12 +194,6 @@ public:
    */
   bool allocate(key_t *keys, int num_elem);
 
-  /*! \brief Enforces 2:1 balance on the tree.
-   * 
-   *
-   * */
-  void balance();
-
   void save(const std::string& filename);
   void load(const std::string& filename);
 
@@ -791,8 +785,7 @@ std::sort(keys, keys+num_elem);
   for (int level = 1; level <= leaves_level; level++){
     const key_t mask = MASK[level + shift] | SCALE_MASK;
     compute_prefix(keys, keys_at_level_, num_elem, mask);
-    last_elem = algorithms::unique_multiscale(keys_at_level_, num_elem, 
-        SCALE_MASK, level);
+    last_elem = algorithms::unique_multiscale(keys_at_level_, num_elem);
     success = allocate_level(keys_at_level_, last_elem, level);
   }
   return success;
@@ -808,8 +801,10 @@ bool Octree<T>::allocate_level(key_t* keys, int num_tasks, int target_level){
   for (int i = 0; i < num_tasks; i++){
     Node<T> ** n = &root_;
     key_t myKey = keyops::code(keys[i]);
-    int edge = size_/2;
+    int myLevel = keyops::level(keys[i]);
+    if(myLevel < target_level) continue;
 
+    int edge = size_/2;
     for (int level = 1; level <= target_level; ++level){
       int index = child_id(myKey, level, max_level_); 
       Node<T> * parent = *n;
@@ -928,16 +923,6 @@ void Octree<T>::load(const std::string& filename) {
         static_cast<VoxelBlock<T> *>(insert(coords(0), coords(1), coords(2), keyops::level(tmp.code_)));
       std::memcpy(n->getBlockRawPtr(), tmp.getBlockRawPtr(), sizeof(*(tmp.getBlockRawPtr())));
     }
-  }
-}
-
-template <typename T>
-void Octree<T>::balance() {
-  std::unordered_set<key_t> octants;
-  std::vector<key_t> alloc_buffer;
-
-  for(int i = 0; i < nodes_buffer_.size(); ++i) {
-    
   }
 }
 }
