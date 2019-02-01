@@ -230,6 +230,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
     }
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);
+    se::balance(*volume_._map_index);
 
     if(std::is_same<FieldType, SDF>::value) {
       struct sdf_update funct(float_depth_.data(),
