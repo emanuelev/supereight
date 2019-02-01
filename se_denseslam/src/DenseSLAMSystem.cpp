@@ -39,6 +39,8 @@
 #include <se/algorithms/meshing.hpp>
 #include <se/geometry/octree_collision.hpp>
 #include <se/vtk-io.h>
+#include <se/io/ply_io.hpp>
+#include <se/algorithms/balancing.hpp>
 #include "timings.h"
 #include <perfstats.h>
 #include "preprocessing.cpp"
@@ -257,6 +259,13 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
     //   save3DSlice(*volume_._map_index, Eigen::Vector3i(0, 200, 0),
     //       Eigen::Vector3i(volume_._size, 201, volume_._size),
     //       Eigen::Vector3i::Constant(volume_._size), f.str().c_str());
+    //   f.str("");
+    //   f.clear();
+    // }
+    // if(frame % 30 == 0) {
+    //   std::stringstream f;
+    //   f << "./slices/octree_" << frame << ".ply";
+    //   se::print_octree(f.str().c_str(), *volume_._map_index);
     //   f.str("");
     //   f.clear();
     // }

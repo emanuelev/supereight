@@ -31,7 +31,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "utils/math_utils.h"
 #include "gtest/gtest.h"
 #include "octant_ops.hpp"
+#include <octree.hpp>
 #include <bitset>
+#include <io/ply_io.hpp>
+#include <algorithms/balancing.hpp>
+
+typedef float testT;
+
+template <>
+struct voxel_traits<testT> {
+  typedef float value_type;
+  static inline value_type empty(){ return 0.f; }
+  static inline value_type initValue(){ return 1.f; }
+};
 
 TEST(Octree, OctantFaceNeighbours) {
   const Eigen::Vector3i octant = {112, 80, 160};
@@ -239,4 +251,19 @@ TEST(Octree, OctantOneNeighbours) {
   se::one_neighbourhood(N, se::keyops::encode(pos.x(), pos.y(), pos.z(), 
         level, max_depth), max_depth);
   ASSERT_TRUE((N.array() >= 0).all() && (N.array() < size).all());
+}
+
+TEST(Octree, BalanceTree) {
+  const int max_depth = 8;
+  const int level = 5;
+
+  se::Octree<testT> oct;
+  oct.init(1 << max_depth, 5);
+  Eigen::Vector3i vox(32, 208, 44);
+  oct.insert(vox.x(), vox.y(), vox.z());
+  vox += Eigen::Vector3i(50, 12, 100);
+  oct.insert(vox.x(), vox.y(), vox.z());
+  se::print_octree("./oct.ply", oct);
+  se::balance(oct);
+  se::print_octree("./oct-balanced.ply", oct);
 }
