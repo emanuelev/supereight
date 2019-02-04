@@ -714,7 +714,7 @@ Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos, FieldSelector select
 
 template <typename T>
 int Octree<T>::leavesCount(){
-  return leavesCountRecursive(root_);
+  return block_buffer_.size();
 }
 
 template <typename T>
@@ -737,7 +737,7 @@ int Octree<T>::leavesCountRecursive(Node<T> * n){
 
 template <typename T>
 int Octree<T>::nodeCount(){
-  return nodeCountRecursive(root_);
+  return nodes_buffer_.size();
 }
 
 template <typename T>

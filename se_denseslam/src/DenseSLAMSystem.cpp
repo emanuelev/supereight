@@ -70,6 +70,7 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
                                  std::vector<int> & pyramid,
                                  const Configuration& config) :
   computation_size_(inputSize),
+  config_(config),
   vertex_(computation_size_.x(), computation_size_.y()),
   normal_(computation_size_.x(), computation_size_.y()),
   float_depth_(computation_size_.x(), computation_size_.y())
@@ -231,6 +232,13 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);
     se::balance(*volume_._map_index);
+
+    {
+      std::ofstream f;
+      f.open(this->config_.log_file + "_octants.log", 
+          std::ofstream::out | std::ofstream::app);
+      f << (volume_._map_index->leavesCount() + volume_._map_index->nodeCount()) << std::endl;
+    }
 
     if(std::is_same<FieldType, SDF>::value) {
       struct sdf_update funct(float_depth_.data(),
