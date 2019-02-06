@@ -28,9 +28,12 @@
 */
 #ifndef INTERP_GATHER_H
 #define INTERP_GATHER_H
+#include "../octree_defines.h"
 #include "../node.hpp"
+#include "../octant_ops.hpp"
 
 namespace se {
+  namespace internal {
 
 /*
  * Interpolation's point gather offsets
@@ -235,5 +238,30 @@ inline void gather_points(const MapIndex<FieldType>& fetcher,
       break;
   }
 }
+
+
+/*! \brief Fetch the octant (x,y,z) starting from node root. It is required
+ * that pos is contained withing the root node, i.e. pos is within the
+ * interval [root.pos, root.pos + root.side].
+ * \param stack stack of traversed nodes 
+ * \param root Root node from where the search starts. 
+ * \param pos integer position of searched octant 
+ */
+template <typename T>
+static inline Node<T> * fetch(Node<T>* stack[], Node<T>* root, 
+    const int max_depth, const Eigen::Vector3i& pos) {
+  unsigned edge = (1 << (max_depth - se::keyops::level(root->code_))) / 2;
+  constexpr unsigned int blockSide = BLOCK_SIDE;
+  Node<T>* n = root;
+  int l = 0;
+  for(; edge >= blockSide; ++l, edge = edge >> 1) {
+    stack[l] = n;
+    n = n->child((pos.x() & edge) > 0u, (pos.y() & edge) > 0u, (pos.z() & edge) > 0u);
+    if(!n) return nullptr;
+  } 
+  stack[l] = n;
+  return n;
 }
+} // end namespace internal
+} // end namespace se
 #endif

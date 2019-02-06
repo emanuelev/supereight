@@ -523,7 +523,7 @@ float Octree<T>::interp(const Eigen::Vector3f& pos, FieldSelector select) const 
   const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
 
   float points[8];
-  gather_points(*this, lower, select, points);
+  internal::gather_points(*this, lower, select, points);
 
   return (((points[0] * (1 - factor(0))
           + points[1] * factor(0)) * (1 - factor(1))

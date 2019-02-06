@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "utils/math_utils.h"
 #include "interpolation/interp_gather.hpp"
 #include "gtest/gtest.h"
+#include "node_iterator.hpp"
 
 typedef float testT;
 
@@ -67,7 +68,7 @@ TEST_F(GatherTest, Init) {
 TEST_F(GatherTest, GatherLocal) {
   float points[8];
   const Eigen::Vector3i base = {136, 128, 136};
-  gather_points(oct_, base, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -83,7 +84,7 @@ TEST_F(GatherTest, ZCrosses) {
                             (base(2) % blockSize) == blockSize - 1;
   ASSERT_EQ(crossmask, 1);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  gather_points(oct_, base, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -99,7 +100,7 @@ TEST_F(GatherTest, YCrosses) {
                             ((base(2) % blockSize) == blockSize - 1);
   ASSERT_EQ(crossmask, 2);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  gather_points(oct_, base, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -115,7 +116,7 @@ TEST_F(GatherTest, XCrosses) {
                             ((base(2) % blockSize) == blockSize - 1);
   ASSERT_EQ(crossmask, 4);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  gather_points(oct_, base, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -131,7 +132,7 @@ TEST_F(GatherTest, YZCross) {
                             ((base(2) % blockSize) == blockSize - 1);
   ASSERT_EQ(crossmask, 3);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  gather_points(oct_, base, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -147,7 +148,7 @@ TEST_F(GatherTest, XZCross) {
                             ((base(2) % blockSize) == blockSize - 1);
   ASSERT_EQ(crossmask, 5);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  gather_points(oct_, base, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -163,7 +164,7 @@ TEST_F(GatherTest, XYCross) {
                             ((base(2) % blockSize) == blockSize - 1);
   ASSERT_EQ(crossmask, 6);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  gather_points(oct_, base, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -179,9 +180,22 @@ TEST_F(GatherTest, AllCross) {
                             ((base(2) % blockSize) == blockSize - 1);
   ASSERT_EQ(crossmask, 7);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  gather_points(oct_, base, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
+  }
+}
+
+TEST_F(GatherTest, FetchWithStack) {
+  se::Node<testT>* stack[CAST_STACK_DEPTH] = {nullptr};
+  int max_depth = se::math::log2_const(oct_.size());
+  se::internal::fetch(stack, oct_.root(), max_depth, 
+      Eigen::Vector3i(128, 136, 128));
+  auto res = oct_.fetch(128, 136, 128);
+  int l = 0;
+  while(stack[l] && stack[l + 1] != nullptr) {
+    ASSERT_TRUE(se::parent(stack[l + 1]->code_, max_depth) == stack[l]->code_);
+    ++l;
   }
 }
