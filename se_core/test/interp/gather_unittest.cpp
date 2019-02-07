@@ -199,3 +199,30 @@ TEST_F(GatherTest, FetchWithStack) {
     ++l;
   }
 }
+
+TEST_F(GatherTest, FetchNeighbourhood) {
+  Eigen::Vector3i pos0(128,   0, 0); // (1, 0, 0) 
+  Eigen::Vector3i pos1(0,   128, 0); // (0, 1, 0)
+  Eigen::Vector3i pos2(128, 128, 0); // (1, 1, 0)
+  Eigen::Vector3i base(64,   64, 0);
+  oct_.insert(pos0.x(), pos0.y(), pos0.z(), 2);
+  oct_.insert(pos1.x(), pos1.y(), pos1.z(), 2);
+  oct_.insert(pos2.x(), pos2.y(), pos2.z(), 2);
+  oct_.insert(base.x(), base.y(), base.z(), 3);
+
+  se::Node<testT>* stack[CAST_STACK_DEPTH] = {nullptr};
+  int max_depth = se::math::log2_const(oct_.size());
+  auto base_ptr = se::internal::fetch(stack, oct_.root(), max_depth, base);
+  auto n1 = se::internal::fetch_neighbour(stack, base_ptr, max_depth, 1);
+  auto n2 = se::internal::fetch_neighbour(stack, base_ptr, max_depth, 2);
+  auto n3 = se::internal::fetch_neighbour(stack, base_ptr, max_depth, 3);
+  ASSERT_TRUE(se::keyops::decode(base_ptr->code_) == base);
+  ASSERT_TRUE(se::keyops::decode(n1->code_) == pos0);
+  ASSERT_TRUE(se::keyops::decode(n2->code_) == pos1);
+  ASSERT_TRUE(se::keyops::decode(n3->code_) == pos2);
+
+  std::fill(std::begin(stack), std::end(stack), nullptr);
+  base_ptr = se::internal::fetch(stack, oct_.root(), max_depth, pos0); 
+  auto failed = se::internal::fetch_neighbour(stack, base_ptr, max_depth, 1);
+  ASSERT_TRUE(failed == nullptr);
+}

@@ -239,10 +239,59 @@ inline void gather_points(const MapIndex<FieldType>& fetcher,
   }
 }
 
+/*! \brief Fetch the field sample corresponding to the octant neighbour along the 
+ * specified direction. If the search fails the second element of the returned
+ * is set to false.
+ * \param stack stack of ancestor nodes of octant
+ * \param octant base octant. 
+ * \param max_depth maximum depth of the tree. 
+ * \param dir direction along which to fetch the neighbou. Only positive 
+ * search directions are allowed along any axes.
+ */
+template <typename FieldType, typename FieldSelector>
+static inline std::pair<typename std::result_of<FieldSelector>::type, bool> 
+fetch_neighbour_sample(Node<FieldType>* stack[], Node<FieldType>* octant, 
+    const int max_depth, const int dir, FieldSelector select) {
+ int level = se::keyops::level(octant->code_);
+ while(level >= 0) {
+   int child_id = se::child_id(stack[level]->code_, max_depth);
+   int sibling = child_id ^ dir;  
+   if((sibling & dir) == dir) { // if sibling still in octant's family
+     return {select(stack[level-1]->data[sibling]), true};
+   }
+   level--;
+ }
+ return {typename std::result_of<FieldSelector>::type(), false};
+}
 
-/*! \brief Fetch the octant (x,y,z) starting from node root. It is required
- * that pos is contained withing the root node, i.e. pos is within the
- * interval [root.pos, root.pos + root.side].
+/*! \brief Fetch the neighbour of octant in the desired direction which is at 
+ * most refined as the starting octant.
+ * \param stack stack of ancestor nodes of octant
+ * \param octant base octant. 
+ * \param max_depth maximum depth of the tree. 
+ * \param dir direction along which to fetch the neighbou. Only positive 
+ * search directions are allowed along any axes.
+ */
+template <typename FieldType>
+static inline Node<FieldType> * 
+fetch_neighbour(Node<FieldType>* stack[], Node<FieldType>* octant, 
+    const int max_depth, const int dir) {
+ int level = se::keyops::level(octant->code_);
+ while(level >= 0) {
+   int child_id = se::child_id(stack[level]->code_, max_depth);
+   int sibling = child_id ^ dir;  
+   if((sibling & dir) == dir) { // if sibling still in octant's family
+     return stack[level-1]->child(sibling);
+   }
+   level--;
+ }
+ return nullptr;
+}
+
+
+/*! \brief Fetch the finest octant containing (x,y,z) starting from root node. 
+ * It is required that pos is contained withing the root node, i.e. pos is
+ * within the interval [root.pos, root.pos + root.side].
  * \param stack stack of traversed nodes 
  * \param root Root node from where the search starts. 
  * \param pos integer position of searched octant 
@@ -256,8 +305,10 @@ static inline Node<T> * fetch(Node<T>* stack[], Node<T>* root,
   int l = 0;
   for(; edge >= blockSide; ++l, edge = edge >> 1) {
     stack[l] = n;
-    n = n->child((pos.x() & edge) > 0u, (pos.y() & edge) > 0u, (pos.z() & edge) > 0u);
-    if(!n) return nullptr;
+    auto next = n->child((pos.x() & edge) > 0u, (pos.y() & edge) > 0u, 
+        (pos.z() & edge) > 0u);
+    if(!next) break;
+    n = next;
   } 
   stack[l] = n;
   return n;

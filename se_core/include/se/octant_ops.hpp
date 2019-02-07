@@ -112,6 +112,19 @@ inline int child_id(se::key_t octant, const int level,
 }
 
 /*
+ * \brief Computes the octants's id in its local brotherhood
+ * \param octant
+ * \param level of octant 
+ * \param max_depth max depth of the tree on which the octant lives
+ */
+inline int child_id(se::key_t octant, const int max_depth) {
+  int shift = max_depth - se::keyops::level(octant);
+  octant = se::keyops::code(octant) >> shift*3;
+  int idx = (octant & 0x01) | (octant & 0x02) | (octant & 0x04);
+  return idx;
+}
+
+/*
  * \brief Computes the octants's corner which is not shared with its siblings
  * \param octant
  * \param level of octant 
