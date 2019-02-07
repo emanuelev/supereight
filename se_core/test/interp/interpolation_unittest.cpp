@@ -33,45 +33,63 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "utils/math_utils.h"
 #include "gtest/gtest.h"
 #include "functors/axis_aligned_functor.hpp"
+#include "io/ply_io.hpp"
+#include "algorithms/balancing.hpp"
 
 typedef float testT;
 template <>
 struct voxel_traits<testT> {
   typedef float value_type;
-  static inline value_type empty(){ return {0.f}; }
-  static inline value_type initValue(){ return {1.f}; }
+  static inline value_type empty(){ return 0.f; }
+  static inline value_type initValue(){ return 1.f; }
 };
 
 float test_fun(float x, float y, float z) {
   return se::math::sq(z) + std::sin(2*x + y);
 }
 
+float sphere_dist(const Eigen::Vector3f& p, const Eigen::Vector3f& C, 
+    const float radius) {
+  const Eigen::Vector3f dir = (C - p).normalized();
+  const Eigen::Vector3f vox_o = p - C;
+
+  const float a = dir.dot(dir);
+  const float b = 2 * dir.dot(vox_o);
+  const float c = vox_o.dot(vox_o) - radius*radius;
+  const float delta = b*b - 4*a*c;
+  float dist = std::numeric_limits<int>::max();
+  if(delta > 0) {
+    dist = std::min(-b + sqrtf(delta), -b - sqrtf(delta));
+    dist /= 2*a;
+  }
+  return dist;
+}
+
 class InterpolationTest : public ::testing::Test {
   protected:
     virtual void SetUp() {
-      unsigned size = 512;
+      unsigned size = 256;
       float dim = 5.f;
       oct_.init(size, dim); // 5 meters
 
-      const float center = 2.5f;
-      const float radius = center + 0.5f; 
+      const unsigned center = size >> 1;
+      const unsigned radius = size >> 2;
+      const Eigen::Vector3f C(center, center, center);
 
-      const float voxelsize = oct_.dim()/oct_.size();
-      const float inverse_voxelsize = 1.f/voxelsize;
-      const int band = 1 * inverse_voxelsize;
-      const Eigen::Vector3i offset = 
-        Eigen::Vector3i::Constant(oct_.size()/2 - band/2);
-      unsigned leaf_level = log2(size) - log2(se::Octree<testT>::blockSide);
-      for(int z = 0; z < band; ++z) {
-        for(int y = 0; y < band; ++y) {
-          for(int x = 0; x < band; ++x) {
-            const Eigen::Vector3i vox =  Eigen::Vector3i(x + offset(0), 
-                y + offset(1), z + offset(2));
-            alloc_list.push_back(oct_.hash(vox(0), vox(1), vox(2), leaf_level));
+      for(int z = center - radius; z < (center + radius); ++z) {
+        for(int y = center - radius; y < (center + radius); ++y) {
+          for(int x = center - radius; x < (center + radius); ++x) {
+            const Eigen::Vector3i vox(x, y, z);
+            const float dist = fabs(sphere_dist(vox.cast<float>(), C, radius));
+            if(dist > 20.f && dist < 25.f) {
+              alloc_list.push_back(oct_.hash(vox(0), vox(1), vox(2)));
+            }
           }
         }
       }
       oct_.allocate(alloc_list.data(), alloc_list.size());
+      se::balance(oct_);
+      se::print_octree("./test-sphere.ply", oct_);
     }
 
   typedef se::Octree<testT> OctreeF;
