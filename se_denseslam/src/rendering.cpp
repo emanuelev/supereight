@@ -35,6 +35,7 @@
  */
 #include <se/utils/math_utils.h>
 #include <se/commons.h>
+#include <lodepng.h>
 #include <timings.h>
 #include <tuple>
 
@@ -281,4 +282,20 @@ void renderVolumeKernel(const Volume<T>& volume,
   }
   TOCK("renderVolumeKernel", depthSize.x * depthSize.y);
 }
+
+static inline void printNormals(const se::Image<Eigen::Vector3f> in, const unsigned int xdim, 
+                 const unsigned int ydim, const char* filename) {
+  unsigned char* image = new unsigned char [xdim * ydim * 4];
+  for(unsigned int y = 0; y < ydim; ++y)
+    for(unsigned int x = 0; x < xdim; ++x){
+      const Eigen::Vector3f n = in[x + y*xdim];
+      image[4 * xdim * y + 4 * x + 0] = (n.x()/2 + 0.5) * 255; 
+      image[4 * xdim * y + 4 * x + 1] = (n.y()/2 + 0.5) * 255;
+      image[4 * xdim * y + 4 * x + 2] = (n.z()/2 + 0.5) * 255;
+      image[4 * xdim * y + 4 * x + 3] = 255;
+    }
+  lodepng_encode32_file(std::string(filename).append(".png").c_str(),
+      image, xdim, ydim);
+} 
+
 

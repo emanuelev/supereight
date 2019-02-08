@@ -38,7 +38,7 @@
 #include <se/ray_iterator.hpp>
 #include <se/algorithms/meshing.hpp>
 #include <se/geometry/octree_collision.hpp>
-#include <se/vtk-io.h>
+#include <se/io/vtk-io.h>
 #include <se/io/ply_io.hpp>
 #include <se/algorithms/balancing.hpp>
 #include "timings.h"
