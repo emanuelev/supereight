@@ -20,7 +20,7 @@ set(appname ${PROJECT_NAME})
 
 # ---- PREPARE COMMON DEPENDENCIES  ------------ 
 set(compile_flags  -Wall -Wextra -Wno-unknown-pragmas)
-set(libraries lodepng se_shared se_core)
+set(libraries lodepng shared core)
 
 if (WITH_OPENMP AND OPENMP_FOUND)
     list(APPEND compile_flags ${OpenMP_CXX_FLAGS})
