@@ -34,6 +34,7 @@
 
 namespace se {
   namespace internal {
+    constexpr int INVALID_SAMPLE = -2;
 
 /*
  * Interpolation's point gather offsets
@@ -248,20 +249,26 @@ inline void gather_points(const MapIndex<FieldType>& fetcher,
  * \param dir direction along which to fetch the neighbou. Only positive 
  * search directions are allowed along any axes.
  */
-template <typename FieldType, typename FieldSelector>
-static inline std::pair<typename std::result_of<FieldSelector>::type, bool> 
+template <typename Precision, typename FieldType, typename FieldSelector>
+static inline std::pair<Precision, Eigen::Vector3i> 
 fetch_neighbour_sample(Node<FieldType>* stack[], Node<FieldType>* octant, 
     const int max_depth, const int dir, FieldSelector select) {
  int level = se::keyops::level(octant->code_);
- while(level >= 0) {
+ while(level > 0) {
    int child_id = se::child_id(stack[level]->code_, max_depth);
    int sibling = child_id ^ dir;  
+   std::cout << "parent code:" << se::keyops::decode(stack[level-1]->code_) << std::endl;
    if((sibling & dir) == dir) { // if sibling still in octant's family
-     return {select(stack[level-1]->data[sibling]), true};
+     const int side = 1 << (max_depth - level);
+     std::cout << "side: " << side << std::endl;
+     const Eigen::Vector3i coords = se::keyops::decode(stack[level-1]->code_) +
+        side * Eigen::Vector3i((sibling & 1), (sibling & 2) >> 1, 
+            (sibling & 4) >> 2);
+     return {select(stack[level-1]->value_[sibling]), coords};
    }
    level--;
  }
- return {typename std::result_of<FieldSelector>::type(), false};
+ return {Precision(), Eigen::Vector3i::Constant(INVALID_SAMPLE)};
 }
 
 /*! \brief Fetch the neighbour of octant in the desired direction which is at 
@@ -277,7 +284,7 @@ static inline Node<FieldType> *
 fetch_neighbour(Node<FieldType>* stack[], Node<FieldType>* octant, 
     const int max_depth, const int dir) {
  int level = se::keyops::level(octant->code_);
- while(level >= 0) {
+ while(level > 0) {
    int child_id = se::child_id(stack[level]->code_, max_depth);
    int sibling = child_id ^ dir;  
    if((sibling & dir) == dir) { // if sibling still in octant's family

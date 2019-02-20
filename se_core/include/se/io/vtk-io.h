@@ -85,7 +85,8 @@ void save3DSlice(const MapType& in, const Eigen::Vector3i lower,
   for(int z = lower.z(); z < upper.z(); ++z)
     for(int y = lower.y(); y < upper.y(); ++y)
       for(int x = lower.x(); x < upper.x(); ++x) {
-        const float data = select(in.get(x, y, z));
+        float data = in.interp(Eigen::Vector3f(x, y, z), select);
+        data = select(in.get(x, y, z));
         scalars << data  << std::endl;
       }
 
