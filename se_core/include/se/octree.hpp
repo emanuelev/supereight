@@ -153,6 +153,16 @@ public:
   template <typename FieldSelect>
   float interp(const Eigen::Vector3f& pos, FieldSelect f) const;
 
+  /*! \brief Interp voxel value at voxel position  (x,y,z)
+   * \param pos three-dimensional coordinates in which each component belongs 
+   * to the interval [0, size]
+   * \param stride distance between neighbouring sampling point, in voxels
+   * \return signed distance function value at voxel position (x, y, z)
+   */
+
+  template <typename FieldSelect>
+  float interp(const Eigen::Vector3f& pos, const int stride, FieldSelect f) const;
+
   /*! \brief Compute the gradient at voxel position  (x,y,z)
    * \param pos three-dimensional coordinates in which each component belongs 
    * to the interval [0, size]
@@ -517,13 +527,20 @@ VoxelBlock<T> * Octree<T>::insert(const int x, const int y, const int z) {
 template <typename T>
 template <typename FieldSelector>
 float Octree<T>::interp(const Eigen::Vector3f& pos, FieldSelector select) const {
+  return interp(pos, 1, select);
+}
+
+template <typename T>
+template <typename FieldSelector>
+float Octree<T>::interp(const Eigen::Vector3f& pos, const int stride,
+    FieldSelector select) const {
   
   const Eigen::Vector3i base = math::floorf(pos).cast<int>();
-  const Eigen::Vector3f factor = math::fracf(pos);
+  const Eigen::Vector3f factor =  (1/stride) * math::fracf(pos);
   const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
 
   float points[8];
-  internal::gather_points(*this, lower, select, points);
+  internal::gather_points(*this, lower, stride, select, points);
 
   return (((points[0] * (1 - factor(0))
           + points[1] * factor(0)) * (1 - factor(1))
