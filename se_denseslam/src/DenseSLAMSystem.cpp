@@ -207,7 +207,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
 
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
 
-    float voxelsize =  volume_._dim/volume_._size;
+    float voxelsize =  volume_._dim/volume_._resol;
     int num_vox_per_pix = volume_._dim/((se::VoxelBlock<FieldType>::side)*voxelsize);
     size_t total = num_vox_per_pix * computation_size_.x() *
       computation_size_.y();
@@ -218,7 +218,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
      allocated  = buildAllocationList(allocation_list_.data(),
          allocation_list_.capacity(),
         *volume_._map_index, pose_, getCameraMatrix(k), float_depth_.data(),
-        computation_size_, volume_._size,
+        computation_size_, volume_._resol,
       voxelsize, 2*mu);
     } else if(std::is_same<FieldType, OFusion>::value) {
      allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(),
@@ -241,7 +241,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
 
       float timestamp = (1.f/30.f)*frame;
       struct bfusion_update funct(float_depth_.data(),
-          Eigen::Vector2i(computation_size_.x(), computation_size_.y()), 
+          Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
           mu, timestamp, voxelsize);
 
       se::functor::projective_map(*volume_._map_index,
@@ -255,8 +255,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
     //   std::stringstream f;
     //   f << "./slices/integration_" << frame << ".vtk";
     //   save3DSlice(*volume_._map_index, Eigen::Vector3i(0, 200, 0),
-    //       Eigen::Vector3i(volume_._size, 201, volume_._size),
-    //       Eigen::Vector3i::Constant(volume_._size), f.str().c_str());
+    //       Eigen::Vector3i(volume_._resol, 201, volume_._resol),
+    //       Eigen::Vector3i::Constant(volume_._resol), f.str().c_str());
     //   f.str("");
     //   f.clear();
     // }
