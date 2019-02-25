@@ -163,8 +163,24 @@ public:
   template <typename FieldSelect>
   float interp(const Eigen::Vector3f& pos, const int stride, FieldSelect f) const;
 
+  /*! \brief Compute gradient at voxel position  (x,y,z)
+   * \param pos three-dimensional coordinates in which each component belongs 
+   * to the interval [0, _size]
+   * \return signed distance function value at voxel position (x, y, z)
+   */
   template <typename FieldSelect>
   Eigen::Vector3f grad(const Eigen::Vector3f& pos, FieldSelect selector) const;
+
+  /*! \brief Compute gradient at voxel position  (x,y,z)
+   * \param pos three-dimensional coordinates in which each component belongs 
+   * to the interval [0, _size]
+   * \param stride distance between neighbouring sampling point, in voxels.
+   * Must be >= 1
+   * \return signed distance function value at voxel position (x, y, z)
+   */
+  template <typename FieldSelect>
+  Eigen::Vector3f grad(const Eigen::Vector3f& pos, const int stride, 
+      FieldSelect selector) const;
 
   /*! \brief Get the list of allocated block. If the active switch is set to
    * true then only the visible blocks are retrieved.
@@ -550,17 +566,24 @@ float Octree<T>::interp(const Eigen::Vector3f& pos, const int stride,
 
 template <typename T>
 template <typename FieldSelector>
-Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos, FieldSelector select) const {
+Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos, const int stride, 
+    FieldSelector select) const {
 
   Eigen::Vector3f gradient;
-  gradient.x() = interp(pos + Eigen::Vector3f(1.f, 0.f, 0.f), 1, select) - 
-    interp(pos - Eigen::Vector3f(1.f, 0.f, 0.f), 1, select);
-  gradient.y() = interp(pos + Eigen::Vector3f(0.f, 1.f, 0.f), 1, select) - 
-    interp(pos - Eigen::Vector3f(0.f, 1.f, 0.f), 1, select);
-  gradient.z() = interp(pos + Eigen::Vector3f(0.f, 0.f, 1.f), 1, select) - 
-    interp(pos - Eigen::Vector3f(0.f, 0.f, 1.f), 1, select);
+  gradient.x() = interp(pos + Eigen::Vector3f(static_cast<float>(stride), 0.f, 0.f), 1, select) - 
+    interp(pos - Eigen::Vector3f(static_cast<float>(stride), 0.f, 0.f), 1, select);
+  gradient.y() = interp(pos + Eigen::Vector3f(0.f, static_cast<float>(stride), 0.f), 1, select) - 
+    interp(pos - Eigen::Vector3f(0.f, static_cast<float>(stride), 0.f), 1, select);
+  gradient.z() = interp(pos + Eigen::Vector3f(0.f, 0.f, static_cast<float>(stride)), 1, select) - 
+    interp(pos - Eigen::Vector3f(0.f, 0.f, static_cast<float>(stride)), 1, select);
 
   return (0.5f * dim_ / size_) * gradient;
+}
+
+template <typename T>
+template <typename FieldSelector>
+Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos, FieldSelector select) const {
+  return grad(pos, 1, select);
 }
 
 template <typename T>

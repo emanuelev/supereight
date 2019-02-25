@@ -93,12 +93,47 @@ class VolumeTemplate {
       return _map_index->interp(discrete_pos, select);
     }
 
+  /*! \brief Interp voxel value at metric position  (x,y,z)
+   * \param pos three-dimensional coordinates in which each component belongs 
+   * to the interval [0, _dim]
+   * \param stride distance between neighbouring sampling point, in voxels.
+   * Must be >= 1
+   * \return signed distance function value at voxel position (x, y, z)
+   */
+    template <typename FieldSelector>
+    float interp(const Eigen::Vector3f& pos, const int h, 
+        FieldSelector select) const {
+      const float inverseVoxelSize = _size / _dim;
+      Eigen::Vector3f discrete_pos = inverseVoxelSize * pos;
+      return _map_index->interp(discrete_pos, h, select);
+    }
+
+    /*! \brief Compute gradient at metric position  (x,y,z)
+     * \param pos three-dimensional coordinates in which each component belongs 
+     * to the interval [0, _dim]
+     * \return signed distance function value at voxel position (x, y, z)
+     */
     template <typename FieldSelector>
     Eigen::Vector3f grad(const Eigen::Vector3f& pos, FieldSelector select) const {
 
       const float inverseVoxelSize = _size / _dim;
       Eigen::Vector3f discrete_pos = inverseVoxelSize * pos;
-      return _map_index->grad(discrete_pos, select);
+      return _map_index->grad(discrete_pos, 1.f, select);
+    }
+
+    /*! \brief Compute gradient at metric position  (x,y,z)
+     * \param pos three-dimensional coordinates in which each component belongs 
+     * to the interval [0, _dim]
+     * \param stride distance between neighbouring sampling point, in voxels.
+     * Must be >= 1
+     * \return signed distance function value at voxel position (x, y, z)
+     */
+    template <typename FieldSelector>
+    Eigen::Vector3f grad(const Eigen::Vector3f& pos, const int h, 
+        FieldSelector select) const {
+      const float inverseVoxelSize = _size / _dim;
+      Eigen::Vector3f discrete_pos = inverseVoxelSize * pos;
+      return _map_index->grad(discrete_pos, h, select);
     }
 
     unsigned int _size;
