@@ -207,8 +207,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
 
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
 
-    float voxelsize =  volume_._dim/volume_._size;
-    int num_vox_per_pix = volume_._dim/((se::VoxelBlock<FieldType>::side)*voxelsize);
+    float voxelsize =  volume_._extent/volume_._size;
+    int num_vox_per_pix = volume_._extent/((se::VoxelBlock<FieldType>::side)*voxelsize);
     size_t total = num_vox_per_pix * computation_size_.x() *
       computation_size_.y();
     allocation_list_.reserve(total);
@@ -241,7 +241,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
 
       float timestamp = (1.f/30.f)*frame;
       struct bfusion_update funct(float_depth_.data(),
-          Eigen::Vector2i(computation_size_.x(), computation_size_.y()), 
+          Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
           mu, timestamp, voxelsize);
 
       se::functor::projective_map(*volume_._map_index,
