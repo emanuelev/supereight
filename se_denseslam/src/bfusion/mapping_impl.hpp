@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2016 Emanuele Vespa, Imperial College London 
+ * Copyright 2016 Emanuele Vespa, Imperial College London
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@
  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * */
 
@@ -38,7 +38,7 @@
 #include <se/image/image.hpp>
 #include "bspline_lookup.cc"
 
-float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f proj) {
+float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
   // https://en.wikipedia.org/wiki/Bilinear_interpolation
 
   // Pixels version
@@ -57,16 +57,16 @@ float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f proj) {
   const float d12 = depth[int(x1) +  depth.width()*int(y2)];
   const float d21 = depth[int(x2) +  depth.width()*int(y1)];
   const float d22 = depth[int(x2) +  depth.width()*int(y2)];
-  
+
   if( d11 == 0.f || d12 == 0.f || d21 == 0.f || d22 == 0.f ) return 0.f;
 
   const float f11 = 1.f / d11;
   const float f12 = 1.f / d12;
   const float f21 = 1.f / d21;
   const float f22 = 1.f / d22;
-  
+
   // Filtering version
-  const float d =  1.f / 
+  const float d =  1.f /
                     ( (   f11 * (x2 - proj.x()) * (y2 - proj.y())
                         + f21 * (proj.x() - x1) * (y2 - proj.y())
                         + f12 * (x2 - proj.x()) * (proj.y() - y1)
@@ -76,13 +76,13 @@ float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f proj) {
 
   static const float interp_thresh = 0.05f;
   if (fabs(d - d11) < interp_thresh && fabs(d - d12) < interp_thresh &&
-      fabs(d - d21) < interp_thresh && fabs(d - d22) < interp_thresh) 
+      fabs(d - d21) < interp_thresh && fabs(d - d22) < interp_thresh)
     return d;
-  else 
+  else
     return depth[int(proj.x() + 0.5f) + depth.width()*int(proj.y()+0.5f)];
 
   // Non-Filtering version
-  // return  1.f / 
+  // return  1.f /
   //         ( (   f11 * (x2 - proj.x) * (y2 - proj.y)
   //             + f21 * (proj.x - x1) * (y2 - proj.y)
   //             + f12 * (x2 - proj.x) * (proj.y - y1)
@@ -94,7 +94,7 @@ float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f proj) {
 static inline float bspline(float t){
   float value = 0.f;
   if(t >= -3.0f && t <= -1.0f) {
-    value = std::pow((3 + t), 3)/48.0f;   
+    value = std::pow((3 + t), 3)/48.0f;
   } else if( t > -1 && t <= 1) {
     value = 0.5f + (t*(3 + t)*(3 - t))/24.f;
   } else if(t > 1 && t <= 3){
@@ -112,7 +112,7 @@ static inline float H(const float val){
 }
 
 static const double const_offset =  0.0000001f;
-const float scale_factor = (1.f - (farPlane - nearPlane) * const_offset); 
+const float scale_factor = (1.f - (farPlane - nearPlane) * const_offset);
 
 static inline float const_offset_integral(float t){
   float value = 0.f;
@@ -129,7 +129,7 @@ static inline float bspline_memoized(float t){
   if(t >= -3.0f && t <= 3.0f) {
     unsigned int idx = ((t + 3.f)*inverseRange)*(bspline_num_samples - 1) + 0.5f;
     return bspline_lookup[idx];
-  } 
+  }
   else if(t > 3) {
     value = 1.f;
   }
@@ -147,7 +147,7 @@ static inline float updateLogs(const float prior, const float sample){
   return (prior + log2(sample / (1.f - sample)));
 }
 
-static inline float applyWindow(const float occupancy, const float , 
+static inline float applyWindow(const float occupancy, const float ,
     const float delta_t, const float tau){
   float fraction = 1.f / (1.f + (delta_t / tau));
   fraction = std::max(0.5f,fraction);
@@ -157,7 +157,7 @@ static inline float applyWindow(const float occupancy, const float ,
 struct bfusion_update {
 
   template <typename DataHandlerT>
-  void operator()(DataHandlerT& handler, const Eigen::Vector3i&, 
+  void operator()(DataHandlerT& handler, const Eigen::Vector3i&,
       const Eigen::Vector3f& pos, const Eigen::Vector2f& pixel) {
 
     const Eigen::Vector2i px = pixel.cast <int> ();
@@ -166,7 +166,7 @@ struct bfusion_update {
 
     const float diff = (pos(2) - depthSample)
       * std::sqrt( 1 + se::math::sq(pos(0) / pos(2)) + se::math::sq(pos(1) / pos(2)));
-    float sigma = se::math::clamp(noiseFactor * se::math::sq(pos(2)), 
+    float sigma = se::math::clamp(noiseFactor * se::math::sq(pos(2)),
         2*voxelsize, 0.05f);
     float sample = HNew(diff/sigma, pos(2));
     if(sample == 0.5f) return;
@@ -177,10 +177,10 @@ struct bfusion_update {
     data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
     data.y = timestamp;
     handler.set(data);
-  } 
+  }
 
-  bfusion_update(const float * d, const Eigen::Vector2i framesize, float n, 
-      float t, float vs): depth(d), depthSize(framesize), noiseFactor(n), 
+  bfusion_update(const float * d, const Eigen::Vector2i& framesize, float n,
+      float t, float vs): depth(d), depthSize(framesize), noiseFactor(n),
   timestamp(t), voxelsize(vs){};
 
   const float * depth;
