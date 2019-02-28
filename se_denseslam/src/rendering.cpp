@@ -57,9 +57,8 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
   int y;
 #pragma omp parallel for shared(normal, vertex), private(y)
   for (y = 0; y < vertex.height(); y++)
-#pragma simd
+#pragma omp simd
     for (int x = 0; x < vertex.width(); x++) {
-
       Eigen::Vector2i pos(x, y);
       const Eigen::Vector3f dir = 
         (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();

@@ -255,7 +255,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
           Eigen::Vector2i(computation_size_.x(), computation_size_.y()), 
           mu, timestamp, voxelsize);
 
-      se::functor::projective_map(*volume_._map_index,
+      se::functor::projective_map(*volume_._map_index, 
+          volume_.voxel_offset,
           Sophus::SE3f(pose_).inverse(),
           getCameraMatrix(k),
           Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
