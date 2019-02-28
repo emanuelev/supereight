@@ -57,25 +57,25 @@ class VolumeTemplate {
     VolumeTemplate(){};
     VolumeTemplate(unsigned int r, float d, DiscreteMapT<FieldType>* m) :
       _map_index(m) {
-        _resol = r;
-        _dim = d;
+        _size = r;
+        _extent = d;
       };
 
     inline Eigen::Vector3f pos(const Eigen::Vector3i & p) const {
-      static const float voxelSize = _dim/_resol;
+      static const float voxelSize = _extent/_size;
       return p.cast<float>() * voxelSize;
     }
 
     void set(const  Eigen::Vector3f& , const value_type& ) {}
 
     value_type operator[](const Eigen::Vector3f& p) const {
-      const float inverseVoxelSize = _resol/_dim;
+      const float inverseVoxelSize = _size/_extent;
       const Eigen::Vector3i scaled_pos = (p * inverseVoxelSize).cast<int>();
       return _map_index->get(scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
     }
 
     value_type get(const Eigen::Vector3f & p) const {
-      const float inverseVoxelSize = _resol/_dim;
+      const float inverseVoxelSize = _size/_extent;
       const Eigen::Vector4i scaled_pos = (inverseVoxelSize * p.homogeneous()).cast<int>();
         return _map_index->get_fine(scaled_pos.x(),
                                     scaled_pos.y(),
@@ -88,7 +88,7 @@ class VolumeTemplate {
 
     template <typename FieldSelector>
     float interp(const Eigen::Vector3f& pos, FieldSelector select) const {
-      const float inverseVoxelSize = _resol / _dim;
+      const float inverseVoxelSize = _size / _extent;
       Eigen::Vector3f discrete_pos = inverseVoxelSize * pos;
       return _map_index->interp(discrete_pos, select);
     }
@@ -96,20 +96,20 @@ class VolumeTemplate {
     template <typename FieldSelector>
     Eigen::Vector3f grad(const Eigen::Vector3f& pos, FieldSelector select) const {
 
-      const float inverseVoxelSize = _resol / _dim;
+      const float inverseVoxelSize = _size / _extent;
       Eigen::Vector3f discrete_pos = inverseVoxelSize * pos;
       return _map_index->grad(discrete_pos, select);
     }
 
-    unsigned int _resol;
-    float _dim;
+    unsigned int _size;
+    float _extent;
     std::vector<se::key_t> _allocationList;
     DiscreteMapT<FieldType> * _map_index;
 
   private:
 
     inline Eigen::Vector3i pos(const Eigen::Vector3f & p) const {
-      static const float inverseVoxelSize = _resol/_dim;
+      static const float inverseVoxelSize = _size/_extent;
       return (inverseVoxelSize * p).cast<int>();
     }
 };
