@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2016 Emanuele Vespa, Imperial College London 
+ * Copyright 2016 Emanuele Vespa, Imperial College London
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -25,23 +25,23 @@
  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * */
 #ifndef SDF_ALLOC_H
 #define SDF_ALLOC_H
-#include <se/utils/math_utils.h> 
+#include <se/utils/math_utils.h>
 #include <se/node.hpp>
 #include <se/utils/morton_utils.hpp>
 
-/* 
- * \brief Given a depth map and camera matrix it computes the list of 
+/*
+ * \brief Given a depth map and camera matrix it computes the list of
  * voxels intersected but not allocated by the rays around the measurement m in
- * a region comprised between m +/- band. 
+ * a region comprised between m +/- band.
  * \param allocationList output list of keys corresponding to voxel blocks to
  * be allocated
  * \param reserved allocated size of allocationList
- * \param map_index indexing structure used to index voxel blocks 
+ * \param map_index indexing structure used to index voxel blocks
  * \param pose camera extrinsics matrix
  * \param K camera intrinsics matrix
  * \param depthmap input depth map
@@ -51,18 +51,23 @@
  * \param band maximum extent of the allocating region, per ray
  */
 template <typename FieldType, template <typename> class OctreeT, typename HashType>
-unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
-    OctreeT<FieldType>& map_index, const Eigen::Matrix4f& pose, 
-    const Eigen::Matrix4f& K, 
-    const float *depthmap, const Eigen::Vector2i& imageSize, 
-    const unsigned int size,  const float voxelSize, const float band) {
+unsigned int buildAllocationList(HashType*              allocationList,
+                                 size_t                 reserved,
+                                 OctreeT<FieldType>&    map_index,
+                                 const Eigen::Matrix4f& pose,
+                                 const Eigen::Matrix4f& K,
+                                 const float*           depthmap,
+                                 const Eigen::Vector2i& imageSize,
+                                 const unsigned int     size,
+                                 const float            voxelSize,
+                                 const float            band) {
 
   const float inverseVoxelSize = 1/voxelSize;
   const unsigned block_scale = log2(size) - se::math::log2_const(se::VoxelBlock<FieldType>::side);
 
   Eigen::Matrix4f invK = K.inverse();
   const Eigen::Matrix4f kPose = pose * invK;
-  
+
 
 #ifdef _OPENMP
   std::atomic<unsigned int> voxelCount;
@@ -76,10 +81,10 @@ unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
 #pragma omp parallel for
   for (unsigned int y = 0; y < imageSize.y(); ++y) {
     for (unsigned int x = 0; x < imageSize.x(); ++x) {
-      if(depthmap[x + y*imageSize.x()] == 0)
+      if (depthmap[x + y*imageSize.x()] == 0)
         continue;
       const float depth = depthmap[x + y*imageSize.x()];
-      Eigen::Vector3f worldVertex = (kPose * Eigen::Vector3f((x + 0.5f) * depth, 
+      Eigen::Vector3f worldVertex = (kPose * Eigen::Vector3f((x + 0.5f) * depth,
             (y + 0.5f) * depth, depth).homogeneous()).head<3>();
 
       Eigen::Vector3f direction = (camera - worldVertex).normalized();
@@ -88,25 +93,28 @@ unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
 
       Eigen::Vector3i voxel;
       Eigen::Vector3f voxelPos = origin;
-      for(int i = 0; i < numSteps; i++){
+      for (int i = 0; i < numSteps; i++) {
         Eigen::Vector3f voxelScaled = (voxelPos * inverseVoxelSize).array().floor();
-        if( (voxelScaled.x() < size) && (voxelScaled.y() < size) &&
-            (voxelScaled.z() < size) && (voxelScaled.x() >= 0) &&
-            (voxelScaled.y() >= 0) &&   (voxelScaled.z() >= 0)){
+        if ((voxelScaled.x() < size)
+            && (voxelScaled.y() < size)
+            && (voxelScaled.z() < size)
+            && (voxelScaled.x() >= 0)
+            && (voxelScaled.y() >= 0)
+            && (voxelScaled.z() >= 0)) {
           voxel = voxelScaled.cast<int>();
-          se::VoxelBlock<FieldType> * n = map_index.fetch(voxel.x(), 
+          se::VoxelBlock<FieldType> * n = map_index.fetch(voxel.x(),
               voxel.y(), voxel.z());
-          if(!n){
-            HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(), 
+          if (!n) {
+            HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),
                 block_scale);
             unsigned int idx = ++voxelCount;
-            if(idx < reserved) {
+            if (idx < reserved) {
               allocationList[idx] = k;
-            } else
+            } else {
               break;
-          }
-          else {
-            n->active(true); 
+            }
+          } else {
+            n->active(true);
           }
         }
         voxelPos +=step;
