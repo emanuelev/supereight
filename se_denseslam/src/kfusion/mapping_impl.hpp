@@ -33,6 +33,16 @@
 #include <se/node.hpp>
 
 struct sdf_update {
+  const float* depth;
+  Eigen::Vector2i depthSize;
+  float mu;
+  int maxweight;
+
+  sdf_update(const float*           d,
+             const Eigen::Vector2i& framesize,
+             float                  m,
+             int                    mw)
+    : depth(d), depthSize(framesize), mu(m), maxweight(mw) {};
 
   template <typename DataHandlerT>
   void operator()(DataHandlerT&          handler,
@@ -60,17 +70,6 @@ struct sdf_update {
       handler.set(data);
     }
   }
-
-  sdf_update(const float*           d,
-             const Eigen::Vector2i& framesize,
-             float                  m,
-             int                    mw)
-    : depth(d), depthSize(framesize), mu(m), maxweight(mw) {};
-
-  const float* depth;
-  Eigen::Vector2i depthSize;
-  float mu;
-  int maxweight;
 };
 
 #endif

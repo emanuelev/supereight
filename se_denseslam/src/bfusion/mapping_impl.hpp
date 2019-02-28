@@ -112,6 +112,19 @@ static inline float applyWindow(const float occupancy,
 }
 
 struct bfusion_update {
+  const float* depth;
+  Eigen::Vector2i depthSize;
+  float noiseFactor;
+  float timestamp;
+  float voxelsize;
+
+  bfusion_update(const float*           d,
+                 const Eigen::Vector2i& framesize,
+                 float                  n,
+                 float                  t,
+                 float                  vs)
+    : depth(d), depthSize(framesize), noiseFactor(n),
+  timestamp(t), voxelsize(vs) {};
 
   template <typename DataHandlerT>
   void operator()(DataHandlerT&          handler,
@@ -146,18 +159,5 @@ struct bfusion_update {
     handler.set(data);
   }
 
-  bfusion_update(const float*           d,
-                 const Eigen::Vector2i& framesize,
-                 float                  n,
-                 float                  t,
-                 float                  vs)
-    : depth(d), depthSize(framesize), noiseFactor(n),
-  timestamp(t), voxelsize(vs) {};
-
-  const float* depth;
-  Eigen::Vector2i depthSize;
-  float noiseFactor;
-  float timestamp;
-  float voxelsize;
 };
 #endif
