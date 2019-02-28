@@ -33,9 +33,13 @@
 #include <type_traits>
 
 inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
-    const Eigen::Vector3f& origin, const Eigen::Vector3f& direction,
-    const float tnear, const float tfar, const float, const float step,
-    const float) {
+                               const Eigen::Vector3f& origin,
+                               const Eigen::Vector3f& direction,
+                               const float            tnear,
+                               const float            tfar,
+                               const float,
+                               const float            step,
+                               const float) {
 
   auto select_occupancy = [](const auto& val){ return val.x; };
   if (tnear < tfar) {
@@ -49,10 +53,11 @@ inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
       for (; t < tfar; t += stepsize) {
         const Eigen::Vector3f pos =  origin + direction * t;
         Volume<OFusion>::value_type data = volume.get(pos);
-        if(data.x > -100.f && data.y > 0.f){
+        if (data.x > -100.f && data.y > 0.f) {
           f_tt = volume.interp(origin + direction * t, select_occupancy);
         }
-        if (f_tt > SURF_BOUNDARY) break;
+        if (f_tt > SURF_BOUNDARY)
+          break;
         f_t = f_tt;
       }
       if (f_tt > SURF_BOUNDARY) {

@@ -47,12 +47,13 @@ float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
   const float x2 = (floorf(proj.x() + 1));
   const float y2 = (floorf(proj.y()));
 
-  const float d11 = depth[int(x1) +  depth.width()*int(y1)];
-  const float d12 = depth[int(x1) +  depth.width()*int(y2)];
-  const float d21 = depth[int(x2) +  depth.width()*int(y1)];
-  const float d22 = depth[int(x2) +  depth.width()*int(y2)];
+  const float d11 = depth(int(x1), int(y1));
+  const float d12 = depth(int(x1), int(y2));
+  const float d21 = depth(int(x2), int(y1));
+  const float d22 = depth(int(x2), int(y2));
 
-  if( d11 == 0.f || d12 == 0.f || d21 == 0.f || d22 == 0.f ) return 0.f;
+  if ( d11 == 0.f || d12 == 0.f || d21 == 0.f || d22 == 0.f )
+    return 0.f;
 
   const float f11 = 1.f / d11;
   const float f12 = 1.f / d12;
@@ -69,73 +70,91 @@ float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
                     );
 
   static const float interp_thresh = 0.05f;
-  if (fabs(d - d11) < interp_thresh && fabs(d - d12) < interp_thresh &&
-      fabs(d - d21) < interp_thresh && fabs(d - d22) < interp_thresh)
+  if (fabs(d - d11) < interp_thresh
+      && fabs(d - d12) < interp_thresh
+      && fabs(d - d21) < interp_thresh
+      && fabs(d - d22) < interp_thresh) {
     return d;
-  else
-    return depth[int(proj.x() + 0.5f) + depth.width()*int(proj.y()+0.5f)];
+  } else {
+    return depth(int(proj.x() + 0.5f), int(proj.y() + 0.5f));
+  }
 }
 
-static inline float bspline_memoized(float t){
+static inline float bspline_memoized(float t) {
   float value = 0.f;
   constexpr float inverseRange = 1/6.f;
-  if(t >= -3.0f && t <= 3.0f) {
+  if (t >= -3.0f && t <= 3.0f) {
     unsigned int idx = ((t + 3.f)*inverseRange)*(bspline_num_samples - 1) + 0.5f;
     return bspline_lookup[idx];
-  }
-  else if(t > 3) {
+  } else if(t > 3) {
     value = 1.f;
   }
   return value;
 }
 
-static inline float HNew(const float val,const  float ){
-  const float Q_1 = bspline_memoized(val)    ;
+static inline float H(const float val,const  float) {
+  const float Q_1 = bspline_memoized(val);
   const float Q_2 = bspline_memoized(val - 3);
   return Q_1 - Q_2 * 0.5f;
 }
 
-static inline float updateLogs(const float prior, const float sample){
+static inline float updateLogs(const float prior, const float sample) {
   return (prior + log2(sample / (1.f - sample)));
 }
 
-static inline float applyWindow(const float occupancy, const float ,
-    const float delta_t, const float tau){
+static inline float applyWindow(const float occupancy,
+                                const float ,
+                                const float delta_t,
+                                const float tau) {
   float fraction = 1.f / (1.f + (delta_t / tau));
-  fraction = std::max(0.5f,fraction);
+  fraction = std::max(0.5f, fraction);
   return occupancy * fraction;
 }
 
 struct bfusion_update {
 
   template <typename DataHandlerT>
-  void operator()(DataHandlerT& handler, const Eigen::Vector3i&,
-      const Eigen::Vector3f& pos, const Eigen::Vector2f& pixel) {
+  void operator()(DataHandlerT&          handler,
+                  const Eigen::Vector3i&,
+                  const Eigen::Vector3f& pos,
+                  const Eigen::Vector2f& pixel) {
 
     const Eigen::Vector2i px = pixel.cast <int> ();
-    const float depthSample = depth[px(0) + depthSize(0)*px(1)];
-    if (depthSample <=  0) return;
+    const float depthSample = depth[px.x() + depthSize.x()*px.y()];
+    // Return on invalid depth measurement
+    if (depthSample <=  0)
+      return;
 
-    const float diff = (pos(2) - depthSample)
-      * std::sqrt( 1 + se::math::sq(pos(0) / pos(2)) + se::math::sq(pos(1) / pos(2)));
-    float sigma = se::math::clamp(noiseFactor * se::math::sq(pos(2)),
+    // Compute the occupancy probability for the current measurement.
+    const float diff = (pos.z() - depthSample)
+      * std::sqrt( 1 + se::math::sq(pos.x() / pos.z()) + se::math::sq(pos.y() / pos.z()));
+    float sigma = se::math::clamp(noiseFactor * se::math::sq(pos.z()),
         2*voxelsize, 0.05f);
-    float sample = HNew(diff/sigma, pos(2));
-    if(sample == 0.5f) return;
+    float sample = H(diff/sigma, pos.z());
+    if (sample == 0.5f)
+      return;
     sample = se::math::clamp(sample, 0.03f, 0.97f);
+
     auto data = handler.get();
+
+    // Update the occupancy probability
     const double delta_t = timestamp - data.y;
     data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
     data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
     data.y = timestamp;
+
     handler.set(data);
   }
 
-  bfusion_update(const float * d, const Eigen::Vector2i& framesize, float n,
-      float t, float vs): depth(d), depthSize(framesize), noiseFactor(n),
-  timestamp(t), voxelsize(vs){};
+  bfusion_update(const float*           d,
+                 const Eigen::Vector2i& framesize,
+                 float                  n,
+                 float                  t,
+                 float                  vs)
+    : depth(d), depthSize(framesize), noiseFactor(n),
+  timestamp(t), voxelsize(vs) {};
 
-  const float * depth;
+  const float* depth;
   Eigen::Vector2i depthSize;
   float noiseFactor;
   float timestamp;

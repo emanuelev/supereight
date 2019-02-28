@@ -31,9 +31,14 @@
 #include <se/utils/math_utils.h>
 #include <type_traits>
 
-inline Eigen::Vector4f raycast(const Volume<SDF>& volume, const Eigen::Vector3f& origin,
-    const Eigen::Vector3f& direction, const float tnear, const float tfar,
-    const float mu, const float step, const float largestep) {
+inline Eigen::Vector4f raycast(const Volume<SDF>&     volume,
+                               const Eigen::Vector3f& origin,
+                               const Eigen::Vector3f& direction,
+                               const float            tnear,
+                               const float            tfar,
+                               const float            mu,
+                               const float            step,
+                               const float            largestep) {
 
   auto select_depth = [](const auto& val){ return val.x; };
   if (tnear < tfar) {
@@ -46,13 +51,13 @@ inline Eigen::Vector4f raycast(const Volume<SDF>& volume, const Eigen::Vector3f&
     if (f_t > 0) { // ups, if we were already in it, then don't render anything here
       for (; t < tfar; t += stepsize) {
         Volume<SDF>::value_type data = volume.get(position);
-        if(data.y == 0){
+        if (data.y == 0) {
           stepsize = largestep;
           position += stepsize*direction;
           continue;
         }
         f_tt = data.x;
-        if(f_tt <= 0.1 && f_tt >= -0.5f){
+        if (f_tt <= 0.1 && f_tt >= -0.5f) {
           f_tt = volume.interp(position, select_depth);
         }
         if (f_tt < 0)                  // got it, jump out of inner loop
