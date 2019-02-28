@@ -47,12 +47,6 @@ float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
   const float x2 = (floorf(proj.x() + 1));
   const float y2 = (floorf(proj.y()));
 
-  // Half pixels
-  // const float x1 = (float) (int(proj.x - 0.5f)) + 0.5f;
-  // const float y1 = (float) (int(proj.y + 0.5f)) + 0.5f;
-  // const float x2 = (float) (int(proj.x + 0.5f)) + 0.5f;
-  // const float y2 = (float) (int(proj.y - 0.5f)) + 0.5f;
-
   const float d11 = depth[int(x1) +  depth.width()*int(y1)];
   const float d12 = depth[int(x1) +  depth.width()*int(y2)];
   const float d21 = depth[int(x2) +  depth.width()*int(y1)];
@@ -80,47 +74,6 @@ float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
     return d;
   else
     return depth[int(proj.x() + 0.5f) + depth.width()*int(proj.y()+0.5f)];
-
-  // Non-Filtering version
-  // return  1.f /
-  //         ( (   f11 * (x2 - proj.x) * (y2 - proj.y)
-  //             + f21 * (proj.x - x1) * (y2 - proj.y)
-  //             + f12 * (x2 - proj.x) * (proj.y - y1)
-  //             + f22 * (proj.x - x1) * (proj.y - y1)
-  //           ) / ((x2 - x1) * (y2 - y1))
-  //         );
-}
-
-static inline float bspline(float t){
-  float value = 0.f;
-  if(t >= -3.0f && t <= -1.0f) {
-    value = std::pow((3 + t), 3)/48.0f;
-  } else if( t > -1 && t <= 1) {
-    value = 0.5f + (t*(3 + t)*(3 - t))/24.f;
-  } else if(t > 1 && t <= 3){
-    value = 1 - std::pow((3 - t), 3)/48.f;
-  } else if(t > 3) {
-    value = 1.f;
-  }
-  return value;
-}
-
-static inline float H(const float val){
-  const float Q_1 = bspline(val);
-  const float Q_2 = bspline(val - 3);
-  return Q_1 - Q_2 * 0.5f;
-}
-
-static const double const_offset =  0.0000001f;
-const float scale_factor = (1.f - (farPlane - nearPlane) * const_offset);
-
-static inline float const_offset_integral(float t){
-  float value = 0.f;
-  if (nearPlane <= t && t <= farPlane)
-      return (t - nearPlane) * const_offset;
-  else if (farPlane < t)
-      return (farPlane - nearPlane) * const_offset;
-  return value;
 }
 
 static inline float bspline_memoized(float t){
@@ -137,13 +90,12 @@ static inline float bspline_memoized(float t){
 }
 
 static inline float HNew(const float val,const  float ){
-  const float Q_1 = bspline_memoized(val)    ; // * scale_factor + const_offset_integral(d_xr      );
-  const float Q_2 = bspline_memoized(val - 3); // * scale_factor + const_offset_integral(d_xr - 3.f);
+  const float Q_1 = bspline_memoized(val)    ;
+  const float Q_2 = bspline_memoized(val - 3);
   return Q_1 - Q_2 * 0.5f;
 }
 
 static inline float updateLogs(const float prior, const float sample){
-  // return (prior + se::math::clamp(log2(sample / (1.f - sample)), -100, 100));
   return (prior + log2(sample / (1.f - sample)));
 }
 
