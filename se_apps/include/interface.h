@@ -56,9 +56,9 @@ class DepthReader {
     virtual bool readNextDepthFrame(uchar3*              raw_rgb,
                                     unsigned short int * depthMap) = 0;
 
-    virtual bool readNextData(uchar3*          rgb_image,
-                              uint16_t*        depth_image,
-                              Eigen::Matrix4f& pose) {};
+    virtual bool readNextData(uchar3*          ,
+                              uint16_t*        ,
+                              Eigen::Matrix4f& ) {return false;};
 
     virtual Eigen::Vector4f getK() = 0;
 
@@ -787,16 +787,19 @@ class OpenNIDepthReader: public DepthReader {
       cameraActive = false;
     }
 
-    bool readNextDepthFrame(float * depthMap) {
+    bool readNextDepthFrame(float * ) { return false;
     }
 
-    bool readNextDepthFrame(uchar3* raw_rgb, unsigned short int * depthMap) {
+    bool readNextDepthFrame(uchar3* , unsigned short int * ) {
+      return false;
     }
 
     Eigen::Vector4f getK() {
-    }
+      return Eigen::Vector4f::Constant(0.f);
+    } 
 
     uint2 getinputSize() {
+      return make_uint2(0);
     }
 
     void restart() {

@@ -880,12 +880,12 @@ void Octree<T>::save(const std::string& filename) {
 
     size_t n = nodes_buffer_.size();
     os.write(reinterpret_cast<char *>(&n), sizeof(size_t));
-    for(int i = 0; i < n; ++i)
+    for(size_t i = 0; i < n; ++i)
       internal::serialise(os, *nodes_buffer_[i]);
 
     n = block_buffer_.size();
     os.write(reinterpret_cast<char *>(&n), sizeof(size_t));
-    for(int i = 0; i < n; ++i)
+    for(size_t i = 0; i < n; ++i)
       internal::serialise(os, *block_buffer_[i]);
   }
 }
@@ -905,7 +905,7 @@ void Octree<T>::load(const std::string& filename) {
     is.read(reinterpret_cast<char *>(&n), sizeof(size_t));
     nodes_buffer_.reserve(n);
     std::cout << "Reading " << n << " nodes " << std::endl;
-    for(int i = 0; i < n; ++i) {
+    for(size_t i = 0; i < n; ++i) {
       Node<T> tmp;
       internal::deserialise(tmp, is);
       Eigen::Vector3i coords = keyops::decode(tmp.code_);
@@ -915,7 +915,7 @@ void Octree<T>::load(const std::string& filename) {
 
     is.read(reinterpret_cast<char *>(&n), sizeof(size_t));
     std::cout << "Reading " << n << " blocks " << std::endl;
-    for(int i = 0; i < n; ++i) {
+    for(size_t i = 0; i < n; ++i) {
       VoxelBlock<T> tmp;
       internal::deserialise(tmp, is);
       Eigen::Vector3i coords = tmp.coordinates();

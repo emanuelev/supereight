@@ -89,9 +89,9 @@ size_t buildOctantList(HashType*              allocationList,
   const Eigen::Vector3f camera = pose.topRightCorner<3, 1>();
   voxelCount = 0;
 #pragma omp parallel for
-  for (unsigned int y = 0; y < imageSize.y(); ++y) {
-    for (unsigned int x = 0; x < imageSize.x(); ++x) {
-      if (depthmap[x + y*imageSize.x()] == 0)
+  for (int y = 0; y < imageSize.y(); ++y) {
+    for (int x = 0; x < imageSize.x(); ++x) {
+      if(depthmap[x + y*imageSize.x()] == 0)
         continue;
       int tree_depth = max_depth;
       float stepsize = voxelSize;

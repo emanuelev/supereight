@@ -200,15 +200,12 @@ int main(int argc, char ** argv) {
 
 int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		Configuration *config, bool reset) {
-	static float duration = tick();
 	static int frameOffset = 0;
 	static bool firstFrame = true;
-	bool tracked, integrated, raycasted;
-	double start, end, startCompute, endCompute;
-	uint2 render_vol_size;
+	bool tracked = false, integrated = false, raycasted = false;
 	std::chrono::time_point<std::chrono::steady_clock> timings[7];
 	float3 pos;
-	int frame;
+	int frame = 0;
 	const uint2 inputSize =
 			(reader != NULL) ? reader->getinputSize() : make_uint2(640, 480);
   Eigen::Vector4f camera =
