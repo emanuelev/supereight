@@ -104,7 +104,6 @@ int main(int argc, char ** argv) {
       init_pose,
       config.pyramid, config);
      
-  bool bilateralfilter = false;
 	std::chrono::time_point<std::chrono::steady_clock> timings[7];
 	timings[0] = std::chrono::steady_clock::now();
 
@@ -115,7 +114,7 @@ int main(int argc, char ** argv) {
 
     while (reader->readNextDepthFrame(inputDepth)) {
 
-		bool tracked, integrated, raycasted;
+		bool tracked = false, integrated = false;
 
 		timings[1] = std::chrono::steady_clock::now();
 
@@ -148,7 +147,7 @@ int main(int argc, char ** argv) {
 
 		timings[4] = std::chrono::steady_clock::now();
 
-		raycasted = pipeline.raycasting(camera, config.mu, frame);
+		pipeline.raycasting(camera, config.mu, frame);
 
 		timings[5] = std::chrono::steady_clock::now();
 

@@ -74,8 +74,8 @@ unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
   const int numSteps = ceil(band*inverseVoxelSize);
   voxelCount = 0;
 #pragma omp parallel for
-  for (unsigned int y = 0; y < imageSize.y(); ++y) {
-    for (unsigned int x = 0; x < imageSize.x(); ++x) {
+  for (int y = 0; y < imageSize.y(); ++y) {
+    for (int x = 0; x < imageSize.x(); ++x) {
       if(depthmap[x + y*imageSize.x()] == 0)
         continue;
       const float depth = depthmap[x + y*imageSize.x()];

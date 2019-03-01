@@ -13,6 +13,4 @@
   auto diff = tockdata - tickdata;\
   Stats.sample(str, std::chrono::duration_cast<std::chrono::nanoseconds>(diff).count()); \
 }
-
-static bool print_kernel_timing = false;
 #endif //TIMINGS_H

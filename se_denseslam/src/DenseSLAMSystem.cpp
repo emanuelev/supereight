@@ -51,6 +51,7 @@
 
 
 extern PerfStats Stats;
+static bool print_kernel_timing = false;
 
 DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
                                  const Eigen::Vector3i& volumeResolution,
