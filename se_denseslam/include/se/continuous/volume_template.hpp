@@ -88,7 +88,8 @@ class VolumeTemplate {
 
     value_type get(const Eigen::Vector3f & p) const {
       const float inverseVoxelSize = _size/_dim;
-      const Eigen::Vector4i scaled_pos = (inverseVoxelSize * p.homogeneous()).cast<int>();
+      const Eigen::Vector4i scaled_pos = (inverseVoxelSize * p.homogeneous()
+          - voxel_offset.homogeneous()).cast<int>();
         return _map_index->get_fine(scaled_pos.x(), 
                                     scaled_pos.y(), 
                                     scaled_pos.z());
@@ -101,7 +102,7 @@ class VolumeTemplate {
     template <typename FieldSelector>
     float interp(const Eigen::Vector3f& pos, FieldSelector select) const {
       const float inverseVoxelSize = _size / _dim;
-      Eigen::Vector3f discrete_pos = inverseVoxelSize * pos;
+      Eigen::Vector3f discrete_pos = inverseVoxelSize * pos - voxel_offset;
       return _map_index->interp(discrete_pos, select);
     }
 
@@ -162,7 +163,5 @@ const float inverseVoxelSize = _size / _dim;
 
 template <typename FieldType, template<typename> class DiscreteMapT> 
 const Eigen::Vector3f VolumeTemplate<FieldType, DiscreteMapT>::voxel_offset = 
-  Eigen::Vector3f::Constant(0.5f);
-
- 
+  Eigen::Vector3f::Constant(SAMPLE_POINT_POSITION);
 #endif
