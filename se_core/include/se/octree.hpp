@@ -566,16 +566,90 @@ float Octree<T>::interp(const Eigen::Vector3f& pos, const int stride,
 
 template <typename T>
 template <typename FieldSelector>
-Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos, const int stride, 
+Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos, const int scale, 
     FieldSelector select) const {
 
+  const float invscale = 1.f/scale;
+  const Eigen::Vector3f scaled_pos = invscale * pos;
+  Eigen::Vector3i base = Eigen::Vector3i(math::floorf(scaled_pos).cast<int>());
+  Eigen::Vector3f factor = math::fracf(scaled_pos);
+  Eigen::Vector3i lower_lower = scale * (base - Eigen::Vector3i::Constant(1)).cwiseMax(Eigen::Vector3i::Constant(0));
+  Eigen::Vector3i lower_upper = scale * base.cwiseMax(Eigen::Vector3i::Constant(0));
+  Eigen::Vector3i upper_lower = (scale * (base + Eigen::Vector3i::Constant(1))).cwiseMin(
+      Eigen::Vector3i::Constant(size_) - Eigen::Vector3i::Constant(1));
+  Eigen::Vector3i upper_upper = (scale * (base + Eigen::Vector3i::Constant(2))).cwiseMin(
+      Eigen::Vector3i::Constant(size_) - Eigen::Vector3i::Constant(1));
+  Eigen::Vector3i & lower = lower_upper;
+  Eigen::Vector3i & upper = upper_lower;
+
   Eigen::Vector3f gradient;
-  gradient.x() = interp(pos + Eigen::Vector3f(static_cast<float>(stride), 0.f, 0.f), 1, select) - 
-    interp(pos - Eigen::Vector3f(static_cast<float>(stride), 0.f, 0.f), 1, select);
-  gradient.y() = interp(pos + Eigen::Vector3f(0.f, static_cast<float>(stride), 0.f), 1, select) - 
-    interp(pos - Eigen::Vector3f(0.f, static_cast<float>(stride), 0.f), 1, select);
-  gradient.z() = interp(pos + Eigen::Vector3f(0.f, 0.f, static_cast<float>(stride)), 1, select) - 
-    interp(pos - Eigen::Vector3f(0.f, 0.f, static_cast<float>(stride)), 1, select);
+
+  VoxelBlock<T> * n = fetch(base.x(), base.y(), base.z());
+  gradient.x() = (((select(get(upper_lower.x(), lower.y(), lower.z(), n))
+          - select(get(lower_lower.x(), lower.y(), lower.z(), n))) * (1 - factor.x())
+        + (select(get(upper_upper.x(), lower.y(), lower.z(), n))
+          - select(get(lower_upper.x(), lower.y(), lower.z(), n))) * factor.x())
+      * (1 - factor.y())
+      + ((select(get(upper_lower.x(), upper.y(), lower.z(), n))
+          - select(get(lower_lower.x(), upper.y(), lower.z(), n))) * (1 - factor.x())
+        + (select(get(upper_upper.x(), upper.y(), lower.z(), n))
+          - select(get(lower_upper.x(), upper.y(), lower.z(), n)))
+        * factor.x()) * factor.y()) * (1 - factor.z())
+    + (((select(get(upper_lower.x(), lower.y(), upper.z(), n))
+            - select(get(lower_lower.x(), lower.y(), upper.z(), n))) * (1 - factor.x())
+          + (select(get(upper_upper.x(), lower.y(), upper.z(), n))
+            - select(get(lower_upper.x(), lower.y(), upper.z(), n)))
+          * factor.x()) * (1 - factor.y())
+        + ((select(get(upper_lower.x(), upper.y(), upper.z(), n))
+            - select(get(lower_lower.x(), upper.y(), upper.z(), n)))
+          * (1 - factor.x())
+          + (select(get(upper_upper.x(), upper.y(), upper.z(), n))
+            - select(get(lower_upper.x(), upper.y(), upper.z(), n)))
+          * factor.x()) * factor.y()) * factor.z();
+
+  gradient.y() = (((select(get(lower.x(), upper_lower.y(), lower.z(), n))
+          - select(get(lower.x(), lower_lower.y(), lower.z(), n))) * (1 - factor.x())
+        + (select(get(upper.x(), upper_lower.y(), lower.z(), n))
+          - select(get(upper.x(), lower_lower.y(), lower.z(), n))) * factor.x())
+      * (1 - factor.y())
+      + ((select(get(lower.x(), upper_upper.y(), lower.z(), n))
+          - select(get(lower.x(), lower_upper.y(), lower.z(), n))) * (1 - factor.x())
+        + (select(get(upper.x(), upper_upper.y(), lower.z(), n))
+          - select(get(upper.x(), lower_upper.y(), lower.z(), n)))
+        * factor.x()) * factor.y()) * (1 - factor.z())
+    + (((select(get(lower.x(), upper_lower.y(), upper.z(), n))
+            - select(get(lower.x(), lower_lower.y(), upper.z(), n))) * (1 - factor.x())
+          + (select(get(upper.x(), upper_lower.y(), upper.z(), n))
+            - select(get(upper.x(), lower_lower.y(), upper.z(), n)))
+          * factor.x()) * (1 - factor.y())
+        + ((select(get(lower.x(), upper_upper.y(), upper.z(), n))
+            - select(get(lower.x(), lower_upper.y(), upper.z(), n)))
+          * (1 - factor.x())
+          + (select(get(upper.x(), upper_upper.y(), upper.z(), n))
+            - select(get(upper.x(), lower_upper.y(), upper.z(), n)))
+          * factor.x()) * factor.y()) * factor.z();
+
+  gradient.z() = (((select(get(lower.x(), lower.y(), upper_lower.z(), n))
+          - select(get(lower.x(), lower.y(), lower_lower.z(), n))) * (1 - factor.x())
+        + (select(get(upper.x(), lower.y(), upper_lower.z(), n))
+          - select(get(upper.x(), lower.y(), lower_lower.z(), n))) * factor.x())
+      * (1 - factor.y())
+      + ((select(get(lower.x(), upper.y(), upper_lower.z(), n))
+          - select(get(lower.x(), upper.y(), lower_lower.z(), n))) * (1 - factor.x())
+        + (select(get(upper.x(), upper.y(), upper_lower.z(), n))
+          - select(get(upper.x(), upper.y(), lower_lower.z(), n)))
+        * factor.x()) * factor.y()) * (1 - factor.z())
+    + (((select(get(lower.x(), lower.y(), upper_upper.z(), n))
+            - select(get(lower.x(), lower.y(), lower_upper.z(), n))) * (1 - factor.x())
+          + (select(get(upper.x(), lower.y(), upper_upper.z(), n))
+            - select(get(upper.x(), lower.y(), lower_upper.z(), n)))
+          * factor.x()) * (1 - factor.y())
+        + ((select(get(lower.x(), upper.y(), upper_upper.z(), n))
+            - select(get(lower.x(), upper.y(), lower_upper.z(), n)))
+          * (1 - factor.x())
+          + (select(get(upper.x(), upper.y(), upper_upper.z(), n))
+            - select(get(upper.x(), upper.y(), lower_upper.z(), n)))
+          * factor.x()) * factor.y()) * factor.z();
 
   return (0.5f * dim_ / size_) * gradient;
 }

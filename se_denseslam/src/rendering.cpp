@@ -72,7 +72,7 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
       if(hit.w() > 0.0) {
         vertex[x + y * vertex.width()] = hit.head<3>();
         Eigen::Vector3f surfNorm = volume.grad(hit.head<3>(), 
-            hit.w() > 2.f ? 2 : 1,
+            1,
             [](const auto& val){ return val.x; });
         if (surfNorm.norm() == 0) {
           //normal[pos] = normalize(surfNorm); // APN added
