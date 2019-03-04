@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2016 Emanuele Vespa, Imperial College London 
+ * Copyright 2016 Emanuele Vespa, Imperial College London
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@
  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * */
 #ifndef KFUSION_MAPPING_HPP
@@ -33,35 +33,43 @@
 #include <se/node.hpp>
 
 struct sdf_update {
+  const float* depth;
+  Eigen::Vector2i depthSize;
+  float mu;
+  int maxweight;
+
+  sdf_update(const float*           d,
+             const Eigen::Vector2i& framesize,
+             float                  m,
+             int                    mw)
+    : depth(d), depthSize(framesize), mu(m), maxweight(mw) {};
 
   template <typename DataHandlerT>
-  void operator()(DataHandlerT& handler, const Eigen::Vector3i&, 
-      const Eigen::Vector3f& pos, const Eigen::Vector2f& pixel) {
+  void operator()(DataHandlerT&          handler,
+                  const Eigen::Vector3i&,
+                  const Eigen::Vector3f& pos,
+                  const Eigen::Vector2f& pixel) {
 
     const Eigen::Vector2i px = pixel.cast<int>();
-    const float depthSample = depth[px(0) + depthSize(0)*px(1)];
-    if (depthSample <=  0) return;
-    const float diff = (depthSample - pos(2)) 
-      * std::sqrt( 1 + se::math::sq(pos(0) / pos(2)) + se::math::sq(pos(1) / pos(2)));
+    const float depthSample = depth[px.x() + depthSize.x()*px.y()];
+    // Return on invalid depth measurement
+    if (depthSample <=  0)
+      return;
+
+    // Update the TSDF
+    const float diff = (depthSample - pos.z())
+      * std::sqrt( 1 + se::math::sq(pos.x() / pos.z()) + se::math::sq(pos.y() / pos.z()));
     if (diff > -mu) {
       const float sdf = fminf(1.f, diff / mu);
       auto data = handler.get();
       data.x = se::math::clamp(
-          (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f), 
+          (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f),
           -1.f,
           1.f);
       data.y = fminf(data.y + 1, maxweight);
       handler.set(data);
     }
-  } 
-
-  sdf_update(const float * d, const Eigen::Vector2i framesize, float m, int mw) : 
-    depth(d), depthSize(framesize), mu(m), maxweight(mw){};
-
-  const float * depth;
-  Eigen::Vector2i depthSize;
-  float mu;
-  int maxweight;
+  }
 };
 
 #endif

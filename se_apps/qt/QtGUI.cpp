@@ -214,7 +214,6 @@ CameraState setEnableCamera(CameraState state, string inputFile) {
 
 //This function is passed to QT and is called whenever we aren't busy i.e in a constant loop
 void qtIdle(void) {
-	static bool shod = false;
 	//This will set the view for rendering the model, either to the tracked camera view or the static view    
   Eigen::Matrix4f pose = (rot * trans).matrix();
 	if (usePOV)
@@ -231,7 +230,6 @@ void qtIdle(void) {
 			} else {
 				(*reader_pp)->cameraActive = false;
 				(*reader_pp)->cameraOpen = false;
-				shod = true;
 			}
 		} else {
 			reset = false;
@@ -363,17 +361,14 @@ appWindow	->addButtonChoices("Compute Res",
 			((*reader_pp) == NULL) ? 480 : ((*reader_pp)->getinputSize()).y);
 
 	FImage rgbImage = { width, height, GL_RGB, GL_UNSIGNED_BYTE, inputRGB };
-	bool rgbDepthEnabled = true;
 	FImage depthImage =
 			{ cwidth, cheight, GL_RGBA, GL_UNSIGNED_BYTE, depthRender };
 	FImage trackImage =
 			{ cwidth, cheight, GL_RGBA, GL_UNSIGNED_BYTE, trackRender };
-	bool trackResultEnabled = true;
 	//FImage volumeImage = { width, height, GL_RGB, GL_UNSIGNED_BYTE, volumeRender};
 	FImage volumeImage = { config->render_volume_fullsize ? width : cwidth,
 			config->render_volume_fullsize ? height : cheight, GL_RGBA,
 			GL_UNSIGNED_BYTE, volumeRender };
-	bool volResultEnabled = true;
 	appWindow->viewers->addViewer(rgbImage, (const char *) "RGB image",
 			(const char *) "RGB representation of input, unused in processing",
 			NULL, false);
