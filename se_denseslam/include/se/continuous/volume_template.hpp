@@ -82,7 +82,7 @@ class VolumeTemplate {
                                     scaled_pos.z());
     }
 
-    value_type operator[](const Eigen::Vector3f& p) const {
+    value_type operator[](const Eigen::Vector3i& p) const {
       return _map_index->get(p.x(), p.y(), p.z());
     }
 
