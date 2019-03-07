@@ -202,8 +202,8 @@ void new_reduce(int blockIndex, float * out, TrackData* J,
 	sums[31] = sums31;
 
 }
-void reduceKernel(float * out, TrackData* J, const Eigen::Vector2i Jsize,
-		const Eigen::Vector2i size) {
+void reduceKernel(float * out, TrackData* J, const Eigen::Vector2i& Jsize,
+		const Eigen::Vector2i& size) {
 	TICK();
 	int blockIndex;
 #ifdef OLDREDUCE
@@ -301,7 +301,7 @@ void trackKernel(TrackData* output,
 	TOCK("trackKernel", inSize.x * inSize.y);
 }
 
-bool updatePoseKernel(Eigen::Matrix4f & pose, const float * output,
+bool updatePoseKernel(Eigen::Matrix4f& pose, const float * output,
 		float icp_threshold) {
 	bool res = false;
 	TICK();
@@ -317,7 +317,7 @@ bool updatePoseKernel(Eigen::Matrix4f & pose, const float * output,
 	return res;
 }
 
-bool checkPoseKernel(Eigen::Matrix4f& pose, Eigen::Matrix4f oldPose, 
+bool checkPoseKernel(Eigen::Matrix4f& pose, Eigen::Matrix4f& oldPose, 
     const float * output, const Eigen::Vector2i& imageSize, 
     float track_threshold) {
 

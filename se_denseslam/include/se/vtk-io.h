@@ -38,7 +38,7 @@
 
 template <typename T>
 void savePointCloud(const T* in, const int num_points, 
-    const char* filename, const Eigen::Vector3f init_pose){
+    const char* filename, const Eigen::Vector3f& init_pose){
   std::stringstream points;
 
   for(int i = 0; i < num_points; ++i ){
@@ -112,9 +112,9 @@ void savePointCloud(const T* in, const int num_points,
 // } 
 
 template <typename MapType>
-void save3DSlice(const MapType& in, const Eigen::Vector3i lower, 
-    const Eigen::Vector3i upper, 
-    const Eigen::Vector3i, const char* filename){
+void save3DSlice(const MapType& in, const Eigen::Vector3i& lower, 
+    const Eigen::Vector3i& upper, 
+    const Eigen::Vector3i&, const char* filename){
   std::stringstream x_coordinates, y_coordinates, z_coordinates, scalars;
   std::ofstream f;
   f.open(filename);
@@ -160,9 +160,9 @@ void save3DSlice(const MapType& in, const Eigen::Vector3i lower,
 } 
 
 template <typename MapType, typename MapOp>
-void save3DSlice(const MapType& in, MapOp op, const Eigen::Vector3i lower, 
-    const Eigen::Vector3i upper, 
-    const Eigen::Vector3i, const char* filename){
+void save3DSlice(const MapType& in, MapOp op, const Eigen::Vector3i& lower, 
+    const Eigen::Vector3i& upper, 
+    const Eigen::Vector3i&, const char* filename){
   std::stringstream x_coordinates, y_coordinates, z_coordinates, scalars;
   std::ofstream f;
   f.open(filename);
@@ -208,7 +208,7 @@ void save3DSlice(const MapType& in, MapOp op, const Eigen::Vector3i lower,
 } 
 
 template <typename BlockList>
-void saveBlockList(const BlockList& in, const Eigen::Vector3i shift, const char* filename){
+void saveBlockList(const BlockList& in, const Eigen::Vector3i& shift, const char* filename){
 
   std::stringstream x_coordinates, y_coordinates, z_coordinates, scalars;
   std::ofstream f;
@@ -277,7 +277,7 @@ void saveBlockList(const BlockList& in, const Eigen::Vector3i shift, const char*
   f.close();
 } 
 
-void printNormals(const se::Image<Eigen::Vector3f> in, const unsigned int xdim, 
+void printNormals(const se::Image<Eigen::Vector3f>& in, const unsigned int xdim, 
                  const unsigned int ydim, const char* filename) {
   unsigned char* image = new unsigned char [xdim * ydim * 4];
   for(unsigned int y = 0; y < ydim; ++y)
