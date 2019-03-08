@@ -41,7 +41,6 @@
 #include <se/vtk-io.h>
 #include "timings.h"
 #include <perfstats.h>
-#include "preprocessing.cpp"
 #include "tracking.cpp"
 #include "rendering.cpp"
 #include "bfusion/mapping_impl.hpp"

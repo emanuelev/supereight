@@ -36,9 +36,12 @@
 #define _KERNELS_
 
 #include <cstdlib>
-#include <se/commons.h>
 #include <iostream>
 #include <memory>
+
+#include <Eigen/Dense>
+
+#include <se/commons.h>
 #include <perfstats.h>
 #include <timings.h>
 #include <se/config.h>
@@ -46,7 +49,7 @@
 #include <se/image/image.hpp>
 #include "volume_traits.hpp"
 #include "continuous/volume_template.hpp"
-#include <Eigen/Dense>
+#include <se/preprocessing.hpp>
 
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.

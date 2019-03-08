@@ -6,7 +6,7 @@
  This code is licensed under the MIT License.
 
 
- Copyright 2016 Emanuele Vespa, Imperial College London 
+ Copyright 2016 Emanuele Vespa, Imperial College London
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
@@ -31,16 +31,16 @@
  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "timings.h"
-#include <se/utils/math_utils.h>
 
-#include <functional>
-#include <se/image/image.hpp>
+#include <se/preprocessing.hpp>
 
-void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
-		const std::vector<float>& gaussian, float e_d, int r) {
+void bilateralFilterKernel(se::Image<float>&         out,
+                           const se::Image<float>&   in,
+		                   const std::vector<float>& gaussian,
+                           const float               e_d,
+                           const int                 r) {
 
 	if ((in.width() != out.width()) || in.height() != out.height()) {
 		std::cerr << "input/output image sizes differ." << std::endl;
@@ -53,7 +53,7 @@ void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
 		int y;
 		float e_d_squared_2 = e_d * e_d * 2;
 #pragma omp parallel for \
-	    shared(out),private(y)   
+	    shared(out),private(y)
 		for (y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				unsigned int pos = x + y * width;
@@ -88,9 +88,9 @@ void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
 		TOCK("bilateralFilterKernel", width * height);
 }
 
-  void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex, 
-                         const se::Image<float>& depth,
-                         const Eigen::Matrix4f& invK) {
+void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
+                        const se::Image<float>&     depth,
+                        const Eigen::Matrix4f&      invK) {
 	TICK();
 	int x, y;
 #pragma omp parallel for \
@@ -110,9 +110,14 @@ void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
 	TOCK("depth2vertexKernel", imageSize.x * imageSize.y);
 }
 
+// Explicit instantiation
+template void vertex2normalKernel<true>(se::Image<Eigen::Vector3f>& out,
+                                        const se::Image<Eigen::Vector3f>& in);
+template void vertex2normalKernel<false>(se::Image<Eigen::Vector3f>& out,
+                                         const se::Image<Eigen::Vector3f>& in);
 template <bool NegY>
-void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out, 
-    const se::Image<Eigen::Vector3f>& in) {
+void vertex2normalKernel(se::Image<Eigen::Vector3f>&       out,
+                         const se::Image<Eigen::Vector3f>& in) {
   TICK();
   int x, y;
   int width = in.width();
@@ -133,7 +138,7 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out,
 
       // Swapped to match the left-handed coordinate system of ICL-NUIM
       Eigen::Vector2i pup, pdown;
-      if(NegY) {
+      if (NegY) {
         pup = Eigen::Vector2i(x, std::max(int(y) - 1, 0));
         pdown = Eigen::Vector2i(x, std::min(y + 1, ((int) height) - 1));
       } else {
@@ -158,8 +163,9 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out,
   TOCK("vertex2normalKernel", width * height);
 }
 
-void mm2metersKernel(se::Image<float>& out, const unsigned short* in, 
-    const Eigen::Vector2i& inputSize) {
+void mm2metersKernel(se::Image<float>&      out,
+                     const unsigned short*  in,
+                     const Eigen::Vector2i& inputSize) {
 	TICK();
 	// Check for unsupported conditions
 	if ((inputSize.x() < out.width()) || inputSize.y() < out.height()) {
@@ -187,9 +193,10 @@ void mm2metersKernel(se::Image<float>& out, const unsigned short* in,
 	TOCK("mm2metersKernel", outSize.x * outSize.y);
 }
 
-void halfSampleRobustImageKernel(se::Image<float>& out, 
-                                const se::Image<float>& in,
-                                const float e_d, const int r) {
+void halfSampleRobustImageKernel(se::Image<float>&       out,
+                                 const se::Image<float>& in,
+                                 const float             e_d,
+                                 const int               r) {
 	if ((in.width() / out.width() != 2) || ( in.height() / out.height() != 2)) {
 		std::cerr << "Invalid ratio." << std::endl;
 		exit(1);
@@ -208,9 +215,9 @@ void halfSampleRobustImageKernel(se::Image<float>& out,
 			const float center = in[centerPixel.x() + centerPixel.y() * in.width()];
 			for (int i = -r + 1; i <= r; ++i) {
 				for (int j = -r + 1; j <= r; ++j) {
-          Eigen::Vector2i cur = centerPixel + Eigen::Vector2i(j, i); 
-          se::math::clamp(cur, 
-                Eigen::Vector2i::Constant(0), 
+          Eigen::Vector2i cur = centerPixel + Eigen::Vector2i(j, i);
+          se::math::clamp(cur,
+                Eigen::Vector2i::Constant(0),
                 Eigen::Vector2i(2 * out.width() - 1, 2 * out.height() - 1));
 					float current = in[cur.x() + cur.y() * in.width()];
 					if (fabsf(current - center) < e_d) {
