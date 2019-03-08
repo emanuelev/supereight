@@ -6,7 +6,7 @@
  This code is licensed under the MIT License.
 
 
- Copyright 2016 Emanuele Vespa, Imperial College London 
+ Copyright 2016 Emanuele Vespa, Imperial College London
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
@@ -31,13 +31,10 @@
  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <se/utils/math_utils.h>
-#include "timings.h"
 
-#include <se/commons.h>
-#include <se/image/image.hpp>
+#include <se/tracking.hpp>
 
 static inline Eigen::Matrix<float, 6, 6> makeJTJ(const Eigen::Matrix<float, 1, 21>& v) {
 	Eigen::Matrix<float, 6, 6> C = Eigen::Matrix<float, 6, 6>::Zero();
@@ -63,9 +60,11 @@ static inline Eigen::Matrix<float, 6, 1> solve(const Eigen::Matrix<float, 1, 27>
 	return llt.info() == Eigen::Success ? res : Eigen::Matrix<float, 6, 1>::Constant(0.f);
 }
 
-void new_reduce(int blockIndex, float * out, TrackData* J, 
-    const Eigen::Vector2i& Jsize,
-		const Eigen::Vector2i& size) {
+void new_reduce(int                    blockIndex,
+                float*                 out,
+                TrackData*             J,
+                const Eigen::Vector2i& Jsize,
+                const Eigen::Vector2i& size) {
 	float *sums = out + blockIndex * 32;
 
 	for (unsigned int i = 0; i < 32; ++i)
@@ -106,7 +105,7 @@ void new_reduce(int blockIndex, float * out, TrackData* J,
 	sums29 = 0.0f;
 	sums30 = 0.0f;
 	sums31 = 0.0f;
-// comment me out to try coarse grain parallelism 
+// comment me out to try coarse grain parallelism
 #pragma omp parallel for reduction(+:sums0,sums1,sums2,sums3,sums4,sums5,sums6,sums7,sums8,sums9,sums10,sums11,sums12,sums13,sums14,sums15,sums16,sums17,sums18,sums19,sums20,sums21,sums22,sums23,sums24,sums25,sums26,sums27,sums28,sums29,sums30,sums31)
 	for (int y = blockIndex; y < size.y(); y += 8) {
 		for (int x = 0; x < size.x(); x++) {
@@ -202,8 +201,11 @@ void new_reduce(int blockIndex, float * out, TrackData* J,
 	sums[31] = sums31;
 
 }
-void reduceKernel(float * out, TrackData* J, const Eigen::Vector2i& Jsize,
-		const Eigen::Vector2i& size) {
+
+void reduceKernel(float*                 out,
+                  TrackData*             J,
+                  const Eigen::Vector2i& Jsize,
+		          const Eigen::Vector2i& size) {
 	TICK();
 	int blockIndex;
 #ifdef OLDREDUCE
@@ -223,15 +225,15 @@ void reduceKernel(float * out, TrackData* J, const Eigen::Vector2i& Jsize,
 	TOCK("reduceKernel", 512);
 }
 
-void trackKernel(TrackData* output, 
-    const se::Image<Eigen::Vector3f>& inVertex,
-		const se::Image<Eigen::Vector3f>& inNormal, 
-    const se::Image<Eigen::Vector3f>&  refVertex,
-		const se::Image<Eigen::Vector3f>& refNormal, 
-    const Eigen::Matrix4f& Ttrack,
-		const Eigen::Matrix4f& view, 
-    const float dist_threshold,
-		const float normal_threshold) {
+void trackKernel(TrackData*                        output,
+                 const se::Image<Eigen::Vector3f>& inVertex,
+                 const se::Image<Eigen::Vector3f>& inNormal,
+                 const se::Image<Eigen::Vector3f>& refVertex,
+                 const se::Image<Eigen::Vector3f>& refNormal,
+                 const Eigen::Matrix4f&            Ttrack,
+                 const Eigen::Matrix4f&            view,
+                 const float                       dist_threshold,
+                 const float                       normal_threshold) {
 	TICK();
 	Eigen::Vector2i   pixel(0, 0);
   Eigen::Vector2i  inSize( inVertex.width(),  inVertex.height());
@@ -252,7 +254,7 @@ void trackKernel(TrackData* output,
 				continue;
 			}
 
-			const Eigen::Vector3f projectedVertex = (Ttrack * 
+			const Eigen::Vector3f projectedVertex = (Ttrack *
           inVertex[pixel.x() + pixel.y() * inSize.x()].homogeneous()).head<3>();
 			const Eigen::Vector3f projectedPos = (view * projectedVertex.homogeneous()).head<3>();
 			const Eigen::Vector2f projPixel(
@@ -275,7 +277,7 @@ void trackKernel(TrackData* output,
 
 			const Eigen::Vector3f diff = refVertex[refPixel.x() + refPixel.y() * refSize.x()]
 					- projectedVertex;
-			const Eigen::Vector3f projectedNormal = Ttrack.topLeftCorner<3, 3>() * 
+			const Eigen::Vector3f projectedNormal = Ttrack.topLeftCorner<3, 3>() *
 					inNormal[pixel.x() + pixel.y() * inSize.x()];
 
 			if (diff.norm() > dist_threshold) {
@@ -301,8 +303,9 @@ void trackKernel(TrackData* output,
 	TOCK("trackKernel", inSize.x * inSize.y);
 }
 
-bool updatePoseKernel(Eigen::Matrix4f& pose, const float * output,
-		float icp_threshold) {
+bool updatePoseKernel(Eigen::Matrix4f& pose,
+                      const float*     output,
+		              const float      icp_threshold) {
 	bool res = false;
 	TICK();
   Eigen::Map<const Eigen::Matrix<float, 8, 32, Eigen::RowMajor> > values(output);
@@ -317,9 +320,11 @@ bool updatePoseKernel(Eigen::Matrix4f& pose, const float * output,
 	return res;
 }
 
-bool checkPoseKernel(Eigen::Matrix4f& pose, Eigen::Matrix4f& oldPose, 
-    const float * output, const Eigen::Vector2i& imageSize, 
-    float track_threshold) {
+bool checkPoseKernel(Eigen::Matrix4f&       pose,
+                     Eigen::Matrix4f&       oldPose,
+                     const float*           output,
+                     const Eigen::Vector2i& imageSize,
+                     const float            track_threshold) {
 
 	// Check the tracking result, and go back to the previous camera position if necessary
 

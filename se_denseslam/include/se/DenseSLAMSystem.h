@@ -50,6 +50,7 @@
 #include "volume_traits.hpp"
 #include "continuous/volume_template.hpp"
 #include <se/preprocessing.hpp>
+#include <se/tracking.hpp>
 
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
