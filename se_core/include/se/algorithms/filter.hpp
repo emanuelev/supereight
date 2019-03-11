@@ -38,15 +38,19 @@ namespace algorithms {
     static inline bool in_frustum(const VoxelBlockType* v, float voxelSize, 
         const Eigen::Matrix4f& camera, const Eigen::Vector2i& frameSize) {
 
+      const int side = VoxelBlockType::side;
       const static Eigen::Matrix<int, 4, 8> offsets = 
-        (Eigen::Matrix<int, 4, 8>() << 0, 1, 0, 1, 0, 1, 0, 1,
-                                       0, 0, 1, 1, 0, 0, 1, 1,
-                                       0, 0, 0, 0, 1, 1, 1, 1,
+        (Eigen::Matrix<int, 4, 8>() << 0, side, 0, side, 0, side, 0, side,
+                                       0, 0, side, side, 0, 0, side, side,
+                                       0, 0, 0, 0, side, side, side, side,
                                        0, 0, 0, 0, 0, 0, 0, 0).finished();
 
-      Eigen::Matrix<float, 4, 8> v_camera = camera * 
-        voxelSize * (offsets.colwise() + v->coordinates().homogeneous()).template cast<float>();
-      v_camera.array().rowwise() /= v_camera.row(2).array();
+      Eigen::Matrix<float, 4, 8> v_camera =  
+        camera *  
+        Eigen::Vector4f(voxelSize, voxelSize, voxelSize, 1.f).asDiagonal() * 
+         (offsets.colwise() + v->coordinates().homogeneous()).template cast<float>();
+      v_camera.row(0).array() /= v_camera.row(2).array();
+      v_camera.row(1).array() /= v_camera.row(2).array();
       return ((v_camera.row(0).array() >= 0.f && v_camera.row(0).array() < frameSize.x()) && 
        (v_camera.row(1).array() >= 0.f && v_camera.row(1).array() < frameSize.y())).any();
     }
@@ -80,7 +84,6 @@ namespace algorithms {
         int my_start = thread_start[threadid] = (threadid) * num_elem / num_threads;
         int my_end   = (threadid+1) * num_elem / num_threads;
         int count = 0;
-#pragma omp simd
         for(int i = my_start; i < my_end; ++i) {
           if(satisfies(block_array[i], ps...)){
             temp[my_start + count] = block_array[i];
