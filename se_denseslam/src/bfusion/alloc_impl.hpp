@@ -107,7 +107,7 @@ size_t buildOctantList(HashType* allocationList, size_t reserved,
           if(!node_ptr){
             HashType k = map_index.hash(voxel.x, voxel.y, voxel.z, 
                 std::min(tree_depth, leaves_depth));
-            unsigned int idx = ++(voxelCount);
+            unsigned int idx = voxelCount++;
             if(idx < reserved) {
               allocationList[idx] = k;
             }
