@@ -99,7 +99,7 @@ unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
           if(!n){
             HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(), 
                 block_scale);
-            unsigned int idx = ++voxelCount;
+            unsigned int idx = voxelCount++;
             if(idx < reserved) {
               allocationList[idx] = k;
             } else
