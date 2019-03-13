@@ -90,7 +90,7 @@ void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
 
   void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex, 
                          const se::Image<float>& depth,
-                         const Eigen::Matrix4f invK) {
+                         const Eigen::Matrix4f& invK) {
 	TICK();
 	int x, y;
 #pragma omp parallel for \

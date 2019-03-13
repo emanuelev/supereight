@@ -72,7 +72,7 @@ class VolumeTemplate {
             "SAMPLE_POINT_POSITION should be in range [0.f, 1.f]");
       };
 
-    inline Eigen::Vector3f pos(const Eigen::Vector3i & p) const {
+    inline Eigen::Vector3f pos(const Eigen::Vector3i& p) const {
       static const float voxelSize = _extent/_size;
       return p.cast<float>() * voxelSize;
     }
@@ -85,7 +85,7 @@ class VolumeTemplate {
       return _map_index->get(scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
     }
 
-    value_type get(const Eigen::Vector3f & p) const {
+    value_type get(const Eigen::Vector3f& p) const {
       const float inverseVoxelSize = _size/_extent;
       const Eigen::Vector4i scaled_pos = (inverseVoxelSize * p.homogeneous()
           - voxel_offset.homogeneous()).cast<int>();
@@ -94,7 +94,7 @@ class VolumeTemplate {
                                     scaled_pos.z());
     }
 
-    value_type operator[](const Eigen::Vector3f p) const {
+    value_type operator[](const Eigen::Vector3i& p) const {
       return _map_index->get(p.x(), p.y(), p.z());
     }
 
@@ -154,7 +154,7 @@ const float inverseVoxelSize = _size / _extent;
 
   private:
 
-    inline Eigen::Vector3i pos(const Eigen::Vector3f & p) const {
+    inline Eigen::Vector3i pos(const Eigen::Vector3f& p) const {
       static const float inverseVoxelSize = _size/_extent;
       return (inverseVoxelSize * p).cast<int>();
     }

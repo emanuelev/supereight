@@ -35,17 +35,24 @@ namespace se {
 namespace algorithms {
 
   template <typename VoxelBlockType>
-    bool in_frustum(const VoxelBlockType* v, float voxelSize, 
+    static inline bool in_frustum(const VoxelBlockType* v, float voxelSize, 
         const Eigen::Matrix4f& camera, const Eigen::Vector2i& frameSize) {
-      const Eigen::Vector3f v_camera = camera.topLeftCorner<3, 4>() * 
-            v->coordinates().template cast<float>().cwiseProduct(
-            Eigen::Vector3f::Constant(voxelSize)).homogeneous();
-;
-      const Eigen::Vector2i px = Eigen::Vector2i(v_camera(0)/v_camera(2), 
-          v_camera(1)/v_camera(2));
-      if(px(0) >= 0 && px(0) < frameSize(0) && px(1) >= 0 && px(1) < frameSize(1))
-        return true;
-      return false;
+
+      const int side = VoxelBlockType::side;
+      const static Eigen::Matrix<int, 4, 8> offsets = 
+        (Eigen::Matrix<int, 4, 8>() << 0, side, 0, side, 0, side, 0, side,
+                                       0, 0, side, side, 0, 0, side, side,
+                                       0, 0, 0, 0, side, side, side, side,
+                                       0, 0, 0, 0, 0, 0, 0, 0).finished();
+
+      Eigen::Matrix<float, 4, 8> v_camera =  
+        camera *  
+        Eigen::Vector4f(voxelSize, voxelSize, voxelSize, 1.f).asDiagonal() * 
+         (offsets.colwise() + v->coordinates().homogeneous()).template cast<float>();
+      v_camera.row(0).array() /= v_camera.row(2).array();
+      v_camera.row(1).array() /= v_camera.row(2).array();
+      return ((v_camera.row(0).array() >= 0.f && v_camera.row(0).array() < frameSize.x()) && 
+       (v_camera.row(1).array() >= 0.f && v_camera.row(1).array() < frameSize.y())).any();
     }
 
   template <typename ValueType, typename P>
@@ -77,7 +84,6 @@ namespace algorithms {
         int my_start = thread_start[threadid] = (threadid) * num_elem / num_threads;
         int my_end   = (threadid+1) * num_elem / num_threads;
         int count = 0;
-#pragma omp simd
         for(int i = my_start; i < my_end; ++i) {
           if(satisfies(block_array[i], ps...)){
             temp[my_start + count] = block_array[i];

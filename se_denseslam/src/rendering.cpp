@@ -216,14 +216,14 @@ template <typename T>
 void renderVolumeKernel(const Volume<T>& volume, 
     unsigned char* out, // RGBW packed
     const Eigen::Vector2i& depthSize, 
-    const Eigen::Matrix4f view, 
+    const Eigen::Matrix4f& view, 
     const float nearPlane, 
     const float farPlane, 
     const float mu,
 		const float step, 
     const float largestep, 
-    const Eigen::Vector3f light,
-		const Eigen::Vector3f ambient, 
+    const Eigen::Vector3f& light,
+		const Eigen::Vector3f& ambient, 
     bool render, 
     const se::Image<Eigen::Vector3f>& vertex, 
     const se::Image<Eigen::Vector3f>& normal) {
