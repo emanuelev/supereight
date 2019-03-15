@@ -249,8 +249,6 @@ class se::ray_iterator {
      */
     float tcmax() { return tc_max_ * map_.dim_; }
 
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
   private:
     struct stack_entry {
       int scale;
