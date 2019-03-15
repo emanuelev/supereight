@@ -90,7 +90,6 @@ template <typename T>
 class VoxelBlock: public Node<T> {
 
   public:
-
     typedef voxel_traits<T> traits_type;
     typedef typename traits_type::value_type value_type;
     static constexpr unsigned int side = BLOCK_SIDE;
@@ -126,8 +125,6 @@ class VoxelBlock: public Node<T> {
     value_type * getBlockRawPtr(){ return voxel_block_; }
     static constexpr int size(){ return sizeof(VoxelBlock<T>); }
     
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
   private:
     VoxelBlock(const VoxelBlock&) = delete;
     Eigen::Vector3i coordinates_;
