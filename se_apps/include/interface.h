@@ -33,12 +33,12 @@ enum ReaderType {
 };
 
 struct ReaderConfiguration {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   int fps;
   bool blocking_read;
   std::string data_path;
   std::string groundtruth_path;
   Eigen::Matrix4f transform;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 class DepthReader {
