@@ -33,7 +33,14 @@
 #define BFUSION_ALLOC_H
 #include <se/utils/math_utils.h>
 
-/* Compute step size based on distance travelled along the ray */
+/**
+ * Compute step size based on distance travelled along the ray
+ * @param[in]  dist_travelled       Distance traveled from the surface boundary in 
+ *                                  the direction of the camera origin
+ * @param[in]  hf_band              band = 6*mu !!! Unsure if this is supposed to be 3*mu (i.e half the band) !!!
+ * @param[in]  voxel_size           Size of a voxel edge in [m]
+ * \return step size along the ray in [m]
+ */
 static inline float compute_stepsize(const float dist_travelled,
                                      const float hf_band,
                                      const float voxelSize) {
@@ -49,13 +56,42 @@ static inline float compute_stepsize(const float dist_travelled,
   return new_step;
 }
 
-/* Compute octree level given a step size */
+/** 
+ * Compute octree level for a node to be allocated given a step size. 
+ * Given the current step size options (1x voxel size, 10x voxel size, 30x voxel_size), 
+ * the octree level is either max_depth (1 voxel), max_depth - 4 (16 voxels) 
+ * or max_depth - 5 (32 voxels)
+ * @param[in]  step                Step size of the raycast in [m]
+ * @param[in]  max_depth           Maximum depth of the tree (i.e. log2(size))
+ * @param[in]  voxel_size           Size of a voxel edge in [m]
+ * \return octree level of the node to be allocated
+ */
 static inline int step_to_depth(const float step,
                                 const int max_depth,
                                 const float voxelsize) {
   return static_cast<int>(floorf(std::log2f(voxelsize/step)) + max_depth);
 }
 
+/**
+ * brief Allocates nodes and voxel blocks for each value in the depth image.
+ * The size of each node depends on the distance to the surface and is allocated 
+ * using a ray casting algorithm.
+ * @param[out] allocationList      List of morton codes describing the nodes to be allocated
+ * @param[in]  reserved            Capacity of the allocationList
+ * @param[in]  map_index           Octree
+ * @param[in]  pose                Current camera pose
+ * @param[in]  K                   Camera intrinsics
+ * @param[in]  depthmap            Current depth image
+ * @param[in]  image_size          Size of the depth image (width, height)
+ * @param[in]  voxel_size          Size of a voxel edge in [m]
+ * @param[in]  compute_stepsize    (optional) function to compute the step size of the raycasting
+ * @param[in]  step_to_depth       (optional) function to compute the size of the allocated node for a given step size
+ * @param[in]  band                band = 6*mu, mu is standard deviation of the surface thickness.
+ *                                 3*mu contains most of the information to one side of the surface.
+ *                                 6*mu represents the with of the entire band (before and after the surface)
+ *                                 containing most information
+ * \return Number of allocated nodes.
+ */
 template <typename FieldType,
           template <typename> class OctreeT,
           typename HashType,
@@ -123,6 +159,7 @@ size_t buildOctantList(HashType*              allocationList,
                 std::min(tree_depth, leaves_depth));
             unsigned int idx = voxelCount++;
             if(idx < reserved) {
+              // Add morton code to allocation list
               allocationList[idx] = k;
             }
           } else if (tree_depth >= leaves_depth) {

@@ -27,7 +27,7 @@ if (WITH_OPENMP AND OPENMP_FOUND)
     list(APPEND libraries ${OpenMP_CXX_FLAGS})
 endif()
 
-# ----------------- OFUsion -----------------
+# ----------------- OFusion -----------------
 set(field_type SE_FIELD_TYPE=OFusion)
 
 add_library(${appname}-ofusion STATIC ./src/DenseSLAMSystem.cpp)

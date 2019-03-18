@@ -223,12 +223,13 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
         computation_size_, volume_._size,
       voxelsize, 2*mu);
     } else if(std::is_same<FieldType, OFusion>::value) {
-     allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(),
-         *volume_._map_index,
-         pose_, getCameraMatrix(k), float_depth_.data(), computation_size_, voxelsize,
-         compute_stepsize, step_to_depth, 6*mu);
+      allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(),
+        *volume_._map_index,
+        pose_, getCameraMatrix(k), float_depth_.data(), computation_size_, voxelsize,
+        compute_stepsize, step_to_depth, 6*mu);
     }
 
+    // Allocate the nodes determined through the raycasting process
     volume_._map_index->allocate(allocation_list_.data(), allocated);
 
     if(std::is_same<FieldType, SDF>::value) {
@@ -317,10 +318,12 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
 
       float timestamp = (1.f/30.f)*frame;
 
+      // Initialize bfusion_update function to update each node/voxel updating step
       struct bfusion_update funct(float_depth,
           Eigen::Vector2i(computation_size_.x(), computation_size_.y()), 
           mu, timestamp, voxelsize, occupied_voxels, freed_voxels);
 
+      // Update all active nodes and voxels using the bfusion_update function
       se::functor::projective_map(*volume_._map_index,
           Sophus::SE3f(pose_).inverse(),
           getCameraMatrix(k),

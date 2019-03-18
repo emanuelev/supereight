@@ -51,6 +51,9 @@ namespace functor {
         _map(map), _function(f), _Tcw(Tcw), _K(K), _frame_size(framesize) {
       } 
 
+  /**
+   * Populates a vector with all active voxel blocks that are within the frustum
+   */
       void build_active_list() {
         using namespace std::placeholders;
         /* Retrieve the active list */ 
@@ -60,21 +63,31 @@ namespace functor {
         /* Predicates definition */
         const Eigen::Matrix4f Tcw = _Tcw.matrix();
         const float voxel_size = _map.dim()/_map.size();
+        /* Check if a given voxel block projects into the image
+         * WARNING: Returns true even if only the coorner cooresponding to the block coordinates
+         *          is within the image. 
+         *          Returns false if entire block is within the frustum apart from the corner
+         *          corresponding to the block coordinates.
+         */
         auto in_frustum_predicate = 
           std::bind(algorithms::in_frustum<se::VoxelBlock<FieldType>>, _1, 
-              voxel_size, _K*Tcw, _frame_size); 
+              voxel_size, _K*_Tcw.matrix(), _frame_size);
+        /* Check if a given voxel block is active */
         auto is_active_predicate = [](const se::VoxelBlock<FieldType>* b) {
           return b->active();
         };
 
-        algorithms::filter(_active_list, block_array, is_active_predicate, 
+        /* Adds all voxel blocks to the active list that are either active OR within the frustum */
+        algorithms::filter(_active_list, block_array, is_active_predicate,
             in_frustum_predicate);
       }
 
       void update_block(se::VoxelBlock<FieldType> * block, 
                         const float voxel_size) {
         const Eigen::Vector3i blockCoord = block->coordinates();
+        /* Change of the voxel position in camera frame when x is increased by 1 in world frame */
         const Eigen::Vector3f delta = _Tcw.rotationMatrix() * Eigen::Vector3f(voxel_size, 0, 0);
+        /* Change of the pixel coordinate when x is increased by 1 in world frame */
         const Eigen::Vector3f cameraDelta = _K.topLeftCorner<3,3>() * delta;
         bool is_visible = false;
 
@@ -87,23 +100,32 @@ namespace functor {
 
         for(z = blockCoord(2); z < zlast; ++z) {
           for (y = blockCoord(1); y < ylast; ++y){
+            /* This variable has nothing to do with pix but is the side starting point of the side 
+               of a given voxel block */
             Eigen::Vector3i pix = Eigen::Vector3i(blockCoord(0), y, z);
+            // Starting voxel in world frame for the iteration over a voxel line (x in [0; blockSide]) in world frame
             Eigen::Vector3f start = _Tcw * Eigen::Vector3f((pix(0)) * voxel_size, 
                 (pix(1)) * voxel_size, (pix(2)) * voxel_size);
+            // Starting "pixel" (depth * [u, v, 1]) for the interation over a voxel line (x in [0, blockSide])
             Eigen::Vector3f camerastart = _K.topLeftCorner<3,3>() * start;
 #pragma omp simd
             for (unsigned int x = 0; x < blockSide; ++x){
-              pix(0) = x + blockCoord(0); 
+              pix(0) = x + blockCoord(0);
+              // Compute "pixel" (depth * [u, v, 1]) for a new x
               const Eigen::Vector3f camera_voxel = camerastart + (x*cameraDelta);
+              // Compute voxel position in camera frame for a new x in world frame
               const Eigen::Vector3f pos = start + (x*delta);
               if (pos(2) < 0.0001f) continue;
 
               const float inverse_depth = 1.f / camera_voxel(2);
+              // Compute the actual image coordinates ([u, v, 1]) from pixel (depth * [u, v, 1])
               const Eigen::Vector2f pixel = Eigen::Vector2f(
                   camera_voxel(0) * inverse_depth + 0.5f,
                   camera_voxel(1) * inverse_depth + 0.5f);
+              // Check if the image coordinates are within the image
               if (pixel(0) < 0.5f || pixel(0) > _frame_size(0) - 1.5f || 
                   pixel(1) < 0.5f || pixel(1) > _frame_size(1) - 1.5f) continue;
+              // Set voxel to visible to later active the block
               is_visible = true;
 
               VoxelBlockHandler<FieldType> handler = {block, pix};
@@ -111,37 +133,58 @@ namespace functor {
             }
           }
         }
-        block->active(is_visible);
+        block->active(is_visible); // TODO: Blocks are activate during allocation anyway
       }
 
       void update_node(se::Node<FieldType> * node, const float voxel_size) { 
+        // Extract the coordinates of the node (bottom, left, front corner) in [vox]
         const Eigen::Vector3i voxel = Eigen::Vector3i(unpack_morton(node->code_));
+        /* Compute the change in position in [m] in x, y, z, when increasing the position 
+           by half the node size in [m] in all directions */
         const Eigen::Vector3f delta = _Tcw.rotationMatrix() * Eigen::Vector3f::Constant(0.5f * voxel_size * node->side_);
+        /* Compute the change in "pixel" coordinates (depth * [u, v, 1]) when increasing the position 
+           by half the node size in [m] in all directions */        
         const Eigen::Vector3f delta_c = _K.topLeftCorner<3,3>() * delta;
+        /* Compute starting position in camera frame for the iteration over all 8 corners*/
         Eigen::Vector3f base_cam = _Tcw * (voxel_size * voxel.cast<float> ());
+        /* Compute starting "pixel" (depth * [u, v, 1]) for the iteration over all 8 corners*/
         Eigen::Vector3f basepix_hom = _K.topLeftCorner<3,3>() * base_cam;
 
 #pragma omp simd
+        /* Iterate over all 8 corners */
         for(int i = 0; i < 8; ++i) {
           const Eigen::Vector3i dir =  Eigen::Vector3i((i & 1) > 0, (i & 2) > 0, (i & 4) > 0);
+          /* Compute ith corner in camera frame corespoinding to the ith node corner */
           const Eigen::Vector3f vox_cam = base_cam + dir.cast<float>().cwiseProduct(delta); 
+          /* Compute ith "pixel" (depth * [u, v, 1]) for the ith node corner */
           const Eigen::Vector3f pix_hom = basepix_hom + dir.cast<float>().cwiseProduct(delta_c); 
 
+          /* Ignore voxel if less than 0.1mm away from the camera */
           if (vox_cam(2) < 0.0001f) continue;
+
+          /* Compute image coordinates ([u, v, 1]) */
           const float inverse_depth = 1.f / pix_hom(2);
           const Eigen::Vector2f pixel = Eigen::Vector2f(
               pix_hom(0) * inverse_depth + 0.5f,
               pix_hom(1) * inverse_depth + 0.5f);
+
+          /* Check if the corner projects into the image */
           if (pixel(0) < 0.5f || pixel(0) > _frame_size(0) - 1.5f || 
               pixel(1) < 0.5f || pixel(1) > _frame_size(1) - 1.5f) continue;
 
+          /* Get handler for ith child of the given node */
           NodeHandler<FieldType> handler = {node, i};
-          _function(handler, voxel + dir, vox_cam, pixel);
+
+          /* Update the ith child of the given node */
+          _function(handler, voxel + dir, vox_cam, pixel); // voxel + dir seems wrong; should be voxel + dir * node->side_ / 2
         }
       }
 
+  /**
+   * Update all active nodes/voxels
+   */      
       void apply() {
-
+        // Populates a list of all voxel blocks that are either in the frustum or active
         build_active_list();
         const float voxel_size = _map.dim() / _map.size();
         size_t list_size = _active_list.size();
@@ -168,6 +211,14 @@ namespace functor {
       std::vector<se::VoxelBlock<FieldType>*> _active_list;
   };
 
+  /**
+   * Update all active nodes/voxels using the provided function
+   * @param[in] map         Octree
+   * @param[in] Tcw         World to camera transformation
+   * @param[in] K           Intrinsic camera parameter 
+   * @param[in] framesize   Size of the depth image
+   * @param[in] funct       Function to update the node/voxel values
+   */
   template <typename FieldType, template <typename FieldT> class MapT, 
             typename UpdateF>
   void projective_map(MapT<FieldType>& map, const Sophus::SE3f& Tcw, 
