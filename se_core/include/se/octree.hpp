@@ -482,8 +482,8 @@ Node<T> * Octree<T>::insert(const int x, const int y, const int z,
     const int depth) {
 
   // Make sure we have enough space on buffers
-  const int leaves_level = max_depth - math::log2_const(blockSide);
-  if(depth > (max_depth - leaves_level)) {
+  const int leaves_level = max_level_ - math::log2_const(blockSide);
+  if(depth >= leaves_level) {
     block_buffer_.reserve(1);
     nodes_buffer_.reserve(leaves_level);
   } else {
@@ -918,7 +918,11 @@ void Octree<T>::load(const std::string& filename) {
   {
     std::cout << "Loading octree from disk... " << filename << std::endl;
     std::ifstream is (filename, std::ios::binary); 
-    int size, dim;
+    int size;
+    float dim;
+    const int side = se::VoxelBlock<T>::side;
+    const int side_cubed = side * side * side;
+
     is.read(reinterpret_cast<char *>(&size), sizeof(size));
     is.read(reinterpret_cast<char *>(&dim), sizeof(dim));
 
@@ -944,7 +948,7 @@ void Octree<T>::load(const std::string& filename) {
       Eigen::Vector3i coords = tmp.coordinates();
       VoxelBlock<T> * n = 
         static_cast<VoxelBlock<T> *>(insert(coords(0), coords(1), coords(2), keyops::level(tmp.code_)));
-      std::memcpy(n->getBlockRawPtr(), tmp.getBlockRawPtr(), sizeof(*(tmp.getBlockRawPtr())));
+      std::memcpy(n->getBlockRawPtr(), tmp.getBlockRawPtr(), side_cubed * sizeof(*(tmp.getBlockRawPtr())));
     }
   }
 }
