@@ -129,7 +129,7 @@ TEST(SerialiseUnitTest, WriteReadBlockStruct) {
 
 TEST(SerialiseUnitTest, SerialiseTree) {
   se::Octree<testT> tree;
-  tree.init(1024, 10);
+  tree.init(1024, 10.25);
   const int side = se::VoxelBlock<testT>::side;
   const int max_depth = log2(tree.size());
   const int leaves_level = max_depth - log2(side);
@@ -149,6 +149,9 @@ TEST(SerialiseUnitTest, SerialiseTree) {
   se::Octree<testT> tree_copy;
   tree_copy.load(filename);
 
+  ASSERT_EQ(tree.size(), tree_copy.size());
+  ASSERT_EQ(tree.dim(), tree_copy.dim());
+
   auto& node_buffer_base = tree.getNodesBuffer();
   auto& node_buffer_copy = tree_copy.getNodesBuffer();
   ASSERT_EQ(node_buffer_base.size(), node_buffer_copy.size());
@@ -164,3 +167,37 @@ TEST(SerialiseUnitTest, SerialiseTree) {
   ASSERT_EQ(block_buffer_base.size(), block_buffer_copy.size());
 }
 
+TEST(SerialiseUnitTest, SerialiseBlock) {
+  se::Octree<testT> tree;
+  tree.init(1024, 10);
+  const int side = se::VoxelBlock<testT>::side;
+  const int side_cubed = side * side * side;
+  const int max_depth = log2(tree.size());
+  const int leaves_level = max_depth - log2(side);
+  std::mt19937 gen(1); //Standard mersenne_twister_engine seeded with constant
+  std::uniform_int_distribution<> dis(0, 1023);
+
+  int num_tested = 0;
+  for(int j = 0; j < 20; ++j) {
+    Eigen::Vector3i vox(dis(gen), dis(gen), dis(gen));
+    tree.insert(vox(0), vox(1), vox(2), leaves_level);
+    auto voxel_block = tree.fetch(vox(0), vox(1), vox(2));
+    for(int i = 0; i < side_cubed; ++i)
+      voxel_block->data(i, dis(gen));
+  }
+
+  std::string filename = "block-test.bin";
+  tree.save(filename);
+
+  se::Octree<testT> tree_copy;
+  tree_copy.load(filename);
+
+  auto& block_buffer_base = tree.getBlockBuffer();
+  auto& block_buffer_copy = tree_copy.getBlockBuffer();
+  for(int i = 0; i < block_buffer_base.size(); i++) {
+    for(int j = 0; j < side_cubed; j++) {
+      ASSERT_EQ(block_buffer_base[i]->data(j), block_buffer_copy[i]->data(j));
+    }
+  }
+
+}
