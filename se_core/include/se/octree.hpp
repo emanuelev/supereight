@@ -820,7 +820,10 @@ template <typename T>
 bool Octree<T>::allocate_level(key_t* keys, int num_tasks, int target_level){
 
   int leaves_level = max_level_ - log2(blockSide);
-  nodes_buffer_.reserve(num_tasks);
+  if(target_level < leaves_level)
+    nodes_buffer_.reserve(num_tasks);
+  else
+    block_buffer_.reserve(num_tasks);
 
 #pragma omp parallel for
   for (int i = 0; i < num_tasks; i++){
