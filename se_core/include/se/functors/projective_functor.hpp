@@ -83,7 +83,9 @@ namespace functor {
         unsigned int ylast = blockCoord(1) + blockSide;
         unsigned int zlast = blockCoord(2) + blockSide;
 
-        for(z = blockCoord(2); z < zlast; ++z)
+        block->occupancyUpdated(false);
+
+        for(z = blockCoord(2); z < zlast; ++z) {
           for (y = blockCoord(1); y < ylast; ++y){
             Eigen::Vector3i pix = Eigen::Vector3i(blockCoord(0), y, z);
             Eigen::Vector3f start = _Tcw * Eigen::Vector3f((pix(0)) * voxel_size, 
@@ -108,6 +110,7 @@ namespace functor {
               _function(handler, pix, pos, pixel);
             }
           }
+        }
         block->active(is_visible);
       }
 

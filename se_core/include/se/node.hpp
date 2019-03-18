@@ -65,18 +65,21 @@ public:
     }
   }
 
-    virtual ~Node(){};
+  virtual ~Node(){};
 
-    Node *& child(const int x, const int y, 
-        const int z) {
-      return child_ptr_[x + y*2 + z*4];
-    };
+  Node *& child(const int x, const int y, 
+      const int z) {
+    return child_ptr_[x + y*2 + z*4];
+  };
 
-    Node *& child(const int offset ){
-      return child_ptr_[offset];
-    }
+  Node *& child(const int offset ){
+    return child_ptr_[offset];
+  }
 
-    virtual bool isLeaf(){ return false; }
+  virtual bool isLeaf(){ return false; }
+
+  void occupancyUpdated(const bool o) { occupancyUpdated_ = o; }
+  bool occupancyUpdated() { return occupancyUpdated_; }
 
 
 protected:
@@ -84,6 +87,7 @@ protected:
 private:
     friend std::ofstream& internal::serialise <> (std::ofstream& out, Node& node);
     friend void internal::deserialise <> (Node& node, std::ifstream& in);
+    bool occupancyUpdated_;
 };
 
 template <typename T>

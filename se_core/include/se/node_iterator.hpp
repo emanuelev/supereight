@@ -75,6 +75,61 @@ class node_iterator {
     return nullptr;
   }
 
+  std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> getOccupiedVoxel(float threshold = 0.5) {
+    std::vector<Eigen::Vector3i,Eigen::aligned_allocator<Eigen::Vector3i>> occupiedVoxels;
+    occupiedVoxels.clear();
+
+    for (int block_idx = 0; block_idx < map_.block_buffer_.size(); block_idx++) {
+      VoxelBlock<T>* block = map_.block_buffer_[block_idx];
+      const Eigen::Vector3i blockCoord = block->coordinates();
+
+      int x, y, z;
+      int xlast = blockCoord(0) + BLOCK_SIDE;
+      int ylast = blockCoord(1) + BLOCK_SIDE;
+      int zlast = blockCoord(2) + BLOCK_SIDE;
+      for (z = blockCoord(2); z < zlast; ++z) {
+        for (y = blockCoord(1); y < ylast; ++y) {
+          for (x = blockCoord(0); x < xlast; ++x) {
+            typename VoxelBlock<T>::value_type value;
+            const Eigen::Vector3i vox{x, y, z};
+            value = block->data(Eigen::Vector3i(x, y, z));
+            if (value.x >= threshold) {
+              occupiedVoxels.push_back(vox);
+            }
+          }
+        }
+      }
+    } 
+    return occupiedVoxels;
+  }
+
+  std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> getOccupiedVoxel(float threshold, Eigen::Vector3i blockCoord) {
+
+    std::vector<Eigen::Vector3i,Eigen::aligned_allocator<Eigen::Vector3i>> occupiedVoxels;
+    occupiedVoxels.clear();
+
+    VoxelBlock<T>* block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
+
+    int xlast = blockCoord(0) + BLOCK_SIDE;
+    int ylast = blockCoord(1) + BLOCK_SIDE;
+    int zlast = blockCoord(2) + BLOCK_SIDE;
+#pragma omp parallel for
+    for (int z = blockCoord(2); z < zlast; ++z) {
+      for (int y = blockCoord(1); y < ylast; ++y) {
+        for (int x = blockCoord(0); x < xlast; ++x) {
+          typename VoxelBlock<T>::value_type value;
+          const Eigen::Vector3i vox{x, y, z};
+          value = block->data(Eigen::Vector3i(x, y, z));
+          if (value.x >= threshold) {
+#pragma omp critical
+            occupiedVoxels.push_back(vox);
+          }
+        }
+      }
+    }
+    return occupiedVoxels;
+  }
+
   private:
   typedef enum ITER_STATE {
     BRANCH_NODES,

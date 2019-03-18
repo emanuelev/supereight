@@ -37,6 +37,8 @@
 #include <se/constant_parameters.h>
 #include <se/image/image.hpp>
 #include "bspline_lookup.cc"
+#include <atomic>
+#include <omp.h>
 
 /**
  * Perform bilinear interpolation on a depth image. See
@@ -154,6 +156,9 @@ struct bfusion_update {
   float noiseFactor;
   float timestamp;
   float voxelsize;
+  std::vector<Eigen::Vector3i> *occupiedVoxels_ = NULL;
+  std::vector<Eigen::Vector3i> *freedVoxels_ = NULL;
+  std::vector<Eigen::Vector3i> *updatedBlocks_ = NULL;
 
   bfusion_update(const float*           d,
                  const Eigen::Vector2i& framesize,
@@ -163,9 +168,29 @@ struct bfusion_update {
     : depth(d), depthSize(framesize), noiseFactor(n),
   timestamp(t), voxelsize(vs) {};
 
+  bfusion_update(const float*          d, 
+                 const Eigen::Vector2i framesize, 
+                 float                 n, 
+                 float                 t, 
+                 float                 vs,
+                 std::vector<Eigen::Vector3i> *occupiedVoxels,
+                 std::vector<Eigen::Vector3i> *freedVoxels) 
+    : depth(d), depthSize(framesize), noiseFactor(n), 
+    timestamp(t), voxelsize(vs), occupiedVoxels_(occupiedVoxels),
+    freedVoxels_(freedVoxels) {};
+
+  bfusion_update(const float*          d, 
+                 const Eigen::Vector2i framesize, 
+                 float                 n,
+                 float                 t, 
+                 float                 vs,
+                 std::vector<Eigen::Vector3i> *updatedBlocks)
+    : depth(d), depthSize(framesize), noiseFactor(n), 
+      timestamp(t), voxelsize(vs), updatedBlocks_(updatedBlocks) {};
+
   template <typename DataHandlerT>
   void operator()(DataHandlerT&          handler,
-                  const Eigen::Vector3i&,
+                  const Eigen::Vector3i& pix,
                   const Eigen::Vector3f& pos,
                   const Eigen::Vector2f& pixel) {
 
@@ -186,6 +211,7 @@ struct bfusion_update {
     sample = se::math::clamp(sample, 0.03f, 0.97f);
 
     auto data = handler.get();
+    float prev_occ = data.x;
 
     // Update the occupancy probability
     const double delta_t = timestamp - data.y;
@@ -193,6 +219,29 @@ struct bfusion_update {
     data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
     data.y = timestamp;
 
+    if (occupiedVoxels_ != NULL) {
+      bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
+      if (prev_occ >= 0.5 && data.x < 0.5 && isVoxel) {
+#pragma omp critical
+        freedVoxels_->push_back(pix);
+      } else if (prev_occ <= 0.5 && data.x > 0.5 && isVoxel) {  
+#pragma omp critical
+        occupiedVoxels_->push_back(pix);
+      }
+    }
+
+    if (updatedBlocks_ != NULL) {
+      bool isVoxel          = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
+      bool voxelOccupied    = prev_occ <= 0.5 && data.x > 0.5;
+      bool voxelFreed       = prev_occ >= 0.5 && data.x < 0.5;
+      bool occupancyUpdated = handler.occupancyUpdated();
+      if (isVoxel && !occupancyUpdated && (voxelOccupied || voxelFreed)) {
+#pragma omp critical
+        updatedBlocks_->push_back(handler.getNodeCoordinates());
+#pragma omp critical
+        handler.occupancyUpdated(true);
+      }
+    }
     handler.set(data);
   }
 

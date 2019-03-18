@@ -39,6 +39,15 @@ class DataHandlerBase {
   void set(const typename NodeT::value_type& val) {
     static_cast<SpecialisedHandlerT *>(this)->set(val);
   }
+
+  virtual Eigen::Vector3i getNodeCoordinates() {
+  };
+
+  virtual void occupancyUpdated(const bool o) {
+  };
+
+  virtual bool occupancyUpdated() {
+  };
 };
 
 template<typename FieldType>
@@ -57,6 +66,19 @@ public:
     _block->data(_voxel, val);
   }
 
+  Eigen::Vector3i getNodeCoordinates() {
+    return _block->coordinates();
+  }
+
+
+  void occupancyUpdated(const bool o) {
+    _block->occupancyUpdated(o);
+  }
+
+  bool occupancyUpdated() {
+    return _block->occupancyUpdated();
+  }
+
   private:
     se::VoxelBlock<FieldType> * _block;  
     Eigen::Vector3i _voxel;
@@ -73,6 +95,18 @@ class NodeHandler: DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> >
 
     void set(const typename se::Node<FieldType>::value_type& val) {
       _node->value_[_idx] = val;
+    }
+
+    Eigen::Vector3i getNodeCoordinates() {
+    return Eigen::Vector3i(0,0,0);
+    }
+
+    void occupancyUpdated(const bool o) {
+      _node->occupancyUpdated(o);
+    }
+
+    bool occupancyUpdated() {
+      return _node->occupancyUpdated();
     }
 
   private:
