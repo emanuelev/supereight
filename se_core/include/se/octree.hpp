@@ -192,7 +192,7 @@ public:
    * morton number)
    * \param number of keys in the keys array
    */
-  bool allocate(key_t *keys, int num_elem);
+  bool allocate(key_t *keys, int num_keys);
 
   void save(const std::string& filename);
   void load(const std::string& filename);
@@ -233,9 +233,9 @@ private:
 
   // Parallel allocation of a given tree level for a set of input keys.
   // Pre: levels above target_level must have been already allocated
-  bool allocate_level(key_t * keys, int num_tasks, int target_level);
+  bool allocate_level(key_t * keys, int num_keys, int target_level);
 
-  void reserveBuffers(const int n);
+  void reserveKeyBuffer(const int n);
 
   // General helpers
 
@@ -754,59 +754,59 @@ int Octree<T>::nodeCountRecursive(Node<T> * node){
 }
 
 template <typename T>
-void Octree<T>::reserveBuffers(const int n){
-
+void Octree<T>::reserveKeyBuffer(const int n){
   if(n > reserved_){
     // std::cout << "Reserving " << n << " entries in allocation buffers" << std::endl;
     delete[] keys_at_level_;
     keys_at_level_ = new key_t[n];
     reserved_ = n;
   }
-  block_buffer_.reserve(n);
 }
 
 template <typename T>
-bool Octree<T>::allocate(key_t *keys, int num_elem){
+bool Octree<T>::allocate(key_t *keys, int num_keys){
 
 #if defined(_OPENMP) && !defined(__clang__)
-  __gnu_parallel::sort(keys, keys+num_elem);
+  __gnu_parallel::sort(keys, keys+num_keys);
 #else
-std::sort(keys, keys+num_elem);
+std::sort(keys, keys+num_keys);
 #endif
 
-  num_elem = algorithms::filter_ancestors(keys, num_elem, max_level_);
-  reserveBuffers(num_elem);
+  num_keys = algorithms::filter_ancestors(keys, num_keys, max_level_);
+  reserveKeyBuffer(num_keys);
 
-  int last_elem = 0;
+  int num_keys_at_level = 0;
   bool success = false;
-
   const int leaves_level = max_level_ - log2(blockSide);
   const unsigned int shift = MAX_BITS - max_level_ - 1;
   for (int level = 1; level <= leaves_level; level++){
     const key_t mask = MASK[level + shift] | SCALE_MASK;
-    compute_prefix(keys, keys_at_level_, num_elem, mask);
-    last_elem = algorithms::unique_multiscale(keys_at_level_, num_elem);
-    success = allocate_level(keys_at_level_, last_elem, level);
+    compute_prefix(keys, keys_at_level_, num_keys, mask);
+    num_keys_at_level = algorithms::unique_multiscale(keys_at_level_, num_keys);
+    success = allocate_level(keys_at_level_, num_keys_at_level, level);
   }
   return success;
 }
 
 template <typename T>
-bool Octree<T>::allocate_level(key_t* keys, int num_tasks, int target_level){
+bool Octree<T>::allocate_level(key_t* keys, int num_keys, int target_level){
 
   int leaves_level = max_level_ - log2(blockSide);
-  nodes_buffer_.reserve(num_tasks);
+  if(target_level < leaves_level)
+    nodes_buffer_.reserve(num_keys);
+  else
+    block_buffer_.reserve(num_keys);
 
 #pragma omp parallel for
-  for (int i = 0; i < num_tasks; i++){
+  for (int i = 0; i < num_keys; i++){
     Node<T> ** n = &root_;
-    key_t myKey = keyops::code(keys[i]);
-    int myLevel = keyops::level(keys[i]);
-    if(myLevel < target_level) continue;
+    key_t key = keyops::code(keys[i]);
+    int key_level = keyops::level(keys[i]);
+    if(key_level < target_level) continue;
 
     int edge = size_/2;
     for (int level = 1; level <= target_level; ++level){
-      int index = child_id(myKey, level, max_level_); 
+      int index = child_id(key, level, max_level_);
       Node<T> * parent = *n;
       n = &(*n)->child(index);
 
@@ -814,14 +814,14 @@ bool Octree<T>::allocate_level(key_t* keys, int num_tasks, int target_level){
         if(level == leaves_level){
           *n = block_buffer_.acquire_block();
           (*n)->side_ = edge;
-          static_cast<VoxelBlock<T> *>(*n)->coordinates(Eigen::Vector3i(unpack_morton(myKey)));
+          static_cast<VoxelBlock<T> *>(*n)->coordinates(Eigen::Vector3i(unpack_morton(key)));
           static_cast<VoxelBlock<T> *>(*n)->active(true);
-          static_cast<VoxelBlock<T> *>(*n)->code_ = myKey | level;
+          static_cast<VoxelBlock<T> *>(*n)->code_ = key | level;
           parent->children_mask_ = parent->children_mask_ | (1 << index);
         }
         else  {
           *n = nodes_buffer_.acquire_block();
-          (*n)->code_ = myKey | level;
+          (*n)->code_ = key | level;
           (*n)->side_ = edge;
           parent->children_mask_ = parent->children_mask_ | (1 << index);
         }
