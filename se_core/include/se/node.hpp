@@ -92,8 +92,10 @@ class VoxelBlock: public Node<T> {
   public:
     typedef voxel_traits<T> traits_type;
     typedef typename traits_type::value_type value_type;
+
     static constexpr unsigned int side = BLOCK_SIDE;
     static constexpr unsigned int sideSq = side*side;
+    static constexpr unsigned int sideCube = side*side*side;
 
     static constexpr value_type empty() { 
       return traits_type::empty(); 
@@ -116,6 +118,10 @@ class VoxelBlock: public Node<T> {
     value_type data(const Eigen::Vector3i& pos) const;
     void data(const Eigen::Vector3i& pos, const value_type& value);
 
+    template <int scale> value_type data(const Eigen::Vector3i& pos) const; 
+    template <int scale>
+    void data(const Eigen::Vector3i& pos, const value_type& value);
+
     value_type data(const int i) const;
     void data(const int i, const value_type& value);
 
@@ -128,7 +134,8 @@ class VoxelBlock: public Node<T> {
   private:
     VoxelBlock(const VoxelBlock&) = delete;
     Eigen::Vector3i coordinates_;
-    value_type voxel_block_[side*sideSq]; // Brick of data.
+    static constexpr size_t buff_size = sideCube + sideCube/8 + sideCube/64;
+    value_type voxel_block_[buff_size]; // Brick of data.
     bool active_;
 
     friend std::ofstream& internal::serialise <> (std::ofstream& out, 
@@ -146,10 +153,72 @@ VoxelBlock<T>::data(const Eigen::Vector3i& pos) const {
 }
 
 template <typename T>
+template <int level>
+inline typename VoxelBlock<T>::value_type 
+VoxelBlock<T>::data(const Eigen::Vector3i& pos) const {
+  static_assert(level >=0 && level < 3, 
+                "ERROR: LEVEL SHOULD BE BETWEEN 0 AND 2");
+  value_type data;
+  if(level == 0) {
+    Eigen::Vector3i relative_pos = pos - coordinates_;
+    data = voxel_block_[relative_pos.x() + 
+                        relative_pos.y()*side +
+                        relative_pos.z()*sideSq];
+  } else if(level == 1) {
+    const Eigen::Vector3i relative_pos = (pos - coordinates_) / 2;
+    constexpr size_t local_size = side >> 1;
+    constexpr size_t offset = sideCube;
+    data = voxel_block_[offset + 
+                        relative_pos.x() + 
+                        relative_pos.y()*local_size +
+                        relative_pos.z()*se::math::sq(local_size)];
+  } else if(level == 2) {
+    const Eigen::Vector3i relative_pos = (pos - coordinates_) / 4;
+    constexpr size_t offset = sideCube + sideCube/8;
+    constexpr size_t local_size = side >> 2;
+    data = voxel_block_[offset + 
+                        relative_pos.x() + 
+                        relative_pos.y()*local_size +
+                        relative_pos.z()*se::math::sq(local_size)];
+  }
+  return data;
+}
+
+template <typename T>
 inline void VoxelBlock<T>::data(const Eigen::Vector3i& pos, 
                                 const value_type &value){
   Eigen::Vector3i offset = pos - coordinates_;
   voxel_block_[offset(0) + offset(1)*side + offset(2)*sideSq] = value;
+}
+
+template <typename T>
+template <int level>
+inline void VoxelBlock<T>::data(const Eigen::Vector3i& pos, 
+                                const value_type &value){
+  static_assert(level >=0 && level < 3, 
+                "ERROR: LEVEL SHOULD BE BETWEEN 0 AND 2");
+  if(level == 0) {
+    Eigen::Vector3i relative_pos = pos - coordinates_;
+    voxel_block_[relative_pos.x() + 
+                 relative_pos.y()*side +
+                 relative_pos.z()*sideSq] = value;
+  } else if(level == 1) {
+    const Eigen::Vector3i relative_pos = (pos - coordinates_) / 2;
+    constexpr size_t local_size = side >> 1;
+    constexpr size_t offset = sideCube;
+    voxel_block_[offset + 
+                 relative_pos.x() + 
+                 relative_pos.y()*local_size +
+                 relative_pos.z()*se::math::sq(local_size)] = value;
+  } else if(level == 2) {
+    const Eigen::Vector3i relative_pos = (pos - coordinates_) / 4;
+    constexpr size_t offset = sideCube + sideCube/8;
+    constexpr size_t local_size = side >> 2;
+    voxel_block_[offset + 
+                 relative_pos.x() + 
+                 relative_pos.y()*local_size +
+                 relative_pos.z()*se::math::sq(local_size)] = value;
+  }
 }
 
 template <typename T>

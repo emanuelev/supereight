@@ -181,5 +181,61 @@ TEST_F(MultiscaleTest, MultipleInsert) {
       ++num_tested;
     }
   }
-  std::cout << "tested " << num_tested << " nodes" << std::endl;
+}
+
+template <>
+struct voxel_traits<Eigen::Vector3i> {
+  typedef Eigen::Vector3i value_type;
+  static inline value_type empty(){ return Eigen::Vector3i(0, 0, 0); }
+  static inline value_type initValue(){ return Eigen::Vector3i(0, 0, 0); }
+};
+
+TEST(MultiscaleBlock, ReadWrite) {
+  se::Octree<Eigen::Vector3i> tree;
+  tree.init(1024, 10);
+  const int side = se::VoxelBlock<Eigen::Vector3i>::side;
+  const int max_depth = log2(tree.size());
+  const int leaves_level = max_depth - log2(side);
+  std::random_device rd;  //Will be used to obtain a seed for the random number engine
+  std::mt19937 gen(1); //Standard mersenne_twister_engine seeded with rd()
+  std::uniform_int_distribution<> dis(0, 1023);
+  std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> voxels;
+  
+  const int n = 50;
+  for(int j = 0; j < n; ++j) {
+    voxels.push_back(Eigen::Vector3i(dis(gen), dis(gen), dis(gen)));
+    const Eigen::Vector3i& curr = voxels.back();
+    auto * n = tree.insert(curr.x(), curr.y(), curr.z());
+    const Eigen::Vector3i& base = n->coordinates();
+    for(int z = 0; z < side; ++z) {
+      for(int y = 0; y < side; ++y) {
+        for(int x = 0; x < side; ++x) {
+          const Eigen::Vector3i pos    = base + Eigen::Vector3i(x, y, z);
+          const Eigen::Vector3i pos_up = (pos/2) * 2;
+          const Eigen::Vector3i pos_up2 = (pos/4) * 4;
+          n->data(pos, pos);
+          n->data<1>(pos, pos_up);
+          n->data<2>(pos, pos_up2);
+        }
+      }
+    }
+  }
+
+  for(int i = 0; i < voxels.size(); ++i) {
+    const Eigen::Vector3i& curr = voxels[i];
+    auto * n = tree.fetch(curr.x(), curr.y(), curr.z());
+    const Eigen::Vector3i& base = n->coordinates();
+    for(int z = 0; z < side; ++z) {
+      for(int y = 0; y < side; ++y) {
+        for(int x = 0; x < side; ++x) {
+          const Eigen::Vector3i pos    = base + Eigen::Vector3i(x, y, z);
+          const Eigen::Vector3i pos_up = (pos/2) * 2;
+          const Eigen::Vector3i pos_up2 = (pos/4) * 4;
+          ASSERT_TRUE(n->data(pos).cwiseEqual(pos).all());
+          ASSERT_TRUE(n->data<1>(pos).cwiseEqual(pos_up).all());
+          ASSERT_TRUE(n->data<2>(pos).cwiseEqual(pos_up2).all());
+        }
+      }
+    }
+  }
 }
