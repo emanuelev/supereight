@@ -71,6 +71,12 @@ struct voxel_traits<OFusion> {
   static inline value_type initValue(){ return {0.f, 0.f}; }
 };
 
+/*
+ * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance. Its value
+ * should be the name of one of the structs defined above.
+ */
+typedef SE_FIELD_TYPE FieldType;
+
 // Windowing parameters
 #define DELTA_T   1.f
 #define CAPITAL_T 4.f
