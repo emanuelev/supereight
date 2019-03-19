@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <chrono>
 
+#include <perfstats.h>
+
 #define TICK() { \
   std::chrono::time_point<std::chrono::steady_clock> tickdata;\
     tickdata = std::chrono::steady_clock::now();

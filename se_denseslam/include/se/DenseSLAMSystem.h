@@ -41,14 +41,14 @@
 
 #include <Eigen/Dense>
 
-#include <se/commons.h>
 #include <perfstats.h>
 #include <timings.h>
+#include <se/commons.h>
 #include <se/config.h>
 #include <se/octree.hpp>
 #include <se/image/image.hpp>
-#include "volume_traits.hpp"
-#include "continuous/volume_template.hpp"
+#include <se/volume_traits.hpp>
+#include <se/continuous/volume_template.hpp>
 #include <se/preprocessing.hpp>
 #include <se/tracking.hpp>
 
