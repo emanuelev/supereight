@@ -45,9 +45,9 @@ namespace meshing {
   template <typename Map, typename FieldSelector>
     inline Eigen::Vector3f compute_intersection(const Map& volume, FieldSelector select,
         const Eigen::Vector3i& source, const Eigen::Vector3i& dest){
-      const float voxelSize = volume.dim()/volume.size(); 
-      Eigen::Vector3f s = Eigen::Vector3f(source(0) * voxelSize, source(1) * voxelSize, source(2) * voxelSize);
-      Eigen::Vector3f d = Eigen::Vector3f(dest(0) * voxelSize, dest(1) * voxelSize, dest(2) * voxelSize);
+      const float voxel_size = volume.dim()/volume.size();
+      Eigen::Vector3f s = Eigen::Vector3f(source(0) * voxel_size, source(1) * voxel_size, source(2) * voxel_size);
+      Eigen::Vector3f d = Eigen::Vector3f(dest(0) * voxel_size, dest(1) * voxel_size, dest(2) * voxel_size);
       float v1 = select(volume.get_fine(source(0), source(1), source(2)));
       float v2 = select(volume.get_fine(dest(0), dest(1), dest(2))); 
       return s + (0.0 - v1)*(d - s)/(v2-v1);
@@ -117,10 +117,10 @@ namespace meshing {
   uint8_t compute_index(const MapT<FieldType>& volume, 
   const se::VoxelBlock<FieldType>* cached, InsidePredicate inside,
   const unsigned x, const unsigned y, const unsigned z){
-    unsigned int blockSize =  se::VoxelBlock<FieldType>::side;
-    unsigned int local = ((x % blockSize == blockSize - 1) << 2) | 
-      ((y % blockSize == blockSize - 1) << 1) |
-      ((z % blockSize) == blockSize - 1);
+    unsigned int block_size =  se::VoxelBlock<FieldType>::side;
+    unsigned int local = ((x % block_size == block_size - 1) << 2) |
+      ((y % block_size == block_size - 1) << 1) |
+      ((z % block_size) == block_size - 1);
 
     typename MapT<FieldType>::value_type points[8];
     if(!local) gather_points(cached, points, x, y, z);
@@ -164,17 +164,17 @@ namespace algorithms {
 
       using namespace meshing;
       std::stringstream points, polygons;
-      std::vector<se::VoxelBlock<FieldType>*> blocklist;
+      std::vector<se::VoxelBlock<FieldType>*> block_list;
       std::mutex lck;
       const int size = volume.size();
       const int dim = volume.dim();
-      volume.getBlockList(blocklist, false);
-      std::cout << "Blocklist size: " << blocklist.size() << std::endl;
+      volume.getBlockList(block_list, false);
+      std::cout << "Blocklist size: " << block_list.size() << std::endl;
       
 
 #pragma omp parallel for
-      for(size_t i = 0; i < blocklist.size(); i++){
-        se::VoxelBlock<FieldType> * leaf = static_cast<se::VoxelBlock<FieldType> *>(blocklist[i]);  
+      for(size_t i = 0; i < block_list.size(); i++){
+        se::VoxelBlock<FieldType> * leaf = static_cast<se::VoxelBlock<FieldType> *>(block_list[i]);
         int edge = se::VoxelBlock<FieldType>::side;
         int x, y, z ; 
         const Eigen::Vector3i& start = leaf->coordinates();

@@ -44,7 +44,7 @@ TEST(AllocationTest, EmptySingleVoxel) {
   oct.init(256, 5);
   const Eigen::Vector3i vox = {25, 65, 127};
   const se::key_t code = oct.hash(vox(0), vox(1), vox(2)); 
-  se::key_t allocList[1] = {code};
+  se::key_t alloc_list[1] = {code};
   const float val = oct.get(vox(0), vox(1), vox(2));
   EXPECT_EQ(val, voxel_traits<float>::empty());
 }
@@ -55,8 +55,8 @@ TEST(AllocationTest, SetSingleVoxel) {
   oct.init(256, 5);
   const Eigen::Vector3i vox = {25, 65, 127};
   const se::key_t code = oct.hash(vox(0), vox(1), vox(2)); 
-  se::key_t allocList[1] = {code};
-  oct.allocate(allocList, 1);
+  se::key_t alloc_list[1] = {code};
+  oct.allocate(alloc_list, 1);
 
   se::VoxelBlock<float> * block = oct.fetch(vox(0), vox(1), vox(2));
   float written_val = 2.f;
@@ -72,8 +72,8 @@ TEST(AllocationTest, FetchOctant) {
   oct.init(256, 5);
   const Eigen::Vector3i vox = {25, 65, 127};
   const unsigned code = oct.hash(vox(0), vox(1), vox(2)); 
-  se::key_t allocList[1] = {code};
-  oct.allocate(allocList, 1);
+  se::key_t alloc_list[1] = {code};
+  oct.allocate(alloc_list, 1);
 
   const int depth = 3; /* 32 voxels per side */
   se::Node<float> * node = oct.fetch_octant(vox(0), vox(1), vox(2), 3);

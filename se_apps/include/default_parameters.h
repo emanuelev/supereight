@@ -38,7 +38,7 @@ const Eigen::Vector3f default_volume_size(2.f, 2.f, 2.f);
 const Eigen::Vector3f default_initial_pos_factor(0.5f, 0.5f, 0.0f);
 const bool default_no_gui = false;
 const bool default_render_volume_fullsize = false;
-const bool default_bilateralFilter = false;
+const bool default_bilateral_filter = false;
 const std::string default_dump_volume_file = "";
 const std::string default_input_file = "";
 const std::string default_log_file = "";
@@ -219,7 +219,7 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
   config.no_gui = default_no_gui;
   config.render_volume_fullsize = default_render_volume_fullsize;
   config.camera_overrided = false;
-  config.bilateralFilter = default_bilateralFilter;
+  config.bilateral_filter = default_bilateral_filter;
   config.bayesian = default_bayesian;
 
   config.pyramid.clear();
@@ -434,15 +434,15 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
                   << std::endl;
                 break;
       case 'F':
-                config.bilateralFilter = true;
+                config.bilateral_filter = true;
                 std::cerr << "using bilateral filter" << std::endl;
                 break;
       case 'C':
-                config.colouredVoxels = true;
+                config.coloured_voxels = true;
                 std::cerr << "using coloured voxels" << std::endl;
                 break;
       case 'M':
-                config.multiResolution = true;
+                config.multi_resolution = true;
                 std::cerr << "using multi-resolution integration" << std::endl;
                 break;
       case 0:

@@ -16,41 +16,41 @@ PowerMonitor::PowerMonitor() {
 	powerA15 = NULL;
 	powerGPU = NULL;
 	powerDRAM = NULL;
-	sensingMethod = NONE;
+	sensing_method = NONE;
 	if (enableSensor(SENSOR_A7) == 0) {
 		enableSensor(SENSOR_A15);
 		enableSensor(SENSOR_GPU);
 		enableSensor(SENSOR_DRAM);
-		sensingMethod = ODROID;
+		sensing_method = ODROID;
 		std::cerr << "Power sensors: ODROID" << std::endl;
 	}
 }
 bool PowerMonitor::isActive() {
-	if (sensingMethod == NONE)
+	if (sensing_method == NONE)
 		return (false);
 	else
 		return (true);
 }
 double PowerMonitor::start() {
-	startTime = powerStats.get_time();
-	return (startTime);
+	start_time = power_stats.get_time();
+	return (start_time);
 }
 double PowerMonitor::sample() {
 	double time = 0;
-	if (sensingMethod == ODROID) {
+	if (sensing_method == ODROID) {
 		double a15 = getPower(SENSOR_A15);
-		time = powerStats.sample("Sample_time",
-				powerStats.get_time() - startTime, PerfStats::TIME);
+		time = power_stats.sample("Sample_time",
+				power_stats.get_time() - start_time, PerfStats::TIME);
 		if (powerA7)
-			powerStats.sample("Power_A7", getPower(SENSOR_A7),
+			power_stats.sample("Power_A7", getPower(SENSOR_A7),
 					PerfStats::POWER);
 		if (powerA15)
-			powerStats.sample("Power_A15", a15, PerfStats::POWER);
+			power_stats.sample("Power_A15", a15, PerfStats::POWER);
 		if (powerGPU)
-			powerStats.sample("Power_GPU", getPower(SENSOR_GPU),
+			power_stats.sample("Power_GPU", getPower(SENSOR_GPU),
 					PerfStats::POWER);
 		if (powerDRAM)
-			powerStats.sample("Power_DRAM", getPower(SENSOR_DRAM),
+			power_stats.sample("Power_DRAM", getPower(SENSOR_DRAM),
 					PerfStats::POWER);
 	}
 	return (time);
@@ -69,7 +69,7 @@ PowerMonitor::~PowerMonitor() {
 float PowerMonitor::getPower(Sensor sensor) {
 	FILE *tmp;
 	float power;
-	if (sensingMethod == ODROID) {
+	if (sensing_method == ODROID) {
 		switch (sensor) {
 		case SENSOR_A7:
 			tmp = powerA7;

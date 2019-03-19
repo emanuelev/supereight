@@ -108,10 +108,10 @@ inline void gather_points(const MapIndex<FieldType>& fetcher,
     const Eigen::Vector3i& base, 
     FieldSelector select, float points[8]) {
  
-  unsigned int blockSize =  se::VoxelBlock<FieldType>::side;
-  unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) | 
-                           ((base(1) % blockSize == blockSize - 1) << 1) |
-                           ((base(2) % blockSize) == blockSize - 1);
+  unsigned int block_size =  se::VoxelBlock<FieldType>::side;
+  unsigned int crossmask = ((base(0) % block_size == block_size - 1) << 2) |
+                           ((base(1) % block_size == block_size - 1) << 1) |
+                           ((base(2) % block_size) == block_size - 1);
 
   switch(crossmask) {
     case 0: /* all local */

@@ -93,7 +93,7 @@ class VoxelBlock: public Node<T> {
     typedef voxel_traits<T> traits_type;
     typedef typename traits_type::value_type value_type;
     static constexpr unsigned int side = BLOCK_SIDE;
-    static constexpr unsigned int sideSq = side*side;
+    static constexpr unsigned int side_sq = side*side;
 
     static constexpr value_type empty() { 
       return traits_type::empty(); 
@@ -104,7 +104,7 @@ class VoxelBlock: public Node<T> {
 
     VoxelBlock(){
       coordinates_ = Eigen::Vector3i::Constant(0);
-      for (unsigned int i = 0; i < side*sideSq; i++)
+      for (unsigned int i = 0; i < side*side_sq; i++)
         voxel_block_[i] = initValue();
     }
 
@@ -128,7 +128,7 @@ class VoxelBlock: public Node<T> {
   private:
     VoxelBlock(const VoxelBlock&) = delete;
     Eigen::Vector3i coordinates_;
-    value_type voxel_block_[side*sideSq]; // Brick of data.
+    value_type voxel_block_[side*side_sq]; // Brick of data.
     bool active_;
 
     friend std::ofstream& internal::serialise <> (std::ofstream& out, 
@@ -141,7 +141,7 @@ inline typename VoxelBlock<T>::value_type
 VoxelBlock<T>::data(const Eigen::Vector3i& pos) const {
   Eigen::Vector3i offset = pos - coordinates_;
   const value_type& data = voxel_block_[offset(0) + offset(1)*side +
-                                         offset(2)*sideSq];
+                                         offset(2)*side_sq];
   return data;
 }
 
@@ -149,7 +149,7 @@ template <typename T>
 inline void VoxelBlock<T>::data(const Eigen::Vector3i& pos, 
                                 const value_type &value){
   Eigen::Vector3i offset = pos - coordinates_;
-  voxel_block_[offset(0) + offset(1)*side + offset(2)*sideSq] = value;
+  voxel_block_[offset(0) + offset(1)*side + offset(2)*side_sq] = value;
 }
 
 template <typename T>

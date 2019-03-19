@@ -75,7 +75,7 @@ class se::ray_iterator {
 
   public:
     ray_iterator(const Octree<T>& m, const Eigen::Vector3f& origin, 
-        const Eigen::Vector3f& direction, float nearPlane, float farPlane) : map_(m) {
+        const Eigen::Vector3f& direction, float near_plane, float far_plane) : map_(m) {
 
       pos_ = Eigen::Vector3f(1.0f, 1.0f, 1.0f);
       idx_ = 0;
@@ -83,9 +83,9 @@ class se::ray_iterator {
       child_ = NULL;
       scale_exp2_ = 0.5f;
       scale_ = CAST_STACK_DEPTH-1;
-      min_scale_ = CAST_STACK_DEPTH - log2(m.size_/Octree<T>::blockSide);
+      min_scale_ = CAST_STACK_DEPTH - log2(m.size_/Octree<T>::block_side);
       static const float epsilon = exp2f(-log2(map_.size_));
-      voxelSize_ = map_.dim_/map_.size_;
+      voxel_size_ = map_.dim_/map_.size_;
       state_ = INIT; 
 
       for(int i = 0 ; i < CAST_STACK_DEPTH; ++i)
@@ -122,8 +122,8 @@ class se::ray_iterator {
           fmaxf(2.0f * t_coef_(0) - t_bias_(0), 2.0f * t_coef_(1) - t_bias_(1)), 2.0f * t_coef_(2) - t_bias_(2));
       t_max_ = fminf(fminf(t_coef_(0) - t_bias_(0), t_coef_(1) - t_bias_(1)), t_coef_(2) - t_bias_(2));
       h_ = t_max_;
-      t_min_ = t_min_init_ = fmaxf(t_min_, nearPlane/map_.dim_);
-      t_max_ = t_max_init_ = fminf(t_max_, farPlane/map_.dim_ );
+      t_min_ = t_min_init_ = fmaxf(t_min_, near_plane/map_.dim_);
+      t_max_ = t_max_init_ = fminf(t_max_, far_plane/map_.dim_ );
 
       /*
        * Initialise the ray position
@@ -287,7 +287,7 @@ class se::ray_iterator {
     } STATE;
 
     const Octree<T>& map_;
-    float voxelSize_; 
+    float voxel_size_;
     Eigen::Vector3f origin_;
     Eigen::Vector3f direction_;
     Eigen::Vector3f t_coef_;

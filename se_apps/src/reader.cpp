@@ -27,7 +27,7 @@ DepthReader *createReader(Configuration *config, std::string filename) {
       && (filename.substr(filename.length() - 4, 4) == ".scf")) {
     std::cerr << "====== Opening scene configuration file " << filename
       << "\n";
-    bool newFile = false;
+    bool new_file = false;
     std::string line;
     std::ifstream infile(filename.c_str());
     std::vector<std::string> path = splitString(filename, '/');
@@ -150,7 +150,7 @@ DepthReader *createReader(Configuration *config, std::string filename) {
             filename = value;
             std::cout << "input-file: " << config->input_file
               << std::endl;
-            newFile = true;
+            new_file = true;
             continue;
           }
         }
@@ -173,7 +173,7 @@ DepthReader *createReader(Configuration *config, std::string filename) {
 #ifdef DO_OPENNI
     //This is for openni from a camera
     reader = new OpenNIDepthReader(reader_config);
-    if(!(reader->cameraOpen)) {
+    if(!(reader->camera_open)) {
       delete reader;
       reader=NULL;
     }

@@ -47,7 +47,8 @@
  * should be computed.
  * \return The value of the interpolated depth at proj.
  */
-float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
+float interpDepth(const se::Image<float>& depth, 
+                  const Eigen::Vector2f&  proj) {
   // https://en.wikipedia.org/wiki/Bilinear_interpolation
 
   // Pixels version
@@ -98,9 +99,9 @@ float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
  */
 static inline float bspline_memoized(float t) {
   float value = 0.f;
-  constexpr float inverseRange = 1/6.f;
+  constexpr float inverse_range = 1/6.f;
   if (t >= -3.0f && t <= 3.0f) {
-    unsigned int idx = ((t + 3.f)*inverseRange)*(bspline_num_samples - 1) + 0.5f;
+    unsigned int idx = ((t + 3.f)*inverse_range)*(bspline_num_samples - 1) + 0.5f;
     return bspline_lookup[idx];
   } else if(t > 3) {
     value = 1.f;
@@ -150,18 +151,18 @@ static inline float applyWindow(const float occupancy,
  */
 struct bfusion_update {
   const float* depth;
-  Eigen::Vector2i depthSize;
-  float noiseFactor;
+  Eigen::Vector2i depth_size;
+  float noise_factor;
   float timestamp;
-  float voxelsize;
+  float voxel_size;
 
   bfusion_update(const float*           d,
-                 const Eigen::Vector2i& framesize,
+                 const Eigen::Vector2i& frame_size,
                  float                  n,
                  float                  t,
                  float                  vs)
-    : depth(d), depthSize(framesize), noiseFactor(n),
-  timestamp(t), voxelsize(vs) {};
+    : depth(d), depth_size(frame_size), noise_factor(n),
+  timestamp(t), voxel_size(vs) {};
 
   template <typename DataHandlerT>
   void operator()(DataHandlerT&          handler,
@@ -170,16 +171,16 @@ struct bfusion_update {
                   const Eigen::Vector2f& pixel) {
 
     const Eigen::Vector2i px = pixel.cast <int> ();
-    const float depthSample = depth[px.x() + depthSize.x()*px.y()];
+    const float depth_sample = depth[px.x() + depth_size.x()*px.y()];
     // Return on invalid depth measurement
-    if (depthSample <=  0)
+    if (depth_sample <=  0)
       return;
 
     // Compute the occupancy probability for the current measurement.
-    const float diff = (pos.z() - depthSample)
+    const float diff = (pos.z() - depth_sample)
       * std::sqrt( 1 + se::math::sq(pos.x() / pos.z()) + se::math::sq(pos.y() / pos.z()));
-    float sigma = se::math::clamp(noiseFactor * se::math::sq(pos.z()),
-        2*voxelsize, 0.05f);
+    float sigma = se::math::clamp(noise_factor * se::math::sq(pos.z()),
+        2*voxel_size, 0.05f);
     float sample = H(diff/sigma, pos.z());
     if (sample == 0.5f)
       return;

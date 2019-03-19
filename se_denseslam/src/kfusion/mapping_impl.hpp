@@ -34,15 +34,15 @@
 
 struct sdf_update {
   const float* depth;
-  Eigen::Vector2i depthSize;
+  Eigen::Vector2i depth_size;
   float mu;
-  int maxweight;
+  int max_weight;
 
   sdf_update(const float*           d,
-             const Eigen::Vector2i& framesize,
+             const Eigen::Vector2i& frame_size,
              float                  m,
              int                    mw)
-    : depth(d), depthSize(framesize), mu(m), maxweight(mw) {};
+    : depth(d), depth_size(frame_size), mu(m), max_weight(mw) {};
 
   template <typename DataHandlerT>
   void operator()(DataHandlerT&          handler,
@@ -51,13 +51,13 @@ struct sdf_update {
                   const Eigen::Vector2f& pixel) {
 
     const Eigen::Vector2i px = pixel.cast<int>();
-    const float depthSample = depth[px.x() + depthSize.x()*px.y()];
+    const float depth_sample = depth[px.x() + depth_size.x()*px.y()];
     // Return on invalid depth measurement
-    if (depthSample <=  0)
+    if (depth_sample <=  0)
       return;
 
     // Update the TSDF
-    const float diff = (depthSample - pos.z())
+    const float diff = (depth_sample - pos.z())
       * std::sqrt( 1 + se::math::sq(pos.x() / pos.z()) + se::math::sq(pos.y() / pos.z()));
     if (diff > -mu) {
       const float sdf = fminf(1.f, diff / mu);
@@ -66,7 +66,7 @@ struct sdf_update {
           (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f),
           -1.f,
           1.f);
-      data.y = fminf(data.y + 1, maxweight);
+      data.y = fminf(data.y + 1, max_weight);
       handler.set(data);
     }
   }

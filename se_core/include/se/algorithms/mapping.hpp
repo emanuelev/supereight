@@ -33,23 +33,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ALGO_MAPPING_HPP
 #include <node.hpp>
 
-inline float3 voxelToPos(const int3 p, const float voxelSize){
-  return make_float3(p.x * voxelSize, p.y * voxelSize, p.z * voxelSize);
+inline float3 voxelToPos(const int3 p, const float voxel_size){
+  return make_float3(p.x * voxel_size, p.y * voxel_size, p.z * voxel_size);
 }
 
 namespace algorithms {
 
   template <typename T>
-    void integratePass(se::VoxelBlock<T> ** blockList, unsigned int list_size, 
-        const float * depth, uint2 depthSize, const float voxelSize, 
+    void integratePass(se::VoxelBlock<T> ** block_list, unsigned int list_size,
+        const float * depth, uint2 depth_size, const float voxel_size,
         const Matrix4 invTrack, const Matrix4 K, const float mu, 
-        const float maxweight, const int current_frame) {
+        const float max_weight, const int current_frame) {
 
 #pragma omp parallel for
       for(unsigned int i = 0; i < list_size; ++i){
-        integrate(blockList[i], depth, depthSize, voxelSize,
-            invTrack, K, mu, maxweight);
-        blockList[i]->timestamp(current_frame);
+        integrate(block_list[i], depth, depth_size, voxel_size,
+            invTrack, K, mu, max_weight);
+        block_list[i]->timestamp(current_frame);
       }
     }
 

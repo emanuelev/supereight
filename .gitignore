@@ -6,7 +6,6 @@
 *.lo
 *.o
 *.obj
-*.pyc
 
 # Precompiled Headers
 *.gch
@@ -35,6 +34,3 @@
 # Directories
 build
 doc
-cmake-build-debug
-se_apps/scripts/results
-.idea

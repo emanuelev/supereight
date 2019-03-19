@@ -52,14 +52,14 @@ class RayIteratorTest : public ::testing::Test {
       dir_ = Eigen::Vector3f(0.5, 0.5, 0.5).normalized();
 
       // ensure stepsize is big enough to get distinct blocks
-      const float stepsize = 2 * (oct_.dim()/oct_.size() * OctreeF::blockSide);
-      const float voxelsize = oct_.dim()/oct_.size();
+      const float stepsize = 2 * (oct_.dim()/oct_.size() * OctreeF::block_side);
+      const float voxel_size = oct_.dim()/oct_.size();
 
       const int num_blocks = 4;
       float t = 0.6f;
       for(int i = 0; i < num_blocks; ++i, t += stepsize) {
         const Eigen::Vector3f tmp = p_ + t * dir_;
-        const Eigen::Vector3i vox = ((p_ + t * dir_)/voxelsize).cast<int> ();
+        const Eigen::Vector3i vox = ((p_ + t * dir_)/voxel_size).cast<int> ();
 
         // hash to VoxelBlocks
         se::key_t key = oct_.hash(vox(0), vox(1), vox(2)) ;

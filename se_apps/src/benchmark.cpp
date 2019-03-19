@@ -71,15 +71,15 @@ int main(int argc, char ** argv) {
 	std::cerr.precision(10);
 
   Eigen::Vector3f init_pose = config.initial_pos_factor.cwiseProduct(config.volume_size);
-	const uint2 inputSize = reader->getinputSize();
-	std::cerr << "input Size is = " << inputSize.x << "," << inputSize.y
+	const uint2 input_size = reader->getinputSize();
+	std::cerr << "input Size is = " << input_size.x << "," << input_size.y
 			<< std::endl;
 
 	//  =========  BASIC PARAMETERS  (input size / computation size )  =========
 
 	const uint2 computationSize = make_uint2(
-			inputSize.x / config.compute_size_ratio,
-			inputSize.y / config.compute_size_ratio);
+			input_size.x / config.compute_size_ratio,
+			input_size.y / config.compute_size_ratio);
   Eigen::Vector4f camera = reader->getK() / config.compute_size_ratio;
 
 	if (config.camera_overrided)
@@ -87,13 +87,13 @@ int main(int argc, char ** argv) {
 	//  =========  BASIC BUFFERS  (input / output )  =========
 
 	// Construction Scene reader and input buffer
-	uint16_t* inputDepth = (uint16_t*) malloc(
-			sizeof(uint16_t) * inputSize.x * inputSize.y);
-	uchar4* depthRender = (uchar4*) malloc(
+	uint16_t* input_depth = (uint16_t*) malloc(
+			sizeof(uint16_t) * input_size.x * input_size.y);
+	uchar4* depth_render = (uchar4*) malloc(
 			sizeof(uchar4) * computationSize.x * computationSize.y);
-	uchar4* trackRender = (uchar4*) malloc(
+	uchar4* track_render = (uchar4*) malloc(
 			sizeof(uchar4) * computationSize.x * computationSize.y);
-	uchar4* volumeRender = (uchar4*) malloc(
+	uchar4* volume_render = (uchar4*) malloc(
 			sizeof(uchar4) * computationSize.x * computationSize.y);
 
 	uint frame = 0;
@@ -112,14 +112,14 @@ int main(int argc, char ** argv) {
 			<< std::endl;
 	logstream->setf(std::ios::fixed, std::ios::floatfield);
 
-    while (reader->readNextDepthFrame(inputDepth)) {
+    while (reader->readNextDepthFrame(input_depth)) {
 
 		bool tracked = false, integrated = false;
 
 		timings[1] = std::chrono::steady_clock::now();
 
-		pipeline.preprocessing(inputDepth, 
-          Eigen::Vector2i(inputSize.x, inputSize.y), config.bilateralFilter);
+		pipeline.preprocessing(input_depth,
+          Eigen::Vector2i(input_size.x, input_size.y), config.bilateral_filter);
 
 		timings[2] = std::chrono::steady_clock::now();
 
@@ -151,9 +151,9 @@ int main(int argc, char ** argv) {
 
 		timings[5] = std::chrono::steady_clock::now();
 
-		pipeline.renderDepth( (unsigned char*)depthRender, Eigen::Vector2i(computationSize.x, computationSize.y));
-		pipeline.renderTrack( (unsigned char*)trackRender, Eigen::Vector2i(computationSize.x, computationSize.y));
-		pipeline.renderVolume((unsigned char*)volumeRender, 
+		pipeline.renderDepth( (unsigned char*)depth_render, Eigen::Vector2i(computationSize.x, computationSize.y));
+		pipeline.renderTrack( (unsigned char*)track_render, Eigen::Vector2i(computationSize.x, computationSize.y));
+		pipeline.renderVolume((unsigned char*)volume_render, 
         Eigen::Vector2i(computationSize.x, computationSize.y), frame,
 				config.rendering_rate, camera, 0.75 * config.mu);
 
@@ -184,17 +184,17 @@ int main(int argc, char ** argv) {
 
   if (config.dump_volume_file != "") {
     auto s = std::chrono::steady_clock::now();
-    pipeline.dump_volume(config.dump_volume_file);
+    pipeline.dumpVolume(config.dump_volume_file);
     auto e = std::chrono::steady_clock::now();
     std::cout << "Mesh generated in " << (e - s).count() << " seconds" << std::endl;
   }
 
 	//  =========  FREE BASIC BUFFERS  =========
 
-	free(inputDepth);
-	free(depthRender);
-	free(trackRender);
-	free(volumeRender);
+	free(input_depth);
+	free(depth_render);
+	free(track_render);
+	free(volume_render);
 	return 0;
 
 }

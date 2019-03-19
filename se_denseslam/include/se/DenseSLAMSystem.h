@@ -98,38 +98,38 @@ class DenseSLAMSystem {
     /**
      * Constructor using the initial camera position.
      *
-     * \param[in] inputSize The size (width and height) of the input frames.
+     * \param[in] input_size The size (width and height) of the input frames.
      * \param[in] volume_resolution_ The x, y and z resolution of the
      * reconstructed volume in voxels.
      * \param[in] volume_dimension_ The x, y and z dimensions of the
      * reconstructed volume in meters.
-     * \param[in] initPose The x, y and z coordinates of the initial camera
+     * \param[in] init_pose The x, y and z coordinates of the initial camera
      * position. The camera orientation is assumed to be aligned with the axes.
      * \param[in] pyramid TODO See ::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
-    DenseSLAMSystem(const Eigen::Vector2i& inputSize,
+    DenseSLAMSystem(const Eigen::Vector2i& input_size,
                     const Eigen::Vector3i& volume_resolution_,
                     const Eigen::Vector3f& volume_dimension_,
-                    const Eigen::Vector3f& initPose,
+                    const Eigen::Vector3f& init_pose,
                     std::vector<int> &     pyramid,
                     const Configuration&   config_);
     /**
      * Constructor using the initial camera position.
      *
-     * \param[in] inputSize The size (width and height) of the input frames.
+     * \param[in] input_size The size (width and height) of the input frames.
      * \param[in] volume_resolution_ The x, y and z resolution of the
      * reconstructed volume in voxels.
      * \param[in] volume_dimension_ The x, y and z dimensions of the
      * reconstructed volume in meters.
-     * \param[in] initPose The initial camera pose encoded in a 4x4 matrix.
+     * \param[in] init_pose The initial camera pose encoded in a 4x4 matrix.
      * \param[in] pyramid TODO See ::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
-    DenseSLAMSystem(const Eigen::Vector2i& inputSize,
+    DenseSLAMSystem(const Eigen::Vector2i& input_size,
                     const Eigen::Vector3i& volume_resolution_,
                     const Eigen::Vector3f& volume_dimension_,
-                    const Eigen::Matrix4f& initPose,
+                    const Eigen::Matrix4f& init_pose,
                     std::vector<int> &     pyramid,
                     const Configuration&   config_);
 
@@ -137,24 +137,24 @@ class DenseSLAMSystem {
      * Preprocess a single depth measurement frame and add it to the pipeline.
      * This is the first stage of the pipeline.
      *
-     * \param[in] inputDepth Pointer to the depth frame.
-     * \param[in] inputSize Size of the depth frame in pixels (width and
+     * \param[in] input_depth Pointer to the depth frame.
+     * \param[in] input_size Size of the depth frame in pixels (width and
      * height).
-     * \param[in] filterInput Whether to filter the frame using a bilateral
+     * \param[in] filter_input Whether to filter the frame using a bilateral
      * filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocessing(const unsigned short * inputDepth,
-                       const Eigen::Vector2i& inputSize,
-                       const bool             filterInput);
+    bool preprocessing(const unsigned short * input_depth,
+                       const Eigen::Vector2i& input_size,
+                       const bool             filter_input);
 
     /*
      * TODO Implement this.
      */
-    bool preprocessing(const unsigned short*  inputDepth,
+    bool preprocessing(const unsigned short*  input_depth,
                        const unsigned char*   inputRGB,
-                       const Eigen::Vector2i& inputSize,
-                       const bool             filterInput);
+                       const Eigen::Vector2i& input_size,
+                       const bool             filter_input);
 
     /**
      * Update the camera pose. Create a 3D reconstruction from the current
@@ -216,12 +216,12 @@ class DenseSLAMSystem {
     /*
      * TODO Implement this.
      */
-    void dump_volume(const std::string filename);
+    void dumpVolume(const std::string filename);
 
     /*
      * TODO Document this.
      */
-    void dump_mesh(const std::string filename);
+    void dumpMesh(const std::string filename);
 
     /**
      * Render the current 3D reconstruction.
@@ -229,7 +229,7 @@ class DenseSLAMSystem {
      * \param[out] out A pointer to an array containing the rendered frame.
      * The array must be allocated before calling this function. The storage
      * layout is rgbwrgbwrgbw.
-     * \param[in] outputSize The dimensions of the output array (width and
+     * \param[in] output_size The dimensions of the output array (width and
      * height in pixels).
      * \param[in] frame The index of the current frame (starts from 0).
      * \param[in] rate Render the 3D reconstruction every rate frames.
@@ -239,7 +239,7 @@ class DenseSLAMSystem {
      * details.
      */
     void renderVolume(unsigned char*         out,
-                      const Eigen::Vector2i& outputSize,
+                      const Eigen::Vector2i& output_size,
                       int                    frame,
                       int                    rate,
                       const Eigen::Vector4f& k,
@@ -262,28 +262,28 @@ class DenseSLAMSystem {
      * z members of each element of the array contain the R, G and B values of
      * the image respectively. The w member of each element of the array is
      * always 0 and is used for padding.
-     * \param[in] outputSize The dimensions of the output array (width and
+     * \param[in] output_size The dimensions of the output array (width and
      * height in pixels).
      */
     void renderTrack(unsigned char*         out,
-                     const Eigen::Vector2i& outputSize);
+                     const Eigen::Vector2i& output_size);
 
     /**
      * Render the current depth frame. The frame is rendered before
-     * preprocessing while taking into account the values of ::nearPlane and
-     * ::farPlane. Regions closer to the camera than ::nearPlane appear white
-     * and regions further than ::farPlane appear black.
+     * preprocessing while taking into account the values of ::near_plane and
+     * ::far_plane. Regions closer to the camera than ::near_plane appear white
+     * and regions further than ::far_plane appear black.
      *
      * \param[out] out A pointer to an array containing the rendered frame.
      * The array must be allocated before calling this function. The x, y and
      * z members of each element of the array contain the R, G and B values of
      * the image respectively. The w member of each element of the array is
      * always 0 and is used for padding.
-     * \param[in] outputSize The dimensions of the output array (width and
+     * \param[in] output_size The dimensions of the output array (width and
      * height in pixels).
      */
     void renderDepth(unsigned char*         out,
-                     const Eigen::Vector2i& outputSize);
+                     const Eigen::Vector2i& output_size);
 
     //
     // Getters
@@ -316,7 +316,7 @@ class DenseSLAMSystem {
      * \return A vector containing the x, y and z coordinates of the camera.
      */
     Eigen::Vector3f getPosition() {
-      //std::cerr << "InitPose =" << _initPose.x << "," << _initPose.y  <<"," << _initPose.z << "    ";
+      //std::cerr << "init_pose =" << _init_pose.x << "," << _init_pose.y  <<"," << _init_pose.z << "    ";
       //std::cerr << "pose =" << pose.data[0].w << "," << pose.data[1].w  <<"," << pose.data[2].w << "    ";
       float xt = pose_(0, 3) - init_pose_.x();
       float yt = pose_(1, 3) - init_pose_.y();

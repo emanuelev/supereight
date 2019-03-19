@@ -24,7 +24,7 @@ if __name__ == "__main__":
     algorithm.ate_remove_offset = False
     algorithm.voxel_block = '8'
     algorithm.rendering_rate = '1'
-    algorithm.bilateralFilter = False
+    algorithm.bilateral_filter = False
     min_ate = 100.0
     run_results = {}
     # for mu in [0.1, 0.05]:

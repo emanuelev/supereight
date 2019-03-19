@@ -22,7 +22,7 @@ public:
 	~PowerMonitor();
 	float getPower(Sensor);
 	bool isActive();
-	PerfStats powerStats;
+	PerfStats power_stats;
 	double sample();
 	double start();
 private:
@@ -32,7 +32,7 @@ private:
 	FILE *powerGPU;
 	FILE *powerDRAM;
 	int enableSensor(Sensor);
-	PowerMethod sensingMethod;
-	double startTime;
+	PowerMethod sensing_method;
+	double start_time;
 };
 #endif

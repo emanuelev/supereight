@@ -35,8 +35,8 @@ namespace se {
 namespace algorithms {
 
   template <typename VoxelBlockType>
-    static inline bool in_frustum(const VoxelBlockType* v, float voxelSize, 
-        const Eigen::Matrix4f& camera, const Eigen::Vector2i& frameSize) {
+    static inline bool in_frustum(const VoxelBlockType* v, float voxel_size,
+        const Eigen::Matrix4f& camera, const Eigen::Vector2i& frame_size) {
 
       const int side = VoxelBlockType::side;
       const static Eigen::Matrix<int, 4, 8> offsets = 
@@ -47,12 +47,12 @@ namespace algorithms {
 
       Eigen::Matrix<float, 4, 8> v_camera =  
         camera *  
-        Eigen::Vector4f(voxelSize, voxelSize, voxelSize, 1.f).asDiagonal() * 
+        Eigen::Vector4f(voxel_size, voxel_size, voxel_size, 1.f).asDiagonal() *
          (offsets.colwise() + v->coordinates().homogeneous()).template cast<float>();
       v_camera.row(0).array() /= v_camera.row(2).array();
       v_camera.row(1).array() /= v_camera.row(2).array();
-      return ((v_camera.row(0).array() >= 0.f && v_camera.row(0).array() < frameSize.x()) && 
-       (v_camera.row(1).array() >= 0.f && v_camera.row(1).array() < frameSize.y())).any();
+      return ((v_camera.row(0).array() >= 0.f && v_camera.row(0).array() < frame_size.x()) &&
+       (v_camera.row(1).array() >= 0.f && v_camera.row(1).array() < frame_size.y())).any();
     }
 
   template <typename ValueType, typename P>

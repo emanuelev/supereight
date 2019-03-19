@@ -34,25 +34,25 @@
 inline Eigen::Vector4f raycast(const Volume<SDF>&     volume,
                                const Eigen::Vector3f& origin,
                                const Eigen::Vector3f& direction,
-                               const float            tnear,
-                               const float            tfar,
+                               const float            t_near,
+                               const float            t_far,
                                const float            mu,
                                const float            step,
-                               const float            largestep) {
+                               const float            large_step) {
 
   auto select_depth = [](const auto& val){ return val.x; };
-  if (tnear < tfar) {
-    // first walk with largesteps until we found a hit
-    float t = tnear;
-    float stepsize = largestep;
+  if (t_near < t_far) {
+    // first walk with large_steps until we found a hit
+    float t = t_near;
+    float stepsize = large_step;
     Eigen::Vector3f position = origin + direction * t;
     float f_t = volume.interp(position, select_depth);
     float f_tt = 0;
     if (f_t > 0) { // ups, if we were already in it, then don't render anything here
-      for (; t < tfar; t += stepsize) {
+      for (; t < t_far; t += stepsize) {
         Volume<SDF>::value_type data = volume.get(position);
         if (data.y == 0) {
-          stepsize = largestep;
+          stepsize = large_step;
           position += stepsize*direction;
           continue;
         }

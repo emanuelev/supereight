@@ -46,27 +46,27 @@ namespace se {
 
       class axis_aligned {
         public:
-        axis_aligned(MapT<FieldType>& map, UpdateF f) : _map(map), _function(f),
-        _min(Eigen::Vector3i::Constant(0)), 
-        _max(Eigen::Vector3i::Constant(map.size())){ }
+        axis_aligned(MapT<FieldType>& map, UpdateF f) : map_(map), function_(f),
+        min_(Eigen::Vector3i::Constant(0)),
+        max_(Eigen::Vector3i::Constant(map.size())){ }
 
         axis_aligned(MapT<FieldType>& map, UpdateF f, const Eigen::Vector3i min,
-            const Eigen::Vector3i max) : _map(map), _function(f),
-        _min(min), _max(max){ }
+            const Eigen::Vector3i max) : map_(map), function_(f),
+        min_(min), max_(max){ }
 
         void update_block(se::VoxelBlock<FieldType> * block) {
-          Eigen::Vector3i blockCoord = block->coordinates();
+          Eigen::Vector3i block_coord = block->coordinates();
           unsigned int y, z, x; 
-          Eigen::Vector3i blockSide = Eigen::Vector3i::Constant(se::VoxelBlock<FieldType>::side);
-          Eigen::Vector3i start = blockCoord.cwiseMax(_min);
-          Eigen::Vector3i last = (blockCoord + blockSide).cwiseMin(_max);
+          Eigen::Vector3i block_side = Eigen::Vector3i::Constant(se::VoxelBlock<FieldType>::side);
+          Eigen::Vector3i start = block_coord.cwiseMax(min_);
+          Eigen::Vector3i last = (block_coord + block_side).cwiseMin(max_);
 
           for(z = start(2); z < last(2); ++z) {
             for (y = start(1); y < last(1); ++y) {
               for (x = start(0); x < last(0); ++x) {
                 Eigen::Vector3i vox = Eigen::Vector3i(x, y, z);
                 VoxelBlockHandler<FieldType> handler = {block, vox};
-                _function(handler, vox);
+                function_(handler, vox);
               }
             }
           }
@@ -78,24 +78,24 @@ namespace se {
           for(int i = 0; i < 8; ++i) {
             const Eigen::Vector3i dir =  Eigen::Vector3i((i & 1) > 0, (i & 2) > 0, (i & 4) > 0);
             voxel = voxel + (dir * (node->side_/2));
-            if(!(se::math::in(voxel(0), _min(0), _max(0)) && 
-                 se::math::in(voxel(1), _min(1), _max(1)) && 
-                 se::math::in(voxel(2), _min(2), _max(2)))) continue;
+            if(!(se::math::in(voxel(0), min_(0), max_(0)) &&
+                 se::math::in(voxel(1), min_(1), max_(1)) &&
+                 se::math::in(voxel(2), min_(2), max_(2)))) continue;
             NodeHandler<FieldType> handler = {node, i};
-            _function(handler, voxel);
+            function_(handler, voxel);
           }
         }
 
         void apply() {
 
-          auto& block_list = _map.getBlockBuffer();
+          auto& block_list = map_.getBlockBuffer();
           size_t list_size = block_list.size();
 #pragma omp parallel for
           for(unsigned int i = 0; i < list_size; ++i){
             update_block(block_list[i]);
           }
 
-          auto& nodes_list = _map.getNodesBuffer();
+          auto& nodes_list = map_.getNodesBuffer();
           list_size = nodes_list.size();
 #pragma omp parallel for
           for(unsigned int i = 0; i < list_size; ++i){
@@ -104,10 +104,10 @@ namespace se {
         }
 
       private:
-        MapT<FieldType>& _map; 
-        UpdateF _function; 
-        Eigen::Vector3i _min;
-        Eigen::Vector3i _max;
+        MapT<FieldType>& map_;
+        UpdateF function_;
+        Eigen::Vector3i min_;
+        Eigen::Vector3i max_;
       };
 
     /*!

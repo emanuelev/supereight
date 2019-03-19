@@ -56,12 +56,12 @@ class InterpolationTest : public ::testing::Test {
       const float center = 2.5f;
       const float radius = center + 0.5f; 
 
-      const float voxelsize = oct_.dim()/oct_.size();
-      const float inverse_voxelsize = 1.f/voxelsize;
-      const int band = 1 * inverse_voxelsize;
+      const float voxel_size = oct_.dim()/oct_.size();
+      const float inverse_voxel_size = 1.f/voxel_size;
+      const int band = 1 * inverse_voxel_size;
       const Eigen::Vector3i offset = 
         Eigen::Vector3i::Constant(oct_.size()/2 - band/2);
-      unsigned leaf_level = log2(size) - log2(se::Octree<testT>::blockSide);
+      unsigned leaf_level = log2(size) - log2(se::Octree<testT>::block_side);
       for(int z = 0; z < band; ++z) {
         for(int y = 0; y < band; ++y) {
           for(int x = 0; x < band; ++x) {

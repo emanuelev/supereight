@@ -34,12 +34,12 @@
 #endif
 
 PerfStats Stats;
-PowerMonitor *powerMonitor = NULL;
-uint16_t * inputDepth = NULL;
-static uchar3 * inputRGB = NULL;
-static uchar4 * depthRender = NULL;
-static uchar4 * trackRender = NULL;
-static uchar4 * volumeRender = NULL;
+PowerMonitor *power_monitor = NULL;
+uint16_t * input_depth = NULL;
+static uchar3 * input_rgb = NULL;
+static uchar4 * depth_render = NULL;
+static uchar4 * track_render = NULL;
+static uchar4 * volume_render = NULL;
 static DepthReader *reader = NULL;
 static DenseSLAMSystem *pipeline = NULL;
 
@@ -57,12 +57,12 @@ static std::ofstream logfilestream;
  uint3        volume_resolution  = default_volume_resolution;
  */
 DepthReader *createReader(Configuration *config, std::string filename = "");
-int processAll(DepthReader *reader, bool processFrame, bool renderImages,
+int processAll(DepthReader *reader, bool process_frame, bool render_images,
 		Configuration *config, bool reset = false);
 
 void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipeline,
-		DepthReader **_depthReader, Configuration *config, void *depthRender,
-		void *trackRender, void *volumeModel, void *inputRGB);
+		DepthReader **depth_reader_, Configuration *config, void *depth_render,
+		void *track_render, void *volume_model, void *input_rgb);
 
 void storeStats(int frame,
     std::chrono::time_point<std::chrono::steady_clock> *timings,
@@ -91,36 +91,36 @@ void storeStats(int frame,
 int main(int argc, char ** argv) {
 
 	Configuration config = parseArgs(argc, argv);
-	powerMonitor = new PowerMonitor();
+	power_monitor = new PowerMonitor();
 
 	// ========= READER INITIALIZATION  =========
 	reader = createReader(&config);
 
 	//  =========  BASIC PARAMETERS  (input size / computation size )  =========
-	uint2 inputSize =
+	uint2 input_size =
 			(reader != NULL) ? reader->getinputSize() : make_uint2(640, 480);
-	const uint2 computationSize = make_uint2(
-			inputSize.x / config.compute_size_ratio,
-			inputSize.y / config.compute_size_ratio);
+	const uint2 computation_size = make_uint2(
+			input_size.x / config.compute_size_ratio,
+			input_size.y / config.compute_size_ratio);
 
 	//  =========  BASIC BUFFERS  (input / output )  =========
 
 	// Construction Scene reader and input buffer
 	//we could allocate a more appropriate amount of memory (less) but this makes life hard if we switch up resolution later;
-	inputDepth =
-        (uint16_t*) malloc(sizeof(uint16_t) * inputSize.x*inputSize.y);
-	inputRGB =
-        (uchar3*) malloc(sizeof(uchar3) * inputSize.x*inputSize.y);
-	depthRender =
-        (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
-	trackRender =
-        (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
-	volumeRender =
-        (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
+	input_depth =
+        (uint16_t*) malloc(sizeof(uint16_t) * input_size.x*input_size.y);
+	input_rgb =
+        (uchar3*) malloc(sizeof(uchar3) * input_size.x*input_size.y);
+	depth_render =
+        (uchar4*) malloc(sizeof(uchar4) * computation_size.x*computation_size.y);
+	track_render =
+        (uchar4*) malloc(sizeof(uchar4) * computation_size.x*computation_size.y);
+	volume_render =
+        (uchar4*) malloc(sizeof(uchar4) * computation_size.x*computation_size.y);
 
 	init_pose = config.initial_pos_factor.cwiseProduct(config.volume_size);
 	pipeline = new DenseSLAMSystem(
-      Eigen::Vector2i(computationSize.x, computationSize.y),
+      Eigen::Vector2i(computation_size.x, computation_size.y),
       Eigen::Vector3i::Constant(static_cast<int>(config.volume_resolution.x())),
 			Eigen::Vector3f::Constant(config.volume_size.x()),
       init_pose,
@@ -140,20 +140,20 @@ int main(int argc, char ** argv) {
 	//We can opt to not run the gui which would be faster
 	if (!config.no_gui) {
 #ifdef __QT__
-		qtLinkKinectQt(argc,argv, &pipeline, &reader, &config, depthRender, trackRender, volumeRender, inputRGB);
+		qtLinkKinectQt(argc,argv, &pipeline, &reader, &config, depth_render, track_render, volume_render, input_rgb);
 #else
-		if ((reader == NULL) || (reader->cameraActive == false)) {
+		if ((reader == NULL) || (reader->camera_active == false)) {
 			std::cerr << "No valid input file specified\n";
 			exit(1);
 		}
 		while (processAll(reader, true, true, &config, false) == 0) {
-			drawthem(inputRGB, depthRender, trackRender, volumeRender,
-					trackRender, inputSize, computationSize,
-                    computationSize, computationSize);
+			drawthem(input_rgb, depth_render, track_render, volume_render,
+					track_render, input_size, computation_size,
+                    computation_size, computation_size);
 		}
 #endif
 	} else {
-		if ((reader == NULL) || (reader->cameraActive == false)) {
+		if ((reader == NULL) || (reader->camera_active == false)) {
 			std::cerr << "No valid input file specified\n";
 			exit(1);
 		}
@@ -165,7 +165,7 @@ int main(int argc, char ** argv) {
 
 	if (config.dump_volume_file != "") {
     auto start = std::chrono::steady_clock::now();
-		pipeline->dump_mesh(config.dump_volume_file.c_str());
+		pipeline->dumpMesh(config.dump_volume_file.c_str());
     auto end = std::chrono::steady_clock::now();
 	  Stats.sample("meshing",
         std::chrono::duration<double>(end - start).count(),
@@ -178,35 +178,35 @@ int main(int argc, char ** argv) {
 	//	logStream.close();
 	//}
   //
-	if (powerMonitor && powerMonitor->isActive()) {
-		std::ofstream powerStream("power.rpt");
-		powerMonitor->powerStats.print_all_data(powerStream);
-		powerStream.close();
+	if (power_monitor && power_monitor->isActive()) {
+		std::ofstream power_stream("power.rpt");
+		power_monitor->power_stats.print_all_data(power_stream);
+		power_stream.close();
 	}
 	std::cout << "{";
-	//powerMonitor->powerStats.print_all_data(std::cout, false);
+	//power_monitor->power_stats.print_all_data(std::cout, false);
 	//std::cout << ",";
 	Stats.print_all_data(std::cout, false);
 	std::cout << "}" << std::endl;
 
 	//  =========  FREE BASIC BUFFERS  =========
 
-	free(inputDepth);
-	free(depthRender);
-	free(trackRender);
-	free(volumeRender);
+	free(input_depth);
+	free(depth_render);
+	free(track_render);
+	free(volume_render);
 
 }
 
-int processAll(DepthReader *reader, bool processFrame, bool renderImages,
+int processAll(DepthReader *reader, bool process_frame, bool render_images,
 		Configuration *config, bool reset) {
-	static int frameOffset = 0;
-	static bool firstFrame = true;
+	static int frame_offset = 0;
+	static bool first_frame = true;
 	bool tracked = false, integrated = false, raycasted = false;
 	std::chrono::time_point<std::chrono::steady_clock> timings[7];
 	float3 pos;
 	int frame = 0;
-	const uint2 inputSize =
+	const uint2 input_size =
 			(reader != NULL) ? reader->getinputSize() : make_uint2(640, 480);
   Eigen::Vector4f camera =
 			(reader != NULL) ? reader->getK() : Eigen::Vector4f::Constant(0.0f);
@@ -216,23 +216,23 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		camera = config->camera / config->compute_size_ratio;
 
 	if (reset) {
-		frameOffset = reader->getFrameNumber();
+		frame_offset = reader->getFrameNumber();
 	}
 
-	if (processFrame) {
+	if (process_frame) {
 		Stats.start();
 	}
     Eigen::Matrix4f pose;
 	Eigen::Matrix4f gt_pose;
 	timings[0] = std::chrono::steady_clock::now();
-	if (processFrame) {
+	if (process_frame) {
 
 		// Read frames and ground truth data if set
 		bool read_ok;
 		if (config->groundtruth_file == "") {
-			read_ok = reader->readNextDepthFrame(inputRGB, inputDepth);
+			read_ok = reader->readNextDepthFrame(input_rgb, input_depth);
 		} else {
-			read_ok = reader->readNextData(inputRGB, inputDepth, gt_pose);
+			read_ok = reader->readNextData(input_rgb, input_depth, gt_pose);
 		}
 
 		// Finish processing if the next frame could not be read
@@ -242,15 +242,15 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		}
 
 		// Process read frames
-		frame = reader->getFrameNumber() - frameOffset;
-		if (powerMonitor != NULL && !firstFrame)
-			powerMonitor->start();
+		frame = reader->getFrameNumber() - frame_offset;
+		if (power_monitor != NULL && !first_frame)
+			power_monitor->start();
 
 		timings[1] = std::chrono::steady_clock::now();
 
-		pipeline->preprocessing(inputDepth,
-			Eigen::Vector2i(inputSize.x, inputSize.y),
-			config->bilateralFilter);
+		pipeline->preprocessing(input_depth,
+			Eigen::Vector2i(input_size.x, input_size.y),
+			config->bilateral_filter);
 
 		timings[2] = std::chrono::steady_clock::now();
 
@@ -285,17 +285,17 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 		timings[5] = std::chrono::steady_clock::now();
 	}
-	if (renderImages) {
-		pipeline->renderDepth((unsigned char*)depthRender, pipeline->getComputationResolution());
-		pipeline->renderTrack((unsigned char*)trackRender, pipeline->getComputationResolution());
-		pipeline->renderVolume((unsigned char*)volumeRender, pipeline->getComputationResolution(),
-				(processFrame ? reader->getFrameNumber() - frameOffset : 0),
+	if (render_images) {
+		pipeline->renderDepth((unsigned char*)depth_render, pipeline->getComputationResolution());
+		pipeline->renderTrack((unsigned char*)track_render, pipeline->getComputationResolution());
+		pipeline->renderVolume((unsigned char*)volume_render, pipeline->getComputationResolution(),
+				(process_frame ? reader->getFrameNumber() - frame_offset : 0),
 				config->rendering_rate, camera, 0.75 * config->mu);
 		timings[6] = std::chrono::steady_clock::now();
 	}
 
-	if (powerMonitor != NULL && !firstFrame)
-		powerMonitor->sample();
+	if (power_monitor != NULL && !first_frame)
+		power_monitor->sample();
 
 	float xt = pose(0, 3) - init_pose.x();
 	float yt = pose(1, 3) - init_pose.y();
@@ -307,7 +307,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 	//if (config->no_gui && (config->log_file == ""))
 	//	Stats.print();
-	firstFrame = false;
+	first_frame = false;
 
 	return false;
 }

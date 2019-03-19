@@ -74,7 +74,7 @@ public:
 
   // Compile-time constant expressions
   // # of voxels per side in a voxel block
-  static constexpr unsigned int blockSide = BLOCK_SIDE;
+  static constexpr unsigned int block_side = BLOCK_SIDE;
   // maximum tree depth in bits
   static constexpr unsigned int max_depth = ((sizeof(key_t)*8)/3);
   // Tree depth at which blocks are found
@@ -165,11 +165,11 @@ public:
 
   /*! \brief Get the list of allocated block. If the active switch is set to
    * true then only the visible blocks are retrieved.
-   * \param blocklist output vector of allocated blocks
+   * \param block_list output vector of allocated blocks
    * \param active boolean switch. Set to true to retrieve visible, allocated 
    * blocks, false to retrieve all allocated blocks.
    */
-  void getBlockList(std::vector<VoxelBlock<T> *>& blocklist, bool active);
+  void getBlockList(std::vector<VoxelBlock<T> *>& block_list, bool active);
   MemoryPool<VoxelBlock<T> >& getBlockBuffer(){ return block_buffer_; };
   MemoryPool<Node<T> >& getNodesBuffer(){ return nodes_buffer_; };
   /*! \brief Computes the morton code of the block containing voxel 
@@ -179,7 +179,7 @@ public:
    * \param z z coordinate in interval [0, size]
    */
   key_t hash(const int x, const int y, const int z) {
-    const int scale = max_level_ - math::log2_const(blockSide); // depth of blocks
+    const int scale = max_level_ - math::log2_const(block_side); // depth of blocks
     return keyops::encode(x, y, z, scale, max_level_);   
   }
 
@@ -241,8 +241,8 @@ private:
 
   int leavesCountRecursive(Node<T> *);
   int nodeCountRecursive(Node<T> *);
-  void getActiveBlockList(Node<T> *, std::vector<VoxelBlock<T> *>& blocklist);
-  void getAllocatedBlockList(Node<T> *, std::vector<VoxelBlock<T> *>& blocklist);
+  void getActiveBlockList(Node<T> *, std::vector<VoxelBlock<T> *>& block_list);
+  void getAllocatedBlockList(Node<T> *, std::vector<VoxelBlock<T> *>& block_list);
 
   void deleteNode(Node<T> ** node);
   void deallocateTree(){ deleteNode(&root_); }
@@ -258,7 +258,7 @@ inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f& p,
 
   if(cached != NULL){
     Eigen::Vector3i lower = cached->coordinates();
-    Eigen::Vector3i upper = lower + Eigen::Vector3i::Constant(blockSide-1);
+    Eigen::Vector3i upper = lower + Eigen::Vector3i::Constant(block_side-1);
     const int contained = 
       ((pos.array() >= lower.array()) * (pos.array() <= upper.array())).all();
     if(contained){
@@ -274,7 +274,7 @@ inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f& p,
   // Get the block.
 
   unsigned edge = size_ >> 1;
-  for(; edge >= blockSide; edge = edge >> 1){
+  for(; edge >= block_side; edge = edge >> 1){
     n = n->child((pos(0) & edge) > 0, (pos(1) & edge) > 0, (pos(2) & edge) > 0);
     if(!n){
     return empty();
@@ -295,7 +295,7 @@ inline void  Octree<T>::set(const int x,
   }
 
   unsigned edge = size_ >> 1;
-  for(; edge >= blockSide; edge = edge >> 1){
+  for(; edge >= block_side; edge = edge >> 1){
     Node<T>* tmp = n->child((x & edge) > 0, (y & edge) > 0, (z & edge) > 0);
     if(!tmp){
       return;
@@ -317,7 +317,7 @@ inline typename Octree<T>::value_type Octree<T>::get(const int x,
   }
 
   unsigned edge = size_ >> 1;
-  for(; edge >= blockSide; edge = edge >> 1){
+  for(; edge >= block_side; edge = edge >> 1){
     const int childid = ((x & edge) > 0) +  2 * ((y & edge) > 0) +  4*((z & edge) > 0);
     Node<T>* tmp = n->child(childid);
     if(!tmp){
@@ -339,7 +339,7 @@ inline typename Octree<T>::value_type Octree<T>::get_fine(const int x,
   }
 
   unsigned edge = size_ >> 1;
-  for(; edge >= blockSide; edge = edge >> 1){
+  for(; edge >= block_side; edge = edge >> 1){
     const int childid = ((x & edge) > 0) +  2 * ((y & edge) > 0) 
       +  4*((z & edge) > 0);
     Node<T>* tmp = n->child(childid);
@@ -359,7 +359,7 @@ inline typename Octree<T>::value_type Octree<T>::get(const int x,
   if(cached != NULL){
     const Eigen::Vector3i pos = Eigen::Vector3i(x, y, z);
     const Eigen::Vector3i lower = cached->coordinates();
-    const Eigen::Vector3i upper = lower + Eigen::Vector3i::Constant(blockSide-1);
+    const Eigen::Vector3i upper = lower + Eigen::Vector3i::Constant(block_side-1);
     const int contained = 
       ((pos.array() >= lower.array()) && (pos.array() <= upper.array())).all();
     if(contained){
@@ -373,7 +373,7 @@ inline typename Octree<T>::value_type Octree<T>::get(const int x,
   }
 
   unsigned edge = size_ >> 1;
-  for(; edge >= blockSide; edge = edge >> 1){
+  for(; edge >= block_side; edge = edge >> 1){
     n = n->child((x & edge) > 0, (y & edge) > 0, (z & edge) > 0);
     if(!n){
       return init_val();
@@ -424,7 +424,7 @@ inline VoxelBlock<T> * Octree<T>::fetch(const int x, const int y,
 
   // Get the block.
   unsigned edge = size_ / 2;
-  for(; edge >= blockSide; edge /= 2){
+  for(; edge >= block_side; edge /= 2){
     n = n->child((x & edge) > 0u, (y & edge) > 0u, (z & edge) > 0u);
     if(!n){
       return NULL;
@@ -444,7 +444,7 @@ inline Node<T> * Octree<T>::fetch_octant(const int x, const int y,
 
   // Get the block.
   unsigned edge = size_ / 2;
-  for(int d = 1; edge >= blockSide && d <= depth; edge /= 2, ++d){
+  for(int d = 1; edge >= block_side && d <= depth; edge /= 2, ++d){
     n = n->child((x & edge) > 0u, (y & edge) > 0u, (z & edge) > 0u);
     if(!n){
       return NULL;
@@ -458,7 +458,7 @@ Node<T> * Octree<T>::insert(const int x, const int y, const int z,
     const int depth) {
 
   // Make sure we have enough space on buffers
-  const int leaves_level = max_level_ - math::log2_const(blockSide);
+  const int leaves_level = max_level_ - math::log2_const(block_side);
   if(depth >= leaves_level) {
     block_buffer_.reserve(1);
     nodes_buffer_.reserve(leaves_level);
@@ -479,7 +479,7 @@ Node<T> * Octree<T>::insert(const int x, const int y, const int z,
   const unsigned int shift = MAX_BITS - max_level_ - 1;
 
   unsigned edge = size_ / 2;
-  for(int d = 1; edge >= blockSide && d <= depth; edge /= 2, ++d){
+  for(int d = 1; edge >= block_side && d <= depth; edge /= 2, ++d){
     const int childid = ((x & edge) > 0) +  2 * ((y & edge) > 0) 
       +  4*((z & edge) > 0);
 
@@ -487,7 +487,7 @@ Node<T> * Octree<T>::insert(const int x, const int y, const int z,
     Node<T>* tmp = n->child(childid);
     if(!tmp){
       const key_t prefix = keyops::code(key) & MASK[d + shift];
-      if(edge == blockSide) {
+      if(edge == block_side) {
         tmp = block_buffer_.acquire_block();
         static_cast<VoxelBlock<T> *>(tmp)->coordinates(
             Eigen::Vector3i(unpack_morton(prefix)));
@@ -780,7 +780,7 @@ std::sort(keys, keys+num_elem);
   int last_elem = 0;
   bool success = false;
 
-  const int leaves_level = max_level_ - log2(blockSide);
+  const int leaves_level = max_level_ - log2(block_side);
   const unsigned int shift = MAX_BITS - max_level_ - 1;
   for (int level = 1; level <= leaves_level; level++){
     const key_t mask = MASK[level + shift] | SCALE_MASK;
@@ -794,7 +794,7 @@ std::sort(keys, keys+num_elem);
 template <typename T>
 bool Octree<T>::allocate_level(key_t* keys, int num_tasks, int target_level){
 
-  int leaves_level = max_level_ - log2(blockSide);
+  int leaves_level = max_level_ - log2(block_side);
   nodes_buffer_.reserve(num_tasks);
 
 #pragma omp parallel for
@@ -833,16 +833,16 @@ bool Octree<T>::allocate_level(key_t* keys, int num_tasks, int target_level){
 }
 
 template <typename T>
-void Octree<T>::getBlockList(std::vector<VoxelBlock<T>*>& blocklist, bool active){
+void Octree<T>::getBlockList(std::vector<VoxelBlock<T>*>& block_list, bool active){
   Node<T> * n = root_;
   if(!n) return;
-  if(active) getActiveBlockList(n, blocklist);
-  else getAllocatedBlockList(n, blocklist);
+  if(active) getActiveBlockList(n, block_list);
+  else getAllocatedBlockList(n, block_list);
 }
 
 template <typename T>
 void Octree<T>::getActiveBlockList(Node<T> *n,
-    std::vector<VoxelBlock<T>*>& blocklist){
+    std::vector<VoxelBlock<T>*>& block_list){
   using tNode = Node<T>;
   if(!n) return;
   std::queue<tNode *> q;
@@ -853,7 +853,7 @@ void Octree<T>::getActiveBlockList(Node<T> *n,
 
     if(node->isLeaf()){
       VoxelBlock<T>* block = static_cast<VoxelBlock<T> *>(node);
-      if(block->active()) blocklist.push_back(block);
+      if(block->active()) block_list.push_back(block);
       continue;
     }
 
@@ -865,9 +865,9 @@ void Octree<T>::getActiveBlockList(Node<T> *n,
 
 template <typename T>
 void Octree<T>::getAllocatedBlockList(Node<T> *,
-    std::vector<VoxelBlock<T>*>& blocklist){
+    std::vector<VoxelBlock<T>*>& block_list){
   for(unsigned int i = 0; i < block_buffer_.size(); ++i) {
-      blocklist.push_back(block_buffer_[i]);
+      block_list.push_back(block_buffer_[i]);
     }
   }
 

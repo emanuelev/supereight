@@ -47,37 +47,37 @@ class VoxelBlockHandler :
 
 public:
   VoxelBlockHandler(se::VoxelBlock<FieldType>* ptr, Eigen::Vector3i v) : 
-    _block(ptr), _voxel(v) {}
+    block_(ptr), voxel_(v) {}
 
   typename se::VoxelBlock<FieldType>::value_type get() {
-    return _block->data(_voxel);
+    return block_->data(voxel_);
   }
 
   void set(const typename se::VoxelBlock<FieldType>::value_type& val) {
-    _block->data(_voxel, val);
+    block_->data(voxel_, val);
   }
 
   private:
-    se::VoxelBlock<FieldType> * _block;  
-    Eigen::Vector3i _voxel;
+    se::VoxelBlock<FieldType> * block_;
+    Eigen::Vector3i voxel_;
 };
 
 template<typename FieldType>
 class NodeHandler: DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> > {
   public:
-    NodeHandler(se::Node<FieldType>* ptr, int i) : _node(ptr), _idx(i) {}
+    NodeHandler(se::Node<FieldType>* ptr, int i) : node_(ptr), idx_(i) {}
 
     typename se::Node<FieldType>::value_type get() {
-      return _node->value_[_idx];
+      return node_->value_[idx_];
     }
 
     void set(const typename se::Node<FieldType>::value_type& val) {
-      _node->value_[_idx] = val;
+      node_->value_[idx_] = val;
     }
 
   private:
-    se::Node<FieldType> * _node; 
-    int _idx; 
+    se::Node<FieldType> * node_;
+    int idx_;
 };
 
 

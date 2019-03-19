@@ -56,8 +56,8 @@ template <typename BlockType>
       size_t size() const { return current_block_; };
 
       BlockType* operator[](const size_t i) const {
-        const int page_idx = i / pagesize_;
-        const int ptr_idx = i % pagesize_;
+        const int page_idx = i / page_size_;
+        const int ptr_idx = i % page_size_;
         return pages_[page_idx] + (ptr_idx);
       }
 
@@ -69,8 +69,8 @@ template <typename BlockType>
       BlockType * acquire_block(){
         // Fetch-add returns the value before increment
         int current = current_block_.fetch_add(1);
-        const int page_idx = current / pagesize_;
-        const int ptr_idx = current % pagesize_;
+        const int page_idx = current / page_size_;
+        const int ptr_idx = current % page_size_;
         BlockType * ptr = pages_[page_idx] + (ptr_idx);
         return ptr;
       }
@@ -78,18 +78,18 @@ template <typename BlockType>
     private:
       size_t reserved_;
       std::atomic<unsigned int> current_block_;
-      const int pagesize_ = 1024; // # of blocks per page
+      const int page_size_ = 1024; // # of blocks per page
       int num_pages_;
       std::vector<BlockType *> pages_;
 
       void expand(const size_t n){
 
         // std::cout << "Allocating " << n << " blocks" << std::endl;
-        const int new_pages = std::ceil(n/pagesize_);
+        const int new_pages = std::ceil(n/page_size_);
         for(int p = 0; p <= new_pages; ++p){
-          pages_.push_back(new BlockType[pagesize_]);
+          pages_.push_back(new BlockType[page_size_]);
           ++num_pages_;
-          reserved_ += pagesize_;
+          reserved_ += page_size_;
         }
         // std::cout << "Reserved " << reserved_ << " blocks" << std::endl;
       }

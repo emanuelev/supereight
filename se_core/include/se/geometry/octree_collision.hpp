@@ -75,15 +75,15 @@ template <typename FieldType, typename TestVoxelF>
 collision_status collides_with(const se::VoxelBlock<FieldType>* block, 
     const Eigen::Vector3i bbox, const Eigen::Vector3i side, TestVoxelF test) {
   collision_status status = collision_status::empty;
-  const Eigen::Vector3i blockCoord = block->coordinates();
-  int x, y, z, blockSide; 
-  blockSide = (int) se::VoxelBlock<FieldType>::side;
-  int xlast = blockCoord(0) + blockSide;
-  int ylast = blockCoord(1) + blockSide;
-  int zlast = blockCoord(2) + blockSide;
-  for(z = blockCoord(2); z < zlast; ++z){
-    for (y = blockCoord(1); y < ylast; ++y){
-      for (x = blockCoord(0); x < xlast; ++x){
+  const Eigen::Vector3i block_coord = block->coordinates();
+  int x, y, z, block_side;
+  block_side = (int) se::VoxelBlock<FieldType>::side;
+  int xlast = block_coord(0) + block_side;
+  int ylast = block_coord(1) + block_side;
+  int zlast = block_coord(2) + block_side;
+  for(z = block_coord(2); z < zlast; ++z){
+    for (y = block_coord(1); y < ylast; ++y){
+      for (x = block_coord(0); x < xlast; ++x){
 
         typename se::VoxelBlock<FieldType>::value_type value;
         const Eigen::Vector3i vox{x, y, z};

@@ -195,16 +195,16 @@ struct Configuration {
    * noise.
    * <br>\em Default: false
    */
-  bool bilateralFilter;
+  bool bilateral_filter;
 
   /* UNUSED */
-  bool colouredVoxels;
+  bool coloured_voxels;
 
   /*
    * UNUSED
    * <br>\em Default: false
    */
-  bool multiResolution;
+  bool multi_resolution;
 
   /*
    * UNUSED
