@@ -134,9 +134,19 @@ class VoxelBlock: public Node<T> {
   private:
     VoxelBlock(const VoxelBlock&) = delete;
     Eigen::Vector3i coordinates_;
-    static constexpr size_t buff_size = sideCube + sideCube/8 + sideCube/64;
-    value_type voxel_block_[buff_size]; // Brick of data.
     bool active_;
+
+    static constexpr size_t compute_buff_size() {
+      size_t size = 0;
+      unsigned int s = side;
+      while(s > 1) {
+        size += s * s * s;
+        s = s >> 1;
+      }
+      return size;
+    }
+    static constexpr size_t buff_size = compute_buff_size();
+    value_type voxel_block_[buff_size]; // Brick of data.
 
     friend std::ofstream& internal::serialise <> (std::ofstream& out, 
         VoxelBlock& node);
