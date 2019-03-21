@@ -43,10 +43,8 @@ void renderDepthKernel(unsigned char* out, float * depth,
 
 	float rangeScale = 1 / (farPlane - nearPlane);
 
-	int y;
-#pragma omp parallel for \
-        shared(out), private(y)
-	for (y = 0; y < depthSize.y(); y++) {
+#pragma omp parallel for
+	for (int y = 0; y < depthSize.y(); y++) {
 		int rowOffeset = y * depthSize.x();
 		for (int x = 0; x < depthSize.x(); x++) {
 
@@ -76,7 +74,7 @@ void renderDepthKernel(unsigned char* out, float * depth,
       }
 		}
 	}
-	TOCK("renderDepthKernel", depthSize.x * depthSize.y);
+	TOCK("renderDepthKernel", depthSize.x() * depthSize.y());
 }
 
 void renderTrackKernel(unsigned char* out,
@@ -84,10 +82,8 @@ void renderTrackKernel(unsigned char* out,
     const Eigen::Vector2i& outSize) {
   TICK();
 
-  int y;
-#pragma omp parallel for \
-  shared(out), private(y)
-  for (y = 0; y < outSize.y(); y++)
+#pragma omp parallel for
+  for (int y = 0; y < outSize.y(); y++)
     for (int x = 0; x < outSize.x(); x++) {
       const int pos = x + outSize.x()*y;
       const int idx = pos * 4;
@@ -136,6 +132,6 @@ void renderTrackKernel(unsigned char* out,
           break;
       }
     }
-  TOCK("renderTrackKernel", outSize.x * outSize.y);
+  TOCK("renderTrackKernel", outSize.x() * outSize.y());
 }
 

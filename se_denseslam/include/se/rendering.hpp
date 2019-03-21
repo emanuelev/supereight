@@ -60,9 +60,8 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
    const Eigen::Matrix4f& view, const float nearPlane, const float farPlane,
    const float mu, const float step, const float largestep) {
   TICK();
-  int y;
-#pragma omp parallel for shared(normal, vertex), private(y)
-  for (y = 0; y < vertex.height(); y++)
+#pragma omp parallel for
+  for (int y = 0; y < vertex.height(); y++)
 #pragma simd
     for (int x = 0; x < vertex.width(); x++) {
 
@@ -93,7 +92,7 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
         normal[pos.x() + pos.y() * normal.width()] = Eigen::Vector3f(INVALID, 0, 0);
       }
     }
-  TOCK("raycastKernel", inputSize.x * inputSize.y);
+  TOCK("raycastKernel", vertex.width() * vertex.height());
 }
 
 // void renderNormalKernel(uchar3* out, const float3* normal, uint2 normalSize) {
@@ -139,9 +138,8 @@ void renderVolumeKernel(const Volume<T>& volume,
     const se::Image<Eigen::Vector3f>& vertex,
     const se::Image<Eigen::Vector3f>& normal) {
   TICK();
-  int y;
-#pragma omp parallel for shared(out), private(y)
-  for (y = 0; y < depthSize.y(); y++) {
+#pragma omp parallel for
+  for (int y = 0; y < depthSize.y(); y++) {
     for (int x = 0; x < depthSize.x(); x++) {
       Eigen::Vector4f hit;
       Eigen::Vector3f test, surfNorm;
@@ -191,7 +189,7 @@ void renderVolumeKernel(const Volume<T>& volume,
       }
     }
   }
-  TOCK("renderVolumeKernel", depthSize.x * depthSize.y);
+  TOCK("renderVolumeKernel", depthSize.x() * depthSize.y());
 }
 
 #endif
