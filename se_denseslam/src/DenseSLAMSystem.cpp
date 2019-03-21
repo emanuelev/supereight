@@ -39,11 +39,11 @@
 #include <se/algorithms/meshing.hpp>
 #include <se/geometry/octree_collision.hpp>
 #include <se/vtk-io.h>
-#include "rendering.cpp"
 #include <se/bfusion/mapping_impl.hpp>
 #include <se/kfusion/mapping_impl.hpp>
 #include <se/bfusion/alloc_impl.hpp>
 #include <se/kfusion/alloc_impl.hpp>
+#include <se/rendering.hpp>
 
 
 extern PerfStats Stats;

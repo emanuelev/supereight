@@ -28,7 +28,7 @@ if (WITH_OPENMP AND OPENMP_FOUND)
 endif()
 
 # ---------- SOURCE FILES ------------ 
-set(se_src "./src/preprocessing.cpp" "./src/tracking.cpp" "./src/DenseSLAMSystem.cpp")
+set(se_src "./src/preprocessing.cpp" "./src/tracking.cpp" "./src/rendering.cpp" "./src/DenseSLAMSystem.cpp")
 
 # ----------------- OFUsion -----------------
 set(field_type SE_FIELD_TYPE=OFusion)
