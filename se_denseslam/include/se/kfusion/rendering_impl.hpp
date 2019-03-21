@@ -28,8 +28,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * */
-#include <se/utils/math_utils.h>
+
+#ifndef __KFUSION_RENDERING_IMPL_HPP
+#define __KFUSION_RENDERING_IMPL_HPP
+
 #include <type_traits>
+
+#include <se/utils/math_utils.h>
+#include <se/continuous/volume_template.hpp>
+#include <se/volume_traits.hpp>
+
+template <typename T>
+using Volume = VolumeTemplate<T, se::Octree>;
 
 inline Eigen::Vector4f raycast(const Volume<SDF>&     volume,
                                const Eigen::Vector3f& origin,
@@ -76,4 +86,6 @@ inline Eigen::Vector4f raycast(const Volume<SDF>&     volume,
   }
   return Eigen::Vector4f::Constant(0);
 }
+
+#endif
 

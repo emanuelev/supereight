@@ -29,8 +29,17 @@
  *
  * */
 
-#include <se/utils/math_utils.h>
+#ifndef __BFUSION_RENDERING_IMPL_HPP
+#define __BFUSION_RENDERING_IMPL_HPP
+
 #include <type_traits>
+
+#include <se/utils/math_utils.h>
+#include <se/continuous/volume_template.hpp>
+#include <se/volume_traits.hpp>
+
+template <typename T>
+using Volume = VolumeTemplate<T, se::Octree>;
 
 inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
                                const Eigen::Vector3f& origin,
@@ -71,4 +80,6 @@ inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
   }
   return Eigen::Vector4f::Constant(0);
 }
+
+#endif
 
