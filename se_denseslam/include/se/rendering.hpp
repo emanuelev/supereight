@@ -55,10 +55,15 @@ template <typename T>
 using Volume = VolumeTemplate<T, se::Octree>;
 
 template<typename T>
-void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
-   se::Image<Eigen::Vector3f>& normal,
-   const Eigen::Matrix4f& view, const float nearPlane, const float farPlane,
-   const float mu, const float step, const float largestep) {
+void raycastKernel(const Volume<T>&            volume,
+                   se::Image<Eigen::Vector3f>& vertex,
+                   se::Image<Eigen::Vector3f>& normal,
+                   const Eigen::Matrix4f&      view,
+                   const float                 nearPlane,
+                   const float                 farPlane,
+                   const float                 mu,
+                   const float                 step,
+                   const float                 largestep) {
   TICK();
 #pragma omp parallel for
   for (int y = 0; y < vertex.height(); y++)
@@ -75,7 +80,7 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
       const Eigen::Vector4f hit = t_min > 0.f ?
         raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, largestep) :
         Eigen::Vector4f::Constant(0.f);
-      if(hit.w() > 0.0) {
+      if (hit.w() > 0.0) {
         vertex[x + y * vertex.width()] = hit.head<3>();
         Eigen::Vector3f surfNorm = volume.grad(hit.head<3>(),
             [](const auto& val){ return val.x; });
@@ -114,29 +119,31 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
 // 	TOCK("renderNormalKernel", normalSize.x * normalSize.y);
 // }
 
-void renderDepthKernel(unsigned char* out, float * depth,
-    const Eigen::Vector2i& depthSize, const float nearPlane,
-    const float farPlane);
+void renderDepthKernel(unsigned char*         out,
+                       float*                 depth,
+                       const Eigen::Vector2i& depthSize,
+                       const float            nearPlane,
+                       const float            farPlane);
 
-void renderTrackKernel(unsigned char* out,
-    const TrackData* data,
-    const Eigen::Vector2i& outSize);
+void renderTrackKernel(unsigned char*         out,
+                       const TrackData*       data,
+                       const Eigen::Vector2i& outSize);
 
 template <typename T>
-void renderVolumeKernel(const Volume<T>& volume,
-    unsigned char* out, // RGBW packed
-    const Eigen::Vector2i& depthSize,
-    const Eigen::Matrix4f& view,
-    const float nearPlane,
-    const float farPlane,
-    const float mu,
-		const float step,
-    const float largestep,
-    const Eigen::Vector3f& light,
-		const Eigen::Vector3f& ambient,
-    bool render,
-    const se::Image<Eigen::Vector3f>& vertex,
-    const se::Image<Eigen::Vector3f>& normal) {
+void renderVolumeKernel(const Volume<T>&                  volume,
+                        unsigned char*                    out, // RGBW packed
+                        const Eigen::Vector2i&            depthSize,
+                        const Eigen::Matrix4f&            view,
+                        const float                       nearPlane,
+                        const float                       farPlane,
+                        const float                       mu,
+                        const float                       step,
+                        const float                       largestep,
+                        const Eigen::Vector3f&            light,
+                        const Eigen::Vector3f&            ambient,
+                        bool                              render,
+                        const se::Image<Eigen::Vector3f>& vertex,
+                        const se::Image<Eigen::Vector3f>& normal) {
   TICK();
 #pragma omp parallel for
   for (int y = 0; y < depthSize.y(); y++) {
@@ -145,7 +152,7 @@ void renderVolumeKernel(const Volume<T>& volume,
       Eigen::Vector3f test, surfNorm;
       const int idx = (x + depthSize.x()*y) * 4;
 
-      if(render) {
+      if (render) {
         const Eigen::Vector3f dir =
           (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
         const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
@@ -165,8 +172,7 @@ void renderVolumeKernel(const Volume<T>& volume,
         } else {
           surfNorm = Eigen::Vector3f(INVALID, 0, 0);
         }
-      }
-      else {
+      } else {
         test = vertex[x + depthSize.x()*y];
         surfNorm = normal[x + depthSize.x()*y];
       }

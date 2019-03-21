@@ -36,34 +36,36 @@
 
 #include <se/rendering.hpp>
 
-void renderDepthKernel(unsigned char* out, float * depth,
-    const Eigen::Vector2i& depthSize, const float nearPlane,
-    const float farPlane) {
-	TICK();
+void renderDepthKernel(unsigned char*         out,
+                       float*                 depth,
+                       const Eigen::Vector2i& depthSize,
+                       const float            nearPlane,
+                       const float            farPlane) {
+  TICK();
 
-	float rangeScale = 1 / (farPlane - nearPlane);
+  float rangeScale = 1 / (farPlane - nearPlane);
 
 #pragma omp parallel for
-	for (int y = 0; y < depthSize.y(); y++) {
-		int rowOffeset = y * depthSize.x();
-		for (int x = 0; x < depthSize.x(); x++) {
+  for (int y = 0; y < depthSize.y(); y++) {
+    const int rowOffeset = y * depthSize.x();
+    for (int x = 0; x < depthSize.x(); x++) {
 
-			unsigned int pos = rowOffeset + x;
-      unsigned int idx = pos * 4;
+      // Linear pixel index.
+      const unsigned int pos = rowOffeset + x;
+      // Linear byte index.
+      const unsigned int idx = pos * 4;
 
       if (depth[pos] < nearPlane) {
         out[idx + 0] = 255;
         out[idx + 1] = 255;
         out[idx + 2] = 255;
         out[idx + 3] = 0;
-      }
-      else if (depth[pos] > farPlane) {
+      } else if (depth[pos] > farPlane) {
         out[idx + 0] = 0;
         out[idx + 1] = 0;
         out[idx + 2] = 0;
         out[idx + 3] = 0;
-      }
-      else {
+      } else {
         const float d = (depth[pos] - nearPlane) * rangeScale;
         unsigned char rgbw[4];
         gs2rgb(d, rgbw);
@@ -72,20 +74,22 @@ void renderDepthKernel(unsigned char* out, float * depth,
         out[idx + 2] = rgbw[2];
         out[idx + 3] = rgbw[3];
       }
-		}
-	}
-	TOCK("renderDepthKernel", depthSize.x() * depthSize.y());
+    }
+  }
+  TOCK("renderDepthKernel", depthSize.x() * depthSize.y());
 }
 
-void renderTrackKernel(unsigned char* out,
-    const TrackData* data,
-    const Eigen::Vector2i& outSize) {
+void renderTrackKernel(unsigned char*         out,
+                       const TrackData*       data,
+                       const Eigen::Vector2i& outSize) {
   TICK();
 
 #pragma omp parallel for
-  for (int y = 0; y < outSize.y(); y++)
+  for (int y = 0; y < outSize.y(); y++) {
     for (int x = 0; x < outSize.x(); x++) {
+      // Linear pixel index.
       const int pos = x + outSize.x()*y;
+      // Linear byte index.
       const int idx = pos * 4;
       switch (data[pos].result) {
         case 1:
@@ -132,6 +136,7 @@ void renderTrackKernel(unsigned char* out,
           break;
       }
     }
+  }
   TOCK("renderTrackKernel", outSize.x() * outSize.y());
 }
 
