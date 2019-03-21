@@ -177,7 +177,7 @@ uint8_t compute_index(const MapT<FieldType, BufferT>& volume,
     return index;
 }
 
-inline bool checkVertex(const Eigen::Vector3f v, const int dim) {
+inline bool checkVertex(const Eigen::Vector3f v, const float dim) {
     return (v(0) <= 0 || v(1) <= 0 || v(2) <= 0 || v(0) > dim || v(1) > dim ||
         v(2) > dim);
 }
@@ -197,7 +197,7 @@ void marching_cube(Octree<FieldType, BufferT>& volume, FieldSelector select,
     std::mutex lck;
 
     const int size = volume.size();
-    const int dim  = volume.dim();
+    const float dim  = volume.dim();
 
     volume.getBlockList(blocklist, false);
     std::cout << "Blocklist size: " << blocklist.size() << std::endl;
