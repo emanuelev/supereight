@@ -45,6 +45,7 @@ namespace functor {
   class projective_functor {
 
     public:
+      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
       projective_functor(MapT<FieldType>& map, UpdateF f, const Sophus::SE3f& Tcw, 
           const Eigen::Matrix4f& K, const Eigen::Vector2i framesize) : 
         _map(map), _function(f), _Tcw(Tcw), _K(K), _frame_size(framesize) {
@@ -57,20 +58,21 @@ namespace functor {
           _map.getBlockBuffer();
 
         /* Predicates definition */
+        const Eigen::Matrix4f Tcw = _Tcw.matrix();
         const float voxel_size = _map.dim()/_map.size();
         auto in_frustum_predicate = 
           std::bind(algorithms::in_frustum<se::VoxelBlock<FieldType>>, _1, 
-              voxel_size, _K*_Tcw.matrix(), _frame_size); 
+              voxel_size, _K*Tcw, _frame_size); 
         auto is_active_predicate = [](const se::VoxelBlock<FieldType>* b) {
           return b->active();
         };
 
-        algorithms::filter(_active_list, block_array, is_active_predicate,
+        algorithms::filter(_active_list, block_array, is_active_predicate, 
             in_frustum_predicate);
       }
 
-      void update_block(se::VoxelBlock<FieldType> * block, const float voxel_size) {
-
+      void update_block(se::VoxelBlock<FieldType> * block, 
+                        const float voxel_size) {
         const Eigen::Vector3i blockCoord = block->coordinates();
         const Eigen::Vector3f delta = _Tcw.rotationMatrix() * Eigen::Vector3f(voxel_size, 0, 0);
         const Eigen::Vector3f cameraDelta = _K.topLeftCorner<3,3>() * delta;

@@ -93,6 +93,8 @@ class DenseSLAMSystem {
     Eigen::Matrix4f raycast_pose_;
 
   public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    
     /**
      * Constructor using the initial camera position.
      *
@@ -406,8 +408,6 @@ class DenseSLAMSystem {
     Eigen::Vector2i getComputationResolution() {
       return (computation_size_);
     }
-
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 /**
