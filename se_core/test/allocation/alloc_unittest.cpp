@@ -69,16 +69,23 @@ TEST(AllocationTest, SetSingleVoxel) {
 TEST(AllocationTest, FetchOctant) {
   typedef se::Octree<float> OctreeF;
   OctreeF oct;
-  oct.init(256, 5);
+  const int max_level = 8;
+  const unsigned int block_side = 8;
+  const int leaves_level = max_level - log2(block_side);
+  const unsigned int size = std::pow(2, max_level);
+  oct.init(size, 5);
   const Eigen::Vector3i vox = {25, 65, 127};
-  const unsigned code = oct.hash(vox(0), vox(1), vox(2)); 
+  const se::key_t code = oct.hash(vox(0), vox(1), vox(2));
   se::key_t allocList[1] = {code};
+
   oct.allocate(allocList, 1);
 
-  const int depth = 3; /* 32 voxels per side */
-  se::Node<float> * node = oct.fetch_octant(vox(0), vox(1), vox(2), 3);
+  const int level = 3; /* 32 voxels per side */
+  se::Node<float> * node = oct.fetch_octant(vox(0), vox(1), vox(2), level);
+  se::key_t fetched_code = node->code_;
 
-  EXPECT_NE(node, nullptr);
+  const se::key_t gt_code = oct.hash(vox(0), vox(1), vox(2), level);
+  ASSERT_EQ(fetched_code, gt_code);
 }
 
 TEST(AllocationTest, MortonPrefixMask) {
