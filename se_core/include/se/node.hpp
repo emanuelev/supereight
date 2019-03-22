@@ -61,25 +61,31 @@ public:
     children_mask_ = 0;
     for (unsigned int i = 0; i < 8; i++){
       value_[i]     = init_val();
+      parent_ptr_ = NULL;
       child_ptr_[i] = NULL;
     }
   }
 
-    virtual ~Node(){};
+  virtual ~Node(){};
 
-    Node *& child(const int x, const int y, 
-        const int z) {
-      return child_ptr_[x + y*2 + z*4];
-    };
+  Node *& child(const int x, const int y,
+      const int z) {
+    return child_ptr_[x + y*2 + z*4];
+  };
 
-    Node *& child(const int offset ){
-      return child_ptr_[offset];
-    }
+  Node *& child(const int offset ) {
+    return child_ptr_[offset];
+  }
 
-    virtual bool isLeaf(){ return false; }
+  Node *& parent() {
+    return parent_ptr_;
+  }
+
+  virtual bool isLeaf() { return false; }
 
 
 protected:
+    Node *parent_ptr_;
     Node *child_ptr_[8];
 private:
     friend std::ofstream& internal::serialise <> (std::ofstream& out, Node& node);
@@ -94,8 +100,8 @@ class VoxelBlock: public Node<T> {
     typedef typename traits_type::value_type value_type;
 
     static constexpr unsigned int side = BLOCK_SIDE;
-    static constexpr unsigned int sideSq = side*side;
-    static constexpr unsigned int sideCube = side*side*side;
+    static constexpr unsigned int side_sq = side*side;
+    static constexpr unsigned int side_cube = side*side*side;
 
     static constexpr value_type empty() { 
       return traits_type::empty(); 
@@ -106,7 +112,7 @@ class VoxelBlock: public Node<T> {
 
     VoxelBlock(){
       coordinates_ = Eigen::Vector3i::Constant(0);
-      for (unsigned int i = 0; i < side*sideSq; i++)
+      for (unsigned int i = 0; i < side*side_sq; i++)
         voxel_block_[i] = initValue();
     }
 
@@ -158,7 +164,7 @@ inline typename VoxelBlock<T>::value_type
 VoxelBlock<T>::data(const Eigen::Vector3i& pos) const {
   Eigen::Vector3i offset = pos - coordinates_;
   const value_type& data = voxel_block_[offset(0) + offset(1)*side +
-                                         offset(2)*sideSq];
+                                         offset(2)*side_sq];
   return data;
 }
 
@@ -173,18 +179,18 @@ VoxelBlock<T>::data(const Eigen::Vector3i& pos) const {
     Eigen::Vector3i relative_pos = pos - coordinates_;
     data = voxel_block_[relative_pos.x() + 
                         relative_pos.y()*side +
-                        relative_pos.z()*sideSq];
+                        relative_pos.z()*side_sq];
   } else if(level == 1) {
     const Eigen::Vector3i relative_pos = (pos - coordinates_) / 2;
     constexpr size_t local_size = side >> 1;
-    constexpr size_t offset = sideCube;
+    constexpr size_t offset = side_cube;
     data = voxel_block_[offset + 
                         relative_pos.x() + 
                         relative_pos.y()*local_size +
                         relative_pos.z()*se::math::sq(local_size)];
   } else if(level == 2) {
     const Eigen::Vector3i relative_pos = (pos - coordinates_) / 4;
-    constexpr size_t offset = sideCube + sideCube/8;
+    constexpr size_t offset = side_cube + side_cube/8;
     constexpr size_t local_size = side >> 2;
     data = voxel_block_[offset + 
                         relative_pos.x() + 
@@ -198,7 +204,7 @@ template <typename T>
 inline void VoxelBlock<T>::data(const Eigen::Vector3i& pos, 
                                 const value_type &value){
   Eigen::Vector3i offset = pos - coordinates_;
-  voxel_block_[offset(0) + offset(1)*side + offset(2)*sideSq] = value;
+  voxel_block_[offset(0) + offset(1)*side + offset(2)*side_sq] = value;
 }
 
 template <typename T>
@@ -211,18 +217,18 @@ inline void VoxelBlock<T>::data(const Eigen::Vector3i& pos,
     Eigen::Vector3i relative_pos = pos - coordinates_;
     voxel_block_[relative_pos.x() + 
                  relative_pos.y()*side +
-                 relative_pos.z()*sideSq] = value;
+                 relative_pos.z()*side_sq] = value;
   } else if(level == 1) {
     const Eigen::Vector3i relative_pos = (pos - coordinates_) / 2;
     constexpr size_t local_size = side >> 1;
-    constexpr size_t offset = sideCube;
+    constexpr size_t offset = side_cube;
     voxel_block_[offset + 
                  relative_pos.x() + 
                  relative_pos.y()*local_size +
                  relative_pos.z()*se::math::sq(local_size)] = value;
   } else if(level == 2) {
     const Eigen::Vector3i relative_pos = (pos - coordinates_) / 4;
-    constexpr size_t offset = sideCube + sideCube/8;
+    constexpr size_t offset = side_cube + side_cube/8;
     constexpr size_t local_size = side >> 2;
     voxel_block_[offset + 
                  relative_pos.x() + 

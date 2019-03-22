@@ -508,6 +508,7 @@ Node<T> * Octree<T>::insert(const int x, const int y, const int z,
       const key_t prefix = keyops::code(key) & MASK[d + shift];
       if(edge == blockSide) {
         tmp = block_buffer_.acquire_block();
+        tmp->parent() = n;
         static_cast<VoxelBlock<T> *>(tmp)->coordinates(
             Eigen::Vector3i(unpack_morton(prefix)));
         static_cast<VoxelBlock<T> *>(tmp)->active(true);
@@ -515,6 +516,7 @@ Node<T> * Octree<T>::insert(const int x, const int y, const int z,
         n->children_mask_ = n->children_mask_ | (1 << childid);
       } else {
         tmp = nodes_buffer_.acquire_block();
+        tmp->parent() = n;
         tmp->code_ = prefix | d;
         tmp->side_ = edge;
         n->children_mask_ = n->children_mask_ | (1 << childid);
@@ -761,6 +763,7 @@ bool Octree<T>::allocate_level(key_t* keys, int num_tasks, int target_level){
       if(!(*n)){
         if(level == leaves_level){
           *n = block_buffer_.acquire_block();
+          (*n)->parent() = parent;
           (*n)->side_ = edge;
           static_cast<VoxelBlock<T> *>(*n)->coordinates(Eigen::Vector3i(unpack_morton(myKey)));
           static_cast<VoxelBlock<T> *>(*n)->active(true);
@@ -769,6 +772,7 @@ bool Octree<T>::allocate_level(key_t* keys, int num_tasks, int target_level){
         }
         else  {
           *n = nodes_buffer_.acquire_block();
+          (*n)->parent() = parent;
           (*n)->code_ = myKey | level;
           (*n)->side_ = edge;
           parent->children_mask_ = parent->children_mask_ | (1 << index);
