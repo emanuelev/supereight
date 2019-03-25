@@ -51,7 +51,7 @@ struct update_block {
                 center, radius);
             data.delta = (sample - data.x)/(data.y + 1);
             data.x = (data.x * data.y + sample)/(data.y + 1);
-            data.y++;
+            data.y = data.y + 1;
             block->template data<scale>(vox, data);
           }
     };
@@ -122,25 +122,30 @@ void propagate_up(se::VoxelBlock<T>* block) {
 
 
 template <int scale, typename T>
-void propagate_down(se::VoxelBlock<T>* block) {
-  const Eigen::Vector3i base = block->coordinates();
-  const int side = se::VoxelBlock<T>::side;
-  const int stride = 1 << scale;
-  for(int z = 0; z < side; z += stride)
-    for(int y = 0; y < side; y += stride)
-      for(int x = 0; x < side; x += stride) {
-        const Eigen::Vector3i parent = base + Eigen::Vector3i(x, y, z);
-        auto data = block->template data<scale>(parent);
-        for(int k = 0; k < stride; ++k)
-          for(int j = 0; j < stride; ++j )
-            for(int i = 0; i < stride; ++i) {
-              const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
-              auto curr = block->data<scale - 1>(vox);
-              curr.x  +=  data.delta;
-              curr.y  += (data.y - curr.y);
-              block->template data<scale - 1>(vox);
-            }
-      }
+void propagate_down(se::Octree<T>& map) {
+  auto& voxel_blocks = map.getBlockBuffer();
+  const int n = voxel_blocks.size();
+  for(int i = 0; i < n; ++i) {
+    auto* block = voxel_blocks[i];
+    const Eigen::Vector3i base = block->coordinates();
+    const int side = se::VoxelBlock<T>::side;
+    const int stride = 1 << scale;
+    for(int z = 0; z < side; z += stride)
+      for(int y = 0; y < side; y += stride)
+        for(int x = 0; x < side; x += stride) {
+          const Eigen::Vector3i parent = base + Eigen::Vector3i(x, y, z);
+          auto data = block->template data<scale>(parent);
+          for(int k = 0; k < stride; ++k)
+            for(int j = 0; j < stride; ++j )
+              for(int i = 0; i < stride; ++i) {
+                const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
+                auto curr = block->template data<scale - 1>(vox);
+                curr.x  +=  data.delta;
+                curr.y  += (data.y - curr.y);
+                block->template data<scale - 1>(vox, curr);
+              }
+        }
+  }
 }
 
 
@@ -157,11 +162,30 @@ TEST_F(MultiscaleTest, Fusion) {
 
   using namespace std::placeholders;
   const Eigen::Vector3f center = Eigen::Vector3f::Constant(center_);
-  struct update_block<0, ESDF> update_op;
-  update_op.center = center;
-  update_op.radius = radius_;
-  for(int i = 0; i < 10; ++i) {
-    foreach(oct_, update_op);
+  struct update_block<0, ESDF> update_op_base;
+  struct update_block<1, ESDF> update_op_1;
+  update_op_base.center = center;
+  update_op_base.radius = radius_;
+  update_op_1.center = center;
+  update_op_1.radius = radius_;
+
+  for(int i = 0; i < 5; ++i) {
+    foreach(oct_, update_op_base);
+    foreach(oct_, update_op_1);
+    se::print_octree("./out/test-sphere.ply", oct_);
+    {
+      std::stringstream f;
+      f << "./out/sphere-interp-" << i << ".vtk";
+      save3DSlice(oct_, Eigen::Vector3i(0, oct_.size()/2, 0),
+          Eigen::Vector3i(oct_.size(), oct_.size()/2 + 1, oct_.size()), 
+          [](const auto& val) { return val.x; }, f.str().c_str());
+    }
+  }
+  
+  for(int i = 5; i < 10; ++i) {
+    foreach(oct_, update_op_1);
+    update_op_1.center = center + Eigen::Vector3f::Constant(10.f);
+    propagate_down<1>(oct_);
     se::print_octree("./out/test-sphere.ply", oct_);
     {
       std::stringstream f;
