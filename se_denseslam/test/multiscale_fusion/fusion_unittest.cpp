@@ -92,32 +92,37 @@ class MultiscaleTest : public ::testing::Test {
 };
 
 template <int scale, typename T>
-void propagate_up(se::VoxelBlock<T>* block) {
-  const Eigen::Vector3i base = block->coordinates();
-  const int side = se::VoxelBlock<T>::side;
-  const int stride = 1 << scale;
-  for(int z = 0; z < side; z += stride)
-    for(int y = 0; y < side; y += stride)
-      for(int x = 0; x < side; x += stride) {
-        const Eigen::Vector3i curr = base + Eigen::Vector3i(x, y, z);
-        auto data = block->template data<scale>(curr);
+void propagate_up(se::Octree<T>& map) {
+  auto& voxel_blocks = map.getBlockBuffer();
+  const int n = voxel_blocks.size();
+  for(int i = 0; i < n; ++i) {
+    auto * block = voxel_blocks[i];
+    const Eigen::Vector3i base = block->coordinates();
+    const int side = se::VoxelBlock<T>::side;
+    const int stride = 1 << (scale + 1);
+    for(int z = 0; z < side; z += stride)
+      for(int y = 0; y < side; y += stride)
+        for(int x = 0; x < side; x += stride) {
+          const Eigen::Vector3i curr = base + Eigen::Vector3i(x, y, z);
 
-        float mean = 0;
-        int num_samples = 0;
-        int weight = 0;
-        for(int k = 0; k < stride; ++k)
-          for(int j = 0; j < stride; ++j )
-            for(int i = 0; i < stride; ++i) {
-              auto tmp = block->data(curr + Eigen::Vector3i(i, j , k));
-              mean += tmp.x;
-              weight = std::max(weight, tmp.y);
-              num_samples++;
-            }
-        mean /= num_samples;
-        data.x = mean;
-        data.y = weight;
-        block->template data<scale>(curr, data);
-      }
+          float mean = 0;
+          int num_samples = 0;
+          int weight = 0;
+          for(int k = 0; k < stride; ++k)
+            for(int j = 0; j < stride; ++j )
+              for(int i = 0; i < stride; ++i) {
+                auto tmp = block->template data<scale>(curr + Eigen::Vector3i(i, j , k));
+                mean += tmp.x;
+                weight = std::max(weight, tmp.y);
+                num_samples++;
+              }
+          mean /= num_samples;
+          auto data = block->template data<scale + 1>(curr);
+          data.x = mean;
+          data.y = weight;
+          block->template data<scale+1>(curr, data);
+        }
+  }
 }
 
 
@@ -171,7 +176,7 @@ TEST_F(MultiscaleTest, Fusion) {
 
   for(int i = 0; i < 5; ++i) {
     foreach(oct_, update_op_base);
-    foreach(oct_, update_op_1);
+    propagate_up<0>(oct_);
     se::print_octree("./out/test-sphere.ply", oct_);
     {
       std::stringstream f;
