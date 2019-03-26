@@ -124,9 +124,8 @@ class VoxelBlock: public Node<T> {
     value_type data(const Eigen::Vector3i& pos) const;
     void data(const Eigen::Vector3i& pos, const value_type& value);
 
-    template <int scale> value_type data(const Eigen::Vector3i& pos) const; 
-    template <int scale>
-    void data(const Eigen::Vector3i& pos, const value_type& value);
+    value_type data(const Eigen::Vector3i& pos, const int level) const; 
+    void data(const Eigen::Vector3i& pos, const int level, const value_type& value);
 
     value_type data(const int i) const;
     void data(const int i, const value_type& value);
@@ -169,35 +168,22 @@ VoxelBlock<T>::data(const Eigen::Vector3i& pos) const {
 }
 
 template <typename T>
-template <int level>
 inline typename VoxelBlock<T>::value_type 
-VoxelBlock<T>::data(const Eigen::Vector3i& pos) const {
-  static_assert(level >=0 && level < 3, 
-                "ERROR: LEVEL SHOULD BE BETWEEN 0 AND 2");
-  value_type data;
-  if(level == 0) {
-    Eigen::Vector3i relative_pos = pos - coordinates_;
-    data = voxel_block_[relative_pos.x() + 
-                        relative_pos.y()*side +
-                        relative_pos.z()*side_sq];
-  } else if(level == 1) {
-    const Eigen::Vector3i relative_pos = (pos - coordinates_) / 2;
-    constexpr size_t local_size = side >> 1;
-    constexpr size_t offset = side_cube;
-    data = voxel_block_[offset + 
-                        relative_pos.x() + 
-                        relative_pos.y()*local_size +
-                        relative_pos.z()*se::math::sq(local_size)];
-  } else if(level == 2) {
-    const Eigen::Vector3i relative_pos = (pos - coordinates_) / 4;
-    constexpr size_t offset = side_cube + side_cube/8;
-    constexpr size_t local_size = side >> 2;
-    data = voxel_block_[offset + 
-                        relative_pos.x() + 
-                        relative_pos.y()*local_size +
-                        relative_pos.z()*se::math::sq(local_size)];
-  }
-  return data;
+VoxelBlock<T>::data(const Eigen::Vector3i& pos, const int level) const {
+  Eigen::Vector3i relative_pos = pos - coordinates_;
+  int offset = 0;
+  int l = 0;
+  int num_voxels = side_cube;
+  while(l < level) {
+    offset += num_voxels; 
+    num_voxels /= 8;
+    ++l;
+  } 
+  const int local_size = side / (1 << level); 
+  relative_pos = relative_pos / (1 << level);
+  return voxel_block_[offset + relative_pos.x() + 
+                               relative_pos.y()*local_size +
+                               relative_pos.z()*se::math::sq(local_size)];
 }
 
 template <typename T>
@@ -208,33 +194,22 @@ inline void VoxelBlock<T>::data(const Eigen::Vector3i& pos,
 }
 
 template <typename T>
-template <int level>
-inline void VoxelBlock<T>::data(const Eigen::Vector3i& pos, 
+inline void VoxelBlock<T>::data(const Eigen::Vector3i& pos, const int level, 
                                 const value_type &value){
-  static_assert(level >=0 && level < 3, 
-                "ERROR: LEVEL SHOULD BE BETWEEN 0 AND 2");
-  if(level == 0) {
-    Eigen::Vector3i relative_pos = pos - coordinates_;
-    voxel_block_[relative_pos.x() + 
-                 relative_pos.y()*side +
-                 relative_pos.z()*side_sq] = value;
-  } else if(level == 1) {
-    const Eigen::Vector3i relative_pos = (pos - coordinates_) / 2;
-    constexpr size_t local_size = side >> 1;
-    constexpr size_t offset = side_cube;
-    voxel_block_[offset + 
-                 relative_pos.x() + 
-                 relative_pos.y()*local_size +
-                 relative_pos.z()*se::math::sq(local_size)] = value;
-  } else if(level == 2) {
-    const Eigen::Vector3i relative_pos = (pos - coordinates_) / 4;
-    constexpr size_t offset = side_cube + side_cube/8;
-    constexpr size_t local_size = side >> 2;
-    voxel_block_[offset + 
-                 relative_pos.x() + 
-                 relative_pos.y()*local_size +
-                 relative_pos.z()*se::math::sq(local_size)] = value;
-  }
+  Eigen::Vector3i relative_pos = pos - coordinates_;
+  int offset = 0;
+  int l = 0;
+  int num_voxels = side_cube;
+  while(l < level) {
+    offset += num_voxels; 
+    num_voxels /= 8;
+    ++l;
+  } 
+  const int local_size = side / (1 << level); 
+  relative_pos = relative_pos / (1 << level);
+  voxel_block_[offset + relative_pos.x() + 
+                        relative_pos.y()*local_size +
+                        relative_pos.z()*se::math::sq(local_size)] = value;
 }
 
 template <typename T>

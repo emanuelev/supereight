@@ -45,14 +45,14 @@ struct update_block {
         for(int y = 0; y < side; y += stride)
           for(int x = 0; x < side; x += stride) {
             const Eigen::Vector3i vox = base + Eigen::Vector3i(x, y, z);
-            auto data = block->template data<scale>(vox);
+            auto data = block->data(vox, scale);
             const float sample = sphere_dist_noisy(
                 vox.cast<float>() + float(stride) * Eigen::Vector3f::Constant(0.5f), 
                 center, radius);
             data.delta = (sample - data.x)/(data.y + 1);
             data.x = (data.x * data.y + sample)/(data.y + 1);
             data.y = data.y + 1;
-            block->template data<scale>(vox, data);
+            block->data(vox, scale, data);
           }
     };
     Eigen::Vector3f center;
@@ -111,16 +111,16 @@ void propagate_up(se::Octree<T>& map) {
           for(int k = 0; k < stride; ++k)
             for(int j = 0; j < stride; ++j )
               for(int i = 0; i < stride; ++i) {
-                auto tmp = block->template data<scale>(curr + Eigen::Vector3i(i, j , k));
+                auto tmp = block->data(curr + Eigen::Vector3i(i, j , k), scale);
                 mean += tmp.x;
                 weight = std::max(weight, tmp.y);
                 num_samples++;
               }
           mean /= num_samples;
-          auto data = block->template data<scale + 1>(curr);
+          auto data = block->data(curr, scale + 1);
           data.x = mean;
           data.y = weight;
-          block->template data<scale+1>(curr, data);
+          block->data(curr, scale + 1, data);
         }
   }
 }
@@ -139,15 +139,15 @@ void propagate_down(se::Octree<T>& map) {
       for(int y = 0; y < side; y += stride)
         for(int x = 0; x < side; x += stride) {
           const Eigen::Vector3i parent = base + Eigen::Vector3i(x, y, z);
-          auto data = block->template data<scale>(parent);
+          auto data = block->data(parent, scale);
           for(int k = 0; k < stride; ++k)
             for(int j = 0; j < stride; ++j )
               for(int i = 0; i < stride; ++i) {
                 const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
-                auto curr = block->template data<scale - 1>(vox);
+                auto curr = block->data(vox, scale - 1);
                 curr.x  +=  data.delta;
                 curr.y  += (data.y - curr.y);
-                block->template data<scale - 1>(vox, curr);
+                block->data(vox, scale - 1, curr);
               }
         }
   }
@@ -177,6 +177,7 @@ TEST_F(MultiscaleTest, Fusion) {
   for(int i = 0; i < 5; ++i) {
     foreach(oct_, update_op_base);
     propagate_up<0>(oct_);
+    propagate_up<1>(oct_);
     se::print_octree("./out/test-sphere.ply", oct_);
     {
       std::stringstream f;
