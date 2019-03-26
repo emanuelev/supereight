@@ -35,7 +35,7 @@ float sphere_dist_noisy(const Eigen::Vector3f& p, const Eigen::Vector3f& C,
   return (dist - radius) + d(gen);
 }
 
-template <int scale, typename T>
+template <typename T>
 struct update_block {
     void operator()(se::VoxelBlock<T>* block) {       
       const Eigen::Vector3i base = block->coordinates();
@@ -57,6 +57,7 @@ struct update_block {
     };
     Eigen::Vector3f center;
     float radius;
+    int scale;
 };
 
 class MultiscaleTest : public ::testing::Test {
@@ -91,8 +92,8 @@ class MultiscaleTest : public ::testing::Test {
   std::vector<se::key_t> alloc_list;
 };
 
-template <int scale, typename T>
-void propagate_up(se::Octree<T>& map) {
+template <typename T>
+void propagate_up(se::Octree<T>& map, int scale) {
   auto& voxel_blocks = map.getBlockBuffer();
   const int n = voxel_blocks.size();
   for(int i = 0; i < n; ++i) {
@@ -126,8 +127,8 @@ void propagate_up(se::Octree<T>& map) {
 }
 
 
-template <int scale, typename T>
-void propagate_down(se::Octree<T>& map) {
+template <typename T>
+void propagate_down(se::Octree<T>& map, int scale) {
   auto& voxel_blocks = map.getBlockBuffer();
   const int n = voxel_blocks.size();
   for(int i = 0; i < n; ++i) {
@@ -167,17 +168,19 @@ TEST_F(MultiscaleTest, Fusion) {
 
   using namespace std::placeholders;
   const Eigen::Vector3f center = Eigen::Vector3f::Constant(center_);
-  struct update_block<0, ESDF> update_op_base;
-  struct update_block<1, ESDF> update_op_1;
+  struct update_block<ESDF> update_op_base;
+  struct update_block<ESDF> update_op_1;
   update_op_base.center = center;
   update_op_base.radius = radius_;
+  update_op_base.scale  = 0;
   update_op_1.center = center;
   update_op_1.radius = radius_;
+  update_op_1.scale  =  1;
 
   for(int i = 0; i < 5; ++i) {
     foreach(oct_, update_op_base);
-    propagate_up<0>(oct_);
-    propagate_up<1>(oct_);
+    propagate_up(oct_, 0);
+    propagate_up(oct_, 1);
     se::print_octree("./out/test-sphere.ply", oct_);
     {
       std::stringstream f;
@@ -191,7 +194,7 @@ TEST_F(MultiscaleTest, Fusion) {
   for(int i = 5; i < 10; ++i) {
     foreach(oct_, update_op_1);
     update_op_1.center = center + Eigen::Vector3f::Constant(10.f);
-    propagate_down<1>(oct_);
+    propagate_down(oct_, 1);
     se::print_octree("./out/test-sphere.ply", oct_);
     {
       std::stringstream f;
