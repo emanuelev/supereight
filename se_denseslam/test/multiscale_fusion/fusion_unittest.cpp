@@ -10,15 +10,16 @@
 
 typedef struct ESDF{
   float x;
-  int   y;
   float delta;
+  int   y;
+  int   delta_y;
 } ESDF;
 
 template <>
 struct voxel_traits<ESDF> {
   typedef ESDF value_type;
-  static inline value_type empty(){ return {0.f, 0, 0.f}; }
-  static inline value_type initValue(){ return {1.f, 0, 0.f}; }
+  static inline value_type empty(){ return     {0.f, 0.f, 0, 0}; }
+  static inline value_type initValue(){ return {1.f, 0.f, 0, 0}; }
 };
 
 float sphere_dist(const Eigen::Vector3f& p, const Eigen::Vector3f& C, 
@@ -50,6 +51,7 @@ struct update_block {
                 vox.cast<float>() + float(stride) * Eigen::Vector3f::Constant(0.5f), 
                 center, radius);
             data.delta = (sample - data.x)/(data.y + 1);
+            data.delta_y++;
             data.x = (data.x * data.y + sample)/(data.y + 1);
             data.y = data.y + 1;
             block->data(vox, scale, data);
@@ -147,9 +149,11 @@ void propagate_down(se::Octree<T>& map, int scale) {
                 const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
                 auto curr = block->data(vox, scale - 1);
                 curr.x  +=  data.delta;
-                curr.y  += (data.y - curr.y);
+                curr.y  +=  data.delta_y;
                 block->data(vox, scale - 1, curr);
               }
+          data.delta_y = 0; 
+          block->data(parent, scale, data);
         }
   }
 }
