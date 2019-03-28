@@ -95,66 +95,72 @@ class MultiscaleTest : public ::testing::Test {
 };
 
 template <typename T>
-void propagate_up(se::Octree<T>& map, int scale) {
+void propagate_up(se::Octree<T>& map, const int scale) {
   auto& voxel_blocks = map.getBlockBuffer();
   const int n = voxel_blocks.size();
   for(int i = 0; i < n; ++i) {
     auto * block = voxel_blocks[i];
     const Eigen::Vector3i base = block->coordinates();
     const int side = se::VoxelBlock<T>::side;
-    const int stride = 1 << (scale + 1);
-    for(int z = 0; z < side; z += stride)
-      for(int y = 0; y < side; y += stride)
-        for(int x = 0; x < side; x += stride) {
-          const Eigen::Vector3i curr = base + Eigen::Vector3i(x, y, z);
+    for(int curr_scale = scale; curr_scale < se::math::log2_const(side) - 1; ++curr_scale) {
+      const int stride = 1 << (curr_scale + 1);
+      for(int z = 0; z < side; z += stride)
+        for(int y = 0; y < side; y += stride)
+          for(int x = 0; x < side; x += stride) {
+            const Eigen::Vector3i curr = base + Eigen::Vector3i(x, y, z);
 
-          float mean = 0;
-          int num_samples = 0;
-          float weight = 0;
-          for(int k = 0; k < stride; ++k)
-            for(int j = 0; j < stride; ++j )
-              for(int i = 0; i < stride; ++i) {
-                auto tmp = block->data(curr + Eigen::Vector3i(i, j , k), scale);
-                mean += tmp.x;
-                weight += tmp.y;
-                num_samples++;
-              }
-          mean /= num_samples;
-          weight /= num_samples;
-          auto data = block->data(curr, scale + 1);
-          data.x = mean;
-          data.y = weight;
-          block->data(curr, scale + 1, data);
-        }
+            float mean = 0;
+            int num_samples = 0;
+            float weight = 0;
+            for(int k = 0; k < stride; ++k)
+              for(int j = 0; j < stride; ++j )
+                for(int i = 0; i < stride; ++i) {
+                  auto tmp = block->data(curr + Eigen::Vector3i(i, j , k), curr_scale);
+                  mean += tmp.x;
+                  weight += tmp.y;
+                  num_samples++;
+                }
+            mean /= num_samples;
+            weight /= num_samples;
+            auto data = block->data(curr, curr_scale + 1);
+            data.x = mean;
+            data.y = weight;
+            data.delta   = 0;
+            data.delta_y = 0;
+            block->data(curr, curr_scale + 1, data);
+          }
+    }
   }
 }
 
 template <typename T>
-void propagate_down(se::Octree<T>& map, int scale) {
+void propagate_down(se::Octree<T>& map, const int scale) {
   auto& voxel_blocks = map.getBlockBuffer();
   const int n = voxel_blocks.size();
   for(int i = 0; i < n; ++i) {
     auto* block = voxel_blocks[i];
     const Eigen::Vector3i base = block->coordinates();
     const int side = se::VoxelBlock<T>::side;
-    const int stride = 1 << scale;
-    for(int z = 0; z < side; z += stride)
-      for(int y = 0; y < side; y += stride)
-        for(int x = 0; x < side; x += stride) {
-          const Eigen::Vector3i parent = base + Eigen::Vector3i(x, y, z);
-          auto data = block->data(parent, scale);
-          for(int k = 0; k < stride; ++k)
-            for(int j = 0; j < stride; ++j )
-              for(int i = 0; i < stride; ++i) {
-                const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
-                auto curr = block->data(vox, scale - 1);
-                curr.x  +=  data.delta;
-                curr.y  +=  data.delta_y;
-                block->data(vox, scale - 1, curr);
-              }
-          data.delta_y = 0; 
-          block->data(parent, scale, data);
-        }
+    for(int curr_scale = scale; curr_scale > 0; --curr_scale) {
+      const int stride = 1 << curr_scale;
+      for(int z = 0; z < side; z += stride)
+        for(int y = 0; y < side; y += stride)
+          for(int x = 0; x < side; x += stride) {
+            const Eigen::Vector3i parent = base + Eigen::Vector3i(x, y, z);
+            auto data = block->data(parent, curr_scale);
+            for(int k = 0; k < stride; ++k)
+              for(int j = 0; j < stride; ++j )
+                for(int i = 0; i < stride; ++i) {
+                  const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
+                  auto curr = block->data(vox, curr_scale - 1);
+                  curr.x  +=  data.delta;
+                  curr.y  +=  data.delta_y;
+                  block->data(vox, curr_scale - 1, curr);
+                }
+            data.delta_y = 0; 
+            block->data(parent, curr_scale, data);
+          }
+    }
   }
 }
 
@@ -184,7 +190,6 @@ TEST_F(MultiscaleTest, Fusion) {
   for(int i = 0; i < 5; ++i) {
     foreach(oct_, update_op_base);
     propagate_up(oct_, 0);
-    propagate_up(oct_, 1);
     se::print_octree("./out/test-sphere.ply", oct_);
     {
       std::stringstream f;
