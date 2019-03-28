@@ -108,16 +108,17 @@ void propagate_up(se::Octree<T>& map, int scale) {
 
           float mean = 0;
           int num_samples = 0;
-          int weight = 0;
+          float weight = 0;
           for(int k = 0; k < stride; ++k)
             for(int j = 0; j < stride; ++j )
               for(int i = 0; i < stride; ++i) {
                 auto tmp = block->data(curr + Eigen::Vector3i(i, j , k), scale);
                 mean += tmp.x;
-                weight = std::max(weight, tmp.y);
+                weight += tmp.y;
                 num_samples++;
               }
           mean /= num_samples;
+          weight /= num_samples;
           auto data = block->data(curr, scale + 1);
           data.x = mean;
           data.y = weight;
@@ -125,7 +126,6 @@ void propagate_up(se::Octree<T>& map, int scale) {
         }
   }
 }
-
 
 template <typename T>
 void propagate_down(se::Octree<T>& map, int scale) {
