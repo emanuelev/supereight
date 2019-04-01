@@ -221,7 +221,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
      allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(),
          *volume_._map_index,
          pose_, getCameraMatrix(k), float_depth_.data(), computation_size_, voxelsize,
-         compute_stepsize, step_to_depth, 6*mu);
+         compute_stepsize, step_to_depth, mu);
     }
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);
