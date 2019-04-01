@@ -2,6 +2,7 @@
 #include <se/octree.hpp>
 #include <se/algorithms/balancing.hpp>
 #include <se/functors/axis_aligned_functor.hpp>
+#include <se/functors/for_each.hpp>
 #include <se/io/vtk-io.h>
 #include <se/io/ply_io.hpp>
 #include <random>
@@ -188,7 +189,7 @@ TEST_F(MultiscaleTest, Fusion) {
   update_op_1.scale  =  1;
 
   for(int i = 0; i < 5; ++i) {
-    foreach(oct_, update_op_base);
+    se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), update_op_base);
     propagate_up(oct_, 0);
     se::print_octree("./out/test-sphere.ply", oct_);
     {
@@ -201,7 +202,7 @@ TEST_F(MultiscaleTest, Fusion) {
   }
   
   for(int i = 5; i < 10; ++i) {
-    foreach(oct_, update_op_1);
+    se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), update_op_1);
     update_op_1.center = center + Eigen::Vector3f::Constant(10.f);
     propagate_down(oct_, 1);
     se::print_octree("./out/test-sphere.ply", oct_);
