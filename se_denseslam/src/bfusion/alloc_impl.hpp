@@ -102,7 +102,7 @@ size_t buildOctantList(HashType*              allocation_list,
 
       Eigen::Vector3f direction = (camera_pos - world_vertex).normalized();
       const float sigma = se::math::clamp(noise_factor * se::math::sq(depth), 2 * voxel_size, 0.05f);
-      const float band = 6 * sigma;
+      const float band = 2 * sigma;
       const Eigen::Vector3f origin = world_vertex - (band * 0.5f) * direction;
       const float dist = (camera_pos - origin).norm();
       Eigen::Vector3f step = direction*stepsize;
