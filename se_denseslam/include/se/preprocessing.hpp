@@ -47,13 +47,13 @@
 
 void bilateralFilterKernel(se::Image<float>&         out,
                            const se::Image<float>&   in,
-		                   const std::vector<float>& gaussian,
+                           const std::vector<float>& gaussian,
                            const float               e_d,
-                           const int                 r);
+                           const int                 radius);
 
 void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
                         const se::Image<float>&     depth,
-                        const Eigen::Matrix4f&      invK);
+                        const Eigen::Matrix4f&      inv_K);
 
 /**
  * NegY should only be true when reading an ICL-NUIM dataset which has a
@@ -65,7 +65,7 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&       out,
 
 void mm2metersKernel(se::Image<float>&      out,
                      const unsigned short*  in,
-                     const Eigen::Vector2i& inputSize);
+                     const Eigen::Vector2i& input_size);
 
 void halfSampleRobustImageKernel(se::Image<float>&       out,
                                  const se::Image<float>& in,

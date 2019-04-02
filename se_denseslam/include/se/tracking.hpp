@@ -43,35 +43,35 @@
 #include <se/utils/math_utils.h>
 #include <se/image/image.hpp>
 
-void new_reduce(int                    blockIndex,
+void new_reduce(const int              block_index,
                 float*                 out,
-                TrackData*             J,
+                const TrackData*       J,
                 const Eigen::Vector2i& Jsize,
                 const Eigen::Vector2i& size);
 
 void reduceKernel(float*                 out,
-                  TrackData*             J,
+                  const TrackData*       J,
                   const Eigen::Vector2i& Jsize,
-		          const Eigen::Vector2i& size);
+                  const Eigen::Vector2i& size);
 
 void trackKernel(TrackData*                        output,
-                 const se::Image<Eigen::Vector3f>& inVertex,
-                 const se::Image<Eigen::Vector3f>& inNormal,
-                 const se::Image<Eigen::Vector3f>& refVertex,
-                 const se::Image<Eigen::Vector3f>& refNormal,
+                 const se::Image<Eigen::Vector3f>& in_vertex,
+                 const se::Image<Eigen::Vector3f>& in_normal,
+                 const se::Image<Eigen::Vector3f>& ref_vertex,
+                 const se::Image<Eigen::Vector3f>& ref_normal,
                  const Eigen::Matrix4f&            Ttrack,
                  const Eigen::Matrix4f&            view,
                  const float                       dist_threshold,
                  const float                       normal_threshold);
 
 bool updatePoseKernel(Eigen::Matrix4f& pose,
-                      const float*     output,
-		              const float      icp_threshold);
+                      const float*     reduction_output,
+                      const float      icp_threshold);
 
 bool checkPoseKernel(Eigen::Matrix4f&       pose,
-                     Eigen::Matrix4f&       oldPose,
-                     const float*           output,
-                     const Eigen::Vector2i& imageSize,
+                     const Eigen::Matrix4f& old_pose,
+                     const float*           reduction_output,
+                     const Eigen::Vector2i& image_size,
                      const float            track_threshold);
 
 #endif

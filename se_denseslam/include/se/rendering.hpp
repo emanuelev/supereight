@@ -59,11 +59,11 @@ void raycastKernel(const Volume<T>&            volume,
                    se::Image<Eigen::Vector3f>& vertex,
                    se::Image<Eigen::Vector3f>& normal,
                    const Eigen::Matrix4f&      view,
-                   const float                 nearPlane,
-                   const float                 farPlane,
+                   const float                 near_plane,
+                   const float                 far_plane,
                    const float                 mu,
                    const float                 step,
-                   const float                 largestep) {
+                   const float                 large_step) {
   TICK();
 #pragma omp parallel for
   for (int y = 0; y < vertex.height(); y++)
@@ -74,12 +74,12 @@ void raycastKernel(const Volume<T>&            volume,
       const Eigen::Vector3f dir =
         (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
       const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
-      se::ray_iterator<T> ray(*volume._map_index, transl, dir, nearPlane, farPlane);
+      se::ray_iterator<T> ray(*volume._map_index, transl, dir, near_plane, far_plane);
       ray.next();
       const float t_min = ray.tcmin(); /* Get distance to the first intersected block */
       const Eigen::Vector4f hit = t_min > 0.f ?
-        raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, largestep) :
-        Eigen::Vector4f::Constant(0.f);
+        raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, large_step) :
+        Eigen::Vector4f::Zero();
       if (hit.w() > 0.0) {
         vertex[x + y * vertex.width()] = hit.head<3>();
         Eigen::Vector3f surfNorm = volume.grad(hit.head<3>(),
@@ -93,76 +93,57 @@ void raycastKernel(const Volume<T>&            volume,
             (-1.f * surfNorm).normalized() : surfNorm.normalized();
         }
       } else {
-        vertex[pos.x() + pos.y() * vertex.width()] = Eigen::Vector3f::Constant(0);
+        vertex[pos.x() + pos.y() * vertex.width()] = Eigen::Vector3f::Zero();
         normal[pos.x() + pos.y() * normal.width()] = Eigen::Vector3f(INVALID, 0, 0);
       }
     }
   TOCK("raycastKernel", vertex.width() * vertex.height());
 }
 
-// void renderNormalKernel(uchar3* out, const float3* normal, uint2 normalSize) {
-// 	TICK();
-// 	unsigned int y;
-// #pragma omp parallel for shared(out), private(y)
-// 	for (y = 0; y < normalSize.y; y++)
-// 		for (unsigned int x = 0; x < normalSize.x; x++) {
-// 			unsigned int pos = (x + y * normalSize.x);
-// 			float3 n = normal[pos];
-// 			if (n.x == -2) {
-// 				out[pos] = make_uchar3(0, 0, 0);
-// 			} else {
-// 				n = normalize(n);
-// 				out[pos] = make_uchar3(n.x * 128 + 128, n.y * 128 + 128,
-// 						n.z * 128 + 128);
-// 			}
-// 		}
-// 	TOCK("renderNormalKernel", normalSize.x * normalSize.y);
-// }
-
 void renderDepthKernel(unsigned char*         out,
-                       float*                 depth,
-                       const Eigen::Vector2i& depthSize,
-                       const float            nearPlane,
-                       const float            farPlane);
+                       const float*           depth,
+                       const Eigen::Vector2i& depth_size,
+                       const float            near_plane,
+                       const float            far_plane);
 
 void renderTrackKernel(unsigned char*         out,
                        const TrackData*       data,
-                       const Eigen::Vector2i& outSize);
+                       const Eigen::Vector2i& out_size);
 
 template <typename T>
 void renderVolumeKernel(const Volume<T>&                  volume,
                         unsigned char*                    out, // RGBW packed
-                        const Eigen::Vector2i&            depthSize,
+                        const Eigen::Vector2i&            depth_size,
                         const Eigen::Matrix4f&            view,
-                        const float                       nearPlane,
-                        const float                       farPlane,
+                        const float                       near_plane,
+                        const float                       far_plane,
                         const float                       mu,
                         const float                       step,
-                        const float                       largestep,
+                        const float                       large_step,
                         const Eigen::Vector3f&            light,
                         const Eigen::Vector3f&            ambient,
-                        bool                              render,
+                        const bool                        raycast_normals,
                         const se::Image<Eigen::Vector3f>& vertex,
                         const se::Image<Eigen::Vector3f>& normal) {
   TICK();
 #pragma omp parallel for
-  for (int y = 0; y < depthSize.y(); y++) {
-    for (int x = 0; x < depthSize.x(); x++) {
+  for (int y = 0; y < depth_size.y(); y++) {
+    for (int x = 0; x < depth_size.x(); x++) {
       Eigen::Vector4f hit;
       Eigen::Vector3f test, surfNorm;
-      const int idx = (x + depthSize.x()*y) * 4;
+      const int idx = (x + depth_size.x()*y) * 4;
 
-      if (render) {
+      if (raycast_normals) {
         const Eigen::Vector3f dir =
           (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
         const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
         se::ray_iterator<typename Volume<T>::field_type> ray(*volume._map_index,
-            transl, dir, nearPlane, farPlane);
+            transl, dir, near_plane, far_plane);
         ray.next();
         const float t_min = ray.tmin(); /* Get distance to the first intersected block */
         hit = t_min > 0.f ?
-          raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, largestep) :
-          Eigen::Vector4f::Constant(0.f);
+          raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, large_step) :
+          Eigen::Vector4f::Zero();
         if (hit.w() > 0) {
           test = hit.head<3>();
           surfNorm = volume.grad(test, [](const auto& val){ return val.x; });
@@ -173,15 +154,15 @@ void renderVolumeKernel(const Volume<T>&                  volume,
           surfNorm = Eigen::Vector3f(INVALID, 0, 0);
         }
       } else {
-        test = vertex[x + depthSize.x()*y];
-        surfNorm = normal[x + depthSize.x()*y];
+        test = vertex[x + depth_size.x()*y];
+        surfNorm = normal[x + depth_size.x()*y];
       }
 
       if (surfNorm.x() != INVALID && surfNorm.norm() > 0) {
         const Eigen::Vector3f diff = (test - light).normalized();
         const Eigen::Vector3f dir = Eigen::Vector3f::Constant(fmaxf(surfNorm.normalized().dot(diff), 0.f));
         Eigen::Vector3f col = dir + ambient;
-        se::math::clamp(col, Eigen::Vector3f::Constant(0.f), Eigen::Vector3f::Constant(1.f));
+        se::math::clamp(col, Eigen::Vector3f::Zero(), Eigen::Vector3f::Ones());
         col *=  255.f;
         out[idx + 0] = col.x();
         out[idx + 1] = col.y();
@@ -195,7 +176,7 @@ void renderVolumeKernel(const Volume<T>&                  volume,
       }
     }
   }
-  TOCK("renderVolumeKernel", depthSize.x() * depthSize.y());
+  TOCK("renderVolumeKernel", depth_size.x() * depth_size.y());
 }
 
 #endif
