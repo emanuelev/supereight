@@ -5,6 +5,7 @@
 #include <se/functors/for_each.hpp>
 #include <se/io/vtk-io.h>
 #include <se/io/ply_io.hpp>
+#include "../../src/multires/mapping_impl.hpp"
 #include <random>
 #include <functional>
 #include <gtest/gtest.h>
@@ -61,66 +62,6 @@ void update_block (se::VoxelBlock<T>* block,
       }
 }
 
-template <typename T>
-void propagate_up(se::VoxelBlock<T>* block, const int scale) {
-  const Eigen::Vector3i base = block->coordinates();
-  const int side = se::VoxelBlock<T>::side;
-  for(int curr_scale = scale; curr_scale < se::math::log2_const(side) - 1; ++curr_scale) {
-    const int stride = 1 << (curr_scale + 1);
-    for(int z = 0; z < side; z += stride)
-      for(int y = 0; y < side; y += stride)
-        for(int x = 0; x < side; x += stride) {
-          const Eigen::Vector3i curr = base + Eigen::Vector3i(x, y, z);
-
-          float mean = 0;
-          int num_samples = 0;
-          float weight = 0;
-          for(int k = 0; k < stride; ++k)
-            for(int j = 0; j < stride; ++j )
-              for(int i = 0; i < stride; ++i) {
-                auto tmp = block->data(curr + Eigen::Vector3i(i, j , k), curr_scale);
-                mean += tmp.x;
-                weight += tmp.y;
-                num_samples++;
-              }
-          mean /= num_samples;
-          weight /= num_samples;
-          auto data = block->data(curr, curr_scale + 1);
-          data.x = mean;
-          data.y = weight;
-          data.delta   = 0;
-          data.delta_y = 0;
-          block->data(curr, curr_scale + 1, data);
-        }
-  }
-}
-
-template <typename T>
-void propagate_down(se::VoxelBlock<T>* block, const int scale) {
-  const Eigen::Vector3i base = block->coordinates();
-  const int side = se::VoxelBlock<T>::side;
-  for(int curr_scale = scale; curr_scale > 0; --curr_scale) {
-    const int stride = 1 << curr_scale;
-    for(int z = 0; z < side; z += stride)
-      for(int y = 0; y < side; y += stride)
-        for(int x = 0; x < side; x += stride) {
-          const Eigen::Vector3i parent = base + Eigen::Vector3i(x, y, z);
-          auto data = block->data(parent, curr_scale);
-          for(int k = 0; k < stride; ++k)
-            for(int j = 0; j < stride; ++j )
-              for(int i = 0; i < stride; ++i) {
-                const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
-                auto curr = block->data(vox, curr_scale - 1);
-                curr.x  +=  data.delta;
-                curr.y  +=  data.delta_y;
-                block->data(vox, curr_scale - 1, curr);
-              }
-          data.delta_y = 0; 
-          block->data(parent, curr_scale, data);
-        }
-  }
-}
-
 class MultiscaleTest : public ::testing::Test {
   protected:
     virtual void SetUp() {
@@ -163,7 +104,7 @@ TEST_F(MultiscaleTest, Fusion) {
 
   for(int i = 0; i < 5; ++i) {
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), update_op);
-    auto op = [](se::VoxelBlock<ESDF>* b) { propagate_up(b, 0); };
+    auto op = [](se::VoxelBlock<ESDF>* b) { se::multires::propagate_up(b, 0); };
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), op);
 
     {
@@ -180,7 +121,7 @@ TEST_F(MultiscaleTest, Fusion) {
   scale = 1;
   for(int i = 5; i < 10; ++i) {
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), update_op);
-    auto op = [](se::VoxelBlock<ESDF>* b) { propagate_down(b, 1); };
+    auto op = [](se::VoxelBlock<ESDF>* b) { se::multires::propagate_down(b, 1); };
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), op);
 
     {
