@@ -18,3 +18,4 @@ include_directories(../../se_core/include
                     ${SOPHUS_INCLUDE_DIR})
 
 add_subdirectory(multiscale_fusion)
+add_subdirectory(multiscale_integration)
