@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- File names of setting files. -->
+  <arg name="supereight_ros_config_file"
+       default="/home/nils/workspace_catkin/src/supereight_ros/data/config.yaml" />
+
+  <!-- Launch ptp_ros node -->
+  <node pkg="supereight_ros" name="supereight"
+        type="supereight_ros_node" clear_params="true" output="screen" >
+
+    <!-- Include rosparam yaml files -->
+    <rosparam command="load" file="$(arg supereight_ros_config_file)" />
+
+  </node>
+</launch>
