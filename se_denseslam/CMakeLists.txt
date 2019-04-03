@@ -51,4 +51,16 @@ target_compile_definitions(${appname}-sdf PUBLIC ${field_type})
 
 list(APPEND BUILT_LIBS ${appname}-sdf)
 
+# ----------------- MultiresSDF -----------------
+set(field_type SE_FIELD_TYPE=MultiresSDF)
+
+add_library(${appname}-multires  ./src/DenseSLAMSystem.cpp)
+target_include_directories(${appname}-multires PUBLIC include
+    ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
+target_compile_options(${appname}-multires PUBLIC ${compile_flags})
+target_link_libraries(${appname}-multires ${libraries})
+target_compile_definitions(${appname}-multires PUBLIC ${field_type})
+
+list(APPEND BUILT_LIBS ${appname}-multires)
+
 set(BUILT_LIBS ${BUILT_LIBS} PARENT_SCOPE)

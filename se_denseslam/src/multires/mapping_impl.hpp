@@ -137,11 +137,11 @@ void update_block (se::VoxelBlock<T>* block,
                    const float mu,
                    const int maxweight,
                    const int scale) {
-  const Eigen::Vector3i base = block->coordinates();
-  const Eigen::Vector3f delta = Tcw.rotationMatrix() * Eigen::Vector3f(voxel_size, 0, 0);
-  const Eigen::Vector3f cameraDelta = K.topLeftCorner<3,3>() * delta;
   const int side = se::VoxelBlock<T>::side;
   const int stride = 1 << scale;
+  const Eigen::Vector3i base = block->coordinates();
+  const Eigen::Vector3f delta = Tcw.rotationMatrix() * Eigen::Vector3f(stride * voxel_size, 0, 0);
+  const Eigen::Vector3f cameraDelta = K.topLeftCorner<3,3>() * delta;
   for(int z = 0; z < side; z += stride)
     for(int y = 0; y < side; y += stride) {
       Eigen::Vector3i pix = base + Eigen::Vector3i(0, y, z);

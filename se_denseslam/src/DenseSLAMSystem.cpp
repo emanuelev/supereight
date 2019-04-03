@@ -50,6 +50,9 @@
 #include "kfusion/mapping_impl.hpp"
 #include "bfusion/alloc_impl.hpp"
 #include "kfusion/alloc_impl.hpp"
+#include "multires/alloc_impl.hpp"
+#include "multires/mapping_impl.hpp"
+#include "multires/rendering_impl.hpp"
 
 
 extern PerfStats Stats;
@@ -229,6 +232,12 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
          *volume_._map_index,
          pose_, getCameraMatrix(k), float_depth_.data(), computation_size_, voxelsize,
          compute_stepsize, step_to_depth, 6*mu);
+    } else if(std::is_same<FieldType, MultiresSDF>::value) {
+     allocated  = buildAllocationList(allocation_list_.data(),
+         allocation_list_.capacity(),
+        *volume_._map_index, pose_, getCameraMatrix(k), float_depth_.data(),
+        computation_size_, volume_._size,
+      voxelsize, 2*mu);
     }
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);
