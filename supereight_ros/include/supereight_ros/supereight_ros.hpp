@@ -34,15 +34,31 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <getopt.h>
+#include <glog/logging.h>
+
 
 #include <se/DenseSLAMSystem.h>
 #include <se/perfstats.h>
 #include <se/config.h>
+#include <se/thirdparty/vector_types.h>
+#include <se/interface.h>
 //#include <se/default_parameters.h>
 
 #include <supereight_ros/CircularBuffer.hpp>
 
 namespace se {
+
+// use this struct to pass the map around
+struct MapBuffer{
+  uint16_t *inputDepth = nullptr;
+ uchar3 *inputRGB = nullptr;
+ uchar4 * depthRender = nullptr;
+ uchar4 * trackRender = nullptr;
+ uchar4 * volumeRender = nullptr;
+ DepthReader *reader = nullptr;
+ DenseSLAMSystem *pipeline = nullptr;
+};
+
 
 class SupereightNode{
  public:
@@ -52,20 +68,41 @@ class SupereightNode{
 
   virtual  ~SupereightNode(){}
 
-  //void initializeConfig(const ros::NodeHandle& nh_private);
-
- private:
 /**
-* @brief Sets up publishing and subscribing, should only be called from
-* constructor
+* @brief reads configuration from YAML file to supereight_config which is
+ * def in supereight/se/config.h ined
+ * @param[in] filePath from launch file
 **/
-  //void setupRos();
+  void readConfigFile(const std::string& filePath);
+/**
+* @brief sets configuration to nodehandle from launch file
+ *map settings,
+**/
+  void setNodeParam(const ros::NodeHandle& nh_private);
+
+  // void mapUpdate
+  //
+ private:
+
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
+  // pipeline configuration
+  Configuration supereight_config_;
   // get pipeline with map
   std::shared_ptr<DenseSLAMSystem> pipeline_ = nullptr;
+
+  // Publisher
+  ros::Publisher occupancy_map_pub_;
+
+
+  // Subscriber
+  ros::Subscriber image_depth_sub_;
+  ros::Subscriber vicon_sub_;
+
+  //TODO
+  // insert Callback functions here
 
   // input buffer
   //CircularBuffer<geometry_msgs::TransformStamped> vicon_buffer_ =
@@ -78,16 +115,13 @@ class SupereightNode{
   int frame_;
   uint16_t* input_depth_ = nullptr;
 
-  //Configuration& config_;
+
   Eigen::Vector2i computation_size_;
-
-  // Publisher
-  ros::Publisher occupancy_map_pub_;
-
-
-  // Subscriber
-  ros::Subscriber image_depth_sub_;
-  ros::Subscriber vicon_sub_;
+/**
+* @brief Sets up publishing and subscribing, should only be called from
+* constructor
+**/
+  void setupRos();
 };
 
 } // namespace se

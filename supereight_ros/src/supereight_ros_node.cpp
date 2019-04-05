@@ -11,6 +11,15 @@ int main(int argc, char** argv){
   ros::NodeHandle nh_private("~");
 
   SupereightNode node(nh, nh_private);
+
+
+  std::cout << "FINISHED" << std::endl;
+
+  ros::spin();
+
+  // delete pipeline;
+  return 0;
+}
   // Configure config file with default values
 //  Configuration config;
 //  Eigen::Vector2i input_size;
@@ -36,11 +45,3 @@ int main(int argc, char** argv){
 //  //         config.pyramid, config);
 //
 //  DataSynchronizer ds(nh, pipeline, config);
-
-  std::cout << "FINISHED" << std::endl;
-
-  ros::spin();
-
-  // delete pipeline;
-  return 0;
-}

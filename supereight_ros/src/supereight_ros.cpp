@@ -8,9 +8,44 @@ namespace se {
 SupereightNode::SupereightNode(const ros::NodeHandle& nh,
     const ros::NodeHandle& nh_private){
 
+  //TODO: Configuration reader from yaml file
+  // add yaml cpp to cmakelists
+  // https://github.com/chutsu/prototype/blob/master/include/prototype/core/config.hpp
+//  readConfigFile()
+  setupRos();
+
+
+
+}
+//
+void SupereightNode::setupRos(){
+  //TODO:: setup publisher and subscriber
+  //
+  //  occupancy_map_pub_= nh_private_.advertise<Datatype>("rostopic name",
+  //  queuesize 1, true);
+//
+//  // Subscriber
+//  image_depth_sub_;
+//  vicon_sub_;
 }
 
+void SupereightNode::readConfigFile(const std::string& filePath){
+  // TODO: here
+  //  std::string input_filepath;
+  //  nh_private_.param("yaml_path", input_filepath, input_filepath);
+}
+
+void SupereightNode::setNodeParam(const ros::NodeHandle& nh_private){
+
+  //  std::string input_filepath;
+  //  nh_private_.param("yaml_path", input_filepath, input_filepath);
+}
+
+
+
 } // namespace se
+
+
 //
 //SupereightNode::SupereightNode(const ros::NodeHandle& nh, const
 //    ros::NodeHandle& nh_private,
@@ -26,17 +61,8 @@ SupereightNode::SupereightNode(const ros::NodeHandle& nh,
 //}
 
 
-//void SupereightNode::initializeConfig(const ros::NodeHandle& nh_private){
-//  int a = 1;
-//}
-//
-//void SupereightNode::setupRos(){
-//  occupancy_map_pub_;
-//
-//  // Subscriber
-//  image_depth_sub_;
-//  vicon_sub_;
-//}
+
+
 // Read config.yaml into Configuration class
 //void initalizeConfig(Configuration &config, Eigen::Vector2i &input_size) {
 //  ros::NodeHandle nh_private("~");

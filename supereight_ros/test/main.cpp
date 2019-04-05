@@ -3,7 +3,6 @@
 //
 #include <ros/ros.h>
 #include <ros/console.h>
-//#include "supereight_ros/supereight_ros.hpp"
 #include <gtest/gtest.h>
 
 
