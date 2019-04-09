@@ -10,7 +10,7 @@ IF(OpenCV_FOUND)
 ENDIF(OpenCV_FOUND)
 
 set(PROJECT_TEST_NAME multiscale_integration)
-add_executable(${PROJECT_TEST_NAME} ../multiscale_integration/integration_unittest.cpp)
+add_executable(${PROJECT_TEST_NAME} integration_unittest.cpp)
 target_include_directories(${PROJECT_TEST_NAME} PUBLIC ${GTEST_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_TEST_NAME} ${GTEST_BOTH_LIBRARIES} ${OpenCV_LIBS} pthread)
 

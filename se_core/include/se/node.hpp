@@ -48,7 +48,7 @@ public:
   typedef voxel_traits<T> traits_type;
   typedef typename traits_type::value_type value_type;
   value_type empty() const { return traits_type::empty(); }
-  value_type init_val() const { return traits_type::initValue(); }
+  value_type initValue() const { return traits_type::initValue(); }
 
   value_type value_[8];
   key_t code_;
@@ -60,7 +60,7 @@ public:
     side_ = 0;
     children_mask_ = 0;
     for (unsigned int i = 0; i < 8; i++){
-      value_[i]     = init_val();
+      value_[i]     = initValue();
       parent_ptr_ = NULL;
       child_ptr_[i] = NULL;
     }
@@ -112,7 +112,7 @@ class VoxelBlock: public Node<T> {
 
     VoxelBlock(){
       coordinates_ = Eigen::Vector3i::Constant(0);
-      for (unsigned int i = 0; i < side*side_sq; i++)
+      for (unsigned int i = 0; i < buff_size; i++)
         voxel_block_[i] = initValue();
     }
 
@@ -144,7 +144,7 @@ class VoxelBlock: public Node<T> {
     static constexpr size_t compute_buff_size() {
       size_t size = 0;
       unsigned int s = side;
-      while(s > 1) {
+      while(s >= 1) {
         size += s * s * s;
         s = s >> 1;
       }
