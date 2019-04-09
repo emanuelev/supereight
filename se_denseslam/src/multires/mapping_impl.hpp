@@ -101,12 +101,10 @@ void propagate_down(se::VoxelBlock<T>* block, const int scale) {
               for(int i = 0; i < stride; i += half_step) {
                 const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
                 auto curr = block->data(vox, curr_scale - 1);
-                auto new_x = curr.x + data.delta;
-                auto new_y = curr.y + data.delta_y;
-                curr.delta = new_x - curr.x;
-                curr.delta_y = new_y - curr.y;
                 curr.x  +=  data.delta;
                 curr.y  +=  data.delta_y;
+                curr.delta = data.delta;
+                curr.delta_y = data.delta_y;
                 block->data(vox, curr_scale - 1, curr);
               }
           data.delta_y = 0; 
