@@ -118,10 +118,10 @@ TEST_F(MultiscaleTest, Fusion) {
   
   // update captured lambda parameters
   center += Eigen::Vector3f::Constant(10.f);
-  scale = 1;
+  scale = 2;
   for(int i = 5; i < 10; ++i) {
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), update_op);
-    auto op = [](se::VoxelBlock<ESDF>* b) { se::multires::propagate_down(b, 1); };
+    auto op = [&scale](se::VoxelBlock<ESDF>* b) { se::multires::propagate_down(b, scale); };
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), op);
 
     {

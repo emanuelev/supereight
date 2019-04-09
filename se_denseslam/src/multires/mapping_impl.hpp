@@ -57,9 +57,9 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
           float mean = 0;
           int num_samples = 0;
           float weight = 0;
-          for(int k = 0; k < stride; ++k)
-            for(int j = 0; j < stride; ++j )
-              for(int i = 0; i < stride; ++i) {
+          for(int k = 0; k < stride; k += stride/2)
+            for(int j = 0; j < stride; j += stride/2 )
+              for(int i = 0; i < stride; i += stride/2) {
                 auto tmp = block->data(curr + Eigen::Vector3i(i, j , k), curr_scale);
                 mean += tmp.x;
                 weight += tmp.y;
@@ -95,11 +95,16 @@ void propagate_down(se::VoxelBlock<T>* block, const int scale) {
         for(int x = 0; x < side; x += stride) {
           const Eigen::Vector3i parent = base + Eigen::Vector3i(x, y, z);
           auto data = block->data(parent, curr_scale);
-          for(int k = 0; k < stride; ++k)
-            for(int j = 0; j < stride; ++j )
-              for(int i = 0; i < stride; ++i) {
+          const int half_step = stride / 2;
+          for(int k = 0; k < stride; k += half_step)
+            for(int j = 0; j < stride; j += half_step)
+              for(int i = 0; i < stride; i += half_step) {
                 const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
                 auto curr = block->data(vox, curr_scale - 1);
+                auto new_x = curr.x + data.delta;
+                auto new_y = curr.y + data.delta_y;
+                curr.delta = new_x - curr.x;
+                curr.delta_y = new_y - curr.y;
                 curr.x  +=  data.delta;
                 curr.y  +=  data.delta_y;
                 block->data(vox, curr_scale - 1, curr);
