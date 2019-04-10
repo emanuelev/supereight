@@ -42,7 +42,7 @@ const bool default_bilateralFilter = false;
 const std::string default_dump_volume_file = "";
 const std::string default_input_file = "";
 const std::string default_log_file = "";
-const int default_color_integration = false;
+const int default_coloured_voxels = false;
 const int default_multi_resolution = false;
 const bool default_bayesian = false;
 const std::string default_groundtruth_file = "";
@@ -81,7 +81,7 @@ static struct option long_options[] =
   {"rendering-rate",     required_argument, 0, 'z'},
   {"voxel-block-size",   required_argument, 0, 'B'},
   {"bilateral-filter",   no_argument, 0, 'F'},
-  {"colour-voxels",      no_argument, 0, 'C'},
+  {"coloured-voxels",    no_argument, 0, 'C'},
   {"multi-res",          no_argument, 0, 'M'},
   {"bayesian",           no_argument, 0, 'h'},
   {"ground-truth",       required_argument, 0, 'g'},
@@ -221,6 +221,7 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
   config.camera_overrided = false;
   config.bilateralFilter = default_bilateralFilter;
   config.bayesian = default_bayesian;
+  config.coloured_voxels = default_coloured_voxels;
 
   config.pyramid.clear();
   for (int i = 0; i < DEFAULT_ITERATION_COUNT; i++) {
@@ -438,11 +439,11 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
                 std::cerr << "using bilateral filter" << std::endl;
                 break;
       case 'C':
-                config.colouredVoxels = true;
+                config.coloured_voxels = true;
                 std::cerr << "using coloured voxels" << std::endl;
                 break;
       case 'M':
-                config.multiResolution = true;
+                config.multi_resolution = true;
                 std::cerr << "using multi-resolution integration" << std::endl;
                 break;
       case 0:

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(supereight_ros)
 
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++14  -march=native)
 
 add_definitions(-DEIGEN_MAX_ALIGN_BYTES=16)
 
@@ -69,6 +69,7 @@ set(field_type SE_FIELD_TYPE=OFusion)
 target_compile_definitions(supereight_ros_node PUBLIC ${field_type})
 
 target_link_libraries(supereight_ros_node
+
         ${catkin_LIBRARIES} )
 
 

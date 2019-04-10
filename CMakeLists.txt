@@ -1,0 +1,139 @@
+cmake_minimum_required(VERSION 3.13)
+project(supereight)
+
+set(CMAKE_CXX_STANDARD 14)
+
+include_directories(supereight/build/se_apps/se-denseslam-ofusion-qt_autogen)
+include_directories(supereight/build/se_apps/se-denseslam-sdf-qt_autogen)
+include_directories(supereight/se_apps/include)
+include_directories(supereight/se_apps/include/thirdparty)
+include_directories(supereight/se_apps/qt)
+include_directories(supereight/se_core/include)
+include_directories(supereight/se_core/include/se)
+include_directories(supereight/se_core/include/se/algorithms)
+include_directories(supereight/se_core/include/se/functors)
+include_directories(supereight/se_core/include/se/geometry)
+include_directories(supereight/se_core/include/se/image)
+include_directories(supereight/se_core/include/se/interpolation)
+include_directories(supereight/se_core/include/se/io)
+include_directories(supereight/se_core/include/se/utils)
+include_directories(supereight/se_denseslam/include)
+include_directories(supereight/se_denseslam/include/se)
+include_directories(supereight/se_denseslam/include/se/continuous)
+include_directories(supereight/se_denseslam/src/bfusion)
+include_directories(supereight/se_denseslam/src/kfusion)
+include_directories(supereight/se_shared)
+include_directories(supereight/se_tools)
+include_directories(supereight_ros/include)
+include_directories(supereight_ros/include/supereight_ros)
+
+add_executable(supereight
+        supereight/build/se_apps/se-denseslam-ofusion-qt_autogen/WTNNEUUVOU/moc_ApplicationWindow.cpp
+        supereight/build/se_apps/se-denseslam-ofusion-qt_autogen/WTNNEUUVOU/moc_MainWindow.cpp
+        supereight/build/se_apps/se-denseslam-ofusion-qt_autogen/WTNNEUUVOU/moc_OpenGLWidget.cpp
+        supereight/build/se_apps/se-denseslam-ofusion-qt_autogen/WTNNEUUVOU/moc_qcustomplot.cpp
+        supereight/build/se_apps/se-denseslam-ofusion-qt_autogen/moc_predefs.h
+        supereight/build/se_apps/se-denseslam-ofusion-qt_autogen/mocs_compilation.cpp
+        supereight/build/se_apps/se-denseslam-sdf-qt_autogen/WTNNEUUVOU/moc_ApplicationWindow.cpp
+        supereight/build/se_apps/se-denseslam-sdf-qt_autogen/WTNNEUUVOU/moc_MainWindow.cpp
+        supereight/build/se_apps/se-denseslam-sdf-qt_autogen/WTNNEUUVOU/moc_OpenGLWidget.cpp
+        supereight/build/se_apps/se-denseslam-sdf-qt_autogen/WTNNEUUVOU/moc_qcustomplot.cpp
+        supereight/build/se_apps/se-denseslam-sdf-qt_autogen/moc_predefs.h
+        supereight/build/se_apps/se-denseslam-sdf-qt_autogen/mocs_compilation.cpp
+        supereight/build/se_apps/qrc_images.cpp
+        supereight/se_apps/include/thirdparty/cutil_helper.h
+        supereight/se_apps/include/thirdparty/cutil_math.h
+        supereight/se_apps/include/thirdparty/vector_types.h
+        supereight/se_apps/include/default_parameters.h
+        supereight/se_apps/include/draw.h
+        supereight/se_apps/include/interface.h
+        supereight/se_apps/include/PowerMonitor.h
+        supereight/se_apps/include/tick.h
+        supereight/se_apps/qt/ApplicationWindow.cpp
+        supereight/se_apps/qt/ApplicationWindow.h
+        supereight/se_apps/qt/MainWindow.cpp
+        supereight/se_apps/qt/MainWindow.h
+        supereight/se_apps/qt/OpenGLWidget.cpp
+        supereight/se_apps/qt/OpenGLWidget.h
+        supereight/se_apps/qt/qcustomplot.cpp
+        supereight/se_apps/qt/qcustomplot.h
+        supereight/se_apps/qt/QtGUI.cpp
+        supereight/se_apps/src/benchmark.cpp
+        supereight/se_apps/src/mainQt.cpp
+        supereight/se_apps/src/PowerMonitor.cpp
+        supereight/se_apps/src/reader.cpp
+        supereight/se_apps/moc_ApplicationWindow.cpp
+        supereight/se_apps/moc_MainWindow.cpp
+        supereight/se_apps/moc_OpenGLWidget.cpp
+        supereight/se_apps/moc_qcustomplot.cpp
+        supereight/se_core/include/se/algorithms/edge_tables.h
+        supereight/se_core/include/se/algorithms/filter.hpp
+        supereight/se_core/include/se/algorithms/mapping.hpp
+        supereight/se_core/include/se/algorithms/meshing.hpp
+        supereight/se_core/include/se/algorithms/unique.hpp
+        supereight/se_core/include/se/functors/axis_aligned_functor.hpp
+        supereight/se_core/include/se/functors/data_handler.hpp
+        supereight/se_core/include/se/functors/projective_functor.hpp
+        supereight/se_core/include/se/geometry/aabb_collision.hpp
+        supereight/se_core/include/se/geometry/octree_collision.hpp
+        supereight/se_core/include/se/image/image.hpp
+        supereight/se_core/include/se/interpolation/interp_gather.hpp
+        supereight/se_core/include/se/io/ply_io.hpp
+        supereight/se_core/include/se/io/se_serialise.hpp
+        supereight/se_core/include/se/utils/math_utils.h
+        supereight/se_core/include/se/utils/memory_pool.hpp
+        supereight/se_core/include/se/utils/morton_utils.hpp
+        supereight/se_core/include/se/node.hpp
+        supereight/se_core/include/se/node_iterator.hpp
+        supereight/se_core/include/se/octant_ops.hpp
+        supereight/se_core/include/se/octree.hpp
+        supereight/se_core/include/se/octree_defines.h
+        supereight/se_core/include/se/ray_iterator.hpp
+        supereight/se_core/include/se/voxel_traits.hpp
+        supereight/se_core/test/algorithms/unique_unittest.cpp
+        supereight/se_core/test/allocation/alloc_unittest.cpp
+        supereight/se_core/test/functor/axisaligned_unittest.cpp
+        supereight/se_core/test/geometry/aabb_collision_unittest.cpp
+        supereight/se_core/test/geometry/octree_collision_unittest.cpp
+        supereight/se_core/test/image/image_unittest.cpp
+        supereight/se_core/test/interp/gather_unittest.cpp
+        supereight/se_core/test/interp/interpolation_unittest.cpp
+        supereight/se_core/test/io/io_unittest.cpp
+        supereight/se_core/test/multiscale/multiscale_unittest.cpp
+        supereight/se_core/test/octree/octree_unittest.cpp
+        supereight/se_core/test/octree/ray_iterator_unittest.cpp
+        supereight/se_core/test/utils/math_unittest.cpp
+        supereight/se_core/test/utils/morton_unittest.cpp
+        supereight/se_denseslam/include/se/continuous/volume_template.hpp
+        supereight/se_denseslam/include/se/commons.h
+        supereight/se_denseslam/include/se/config.h
+        supereight/se_denseslam/include/se/constant_parameters.h
+        supereight/se_denseslam/include/se/DenseSLAMSystem.h
+        supereight/se_denseslam/include/se/volume_traits.hpp
+        supereight/se_denseslam/include/se/vtk-io.h
+        supereight/se_denseslam/src/bfusion/alloc_impl.hpp
+        supereight/se_denseslam/src/bfusion/bspline_lookup.cc
+        supereight/se_denseslam/src/bfusion/mapping_impl.hpp
+        supereight/se_denseslam/src/bfusion/rendering_impl.hpp
+        supereight/se_denseslam/src/kfusion/alloc_impl.hpp
+        supereight/se_denseslam/src/kfusion/mapping_impl.hpp
+        supereight/se_denseslam/src/kfusion/rendering_impl.hpp
+        supereight/se_denseslam/src/DenseSLAMSystem.cpp
+        supereight/se_denseslam/src/preprocessing.cpp
+        supereight/se_denseslam/src/rendering.cpp
+        supereight/se_denseslam/src/tracking.cpp
+        supereight/se_shared/perfstats.h
+        supereight/se_shared/str_utils.h
+        supereight/se_shared/timings.h
+        supereight/se_tools/lodepng.cpp
+        supereight/se_tools/lodepng.h
+        supereight/se_tools/oni2raw.cpp
+        supereight/se_tools/scene2raw.cpp
+        supereight/se_tools/tiny_obj_loader.cc
+        supereight/se_tools/tiny_obj_loader.h
+        supereight_ros/include/supereight_ros/CircularBuffer.hpp
+        supereight_ros/include/supereight_ros/supereight_ros.hpp
+        supereight_ros/src/supereight_ros.cpp
+        supereight_ros/src/supereight_ros_node.cpp
+        supereight_ros/test/main.cpp
+        supereight_ros/test/test_example.cpp)
