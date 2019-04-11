@@ -27,10 +27,11 @@
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <std_msgs/String.h>
-#include <message_filters/subscriber.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <message_filters/subscriber.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -44,45 +45,47 @@
 #include <se/config.h>
 #include <se/thirdparty/vector_types.h>
 #include <se/interface.h>
-
+#include <se/node_iterator.hpp>
+#include <se/utils/morton_utils.hpp>
 // supereight_ros headers
 #include <supereight_ros/CircularBuffer.hpp>
+#include <supereight_ros/ImagePose.h> //message
+#include <supereight_ros/pipeline_support_functions.hpp>
 
 namespace se {
 
 // use this struct to pass the map around
-struct MapBuffer{
+struct MapBuffer {
   uint16_t *inputDepth = nullptr;
   uchar3 *inputRGB = nullptr;
-  uchar4 * depthRender = nullptr;
-  uchar4 * trackRender = nullptr;
-  uchar4 * volumeRender = nullptr;
+  uchar4 *depthRender = nullptr;
+  uchar4 *trackRender = nullptr;
+  uchar4 *volumeRender = nullptr;
   DepthReader *reader = nullptr;
   DenseSLAMSystem *pipeline = nullptr;
 };
 
-
-class SupereightNode{
+class SupereightNode {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  SupereightNode(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
+  SupereightNode(const ros::NodeHandle &nh, const ros::NodeHandle &nh_private);
 //  SupereightNode(const ros::NodeHandle& nh, const ros:: NodeHandle& nh_private,
 //      Configuration& config);
 
-  virtual  ~SupereightNode(){}
+  virtual  ~SupereightNode() {}
 
 /**
 * @brief sets configuration from YAML file to nodehandle
  * definitions, see supereight/se/config.h
 **/
-  void setSupereightConfig(const ros::NodeHandle& nh_private);
+  void setSupereightConfig(const ros::NodeHandle &nh_private);
 
 /**
  * @brif prints configuration parameters of the supereight denseSLAM pipeline
  * @param config
  */
-  void printSupereightConfig(const Configuration& config);
+  void printSupereightConfig(const Configuration &config);
   // void mapUpdate
   //
 
@@ -90,13 +93,24 @@ class SupereightNode{
   // insert Callback functions here
   // public variables
   Eigen::Vector3f init_pose_;
+
+  // Visualization object
+  //Visualization visualizer_;
  private:
- /**
-* @brief Sets up publishing and subscribing, should only be called from
-* constructor
-**/
+  /**
+ * @brief Sets up publishing and subscribing, should only be called from
+ * constructor
+ **/
   void setupRos();
 
+/**
+ * @brief adds images to image queue
+ * @param image_msg
+ */
+  void imageDepthCallback(const sensor_msgs::ImageConstPtr &image_msg);
+  void viconCallback(const geometry_msgs::TransformStamped::ConstPtr &vicon_msg);
+  void fusionCallback(const supereight_ros::ImagePose::ConstPtr &
+  image_pose_msg);
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
@@ -113,8 +127,10 @@ class SupereightNode{
   Configuration supereight_config_;
   Eigen::Vector2i image_size_;
   int frame_;
-  uint16_t* input_depth_ = nullptr;
+  uint16_t *input_depth_ = nullptr;
   Eigen::Vector2i computation_size_;
+  double res_;
+  int occupied_voxels_sum_;
 
   // Subscriber
   ros::Subscriber image_depth_sub_;
@@ -143,7 +159,8 @@ class SupereightNode{
   std::queue<std::chrono::time_point<std::chrono::system_clock>> stop_watch_;
   uint64_t image_time_stamp_;
 
-
+// voxel blockwise update for visualization
+  std::map<int, std::vector<Eigen::Vector3i>> voxel_block_map_;
 };
 
 } // namespace se

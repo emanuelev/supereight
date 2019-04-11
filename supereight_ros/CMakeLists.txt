@@ -8,8 +8,7 @@ add_definitions(-DEIGEN_MAX_ALIGN_BYTES=16)
 message(WARNING "CMAKE_CXX_FLAGS_DEBUG: " ${CMAKE_CXX_FLAGS_DEBUG})
 message(WARNING "CMAKE_CXX_FLAGS_RELEASE: " ${CMAKE_CXX_FLAGS_RELEASE})
 
-#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} /usr/local/lib/cmake)
-#set(APPEND $CMAKE_PREFIX_PATH "/usr/local" )
+option(WITH_OPENMP "Compile with OpenMP" ON)
 find_package(Eigen3 REQUIRED)
 find_package(supereight REQUIRED)
 ## find catkin macros and libraries
@@ -18,12 +17,34 @@ find_package(catkin REQUIRED COMPONENTS
   message_filters
   rosbag
   roscpp
-  rospy
+  roslib
   std_msgs
-  geometry_msgs
+  message_generation visualization_msgs geometry_msgs
+
       )
 
+add_message_files(FILES
+  ImagePose.msg
+)
 
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+  sensor_msgs
+)
+
+if(WITH_OPENMP)
+    find_package(OpenMP)
+    if(OPENMP_FOUND)
+        message(STATUS "Compiling with OpenMP support")
+    endif()
+endif()
+
+if (WITH_OPENMP AND OPENMP_FOUND)
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
 
 #############
 ## Catkin ##
@@ -34,9 +55,14 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME}
-        CATKIN_DEPENDS roscpp std_msgs rospy geometry_msgs message_filters
+        CATKIN_DEPENDS
+        roscpp
         rosbag
+        geometry_msgs
+        std_msgs
+        message_runtime
         cv_bridge
+
 )
 
 #############
@@ -60,6 +86,7 @@ include_directories(
 add_executable(supereight_ros_node
         src/supereight_ros_node.cpp
         src/supereight_ros.cpp
+        src/pipeline_support_functions.cpp
         )
 
 
@@ -69,9 +96,9 @@ set(field_type SE_FIELD_TYPE=OFusion)
 target_compile_definitions(supereight_ros_node PUBLIC ${field_type})
 
 target_link_libraries(supereight_ros_node
-
-        ${catkin_LIBRARIES} )
-
+        se-denseslam-ofusion
+        lodepng
+        ${catkin_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 #############
 ## Testing ##

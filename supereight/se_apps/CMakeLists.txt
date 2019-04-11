@@ -162,7 +162,14 @@ foreach(appname ${BUILT_LIBS})
   add_version(${appname}
       "${common_libraries}")
 endforeach()
-
+# 'make install' to the correct locations
+INSTALL(
+        TARGETS se-denseslam-ofusion-reader se-denseslam-sdf-reader
+        EXPORT ${appname}Config
+        ARCHIVE DESTINATION /usr/local/lib
+        LIBRARY DESTINATION /usr/local/lib
+        RUNTIME DESTINATION /usr/local/bin
+)
 INSTALL(
         DIRECTORY include/
         DESTINATION /usr/local/include/se

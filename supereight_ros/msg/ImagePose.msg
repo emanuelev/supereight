@@ -1,0 +1,3 @@
+sensor_msgs/Image image
+geometry_msgs/TransformStamped pre_pose
+geometry_msgs/TransformStamped post_pose

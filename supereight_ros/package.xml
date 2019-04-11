@@ -19,19 +19,17 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>catkin_simple</buildtool_depend>
+  <build_depend>message_generation</build_depend>
 
   <depend>roscpp</depend>
-  <depend>rospy</depend>
-
   <depend>rosbag</depend>
 
-  <depend>std_msgs</depend>
-
+  <depend>visualization_msgs</depend>
   <depend>cv_bridge</depend>
-  <depend>message_filters</depend>
   <depend>geometry_msgs</depend>
 
-  <depend>supereight</depend>
+  <depend>std_msgs</depend>
+  <exec_depend>message_runtime</exec_depend>
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->

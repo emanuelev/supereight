@@ -35,12 +35,6 @@ const Eigen::Vector3f default_initial_pos_factor(0.5f, 0.5f, 0.0f);
 const std::string default_dump_volume_file = "";
 const std::string default_input_file = "";
 const std::string default_log_file = "";
-<<<<<<< HEAD:supereight/se_apps/include/default_parameters.h
-const int default_coloured_voxels = false;
-const int default_multi_resolution = false;
-const bool default_bayesian = false;
-=======
->>>>>>> planning_base:se_apps/include/default_parameters.h
 const std::string default_groundtruth_file = "";
 const Eigen::Matrix4f default_gt_transform = Eigen::Matrix4f::Identity();
 const float default_mu = 0.1f;
