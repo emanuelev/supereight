@@ -38,6 +38,7 @@
 #include <cstdlib>
 #include <se/commons.h>
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include <perfstats.h>
 #include <timings.h>
@@ -54,6 +55,8 @@
 typedef SE_FIELD_TYPE FieldType;
 template <typename T>
 using Volume = VolumeTemplate<T, se::Octree>;
+
+extern PerfStats Stats;
 
 class DenseSLAMSystem {
 
@@ -195,6 +198,18 @@ class DenseSLAMSystem {
                      float                  mu,
                      unsigned               frame);
 
+
+    bool integration(const Eigen::Vector4f& k, 
+                     unsigned int           integration_rate,
+                     float mu, unsigned int frame, 
+                     std::vector<Eigen::Vector3i> *occupied_voxels,
+                     std::vector<Eigen::Vector3i> *freed_voxels); 
+
+
+    bool integration(const Eigen::Vector4f& k, 
+                 unsigned int           integration_rate,
+                 float mu, unsigned int frame, 
+                  std::vector<Eigen::Vector3i> *updatedBlocks);
     /**
      * Raycast the 3D reconstruction after integration to update the values of
      * the TSDF. This is the fourth stage of the pipeline.

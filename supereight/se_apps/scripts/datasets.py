@@ -169,9 +169,9 @@ ICL_NUIM_LIV_1.descr = 'liv_traj_1'
 # ICL-NUIM Living Room 2
 #
 ICL_NUIM_LIV_2 = Dataset()
-ICL_NUIM_LIV_2.dataset_path = os.path.join(DATASETS_PATH, 'living_room_traj2_frei_png/scene.raw')
-ICL_NUIM_LIV_2.ground_truth = os.path.join(DATASETS_PATH, 'living_room_traj2_frei_png/livingRoom2.gt.freiburg')
-ICL_NUIM_LIV_2.camera_file = os.path.join(DATASETS_PATH, 'living_room_traj2_frei_png/camera.txt')
+ICL_NUIM_LIV_2.dataset_path = os.path.join(DATASETS_PATH, 'living_room_traj2_loop/scene.raw')
+ICL_NUIM_LIV_2.ground_truth = os.path.join(DATASETS_PATH, 'living_room_traj2_loop/livingRoom2.gt.freiburg')
+ICL_NUIM_LIV_2.camera_file = os.path.join(DATASETS_PATH, 'living_room_traj2_loop/camera.txt')
 ICL_NUIM_LIV_2.camera = '481.2,-480,320,240'
 ICL_NUIM_LIV_2.init_pose = '0.34,0.5,0.24'
 ICL_NUIM_LIV_2.ate_associate_identity = True

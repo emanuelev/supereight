@@ -58,6 +58,15 @@ namespace se {
       return out;
     }
 
+    template <typename T>
+    std::ofstream& serialiseMultilevel(std::ofstream& out, VoxelBlock<T>& block) {
+      out.write(reinterpret_cast<char *>(&block.code_), sizeof(key_t));
+      out.write(reinterpret_cast<char *>(&block.coordinates_), sizeof(Eigen::Vector3i));
+      out.write(reinterpret_cast<char *>(&block.value_), sizeof(block.value_));
+      out.write(reinterpret_cast<char *>(&block.voxel_block_), sizeof(block.voxel_block_));
+      return out;
+    }
+
     /*
      * \brief Read node's data from input binary file. We do not read child
      * pointers and mask as those will be reconstructed when deserialising.
@@ -97,6 +106,14 @@ namespace se {
       in.read(reinterpret_cast<char *>(&block.coordinates_), sizeof(Eigen::Vector3i));
       in.read(reinterpret_cast<char *>(&block.voxel_block_), sizeof(block.voxel_block_));
     }
+
+    template <typename T>
+    void deserialiseMultilevel(VoxelBlock<T>& block, std::ifstream& in) {
+      in.read(reinterpret_cast<char *>(&block.code_), sizeof(key_t));
+      in.read(reinterpret_cast<char *>(&block.coordinates_), sizeof(Eigen::Vector3i));
+      in.read(reinterpret_cast<char *>(&block.value_), sizeof(block.value_));
+      in.read(reinterpret_cast<char *>(&block.voxel_block_), sizeof(block.voxel_block_));
+    }    
   }
 }
 #endif

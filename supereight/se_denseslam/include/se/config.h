@@ -195,7 +195,7 @@ struct Configuration {
    * noise.
    * <br>\em Default: false
    */
-  bool bilateralFilter;
+  bool bilateral_filter;
 
   /* UNUSED */
   bool coloured_voxels;
