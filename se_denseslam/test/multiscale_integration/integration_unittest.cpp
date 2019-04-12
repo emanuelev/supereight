@@ -375,10 +375,9 @@ void foreach(float voxelsize, std::vector<se::VoxelBlock<T>*> active_list,
         }
       }
     }
-    if(scale > 0)
-      propagate_down(block, scale);
-    if(scale < log2(side))
-      propagate_up(block, scale);
+
+    propagate_down(block, scale);
+    propagate_up(block, 0);
   }
 }
 
