@@ -19,6 +19,7 @@
 // Truncation distance and maximum weight
 #define MAX_DIST 2.f
 #define MAX_WEIGHT 5
+#define MU 0.1f
 
 // Fusion level,
 // 0-3 are the according levels in the voxel_block
@@ -270,7 +271,7 @@ void propagate_down(se::VoxelBlock<T>* block, const int scale) {
                 auto curr = block->data(vox, curr_scale - 1);
 
                 // Update SDF value (with 0 <= x_update <= MAX_DIST)
-                curr.x = std::max(std::min(MAX_DIST, curr.x + data.delta), 0.f);
+                curr.x = std::max(std::min(MAX_DIST, curr.x + data.delta), -MU);
 
                 // Update weight (with 0 <= y <= MAX_WEIGHT)
                 curr.y = std::min(data.delta_y + 1, MAX_WEIGHT);
@@ -367,10 +368,9 @@ void foreach(float voxelsize, std::vector<se::VoxelBlock<T>*> active_list,
               pixel(1) < 0.5f || pixel(1) > image_size.y() - 1.5f)
             continue;
 
-          float mu = 0.1;
           float depth = depth_image[int(pixel.x()) + image_size.x()*int(pixel.y())];
           const float diff = (depth - node_c.z()) * std::sqrt( 1 + se::math::sq(node_c.x() / node_c.z()) + se::math::sq(node_c.y() / node_c.z()));
-          if (diff > -mu) {
+          if (diff > -MU) {
             const float sample = fminf(MAX_DIST, diff);
 
             // Make sure that the max weight isn't greater than MAX_WEIGHT (i.e. y + 1)
