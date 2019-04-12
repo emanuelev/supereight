@@ -260,7 +260,7 @@ void propagate_down(se::VoxelBlock<T>* block, const int scale) {
                 curr.x = std::max(std::min(MAX_DIST, curr.x + data.delta), -MU);
 
                 // Update weight (with 0 <= y <= MAX_WEIGHT)
-                curr.y = std::min(data.delta_y + 1, MAX_WEIGHT);
+                curr.y = std::min(data.delta_y + curr.y, MAX_WEIGHT);
 
                 curr.delta = data.delta;
                 curr.delta_y =data.delta_y;
