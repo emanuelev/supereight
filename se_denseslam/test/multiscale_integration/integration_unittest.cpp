@@ -14,7 +14,6 @@
 #include <gtest/gtest.h>
 #include <vector>
 #include <stdio.h>
-#include <opencv2/opencv.hpp>
 
 // Truncation distance and maximum weight
 #define MAX_DIST 2.f
@@ -208,19 +207,6 @@ public:
           depth_image_[u + v*camera_parameter.imageSize().x()] = depth;
       }
     }
-
-    cv::Mat depth_image_cv(camera_parameter.imageSize().y(), camera_parameter.imageSize().x(), CV_16UC1);
-    for (uint u = 0; u < camera_parameter.imageSize().x(); u++) {
-      for (uint v = 0; v < camera_parameter.imageSize().y(); v++) {
-        uint16_t depth_int = static_cast<uint16_t>(depth_image_[u + v*camera_parameter.imageSize().x()] * 1000);
-        depth_image_cv.at<uint16_t>(v, u) = depth_int;
-      }
-    }
-
-    const std::string depth_image_filename =
-        "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/images/depth_image"
-        + std::to_string(frame_number) + ".png";
-    cv::imwrite(depth_image_filename, depth_image_cv);
   }
 
 private:
