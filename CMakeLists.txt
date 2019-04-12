@@ -136,4 +136,4 @@ add_executable(supereight
         supereight_ros/src/supereight_ros.cpp
         supereight_ros/src/supereight_ros_node.cpp
         supereight_ros/test/main.cpp
-        supereight_ros/test/test_example.cpp supereight_ros/src/pipeline_support_functions.cpp supereight_ros/include/supereight_ros/pipeline_support_functions.hpp)
+        supereight_ros/test/test_example.cpp supereight_ros/src/pipeline_support_functions.cpp supereight_ros/include/supereight_ros/pipeline_support_functions.hpp supereight_ros/include/supereight_ros/supereight_ros_impl.hpp)

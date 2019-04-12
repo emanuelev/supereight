@@ -1,5 +1,3 @@
-//#include <ros/ros.h>
-
 #include "supereight_ros/supereight_ros.hpp"
 
 int main(int argc, char** argv){
@@ -10,7 +8,7 @@ int main(int argc, char** argv){
   ros::NodeHandle nh;
   ros::NodeHandle nh_private("~");
 
-  SupereightNode node(nh, nh_private);
+  SupereightNode <OFusion>node(nh, nh_private);
 
 
   std::cout << "FINISHED" << std::endl;

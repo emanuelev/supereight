@@ -24,6 +24,7 @@
   <depend>roscpp</depend>
   <depend>rosbag</depend>
 
+  <!--<depend>mav_visualization</depend>-->
   <depend>visualization_msgs</depend>
   <depend>cv_bridge</depend>
   <depend>geometry_msgs</depend>

@@ -19,8 +19,10 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
   std_msgs
-  message_generation visualization_msgs geometry_msgs
-
+  message_generation
+        visualization_msgs
+        geometry_msgs
+#  mav_visualization
       )
 
 add_message_files(FILES
@@ -86,7 +88,8 @@ include_directories(
 add_executable(supereight_ros_node
         src/supereight_ros_node.cpp
         src/supereight_ros.cpp
-        src/pipeline_support_functions.cpp
+#        src/map_visualizer.cpp
+#        src/visualization.cpp
         )
 
 
@@ -97,6 +100,7 @@ target_compile_definitions(supereight_ros_node PUBLIC ${field_type})
 
 target_link_libraries(supereight_ros_node
         se-denseslam-ofusion
+        se-denseslam-sdf
         lodepng
         ${catkin_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
