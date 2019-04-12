@@ -257,7 +257,8 @@ void propagate_down(se::VoxelBlock<T>* block, const int scale) {
                 auto curr = block->data(vox, curr_scale - 1);
 
                 // Update SDF value (with 0 <= x_update <= MAX_DIST)
-                curr.x = std::max(std::min(MAX_DIST, curr.x + data.delta), -MU);
+                curr.x = curr.y == 0 ? data.x :
+                         std::max(std::min(MAX_DIST, curr.x + data.delta), -MU);
 
                 // Update weight (with 0 <= y <= MAX_WEIGHT)
                 curr.y = std::min(data.delta_y + curr.y, MAX_WEIGHT);
@@ -291,23 +292,28 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
             for (int j = 0; j < stride; j += stride/2)
               for (int i = 0; i < stride; i += stride/2) {
                 auto tmp = block->data(curr + Eigen::Vector3i(i, j, k), curr_scale);
-                mean += tmp.x;
-                weight += tmp.y;
-                num_samples++;
+                if (tmp.y != 0) {
+                  mean += tmp.x;
+                  weight += tmp.y;
+                  num_samples++;
+                }
               }
 
           auto data = block->data(curr, curr_scale + 1);
 
           // Update SDF value to mean of its children
-          mean /= num_samples;
-          data.x = mean;
+          if (num_samples != 0) {
+            mean /= num_samples;
+            data.x = mean;
 
-          // Update weight (round up if > 0.5, round down otherwise)
-          weight /= num_samples;
-          if(int(weight - 0.5) == int(weight))
+            // Update weight (round up if > 0.5, round down otherwise)
+            weight /= num_samples;
             data.y = ceil(weight);
-          else
-            data.y = weight;
+          } else {
+            data.x = 1;
+            data.y = 0;
+          }
+
           data.delta = 0;
           data.delta_y = 0;
           block->data(curr, curr_scale + 1, data);
