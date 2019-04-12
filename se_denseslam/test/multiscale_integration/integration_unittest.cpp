@@ -250,23 +250,43 @@ void propagate_down(se::VoxelBlock<T>* block, const int scale) {
         for (int x = 0; x < side; x += stride) {
           const Eigen::Vector3i parent = base + Eigen::Vector3i(x, y, z);
           auto data = block->data(parent, curr_scale);
+
+          float virt_sample = data.delta*float(data.y - 1) + data.x;
+          typedef voxel_traits<T> traits_type;
+          typedef typename traits_type::value_type value_type;
+          value_type curr_list[8];
+          Eigen::Vector3i vox_list[8];
+          float delta_sum(0);
+
           for (int k = 0; k < stride; k += stride/2)
             for (int j = 0; j < stride; j += stride/2)
               for (int i = 0; i < stride; i += stride/2) {
-                const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j, k);
-                auto curr = block->data(vox, curr_scale - 1);
-
-                // Update SDF value (with 0 <= x_update <= MAX_DIST)
-                curr.x = curr.y == 0 ? data.x :
-                         std::max(std::min(MAX_DIST, curr.x + data.delta), -MU);
-
-                // Update weight (with 0 <= y <= MAX_WEIGHT)
-                curr.y = std::min(data.delta_y + curr.y, MAX_WEIGHT);
-
-                curr.delta = data.delta;
-                curr.delta_y =data.delta_y;
-                block->data(vox, curr_scale - 1, curr);
+                int idx = 1*(2*i/stride) + 2*(2*j/stride) + 4*(2*k/stride);
+                vox_list[idx] = parent + Eigen::Vector3i(i, j, k);
+                auto curr = block->data(vox_list[idx], curr_scale -1);
+                // Calculate non normalized child delta
+                curr.delta = virt_sample - curr.x;
+                delta_sum += curr.delta;
+                curr_list[idx] = curr;
               }
+
+          for (int i = 0; i < 8; i++) {
+            // Update delta_x
+            if (delta_sum != 0)
+              curr_list[i].delta = data.delta*curr_list[i].delta/delta_sum*8;
+
+            // Update x
+            curr_list[i].x = curr_list[i].y == 0 ? data.x :
+                curr_list[i].x += curr_list[i].delta;
+
+            // Update weight (with 0 <= y <= MAX_WEIGHT)
+            curr_list[i].y = curr_list[i].y == 0 ? data.y :
+                             std::min(curr_list[i].y + data.delta_y, MAX_WEIGHT);
+            curr_list[i].delta_y =data.delta_y;
+
+            block->data(vox_list[i], curr_scale - 1, curr_list[i]);
+          }
+
           data.delta = 0;
           data.delta_y = 0;
           block->data(parent, curr_scale, data);
@@ -301,8 +321,8 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
 
           auto data = block->data(curr, curr_scale + 1);
 
-          // Update SDF value to mean of its children
           if (num_samples != 0) {
+            // Update SDF value to mean of its children
             mean /= num_samples;
             data.x = mean;
 
