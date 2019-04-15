@@ -401,7 +401,7 @@ std::vector<se::VoxelBlock<MultiresSDF>*> buildActiveList(se::Octree<T>& map, ca
   return active_list;
 }
 
-class MultiscaleIntegrationTest : public ::testing::Test {
+class MultiscaleTSDFMovingCameraTest : public ::testing::Test {
 protected:
   virtual void SetUp() {
     size_ = 512;                              // 512 x 512 x 512 voxel^3
@@ -456,7 +456,7 @@ private:
   std::vector<se::key_t> alloc_list;
 };
 
-TEST_F(MultiscaleIntegrationTest, Integration) {
+TEST_F(MultiscaleTSDFMovingCameraTest, Integration) {
   int frames = FRAMES;
   for (int frame = 0; frame < frames; frame++) {
     Eigen::Matrix4f camera_pose = Eigen::Matrix4f::Identity();

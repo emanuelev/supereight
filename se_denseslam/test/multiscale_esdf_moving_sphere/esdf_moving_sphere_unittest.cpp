@@ -62,7 +62,7 @@ void update_block (se::VoxelBlock<T>* block,
       }
 }
 
-class MultiscaleTest : public ::testing::Test {
+class MultiscaleESDFMovingSphereTest : public ::testing::Test {
   protected:
     virtual void SetUp() {
       unsigned size = 256;
@@ -94,7 +94,7 @@ class MultiscaleTest : public ::testing::Test {
   std::vector<se::key_t> alloc_list;
 };
 
-TEST_F(MultiscaleTest, Fusion) {
+TEST_F(MultiscaleESDFMovingSphereTest, Fusion) {
   Eigen::Vector3f center = Eigen::Vector3f::Constant(center_);
   int scale = 0;
   float radius = this->radius_;
