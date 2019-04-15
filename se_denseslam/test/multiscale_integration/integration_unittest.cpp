@@ -24,7 +24,7 @@
 // Fusion level,
 // 0-3 are the according levels in the voxel_block
 // 4 is multilevel fusion
-#define SCALE 4
+#define SCALE 0
 
 // Returned distance when ray doesn't intersect sphere
 #define SENSOR_LIMIT 20
@@ -131,47 +131,36 @@ private:
 struct sphere_intersection {
 public:
   sphere_intersection() {};
-  sphere_intersection(sphere sphere_1, sphere sphere_2)
-      : sphere_1_(sphere_1), sphere_2_(sphere_2) {};
+  sphere_intersection(std::vector<sphere> spheres)
+      : spheres_(spheres) {};
 
-   float operator()(ray& ray) {
-    Eigen::Vector3f oc_1 = ray.origin() - sphere_1_.center();
-    float a_1 = ray.direction().dot(ray.direction());
-    float b_1 = 2.0 * oc_1.dot(ray.direction());
-    float c_1 = oc_1.dot(oc_1) - sphere_1_.radius()*sphere_1_.radius();
-    float discriminant_1 = b_1*b_1 - 4*a_1*c_1;
-
-    Eigen::Vector3f oc_2 = ray.origin() - sphere_2_.center();
-    float a_2 = ray.direction().dot(ray.direction());
-    float b_2 = 2.0 * oc_2.dot(ray.direction());
-    float c_2 = oc_2.dot(oc_2) - sphere_2_.radius()*sphere_2_.radius();
-    float discriminant_2 = b_2*b_2 - 4*a_2*c_2;
-
-    // Set distance to SENSOR_LIMIT
-    if(discriminant_1 < 0 && discriminant_2 < 0){
-      return SENSOR_LIMIT;
-    } else if(discriminant_1 < 0 && discriminant_2 >= 0) {
-      return (-b_2 - sqrt(discriminant_2))/(2.0*a_2);
-    } else if(discriminant_1 >= 0 && discriminant_2 < 0) {
-      return (-b_1 - sqrt(discriminant_1))/(2.0*a_1);
-    } else {
-      float dist_1 = (-b_1 - sqrt(discriminant_1))/(2.0*a_1);
-      float dist_2 = (-b_2 - sqrt(discriminant_2))/(2.0*a_2);
-      return std::min(dist_1, dist_2);
+  float operator()(ray& ray) {
+    float dist(SENSOR_LIMIT);
+    for (std::vector<sphere>::iterator sphere = spheres_.begin(); sphere != spheres_.end(); ++sphere) {
+      Eigen::Vector3f oc = ray.origin() - sphere->center();
+      float a = ray.direction().dot(ray.direction());
+      float b = 2.0 * oc.dot(ray.direction());
+      float c = oc.dot(oc) - sphere->radius()*sphere->radius();
+      float discriminant = b*b - 4*a*c;
+      if (discriminant >= 0) {
+        float dist_tmp = (-b - sqrt(discriminant))/(2.0*a);
+        if (dist_tmp < dist)
+          dist = dist_tmp;
+      }
     }
+    return dist;
   };
 
 private:
-  sphere sphere_1_;
-  sphere sphere_2_;
+  std::vector<sphere> spheres_;
 };
 
 struct generate_depth_image {
 public:
   generate_depth_image() {};
-  generate_depth_image(float* depth_image, sphere& sphere_close, sphere& sphere_far)
+  generate_depth_image(float* depth_image, std::vector<sphere>& spheres)
     : depth_image_(depth_image),
-      si_(sphere_intersection(sphere_close, sphere_far)) {};
+      si_(sphere_intersection(spheres)) {};
 
   void operator()(camera_parameter camera_parameter) {
     float focal_length_pix = camera_parameter.focal_length_pix();
@@ -318,7 +307,6 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
             data.y = ceil(weight);
           } else {
             data = voxel_traits<MultiresSDF>::initValue();
-            data.y = 0;
           }
 
           data.delta = 0;
@@ -424,28 +412,6 @@ protected:
     Eigen::Matrix4f camera_pose = Eigen::Matrix4f::Identity();
     camera_parameter_ = camera_parameter(0.006, 1.95, image_size, camera_pose);
 
-    // Generate depth image
-    depth_image_ =
-        (float *) malloc(sizeof(float) * image_size.x() * image_size.y());
-
-    sphere sphere_close;
-    sphere sphere_far;
-
-    // Allocate spheres in world frame
-    if(MOVEMENT == 0) {
-      sphere_close = sphere(voxel_size_*Eigen::Vector3f(size_*1/2, size_*1/2, size_/2), 0.5f);
-      sphere_far = sphere_close;
-    } else {
-      sphere_close = sphere(voxel_size_*Eigen::Vector3f(size_*1/8, size_*2/3, size_/2), 0.3f);
-      sphere_far = sphere(voxel_size_*Eigen::Vector3f(size_*7/8, size_*1/3, size_/2), 0.3f);
-    }
-
-    // Allocate spheres relative to camera
-//    sphere sphere_close(camera_parameter_, Eigen::Vector2f(0.0, 0.5), 5.f, 1.f);
-//    sphere sphere_far(camera_parameter_, Eigen::Vector2f(0.0, -0.1), 5.f, 1.f);
-
-    generate_depth_image_ = generate_depth_image(depth_image_, sphere_close, sphere_far);
-
     const int side = se::VoxelBlock<MultiresSDF>::side;
     for(int z = side/2; z < size_; z += side) {
       for(int y = side/2; y < size_; y += side) {
@@ -456,6 +422,23 @@ protected:
       }
     }
     oct_.allocate(alloc_list.data(), alloc_list.size());
+
+    // Generate depth image
+    depth_image_ =
+        (float *) malloc(sizeof(float) * image_size.x() * image_size.y());
+
+    std::vector<sphere> spheres;
+
+    // Allocate spheres in world frame
+    if(MOVEMENT == 0) {
+      spheres.push_back(sphere(voxel_size_*Eigen::Vector3f(size_*1/2, size_*1/2, size_/2), 0.5f));
+    } else {
+      sphere sphere_close = sphere(voxel_size_*Eigen::Vector3f(size_*1/8, size_*2/3, size_/2), 0.3f);
+      sphere sphere_far = sphere(voxel_size_*Eigen::Vector3f(size_*7/8, size_*1/3, size_/2), 0.3f);
+      spheres.push_back(sphere_close);
+      spheres.push_back(sphere_far);
+    }
+    generate_depth_image_ = generate_depth_image(depth_image_, spheres);
   }
 
   float* depth_image_;
