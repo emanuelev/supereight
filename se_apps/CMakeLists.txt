@@ -151,3 +151,12 @@ foreach(appname ${BUILT_LIBS})
   add_version(${appname}
       "${common_libraries}")
 endforeach()
+
+
+
+# ------- INSTALL -----------------------
+INSTALL(
+        DIRECTORY include/
+        DESTINATION /usr/local/include/se
+        FILES_MATCHING PATTERN "*.h*"
+)
