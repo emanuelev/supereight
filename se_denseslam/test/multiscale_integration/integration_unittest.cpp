@@ -173,7 +173,7 @@ public:
     : depth_image_(depth_image),
       si_(sphere_intersection(sphere_close, sphere_far)) {};
 
-  void operator()(camera_parameter camera_parameter, int frame_number) {
+  void operator()(camera_parameter camera_parameter) {
     float focal_length_pix = camera_parameter.focal_length_pix();
     ray ray(camera_parameter);
     int image_width = camera_parameter.imageSize().x();
@@ -497,7 +497,7 @@ TEST_F(MultiscaleIntegrationTest, Integration) {
       camera_pose.topRightCorner<3,1>() = (Rwb*Eigen::Vector3f(-(size_/2 + 16*size_/8), 0, size_/2) + Eigen::Vector3f(size_/2, size_/2, 0))*voxel_size_;
 
     camera_parameter_.setPose(camera_pose);
-    generate_depth_image_(camera_parameter_, frame);
+    generate_depth_image_(camera_parameter_);
     active_list_ = buildActiveList(oct_, camera_parameter_, voxel_size_);
     foreach(voxel_size_, active_list_, camera_parameter_, depth_image_);
     std::stringstream f;
