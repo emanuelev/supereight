@@ -24,15 +24,10 @@
 // Fusion level,
 // 0-3 are the according levels in the voxel_block
 // 4 is multilevel fusion
-#define SCALE 0
+#define SCALE 4
 
 // Returned distance when ray doesn't intersect sphere
 #define SENSOR_LIMIT 20
-
-// Camera movement,
-// 0 = linear movement away from single sphere
-// 1 = circular movement around two spheres
-#define MOVEMENT 0
 
 // Number of frames to move from start to end position
 #define FRAMES 16
@@ -426,19 +421,6 @@ protected:
     // Generate depth image
     depth_image_ =
         (float *) malloc(sizeof(float) * image_size.x() * image_size.y());
-
-    std::vector<sphere> spheres;
-
-    // Allocate spheres in world frame
-    if(MOVEMENT == 0) {
-      spheres.push_back(sphere(voxel_size_*Eigen::Vector3f(size_*1/2, size_*1/2, size_/2), 0.5f));
-    } else {
-      sphere sphere_close = sphere(voxel_size_*Eigen::Vector3f(size_*1/8, size_*2/3, size_/2), 0.3f);
-      sphere sphere_far = sphere(voxel_size_*Eigen::Vector3f(size_*7/8, size_*1/3, size_/2), 0.3f);
-      spheres.push_back(sphere_close);
-      spheres.push_back(sphere_far);
-    }
-    generate_depth_image_ = generate_depth_image(depth_image_, spheres);
   }
 
   float* depth_image_;
@@ -456,28 +438,24 @@ private:
   std::vector<se::key_t> alloc_list;
 };
 
-TEST_F(MultiscaleTSDFMovingCameraTest, Integration) {
+TEST_F(MultiscaleTSDFMovingCameraTest, Translation) {
+  std::vector<sphere> spheres;
+
+  // Allocate spheres in world frame
+  spheres.push_back(sphere(voxel_size_*Eigen::Vector3f(size_*1/2, size_*1/2, size_/2), 0.5f));
+  generate_depth_image_ = generate_depth_image(depth_image_, spheres);
+
   int frames = FRAMES;
   for (int frame = 0; frame < frames; frame++) {
     Eigen::Matrix4f camera_pose = Eigen::Matrix4f::Identity();
     Eigen::Matrix3f Rbc;
     Rbc << 0, 0, 1, -1, 0, 0, 0, -1, 0;
 
-    double angle = 0;
-    if(MOVEMENT == 1) { // Move camera from -45deg to +45deg in FRAMES steps
-      angle = float(frame)/float(frames) * 2 * M_PI / 4 - 2 * M_PI / 8;
-    }
+    Eigen::Matrix3f Rwb = Eigen::Matrix3f::Identity();
 
-    Eigen::Matrix3f Rwb;
-    Rwb <<  std::cos(angle), -std::sin(angle), 0,
-            std::sin(angle),  std::cos(angle), 0,
-                          0,                0, 1;
     camera_pose.topLeftCorner<3,3>()  = Rwb*Rbc;
 
-    if(MOVEMENT == 0)
-      camera_pose.topRightCorner<3,1>() = (Rwb*Eigen::Vector3f(-(size_/2 + frame*size_/8), 0, size_/2) + Eigen::Vector3f(size_/2, size_/2, 0))*voxel_size_;
-    else
-      camera_pose.topRightCorner<3,1>() = (Rwb*Eigen::Vector3f(-(size_/2 + 16*size_/8), 0, size_/2) + Eigen::Vector3f(size_/2, size_/2, 0))*voxel_size_;
+    camera_pose.topRightCorner<3,1>() = (Rwb*Eigen::Vector3f(-(size_/2 + frame*size_/8), 0, size_/2) + Eigen::Vector3f(size_/2, size_/2, 0))*voxel_size_;
 
     camera_parameter_.setPose(camera_pose);
     generate_depth_image_(camera_parameter_);
@@ -485,10 +463,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, Integration) {
     foreach(voxel_size_, active_list_, camera_parameter_, depth_image_);
     std::stringstream f;
 
-    if(MOVEMENT == 0)
-      f << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/scale_"  + std::to_string(SCALE) + "-linear_back_move-" + std::to_string(frame) + ".vtk";
-    else
-      f << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/scale_"  + std::to_string(SCALE) + "-circular_move-" + std::to_string(frame) + ".vtk";
+    f << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/scale_"  + std::to_string(SCALE) + "-linear_back_move-" + std::to_string(frame) + ".vtk";
 
     save3DSlice(oct_,
                 Eigen::Vector3i(0, 0, oct_.size()/2),
@@ -499,3 +474,47 @@ TEST_F(MultiscaleTSDFMovingCameraTest, Integration) {
 
 }
 
+TEST_F(MultiscaleTSDFMovingCameraTest, Rotation) {
+  std::vector<sphere> spheres;
+
+  // Allocate spheres in world frame
+  sphere sphere_close = sphere(voxel_size_*Eigen::Vector3f(size_*1/8, size_*2/3, size_/2), 0.3f);
+  sphere sphere_far = sphere(voxel_size_*Eigen::Vector3f(size_*7/8, size_*1/3, size_/2), 0.3f);
+  spheres.push_back(sphere_close);
+  spheres.push_back(sphere_far);
+
+  generate_depth_image_ = generate_depth_image(depth_image_, spheres);
+
+  int frames = FRAMES;
+  for (int frame = 0; frame < frames; frame++) {
+    Eigen::Matrix4f camera_pose = Eigen::Matrix4f::Identity();
+
+    Eigen::Matrix3f Rbc;
+    Rbc << 0, 0, 1, -1, 0, 0, 0, -1, 0;
+
+    float angle = float(frame)/float(frames) * 2 * M_PI / 4 - 2 * M_PI / 8;
+    Eigen::Matrix3f Rwb;
+    Rwb <<  std::cos(angle), -std::sin(angle), 0,
+        std::sin(angle),  std::cos(angle), 0,
+        0,                0, 1;
+
+    camera_pose.topLeftCorner<3,3>()  = Rwb*Rbc;
+
+    camera_pose.topRightCorner<3,1>() = (Rwb*Eigen::Vector3f(-(size_/2 + 16*size_/8), 0, size_/2) + Eigen::Vector3f(size_/2, size_/2, 0))*voxel_size_;
+
+    camera_parameter_.setPose(camera_pose);
+    generate_depth_image_(camera_parameter_);
+    active_list_ = buildActiveList(oct_, camera_parameter_, voxel_size_);
+    foreach(voxel_size_, active_list_, camera_parameter_, depth_image_);
+    std::stringstream f;
+
+    f << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/scale_"  + std::to_string(SCALE) + "-rotational_move-" + std::to_string(frame) + ".vtk";
+
+    save3DSlice(oct_,
+                Eigen::Vector3i(0, 0, oct_.size()/2),
+                Eigen::Vector3i(oct_.size(), oct_.size(), oct_.size()/2 + 1),
+                [](const auto& val) { return val.x; }, f.str().c_str());
+  }
+  free(depth_image_);
+
+}
