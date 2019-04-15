@@ -18,6 +18,12 @@ stats:
 	cd build/ && cmake -DSTATS=ON ..
 	$(MAKE) -C build $(MFLAGS)
 
+install:
+	cd build && make install
+
+uninstall:
+	xargs rm -f -d < build/install_manifest.txt
+
 #### DATA SET GENERATION ####
 
 living_room_traj%_loop.raw : living_room_traj%_loop
@@ -56,7 +62,7 @@ cleanall :
 	rm -f doc
 
 
-.PHONY : clean bench test all validate doc
+.PHONY : clean bench test all validate doc install uninstall
 
 .PRECIOUS: living_room_traj%_loop livingRoom%.gt.freiburg living_room_traj%_loop.raw
 

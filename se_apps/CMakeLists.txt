@@ -151,3 +151,5 @@ foreach(appname ${BUILT_LIBS})
   add_version(${appname}
       "${common_libraries}")
 endforeach()
+
+

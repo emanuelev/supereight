@@ -11,3 +11,15 @@ target_include_directories(lodepng PUBLIC .)
 add_executable(scene2raw scene2raw.cpp)
 target_link_libraries(scene2raw lodepng)
 target_include_directories(scene2raw PUBLIC .)
+
+install(
+        TARGETS lodepng
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+)
+
+install(
+        DIRECTORY .
+        DESTINATION include/se
+        FILES_MATCHING PATTERN "*.h*"
+)

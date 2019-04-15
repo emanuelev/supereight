@@ -52,3 +52,17 @@ target_compile_definitions(${appname}-sdf PUBLIC ${field_type})
 list(APPEND BUILT_LIBS ${appname}-sdf)
 
 set(BUILT_LIBS ${BUILT_LIBS} PARENT_SCOPE)
+
+
+# --------------- INSTALL -----------------------
+install(
+        TARGETS ${BUILT_LIBS}
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+)
+
+install(
+        DIRECTORY include/
+        DESTINATION include
+        FILES_MATCHING PATTERN "*.h*"
+)
