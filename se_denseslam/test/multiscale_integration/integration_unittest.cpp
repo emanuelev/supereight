@@ -3,6 +3,7 @@
 #include <se/algorithms/balancing.hpp>
 #include <se/functors/axis_aligned_functor.hpp>
 #include <se/algorithms/filter.hpp>
+#include <se/volume_traits.hpp>
 #include <se/io/vtk-io.h>
 #include <se/io/ply_io.hpp>
 #include <sophus/se3.hpp>
@@ -38,20 +39,6 @@
 
 // Activate (1) and deactivate (0) depth dependent noise
 #define NOISE 0
-
-typedef struct ESDF{
-  float x;
-  float delta;
-  int   y;
-  int   delta_y;
-} ESDF;
-
-template <>
-struct voxel_traits<ESDF> {
-  typedef ESDF value_type;
-  static inline value_type empty(){ return     {0.f, 0.f, 0, 0}; }
-  static inline value_type initValue(){ return {1.f, 0.f, 0, 0}; }
-};
 
 struct camera_parameter {
 public:
@@ -330,7 +317,7 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
             weight /= num_samples;
             data.y = ceil(weight);
           } else {
-            data.x = 1;
+            data = voxel_traits<MultiresSDF>::initValue();
             data.y = 0;
           }
 
@@ -408,8 +395,8 @@ void foreach(float voxelsize, std::vector<se::VoxelBlock<T>*> active_list,
 }
 
 template <typename T>
-std::vector<se::VoxelBlock<ESDF>*> buildActiveList(se::Octree<T>& map, camera_parameter camera_parameter, float voxel_size) {
-  const se::MemoryPool<se::VoxelBlock<ESDF> >& block_array =
+std::vector<se::VoxelBlock<MultiresSDF>*> buildActiveList(se::Octree<T>& map, camera_parameter camera_parameter, float voxel_size) {
+  const se::MemoryPool<se::VoxelBlock<MultiresSDF> >& block_array =
       map.getBlockBuffer();
   for(unsigned int i = 0; i < block_array.size(); ++i) {
     block_array[i]->active(false);
@@ -418,9 +405,9 @@ std::vector<se::VoxelBlock<ESDF>*> buildActiveList(se::Octree<T>& map, camera_pa
   const Eigen::Matrix4f K = camera_parameter.K();
   const Eigen::Matrix4f Twc = camera_parameter.Twc();
   const Eigen::Matrix4f Tcw = (camera_parameter.Twc()).inverse();
-  std::vector<se::VoxelBlock<ESDF>*> active_list;
+  std::vector<se::VoxelBlock<MultiresSDF>*> active_list;
   auto in_frustum_predicate =
-      std::bind(se::algorithms::in_frustum<se::VoxelBlock<ESDF>>, std::placeholders::_1,
+      std::bind(se::algorithms::in_frustum<se::VoxelBlock<MultiresSDF>>, std::placeholders::_1,
                 voxel_size, K*Tcw, camera_parameter.imageSize());
   se::algorithms::filter(active_list, block_array, in_frustum_predicate);
   return active_list;
@@ -459,7 +446,7 @@ protected:
 
     generate_depth_image_ = generate_depth_image(depth_image_, sphere_close, sphere_far);
 
-    const int side = se::VoxelBlock<ESDF>::side;
+    const int side = se::VoxelBlock<MultiresSDF>::side;
     for(int z = side/2; z < size_; z += side) {
       for(int y = side/2; y < size_; y += side) {
         for(int x = side/2; x < size_; x += side) {
@@ -474,12 +461,12 @@ protected:
   float* depth_image_;
   camera_parameter camera_parameter_;
 
-  typedef se::Octree<ESDF> OctreeT;
+  typedef se::Octree<MultiresSDF> OctreeT;
   OctreeT oct_;
   int size_;
   float voxel_size_;
   float dim_;
-  std::vector<se::VoxelBlock<ESDF>*> active_list_;
+  std::vector<se::VoxelBlock<MultiresSDF>*> active_list_;
   generate_depth_image generate_depth_image_;
 
 private:
