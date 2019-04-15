@@ -88,14 +88,15 @@ include_directories(
 add_executable(supereight_ros_node
         src/supereight_ros_node.cpp
         src/supereight_ros.cpp
-#        src/map_visualizer.cpp
-#        src/visualization.cpp
         )
 
 
 ## Used for supereight package
 # Options for SE_FIELD_TYPE: OFusion, Sdf
+
+# TODO: add ifndefs DMAP_TYPE to build sdf or ofustion
 set(field_type SE_FIELD_TYPE=OFusion)
+#set(field_type SE_FIELD_TYPE=SDF)
 target_compile_definitions(supereight_ros_node PUBLIC ${field_type})
 
 target_link_libraries(supereight_ros_node
@@ -119,10 +120,3 @@ target_link_libraries(supereight_ros-test
         ${CMAKE_THREAD_LIBS_INIT}
         ${catkin_LIBRARIES})
 
-##
-#find_package(GLUT)
-#find_package(OPENGL)
-#set(additional_libraries stdc++ rt GL ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
-#add_executable(${PROJECT_NAME}_node src/supereight_ros_node.cpp)
-#target_include_directories(supereight_ros_node PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
-#target_link_libraries(supereight_ros_node ${catkin_LIBRARIES} se-denseslam-ofusion ${additional_libraries})
