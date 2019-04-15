@@ -55,8 +55,7 @@
 // supereight_ros headers
 #include <supereight_ros/CircularBuffer.hpp>
 #include <supereight_ros/ImagePose.h> //message
-//#include <supereight_ros/pipeline_support_functions.hpp>
-//#include <supereight_ros/visualization.hpp>
+
 
 
 namespace se {
@@ -104,7 +103,9 @@ class SupereightNode {
 
     pipeline_->getMap(octree_);
     setupRos();
-
+    std::cout << "map publication mode block " << pub_block_based_  << ", map"
+                                                                       " "<<
+      pub_wo_map_update_<< std::endl;
     res_ = (double) (pipeline_->getModelDimensions())[0] / (double)
        (pipeline_->getModelResolution())[0];
 
@@ -128,8 +129,6 @@ class SupereightNode {
   // void mapUpdate
   //
 
-  //TODO
-  // insert Callback functions here
   // public variables
   Eigen::Vector3f init_pose_;
 
@@ -232,6 +231,8 @@ class SupereightNode {
 
   /* Taken from https://github.com/ethz-asl/volumetric_mapping */
   std_msgs::ColorRGBA percentToColor(double h) ;
+
+
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
@@ -275,10 +276,10 @@ class SupereightNode {
   * be immediately done.
   */
   CircularBuffer<geometry_msgs::TransformStamped> pose_buffer_;
-  std::queue<sensor_msgs::Image> image_queue_;
+  std::deque<sensor_msgs::Image> image_queue_;
 
   // timing
-  std::queue<std::chrono::time_point<std::chrono::system_clock>> stop_watch_;
+  std::deque<std::chrono::time_point<std::chrono::system_clock>> stop_watch_;
   uint64_t image_time_stamp_;
 
 // voxel blockwise update for visualization
@@ -289,7 +290,8 @@ class SupereightNode {
   bool pub_wo_map_update_ = true;
   bool pub_block_based_marker_ = false;
   bool pub_block_based_marker_array_ = true;
-
+  bool pub_block_based_ = pub_block_based_marker_ ||
+      pub_block_based_marker_array_;
 };
 
 } // namespace se

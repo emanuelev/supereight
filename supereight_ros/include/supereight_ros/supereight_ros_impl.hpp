@@ -31,7 +31,7 @@ void SupereightNode<T>::setupRos() {
 
 
   // Visualization
-//  map_marker_pub_ = nh_.advertise<visualization_msgs::Marker>("map_based_marker", 1);
+  map_marker_pub_ = nh_.advertise<visualization_msgs::Marker>("map_based_marker", 1);
 //  voxel_based_marker_pub_ = nh_.advertise<visualization_msgs::Marker>("voxel_based_marker", 1);
 //  voxel_based_marker_array_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("voxel_based_marker_array", 1);
   block_based_marker_pub_ = nh_.advertise<visualization_msgs::Marker>("block_based_marker", 1);
@@ -223,7 +223,7 @@ void SupereightNode<T>::printSupereightConfig(const Configuration &config) {
 template <typename T>
 void SupereightNode<T>::imageCallback(const sensor_msgs::ImageConstPtr &
 image_msg) {
-  image_queue_.push(*image_msg);
+  image_queue_.push_back(*image_msg);
   if (image_queue_.size() == 1) {
     image_time_stamp_ = ros::Time(image_queue_.front().header.stamp).toNSec();
 
@@ -252,7 +252,7 @@ void SupereightNode<T>::poseCallback(const
 
     image_pose_pub_.publish(image_pose_msg);
 
-    image_queue_.pop();
+    image_queue_.pop_front();
 
     if (image_queue_.size() > 0)
       image_time_stamp_ = ros::Time(image_queue_.front().header.stamp).toNSec();
@@ -299,14 +299,16 @@ void SupereightNode<T>::fusionCallback(const
 
 
   integrated = pipeline_->integration(camera,
-      supereight_config_.integration_rate, supereight_config_.mu, frame_, &updated_blocks);
+      supereight_config_.integration_rate, supereight_config_.mu, frame_,
+      &updated_blocks);
 
   std::cout << "occupied_voxels = " << occupied_voxels.size() << std::endl;
   std::cout << "freed_voxels = " << freed_voxels.size() << std::endl;
   std::cout << "updated_blocks = " << updated_blocks.size() << std::endl;
 
+
   if(std::is_same<FieldType, OFusion>::value) {
-    visualizeMapOFusion(updated_blocks);
+    visualizeMapOFusion( updated_blocks);
   } else if(std::is_same<FieldType, SDF>::value) {
     visualizeMapSDF(occupied_voxels, freed_voxels, updated_blocks);
   }
@@ -317,89 +319,128 @@ void SupereightNode<T>::fusionCallback(const
 
 
 template <typename T>
-void SupereightNode<T>::visualizeMapOFusion( std::vector<Eigen::Vector3i>
-    updated_blocks) {
+void SupereightNode<T>::visualizeMapOFusion(std::vector<Eigen::Vector3i> updated_blocks) {
   // publish every N-th frame
   int N_frame_pub = 1;
 
+  std::shared_ptr<Octree<T>> octree = nullptr;
   pipeline_->getMap(octree_);
   node_iterator<T> node_it(*octree_);
 
 
-  visualization_msgs::Marker voxel_block_marker;
-  voxel_block_marker.header.frame_id = "map";
-  voxel_block_marker.ns = "map";
-  voxel_block_marker.type = visualization_msgs::Marker::CUBE_LIST;
-  voxel_block_marker.scale.x = res_;
-  voxel_block_marker.scale.y = res_;
-  voxel_block_marker.scale.z = res_;
-  voxel_block_marker.action = visualization_msgs::Marker::ADD;
-  voxel_block_marker.color.r = 0.0f;
-  voxel_block_marker.color.g = 0.0f;
-  voxel_block_marker.color.b = 1.0f;
-  voxel_block_marker.color.a = 1.0;
 
-  visualization_msgs::MarkerArray voxel_block_marker_array_msg;
-  visualization_msgs::Marker voxel_block_marker_msg = voxel_block_marker;
+  if (pub_wo_map_update_) {
+    visualization_msgs::Marker map_marker_msg;
 
-  if (pub_block_based_marker_) {
-    voxel_block_marker_msg.id = 0;
-    voxel_block_marker_msg.color.r = 1.0f;
-    voxel_block_marker_msg.color.g = 0.0f;
-    voxel_block_marker_msg.color.b = 0.0f;
-    voxel_block_marker_msg.color.a = 1.0;
+    std::vector<Eigen::Vector3i> occupied_voxels = node_it.getOccupiedVoxels();
+
+    map_marker_msg.header.frame_id = "map";
+    map_marker_msg.ns = "map";
+    map_marker_msg.id = 0;
+    map_marker_msg.type = visualization_msgs::Marker::CUBE_LIST;
+    map_marker_msg.scale.x = res_;
+    map_marker_msg.scale.y = res_;
+    map_marker_msg.scale.z = res_;
+    map_marker_msg.action = visualization_msgs::Marker::ADD;
+    map_marker_msg.color.r = 1.0f;
+    map_marker_msg.color.g = 1.0f;
+    map_marker_msg.color.b = 0.0f;
+    map_marker_msg.color.a = 1.0;
+
+    for (const auto& occupied_voxel : occupied_voxels) {
+      geometry_msgs::Point cube_center;
+
+      cube_center.x = ((double)occupied_voxel[0] + 0.5) * res_;
+      cube_center.y = ((double)occupied_voxel[1] + 0.5) * res_;
+      cube_center.z = ((double)occupied_voxel[2] + 0.5) * res_;
+
+      map_marker_msg.points.push_back(cube_center);
+    }
+
+    if (frame_%N_frame_pub == 0) {
+      map_marker_pub_.publish(map_marker_msg);
+    }
   }
 
-  if ((pub_block_based_marker_array_ || pub_block_based_marker_) &&
-  (frame_%N_frame_pub == 0)) {
+  if (pub_block_based_) {
+    visualization_msgs::Marker voxel_block_marker;
+    voxel_block_marker.header.frame_id = "map";
+    voxel_block_marker.ns = "map";
+    voxel_block_marker.type = visualization_msgs::Marker::CUBE_LIST;
+    voxel_block_marker.scale.x = res_;
+    voxel_block_marker.scale.y = res_;
+    voxel_block_marker.scale.z = res_;
+    voxel_block_marker.action = visualization_msgs::Marker::ADD;
+    voxel_block_marker.color.r = 0.0f;
+    voxel_block_marker.color.g = 0.0f;
+    voxel_block_marker.color.b = 1.0f;
+    voxel_block_marker.color.a = 1.0;
 
-    for (const auto& updated_block : updated_blocks) {
-      int morten_code = (int) compute_morton(updated_block[0], updated_block[1], updated_block[2]);
+    visualization_msgs::MarkerArray voxel_block_marker_array_msg;
+    visualization_msgs::Marker voxel_block_marker_msg = voxel_block_marker;
 
-      std::vector<Eigen::Vector3i> occupied_block_voxels =
-          node_it.getOccupiedVoxels(0.5, updated_block);;
+    if (pub_block_based_marker_) {
+      voxel_block_marker_msg.id = 0;
+      voxel_block_marker_msg.color.r = 1.0f;
+      voxel_block_marker_msg.color.g = 0.0f;
+      voxel_block_marker_msg.color.b = 0.0f;
+      voxel_block_marker_msg.color.a = 1.0;
+    }
+
+    if ((pub_block_based_) && (frame_ % N_frame_pub == 0)) {
+
+      for (const auto &updated_block : updated_blocks) {
+        int morten_code = (int) compute_morton(updated_block[0],
+                                               updated_block[1],
+                                               updated_block[2]);
+
+        std::vector<Eigen::Vector3i> occupied_block_voxels =
+            node_it.getOccupiedVoxels(0.5, updated_block);
+
+        if (pub_block_based_marker_array_) {
+          voxel_block_marker.id = morten_code;
+          voxel_block_marker.points.clear();
+
+          for (const auto &occupied_voxel : occupied_block_voxels) {
+            geometry_msgs::Point cube_center;
+            cube_center.x =
+                (static_cast<double>(occupied_voxel[0]) + 0.5) * res_;
+            cube_center.y =
+                (static_cast<double>(occupied_voxel[1]) + 0.5) * res_;
+            cube_center.z =
+                (static_cast<double>(occupied_voxel[1]) + 0.5) * res_;
+            voxel_block_marker.points.push_back(cube_center);
+          }
+          voxel_block_marker_array_msg.markers.push_back(voxel_block_marker);
+        }
+
+        if (pub_block_based_marker_) {
+          voxel_block_map_[morten_code] = occupied_block_voxels;
+        }
+
+      }
 
       if (pub_block_based_marker_array_) {
-        voxel_block_marker.id = morten_code;
-        voxel_block_marker.points.clear();
-
-        for (const auto& occupied_voxel : occupied_block_voxels) {
-          geometry_msgs::Point cube_center;
-          cube_center.x = ((double)occupied_voxel[0] + 0.5) * res_;
-          cube_center.y = ((double)occupied_voxel[1] + 0.5) * res_;
-          cube_center.z = ((double)occupied_voxel[2] + 0.5) * res_;
-
-          voxel_block_marker.points.push_back(cube_center);
-        }
-        voxel_block_marker_array_msg.markers.push_back(voxel_block_marker);
+        block_based_marker_array_pub_.publish(voxel_block_marker_array_msg);
       }
-
-      if (pub_block_based_marker_) {
-        voxel_block_map_[morten_code] = occupied_block_voxels;
-      }
-
-    }
-
-    if (pub_block_based_marker_array_) {
-      block_based_marker_array_pub_.publish(voxel_block_marker_array_msg);
-    }
     }
 
     if (pub_block_based_marker_) {
       for (auto voxel_block = voxel_block_map_.begin(); voxel_block !=
-      voxel_block_map_.end(); voxel_block++) {
-        for (const auto& occupied_voxel : voxel_block->second) {
+          voxel_block_map_.end(); voxel_block++) {
+        for (const auto &occupied_voxel : voxel_block->second) {
           geometry_msgs::Point cube_center;
 
-          cube_center.x = ((double)occupied_voxel[0] + 0.5) * res_;
-          cube_center.y = ((double)occupied_voxel[1] + 0.5) * res_;
-          cube_center.z = ((double)occupied_voxel[2] + 0.5) * res_;
+          cube_center.x = ((double) occupied_voxel[0] + 0.5) * res_;
+          cube_center.y = ((double) occupied_voxel[1] + 0.5) * res_;
+          cube_center.z = ((double) occupied_voxel[2] + 0.5) * res_;
 
           voxel_block_marker_msg.points.push_back(cube_center);
         }
       }
       block_based_marker_pub_.publish(voxel_block_marker_msg);
     }
+  }
 };
 
 template <typename T>

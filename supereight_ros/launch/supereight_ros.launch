@@ -3,7 +3,7 @@
 
   <!-- File names of setting files. -->
   <arg name="supereight_ros_config_file"
-       default="/home/nils/workspace_catkin/src/supereight_ros/data/config.yaml" />
+       default="/home/anna/asl_ws/src/supereight/supereight_ros/data/config.yaml" />
 
   <!-- Launch ptp_ros node -->
   <node pkg="supereight_ros" name="supereight"
@@ -12,5 +12,11 @@
     <!-- Include rosparam yaml files -->
     <rosparam command="load" file="$(arg supereight_ros_config_file)" />
 
+    <!-- for other launch files remap camera image topic to this image topic-->
+    <param name="image_topic_name"
+           value="/camera/aligned_depth_to_color/image_raw"/>
+    <!-- for other launch files remap pose estimation topic to this pose
+    topic-->
+    <param name="pose_topic_name" value="/vicon/d435/d435"/>
   </node>
 </launch>

@@ -10,6 +10,8 @@ int main(int argc, char** argv){
 
   SupereightNode <OFusion>node(nh, nh_private);
 
+  // TODO: add ifndefs DMAP_TYPE to build sdf or ofustion
+//  SupereightNode <SDF>node(nh, nh_private);
 
   std::cout << "FINISHED" << std::endl;
 
