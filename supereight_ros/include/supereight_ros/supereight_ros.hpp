@@ -110,8 +110,6 @@ class SupereightNode {
        (pipeline_->getModelResolution())[0];
 
   }
-//  SupereightNode(const ros::NodeHandle& nh, const ros:: NodeHandle& nh_private,
-//      Configuration& config);
 
   virtual  ~SupereightNode() {}
 
@@ -126,8 +124,6 @@ class SupereightNode {
  * @param config
  */
   void printSupereightConfig(const Configuration &config);
-  // void mapUpdate
-  //
 
   // public variables
   Eigen::Vector3f init_pose_;
@@ -232,7 +228,6 @@ class SupereightNode {
   /* Taken from https://github.com/ethz-asl/volumetric_mapping */
   std_msgs::ColorRGBA percentToColor(double h) ;
 
-
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
@@ -240,7 +235,7 @@ class SupereightNode {
    * Global/map coordinate frame. Will always look up TF transforms to this
    * frame.
    */
-  std::string frame_id_;
+  std::string frame_id_; //TODO: replace hard-coded frame id in impl.hpp
 
   // get pipeline with map
   std::shared_ptr<DenseSLAMSystem> pipeline_ = nullptr;
@@ -265,11 +260,8 @@ class SupereightNode {
 
   //Visualization
   ros::Publisher map_marker_pub_;
-  ros::Publisher voxel_based_marker_pub_;
-  ros::Publisher voxel_based_marker_array_pub_;
   ros::Publisher block_based_marker_pub_;
   ros::Publisher block_based_marker_array_pub_;
-  ros::Publisher occupancy_map_pub_;
 
   /**
   * buffer and quque for incoming data streams, in case the matching can't
@@ -284,7 +276,6 @@ class SupereightNode {
 
 // voxel blockwise update for visualization
   std::map<int, std::vector<Eigen::Vector3i>> voxel_block_map_;
-
 
   // block based visualization
   bool pub_wo_map_update_ = true;

@@ -32,8 +32,6 @@ void SupereightNode<T>::setupRos() {
 
   // Visualization
   map_marker_pub_ = nh_.advertise<visualization_msgs::Marker>("map_based_marker", 1);
-//  voxel_based_marker_pub_ = nh_.advertise<visualization_msgs::Marker>("voxel_based_marker", 1);
-//  voxel_based_marker_array_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("voxel_based_marker_array", 1);
   block_based_marker_pub_ = nh_.advertise<visualization_msgs::Marker>("block_based_marker", 1);
   block_based_marker_array_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("block_based_marker_array", 1);
 
@@ -220,6 +218,7 @@ void SupereightNode<T>::printSupereightConfig(const Configuration &config) {
   std::cout << "multi_resolution = " << config.multi_resolution << std::endl;
   std::cout << "bayesian = " << config.bayesian << std::endl;
 }
+
 template <typename T>
 void SupereightNode<T>::imageCallback(const sensor_msgs::ImageConstPtr &
 image_msg) {
@@ -272,8 +271,7 @@ void SupereightNode<T>::fusionCallback(const
       std::cout << "Failed to transform depth image." << std::endl;
   }
 
-//#pragma omp parallel for \
-        shared(input_depth_), private(y)
+
   for (int y = 0; y < image_size_.y(); y++) {
     for (int x = 0; x < image_size_.x(); x++) {
       input_depth_[x + image_size_.x() * y] = static_cast<uint16_t>
@@ -297,15 +295,12 @@ void SupereightNode<T>::fusionCallback(const
   std::vector<Eigen::Vector3i> freed_voxels;
   std::vector<Eigen::Vector3i> updated_blocks;
 
+  integrated = pipeline_->integration(camera, supereight_config_
+      .integration_rate, supereight_config_.mu, frame_, &updated_blocks);
 
-  integrated = pipeline_->integration(camera,
-      supereight_config_.integration_rate, supereight_config_.mu, frame_,
-      &updated_blocks);
-
-  std::cout << "occupied_voxels = " << occupied_voxels.size() << std::endl;
-  std::cout << "freed_voxels = " << freed_voxels.size() << std::endl;
-  std::cout << "updated_blocks = " << updated_blocks.size() << std::endl;
-
+//  std::cout << "occupied_voxels = " << occupied_voxels.size() << std::endl;
+//  std::cout << "freed_voxels = " << freed_voxels.size() << std::endl;
+//  std::cout << "updated_blocks = " << updated_blocks.size() << std::endl;
 
   if(std::is_same<FieldType, OFusion>::value) {
     visualizeMapOFusion( updated_blocks);
@@ -323,19 +318,16 @@ void SupereightNode<T>::visualizeMapOFusion(std::vector<Eigen::Vector3i> updated
   // publish every N-th frame
   int N_frame_pub = 1;
 
-  std::shared_ptr<Octree<T>> octree = nullptr;
   pipeline_->getMap(octree_);
   node_iterator<T> node_it(*octree_);
-
-
 
   if (pub_wo_map_update_) {
     visualization_msgs::Marker map_marker_msg;
 
     std::vector<Eigen::Vector3i> occupied_voxels = node_it.getOccupiedVoxels();
 
-    map_marker_msg.header.frame_id = "map";
-    map_marker_msg.ns = "map";
+    map_marker_msg.header.frame_id = frame_id_;
+    map_marker_msg.ns = frame_id_;
     map_marker_msg.id = 0;
     map_marker_msg.type = visualization_msgs::Marker::CUBE_LIST;
     map_marker_msg.scale.x = res_;
@@ -364,8 +356,8 @@ void SupereightNode<T>::visualizeMapOFusion(std::vector<Eigen::Vector3i> updated
 
   if (pub_block_based_) {
     visualization_msgs::Marker voxel_block_marker;
-    voxel_block_marker.header.frame_id = "map";
-    voxel_block_marker.ns = "map";
+    voxel_block_marker.header.frame_id = frame_id_;
+    voxel_block_marker.ns = frame_id_;
     voxel_block_marker.type = visualization_msgs::Marker::CUBE_LIST;
     voxel_block_marker.scale.x = res_;
     voxel_block_marker.scale.y = res_;
@@ -387,7 +379,7 @@ void SupereightNode<T>::visualizeMapOFusion(std::vector<Eigen::Vector3i> updated
       voxel_block_marker_msg.color.a = 1.0;
     }
 
-    if ((pub_block_based_) && (frame_ % N_frame_pub == 0)) {
+    if (frame_ % N_frame_pub == 0) {
 
       for (const auto &updated_block : updated_blocks) {
         int morten_code = (int) compute_morton(updated_block[0],
@@ -408,7 +400,7 @@ void SupereightNode<T>::visualizeMapOFusion(std::vector<Eigen::Vector3i> updated
             cube_center.y =
                 (static_cast<double>(occupied_voxel[1]) + 0.5) * res_;
             cube_center.z =
-                (static_cast<double>(occupied_voxel[1]) + 0.5) * res_;
+                (static_cast<double>(occupied_voxel[2]) + 0.5) * res_;
             voxel_block_marker.points.push_back(cube_center);
           }
           voxel_block_marker_array_msg.markers.push_back(voxel_block_marker);
@@ -461,8 +453,8 @@ void SupereightNode<T>::visualizeMapSDF(std::vector<Eigen::Vector3i>
 
     std::vector<Eigen::Vector3i> surface_voxels = node_it.getSurfaceVoxels();
 
-    map_marker_msg.header.frame_id = "map";
-    map_marker_msg.ns = "map";
+    map_marker_msg.header.frame_id = frame_id_;
+    map_marker_msg.ns = frame_id_;
     map_marker_msg.id = 0;
     map_marker_msg.type = visualization_msgs::Marker::CUBE_LIST;
     map_marker_msg.scale.x = res_;
