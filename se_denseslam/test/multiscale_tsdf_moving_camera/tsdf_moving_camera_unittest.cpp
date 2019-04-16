@@ -497,7 +497,7 @@ protected:
   virtual void SetUp() {
     size_ = 512;                              // 512 x 512 x 512 voxel^3
     voxel_size_ = 0.005;                      // 5 mm/voxel
-    float dim_ = size_ * voxel_size_;         // [m^3]
+    dim_ = size_ * voxel_size_;         // [m^3]
     oct_.init(size_, dim_);
     Eigen::Vector2i image_size(640, 480);    // width x height
     Eigen::Matrix4f camera_pose = Eigen::Matrix4f::Identity();
