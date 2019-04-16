@@ -1,5 +1,6 @@
 #include <se/octant_ops.hpp>
 #include <se/octree.hpp>
+#include <se/volume_traits.hpp>
 #include <se/algorithms/balancing.hpp>
 #include <se/functors/axis_aligned_functor.hpp>
 #include <se/functors/for_each.hpp>
@@ -9,20 +10,6 @@
 #include <random>
 #include <functional>
 #include <gtest/gtest.h>
-
-typedef struct ESDF{
-  float x;
-  float delta;
-  int   y;
-  int   delta_y;
-} ESDF;
-
-template <>
-struct voxel_traits<ESDF> {
-  typedef ESDF value_type;
-  static inline value_type empty(){ return     {0.f, 0.f, 0, 0}; }
-  static inline value_type initValue(){ return {1.f, 0.f, 0, 0}; }
-};
 
 float sphere_dist(const Eigen::Vector3f& p, const Eigen::Vector3f& C, 
     const float radius) {
@@ -62,7 +49,7 @@ void update_block (se::VoxelBlock<T>* block,
       }
 }
 
-class MultiscaleTest : public ::testing::Test {
+class MultiscaleESDFMovingSphereTest : public ::testing::Test {
   protected:
     virtual void SetUp() {
       unsigned size = 256;
@@ -87,24 +74,24 @@ class MultiscaleTest : public ::testing::Test {
       oct_.allocate(alloc_list.data(), alloc_list.size());
     }
 
-  typedef se::Octree<ESDF> OctreeT;
+  typedef se::Octree<MultiresSDF> OctreeT;
   OctreeT oct_;
   int center_;
   int radius_;
   std::vector<se::key_t> alloc_list;
 };
 
-TEST_F(MultiscaleTest, Fusion) {
+TEST_F(MultiscaleESDFMovingSphereTest, Fusion) {
   Eigen::Vector3f center = Eigen::Vector3f::Constant(center_);
   int scale = 0;
   float radius = this->radius_;
-  auto update_op = [&center, &scale, radius](se::VoxelBlock<ESDF>* b) {
+  auto update_op = [&center, &scale, radius](se::VoxelBlock<MultiresSDF>* b) {
     update_block(b, center, radius, scale);
   };
 
   for(int i = 0; i < 5; ++i) {
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), update_op);
-    auto op = [](se::VoxelBlock<ESDF>* b) { se::multires::propagate_up(b, 0); };
+    auto op = [](se::VoxelBlock<MultiresSDF>* b) { se::multires::propagate_up(b, 0); };
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), op);
 
     {
@@ -121,7 +108,7 @@ TEST_F(MultiscaleTest, Fusion) {
   scale = 2;
   for(int i = 5; i < 10; ++i) {
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), update_op);
-    auto op = [&scale](se::VoxelBlock<ESDF>* b) { se::multires::propagate_down(b, scale); };
+    auto op = [&scale](se::VoxelBlock<MultiresSDF>* b) { se::multires::propagate_down(b, scale); };
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), op);
 
     {

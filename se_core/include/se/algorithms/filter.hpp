@@ -40,10 +40,10 @@ namespace algorithms {
 
       const int side = VoxelBlockType::side;
       const static Eigen::Matrix<int, 4, 8> offsets = 
-        (Eigen::Matrix<int, 4, 8>() << 0, side, 0, side, 0, side, 0, side,
-                                       0, 0, side, side, 0, 0, side, side,
-                                       0, 0, 0, 0, side, side, side, side,
-                                       0, 0, 0, 0, 0, 0, 0, 0).finished();
+        (Eigen::Matrix<int, 4, 8>() << 0, side, 0   , side, 0   , side, 0   , side,
+                                       0, 0   , side, side, 0   , 0   , side, side,
+                                       0, 0   , 0   , 0   , side, side, side, side,
+                                       0, 0   , 0   , 0   , 0   , 0   , 0   , 0   ).finished();
 
       Eigen::Matrix<float, 4, 8> v_camera =  
         camera *  

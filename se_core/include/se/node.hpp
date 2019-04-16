@@ -112,7 +112,7 @@ class VoxelBlock: public Node<T> {
 
     VoxelBlock(){
       coordinates_ = Eigen::Vector3i::Constant(0);
-      for (unsigned int i = 0; i < side*side_sq; i++)
+      for (unsigned int i = 0; i < buff_size; i++)
         voxel_block_[i] = initValue();
     }
 
@@ -144,7 +144,7 @@ class VoxelBlock: public Node<T> {
     static constexpr size_t compute_buff_size() {
       size_t size = 0;
       unsigned int s = side;
-      while(s > 1) {
+      while(s >= 1) {
         size += s * s * s;
         s = s >> 1;
       }
