@@ -54,17 +54,15 @@ list(APPEND BUILT_LIBS ${appname}-sdf)
 set(BUILT_LIBS ${BUILT_LIBS} PARENT_SCOPE)
 
 
-# 'make install' to the correct locations
-INSTALL(
-        TARGETS se-denseslam-ofusion se-denseslam-sdf
-        EXPORT ${appname}Config
-        ARCHIVE DESTINATION /usr/local/lib
-        LIBRARY DESTINATION /usr/local/lib
-        RUNTIME DESTINATION /usr/local/bin
+# --------------- INSTALL -----------------------
+install(
+        TARGETS ${BUILT_LIBS}
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
 )
 
-INSTALL(
+install(
         DIRECTORY include/
-        DESTINATION /usr/local/include
+        DESTINATION include
         FILES_MATCHING PATTERN "*.h*"
 )

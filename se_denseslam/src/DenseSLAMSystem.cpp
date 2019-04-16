@@ -223,10 +223,10 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
         computation_size_, volume_._size,
       voxelsize, 2*mu);
     } else if(std::is_same<FieldType, OFusion>::value) {
-      allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(),
-        *volume_._map_index,
-        pose_, getCameraMatrix(k), float_depth_.data(), computation_size_, voxelsize,
-        compute_stepsize, step_to_depth, 6*mu);
+     allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(),
+         *volume_._map_index,
+         pose_, getCameraMatrix(k), float_depth_.data(), computation_size_, voxelsize,
+         compute_stepsize, step_to_depth, mu);
     }
 
     // Allocate the nodes determined through the raycasting process
