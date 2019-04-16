@@ -13,7 +13,7 @@ set( supereight_LIBRARIES "" )
 set( supereight_INCLUDE_DIR ${PROJECT_SOURCE_DIR} )
 
 ################################################################################
-#add_compile_options(-std=c++14 -march=native)
+add_compile_options(-std=c++14 -mtune=generic)
 
 #find_package(catkin REQUIRED COMPONENTS roscpp rospy)
 
