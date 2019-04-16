@@ -27,30 +27,3 @@ add_subdirectory(se_apps)
 
 
 ################################################################################
-# Export package for use from the build tree
-EXPORT( PACKAGE supereight )
-
-# Create the supereightConfig.cmake file for other cmake projects.
-# ... for the build tree
-SET( CONFIG_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-SET( CONFIG_DIR ${CMAKE_CURRENT_BINARY_DIR})
-
-CONFIGURE_FILE( ${CMAKE_CURRENT_SOURCE_DIR}/supereightConfig.cmake.in
-        ${CMAKE_CURRENT_BINARY_DIR}/supereightConfig.cmake @ONLY )
-# ... for the install tree
-SET( CMAKECONFIG_INSTALL_DIR /usr/local/lib/cmake/supereight )
-FILE( RELATIVE_PATH REL_INCLUDE_DIR
-        "${CMAKE_INSTALL_PREFIX}/${CMAKECONFIG_INSTALL_DIR}"
-        "${CMAKE_INSTALL_PREFIX}/include" )
-
-SET( supereight_INCLUDE_DIR "/usr/local/include/se" )
-SET( CONFIG_SOURCE_DIR )
-SET( CONFIG_DIR )
-
-CONFIGURE_FILE( ${CMAKE_CURRENT_SOURCE_DIR}/supereightConfig.cmake.in
-        ${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/supereightConfig.cmake @ONLY )
-
-
-INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/supereightConfig.cmake"
-        DESTINATION ${CMAKECONFIG_INSTALL_DIR})
-

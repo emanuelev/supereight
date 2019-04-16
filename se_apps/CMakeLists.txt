@@ -153,10 +153,3 @@ foreach(appname ${BUILT_LIBS})
 endforeach()
 
 
-
-# ------- INSTALL -----------------------
-INSTALL(
-        DIRECTORY include/
-        DESTINATION /usr/local/include/se
-        FILES_MATCHING PATTERN "*.h*"
-)
