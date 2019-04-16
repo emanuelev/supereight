@@ -48,7 +48,7 @@ public:
   typedef voxel_traits<T> traits_type;
   typedef typename traits_type::value_type value_type;
   value_type empty() const { return traits_type::empty(); }
-  value_type initValue() const { return traits_type::initValue(); }
+  value_type init_val() const { return traits_type::initValue(); }
 
   value_type value_[8];
   key_t code_;
@@ -60,7 +60,7 @@ public:
     side_ = 0;
     children_mask_ = 0;
     for (unsigned int i = 0; i < 8; i++){
-      value_[i]     = initValue();
+      value_[i]     = init_val();
       parent_ptr_ = NULL;
       child_ptr_[i] = NULL;
     }
