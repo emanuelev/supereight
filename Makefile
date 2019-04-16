@@ -22,7 +22,7 @@ install:
 	cd build && make install
 
 uninstall:
-	xargs rm -f < build/install_manifest.txt
+	xargs rm -f -d < build/install_manifest.txt
 
 #### DATA SET GENERATION ####
 

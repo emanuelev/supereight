@@ -163,7 +163,7 @@ size_t buildOctantList(HashType*              allocation_list,
             unsigned int idx = voxel_count++;
             if(idx < reserved) {
               // Add morton code to allocation list
-              allocationList[idx] = k;
+              allocation_list[idx] = k;
             }
           } else if (tree_depth >= leaves_depth) {
             static_cast<se::VoxelBlock<FieldType>*>(node_ptr)->active(true);

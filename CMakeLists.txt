@@ -8,7 +8,7 @@ project(se)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 ################################################################################
-add_compile_options(-std=c++14 -march=native)
+add_compile_options(-std=c++14 -mtune=generic)
 add_subdirectory(se_core)
 add_subdirectory(se_shared)
 add_subdirectory(se_tools)
