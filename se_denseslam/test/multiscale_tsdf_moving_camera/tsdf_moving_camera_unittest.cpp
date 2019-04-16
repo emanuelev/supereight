@@ -69,13 +69,13 @@ private:
   Eigen::Matrix4f K_;
 };
 
-struct sphere {
+struct sphere_obstacle {
 public:
-  sphere() {};
-  sphere(Eigen::Vector3f center, float radius)
+  sphere_obstacle() {};
+  sphere_obstacle(Eigen::Vector3f center, float radius)
     : center_(center), radius_(radius) {};
 
-  sphere(camera_parameter camera_parameter, Eigen::Vector2f center_angle,
+  sphere_obstacle(camera_parameter camera_parameter, Eigen::Vector2f center_angle,
       float center_distance, float radius)
       : radius_(radius) {
     Eigen::Matrix3f Rwc = camera_parameter.Rwc();
@@ -123,15 +123,15 @@ private:
   Eigen::Vector3f direction_;
 };
 
-struct sphere_intersection {
+struct sphere_obstacle_intersection {
 public:
-  sphere_intersection() {};
-  sphere_intersection(std::vector<sphere> spheres)
+  sphere_obstacle_intersection() {};
+  sphere_obstacle_intersection(std::vector<sphere_obstacle> spheres)
       : spheres_(spheres) {};
 
   float operator()(ray& ray) {
     float dist(SENSOR_LIMIT);
-    for (std::vector<sphere>::iterator sphere = spheres_.begin(); sphere != spheres_.end(); ++sphere) {
+    for (std::vector<sphere_obstacle>::iterator sphere = spheres_.begin(); sphere != spheres_.end(); ++sphere) {
       Eigen::Vector3f oc = ray.origin() - sphere->center();
       float a = ray.direction().dot(ray.direction());
       float b = 2.0 * oc.dot(ray.direction());
@@ -147,15 +147,15 @@ public:
   };
 
 private:
-  std::vector<sphere> spheres_;
+  std::vector<sphere_obstacle> spheres_;
 };
 
 struct generate_depth_image {
 public:
   generate_depth_image() {};
-  generate_depth_image(float* depth_image, std::vector<sphere>& spheres)
+  generate_depth_image(float* depth_image, std::vector<sphere_obstacle>& spheres)
     : depth_image_(depth_image),
-      si_(sphere_intersection(spheres)) {};
+      si_(sphere_obstacle_intersection(spheres)) {};
 
   void operator()(camera_parameter camera_parameter) {
     float focal_length_pix = camera_parameter.focal_length_pix();
@@ -182,7 +182,7 @@ public:
 
 private:
   float* depth_image_;
-  sphere_intersection si_;
+  sphere_obstacle_intersection si_;
 };
 
 struct calculate_scale {
@@ -439,10 +439,10 @@ private:
 };
 
 TEST_F(MultiscaleTSDFMovingCameraTest, Translation) {
-  std::vector<sphere> spheres;
+  std::vector<sphere_obstacle> spheres;
 
   // Allocate spheres in world frame
-  spheres.push_back(sphere(voxel_size_*Eigen::Vector3f(size_*1/2, size_*1/2, size_/2), 0.5f));
+  spheres.push_back(sphere_obstacle(voxel_size_*Eigen::Vector3f(size_*1/2, size_*1/2, size_/2), 0.5f));
   generate_depth_image_ = generate_depth_image(depth_image_, spheres);
 
   int frames = FRAMES;
@@ -475,11 +475,11 @@ TEST_F(MultiscaleTSDFMovingCameraTest, Translation) {
 }
 
 TEST_F(MultiscaleTSDFMovingCameraTest, Rotation) {
-  std::vector<sphere> spheres;
+  std::vector<sphere_obstacle> spheres;
 
   // Allocate spheres in world frame
-  sphere sphere_close = sphere(voxel_size_*Eigen::Vector3f(size_*1/8, size_*2/3, size_/2), 0.3f);
-  sphere sphere_far = sphere(voxel_size_*Eigen::Vector3f(size_*7/8, size_*1/3, size_/2), 0.3f);
+  sphere_obstacle sphere_close = sphere_obstacle(voxel_size_*Eigen::Vector3f(size_*1/8, size_*2/3, size_/2), 0.3f);
+  sphere_obstacle sphere_far = sphere_obstacle(voxel_size_*Eigen::Vector3f(size_*7/8, size_*1/3, size_/2), 0.3f);
   spheres.push_back(sphere_close);
   spheres.push_back(sphere_far);
 
