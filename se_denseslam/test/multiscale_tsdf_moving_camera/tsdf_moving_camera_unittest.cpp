@@ -30,10 +30,15 @@
 #define SENSOR_LIMIT 20
 
 // Number of frames to move from start to end position
-#define FRAMES 16
+#define FRAMES 1
 
 // Activate (1) and deactivate (0) depth dependent noise
 #define NOISE 0
+
+// Box intersection
+#define RIGHT	0
+#define LEFT	1
+#define MIDDLE	2
 
 struct camera_parameter {
 public:
@@ -69,32 +74,6 @@ private:
   Eigen::Matrix4f K_;
 };
 
-struct sphere_obstacle {
-public:
-  sphere_obstacle() {};
-  sphere_obstacle(Eigen::Vector3f center, float radius)
-    : center_(center), radius_(radius) {};
-
-  sphere_obstacle(camera_parameter camera_parameter, Eigen::Vector2f center_angle,
-      float center_distance, float radius)
-      : radius_(radius) {
-    Eigen::Matrix3f Rwc = camera_parameter.Rwc();
-    Eigen::Vector3f twc = camera_parameter.twc();
-    float dist_y = std::sin(center_angle.x())*center_distance;
-    float dist_x = std::cos(center_angle.x())*std::sin(center_angle.y())*center_distance;
-    float dist_z = std::cos(center_angle.x())*std::cos(center_angle.y())*center_distance;
-    Eigen::Vector3f dist(dist_x, dist_y, dist_z);
-    center_ = Rwc*dist + twc;
-  };
-
-  Eigen::Vector3f center() {return center_;}
-  float radius() {return radius_;}
-
-private:
-  Eigen::Vector3f center_;
-  float radius_;
-};
-
 struct ray {
 public:
   ray(camera_parameter& camera_parameter)
@@ -121,6 +100,32 @@ private:
   Eigen::Vector3f origin_;
   Eigen::Matrix3f Rwc_;
   Eigen::Vector3f direction_;
+};
+
+struct sphere_obstacle {
+public:
+  sphere_obstacle() {};
+  sphere_obstacle(Eigen::Vector3f center, float radius)
+    : center_(center), radius_(radius) {};
+
+  sphere_obstacle(camera_parameter camera_parameter, Eigen::Vector2f center_angle,
+      float center_distance, float radius)
+      : radius_(radius) {
+    Eigen::Matrix3f Rwc = camera_parameter.Rwc();
+    Eigen::Vector3f twc = camera_parameter.twc();
+    float dist_y = std::sin(center_angle.x())*center_distance;
+    float dist_x = std::cos(center_angle.x())*std::sin(center_angle.y())*center_distance;
+    float dist_z = std::cos(center_angle.x())*std::cos(center_angle.y())*center_distance;
+    Eigen::Vector3f dist(dist_x, dist_y, dist_z);
+    center_ = Rwc*dist + twc;
+  };
+
+  Eigen::Vector3f center() {return center_;}
+  float radius() {return radius_;}
+
+private:
+  Eigen::Vector3f center_;
+  float radius_;
 };
 
 struct sphere_obstacle_intersection {
@@ -150,10 +155,121 @@ private:
   std::vector<sphere_obstacle> spheres_;
 };
 
-struct generate_depth_image {
+struct box_obstacle {
 public:
-  generate_depth_image() {};
-  generate_depth_image(float* depth_image, std::vector<sphere_obstacle>& spheres)
+  box_obstacle() {};
+  box_obstacle(Eigen::Vector3f center, float depth, float width, float height)
+      : center_(center), dim_(Eigen::Vector3f(depth, width, height)) {
+    min_corner_ = center - Eigen::Vector3f(depth, width, height);
+    max_corner_ = center + Eigen::Vector3f(depth, width, height);
+  };
+  
+  box_obstacle(Eigen::Vector3f center, Eigen::Vector3f dim)
+      : center_(center), dim_(dim) {
+    min_corner_ = center - dim/2;
+    max_corner_ = center + dim/2;
+  };
+
+  Eigen::Vector3f center() {return center_;}
+  Eigen::Vector3f dim() {return dim_;}
+  Eigen::Vector3f min_corner() {return min_corner_;}
+  Eigen::Vector3f max_corner() {return max_corner_;}
+
+private:
+  Eigen::Vector3f center_;
+  Eigen::Vector3f dim_;
+  Eigen::Vector3f min_corner_;
+  Eigen::Vector3f max_corner_;
+};
+
+struct box_obstacle_intersection {
+public:
+  box_obstacle_intersection() {};
+  box_obstacle_intersection(std::vector<box_obstacle>& boxes)
+      : boxes_(boxes) {};
+
+  float operator()(ray& ray) {
+    float dist(SENSOR_LIMIT);
+    for (std::vector<box_obstacle>::iterator box = boxes_.begin(); box != boxes_.end(); ++box) {
+            /* 
+      Fast Ray-Box Intersection
+      by Andrew Woo
+      from "Graphics Gems", Academic Press, 1990
+      */
+      int num_dim = 3;
+      Eigen::Vector3f min_corner = box->min_corner();
+      Eigen::Vector3f max_corner = box->max_corner();		/*box */
+      Eigen::Vector3f origin = ray.origin(); 
+      Eigen::Vector3f dir = ray.direction();		/*ray */
+      Eigen::Vector3f coord = -1*Eigen::Vector3f::Ones();				/* hit point */
+      {
+        bool inside = true;
+        Eigen::Vector3i quadrant;
+        int which_plane;
+        Eigen::Vector3f max_T;
+        Eigen::Vector3f candidate_plane;
+
+        /* Find candidate planes; this loop can be avoided if
+           rays cast all from the eye(assume perpsective view) */
+        for (int i = 0; i < num_dim; i++)
+          if(origin[i] < min_corner[i]) {
+            quadrant[i] = LEFT;
+            candidate_plane[i] = min_corner[i];
+            inside = false;
+          }else if (origin[i] > max_corner[i]) {
+            quadrant[i] = RIGHT;
+            candidate_plane[i] = max_corner[i];
+            inside = false;
+          }else	{
+            quadrant[i] = MIDDLE;
+          }
+
+        /* Ray origin inside bounding box */
+        if(inside)	{
+          return 0;
+        }
+
+        /* Calculate T distances to candidate planes */
+        for (int i = 0; i < num_dim; i++)
+          if (quadrant[i] != MIDDLE && dir[i] !=0.)
+            max_T[i] = (candidate_plane[i]-origin[i]) / dir[i];
+          else
+            max_T[i] = -1.;
+
+        /* Get largest of the max_T's for final choice of intersection */
+        which_plane = 0;
+        for (int i = 1; i < num_dim; i++)
+          if (max_T[which_plane] < max_T[i])
+            which_plane = i;
+
+        bool does_intersect = true;
+        /* Check final candidate actually inside box */
+        if (max_T[which_plane] < 0.f) continue;
+        for (int i = 0; i < num_dim; i++)
+          if (which_plane != i) {
+            coord[i] = origin[i] + max_T[which_plane] *dir[i];
+            if (coord[i] < min_corner[i] || coord[i] > max_corner[i])
+              does_intersect = false;
+          } else {
+            coord[i] = candidate_plane[i];
+          }
+        float dist_tmp = (coord - origin).norm();
+        if (dist_tmp < dist && does_intersect)
+          dist = dist_tmp;
+      }
+
+    }
+    return dist;
+  };
+
+private:
+  std::vector<box_obstacle> boxes_;
+};
+
+struct generate_sphere_depth_image {
+public:
+  generate_sphere_depth_image() {};
+  generate_sphere_depth_image(float* depth_image, std::vector<sphere_obstacle>& spheres)
     : depth_image_(depth_image),
       si_(sphere_obstacle_intersection(spheres)) {};
 
@@ -183,6 +299,41 @@ public:
 private:
   float* depth_image_;
   sphere_obstacle_intersection si_;
+};
+
+struct generate_box_depth_image {
+public:
+  generate_box_depth_image() {};
+  generate_box_depth_image(float* depth_image, std::vector<box_obstacle>& boxes)
+      : depth_image_(depth_image),
+        bi_(box_obstacle_intersection(boxes)) {};
+
+  void operator()(camera_parameter camera_parameter) {
+    float focal_length_pix = camera_parameter.focal_length_pix();
+    ray ray(camera_parameter);
+    int image_width = camera_parameter.imageSize().x();
+    int image_height = camera_parameter.imageSize().y();
+    for (int u = 0; u < image_width; u++) {
+      for (int v = 0; v < image_height; v++) {
+        ray(u,v);
+        float range = bi_(ray);
+        float regularisation = std::sqrt(1 + se::math::sq(std::abs(u + 0.5 - image_width/2) / focal_length_pix)
+                                         + se::math::sq(std::abs(v + 0.5 - image_height/2) / focal_length_pix));
+        float depth = range/regularisation;
+        if(NOISE) {
+          static std::mt19937 gen{1};
+          std::normal_distribution<> d(0, 0.004*depth*depth);
+          depth_image_[u + v*camera_parameter.imageSize().x()] = depth + d(gen);
+        }
+        else
+          depth_image_[u + v*camera_parameter.imageSize().x()] = depth;
+      }
+    }
+  }
+
+private:
+  float* depth_image_;
+  box_obstacle_intersection bi_;
 };
 
 struct calculate_scale {
@@ -432,18 +583,19 @@ protected:
   float voxel_size_;
   float dim_;
   std::vector<se::VoxelBlock<MultiresSDF>*> active_list_;
-  generate_depth_image generate_depth_image_;
+  generate_sphere_depth_image generate_sphere_depth_image_;
+  generate_box_depth_image generate_box_depth_image_;
 
 private:
   std::vector<se::key_t> alloc_list;
 };
 
-TEST_F(MultiscaleTSDFMovingCameraTest, Translation) {
+TEST_F(MultiscaleTSDFMovingCameraTest, SphereTranslation) {
   std::vector<sphere_obstacle> spheres;
 
   // Allocate spheres in world frame
   spheres.push_back(sphere_obstacle(voxel_size_*Eigen::Vector3f(size_*1/2, size_*1/2, size_/2), 0.5f));
-  generate_depth_image_ = generate_depth_image(depth_image_, spheres);
+  generate_sphere_depth_image_ = generate_sphere_depth_image(depth_image_, spheres);
 
   int frames = FRAMES;
   for (int frame = 0; frame < frames; frame++) {
@@ -458,12 +610,12 @@ TEST_F(MultiscaleTSDFMovingCameraTest, Translation) {
     camera_pose.topRightCorner<3,1>() = (Rwb*Eigen::Vector3f(-(size_/2 + frame*size_/8), 0, size_/2) + Eigen::Vector3f(size_/2, size_/2, 0))*voxel_size_;
 
     camera_parameter_.setPose(camera_pose);
-    generate_depth_image_(camera_parameter_);
+    generate_sphere_depth_image_(camera_parameter_);
     active_list_ = buildActiveList(oct_, camera_parameter_, voxel_size_);
     foreach(voxel_size_, active_list_, camera_parameter_, depth_image_);
     std::stringstream f;
 
-    f << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/scale_"  + std::to_string(SCALE) + "-linear_back_move-" + std::to_string(frame) + ".vtk";
+    f << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/scale_"  + std::to_string(SCALE) + "sphere-linear_back_move-" + std::to_string(frame) + ".vtk";
 
     save3DSlice(oct_,
                 Eigen::Vector3i(0, 0, oct_.size()/2),
@@ -474,7 +626,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, Translation) {
 
 }
 
-TEST_F(MultiscaleTSDFMovingCameraTest, Rotation) {
+TEST_F(MultiscaleTSDFMovingCameraTest, SphereRotation) {
   std::vector<sphere_obstacle> spheres;
 
   // Allocate spheres in world frame
@@ -483,7 +635,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, Rotation) {
   spheres.push_back(sphere_close);
   spheres.push_back(sphere_far);
 
-  generate_depth_image_ = generate_depth_image(depth_image_, spheres);
+  generate_sphere_depth_image_ = generate_sphere_depth_image(depth_image_, spheres);
 
   int frames = FRAMES;
   for (int frame = 0; frame < frames; frame++) {
@@ -503,12 +655,49 @@ TEST_F(MultiscaleTSDFMovingCameraTest, Rotation) {
     camera_pose.topRightCorner<3,1>() = (Rwb*Eigen::Vector3f(-(size_/2 + 16*size_/8), 0, size_/2) + Eigen::Vector3f(size_/2, size_/2, 0))*voxel_size_;
 
     camera_parameter_.setPose(camera_pose);
-    generate_depth_image_(camera_parameter_);
+    generate_sphere_depth_image_(camera_parameter_);
     active_list_ = buildActiveList(oct_, camera_parameter_, voxel_size_);
     foreach(voxel_size_, active_list_, camera_parameter_, depth_image_);
     std::stringstream f;
 
-    f << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/scale_"  + std::to_string(SCALE) + "-rotational_move-" + std::to_string(frame) + ".vtk";
+    f << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/scale_"  + std::to_string(SCALE) + "-sphere-rotational_move-" + std::to_string(frame) + ".vtk";
+
+    save3DSlice(oct_,
+                Eigen::Vector3i(0, 0, oct_.size()/2),
+                Eigen::Vector3i(oct_.size(), oct_.size(), oct_.size()/2 + 1),
+                [](const auto& val) { return val.x; }, f.str().c_str());
+  }
+  free(depth_image_);
+
+}
+
+TEST_F(MultiscaleTSDFMovingCameraTest, BoxTranslation) {
+  std::vector<box_obstacle> boxes;
+
+  // Allocate boxes in world frame
+  boxes.push_back(box_obstacle(voxel_size_*Eigen::Vector3f(size_*1/2, size_*1/4, size_/2), voxel_size_*Eigen::Vector3f(size_*1/4, size_*1/4, size_/4)));
+  boxes.push_back(box_obstacle(voxel_size_*Eigen::Vector3f(size_*1/2, size_*3/4, size_/2), voxel_size_*Eigen::Vector3f(size_*1/4, size_*1/4, size_/4)));
+  generate_box_depth_image_ = generate_box_depth_image(depth_image_, boxes);
+
+  int frames = FRAMES;
+  for (int frame = 0; frame < frames; frame++) {
+    Eigen::Matrix4f camera_pose = Eigen::Matrix4f::Identity();
+    Eigen::Matrix3f Rbc;
+    Rbc << 0, 0, 1, -1, 0, 0, 0, -1, 0;
+
+    Eigen::Matrix3f Rwb = Eigen::Matrix3f::Identity();
+
+    camera_pose.topLeftCorner<3,3>()  = Rwb*Rbc;
+
+    camera_pose.topRightCorner<3,1>() = (Rwb*Eigen::Vector3f(-(size_/2 + frame*size_/8), 0, size_/2) + Eigen::Vector3f(size_/2, size_/2, 0))*voxel_size_;
+
+    camera_parameter_.setPose(camera_pose);
+    generate_box_depth_image_(camera_parameter_);
+    active_list_ = buildActiveList(oct_, camera_parameter_, voxel_size_);
+    foreach(voxel_size_, active_list_, camera_parameter_, depth_image_);
+    std::stringstream f;
+
+    f << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/scale_"  + std::to_string(SCALE) + "-box-linear_back_move-" + std::to_string(frame) + ".vtk";
 
     save3DSlice(oct_,
                 Eigen::Vector3i(0, 0, oct_.size()/2),
