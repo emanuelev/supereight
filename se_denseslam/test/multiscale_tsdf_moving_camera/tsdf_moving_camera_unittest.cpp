@@ -559,7 +559,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereTranslation) {
     foreach(voxel_size_, active_list_, camera_parameter_, depth_image_);
     std::stringstream f;
 
-    f << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/scale_"  + std::to_string(SCALE) + "-sphere-linear_back_move-" + std::to_string(frame) + ".vtk";
+    f << "./out/scale_"  + std::to_string(SCALE) + "-sphere-linear_back_move-" + std::to_string(frame) + ".vtk";
 
     save3DSlice(oct_,
                 Eigen::Vector3i(0, 0, oct_.size()/2),
@@ -608,7 +608,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereRotation) {
     foreach(voxel_size_, active_list_, camera_parameter_, depth_image_);
     std::stringstream f;
 
-    f << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/scale_"  + std::to_string(SCALE) + "-sphere-rotational_move-" + std::to_string(frame) + ".vtk";
+    f << "./out/scale_"  + std::to_string(SCALE) + "-sphere-rotational_move-" + std::to_string(frame) + ".vtk";
 
     save3DSlice(oct_,
                 Eigen::Vector3i(0, 0, oct_.size()/2),
@@ -649,7 +649,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, BoxTranslation) {
     foreach(voxel_size_, active_list_, camera_parameter_, depth_image_);
     std::stringstream f;
 
-    f << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/scale_"  + std::to_string(SCALE) + "-box-linear_back_move-" + std::to_string(frame) + ".vtk";
+    f << "./out/scale_"  + std::to_string(SCALE) + "-box-linear_back_move-" + std::to_string(frame) + ".vtk";
 
     save3DSlice(oct_,
                 Eigen::Vector3i(0, 0, oct_.size()/2),
@@ -690,7 +690,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereBoxTranslation) {
     foreach(voxel_size_, active_list_, camera_parameter_, depth_image_);
     std::stringstream f;
 
-    f << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/se_denseslam/test/out/scale_"  + std::to_string(SCALE) + "-sphere-and-box-linear_back_move-" + std::to_string(frame) + ".vtk";
+    f << "./out/scale_"  + std::to_string(SCALE) + "-sphere-and-box-linear_back_move-" + std::to_string(frame) + ".vtk";
 
     save3DSlice(oct_,
                 Eigen::Vector3i(0, 0, oct_.size()/2),
@@ -702,5 +702,4 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereBoxTranslation) {
     free(*obstacle);
   }
   free(depth_image_);
-
 }
