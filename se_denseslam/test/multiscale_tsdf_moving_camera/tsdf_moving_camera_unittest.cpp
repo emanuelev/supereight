@@ -281,30 +281,16 @@ private:
 
 };
 
-struct calculate_scale {
-public:
-  calculate_scale(float voxelsize, camera_parameter camera_parameter) {
-    voxelsize_ = voxelsize;
-    pixel_size_mm_ = camera_parameter.pixel_size_mm();
-    focal_length_mm_ = camera_parameter.focal_length_mm();
-    camera_position_ = camera_parameter.twc();
-  }
-
-  int operator()(Eigen::Vector3i base, const int side) {
-    float distance = (voxelsize_*(base.cast<float>() +
-        Eigen::Vector3f(0.5*(side + 1), 0.5*(side + 1), 0.5*(side + 1)))
-        - camera_position_).norm();
-    float uncertainty = pixel_size_mm_/focal_length_mm_*distance;
-    int scale = std::max(0,int(log2(uncertainty/voxelsize_) + 1));
-    return std::min(scale, 1);
-  }
-
-private:
-  float voxelsize_;
-  float pixel_size_mm_;
-  float focal_length_mm_;
-  Eigen::Vector3f camera_position_;
-};
+inline float compute_scale(const Eigen::Vector3f& vox, 
+                    const Eigen::Vector3f& twc,
+                    const float scaled_pix,
+                    const float voxelsize) {
+  const float dist = (voxelsize * vox - twc).norm();
+  const float pix_size = dist * scaled_pix;
+  int scale = std::min(std::max(0, int(log2(pix_size/voxelsize) + 1)),
+                       3);
+  return scale;
+}
 
 template <typename T>
 void propagate_down(se::VoxelBlock<T>* block, const int scale) {
@@ -325,16 +311,17 @@ void propagate_down(se::VoxelBlock<T>* block, const int scale) {
           Eigen::Vector3i vox_list[8];
           float delta_sum(0);
 
+          int idx = 0;
           for (int k = 0; k < stride; k += stride/2)
             for (int j = 0; j < stride; j += stride/2)
               for (int i = 0; i < stride; i += stride/2) {
-                int idx = 1*(2*i/stride) + 2*(2*j/stride) + 4*(2*k/stride);
                 vox_list[idx] = parent + Eigen::Vector3i(i, j, k);
                 auto curr = block->data(vox_list[idx], curr_scale -1);
                 // Calculate non normalized child delta
                 curr.delta = virt_sample - curr.x;
                 delta_sum += curr.delta;
                 curr_list[idx] = curr;
+                ++idx;
               }
 
           for (int i = 0; i < 8; i++) {
@@ -411,8 +398,6 @@ template <typename T>
 void foreach(float voxelsize, std::vector<se::VoxelBlock<T>*> active_list,
              camera_parameter camera_parameter, float* depth_image) {
   const int n = active_list.size();
-  calculate_scale calculate_scale(voxelsize, camera_parameter);
-
   for(int i = 0; i < n; ++i) {
     se::VoxelBlock<T>* block = active_list[i];
     const Eigen::Vector3i base = block->coordinates();
@@ -423,9 +408,11 @@ void foreach(float voxelsize, std::vector<se::VoxelBlock<T>*> active_list,
     const Eigen::Vector3f tcw = Tcw.topRightCorner<3,1>();
     const Eigen::Matrix4f K = camera_parameter.K();
     const Eigen::Vector2i image_size = camera_parameter.imageSize();
+    const float scaled_pix = (camera_parameter.K().inverse() * (Eigen::Vector3f(1, 0 ,1) - Eigen::Vector3f(0, 0, 1)).homogeneous()).x();
 
     // Calculate the maximum uncertainty possible
-    int scale = calculate_scale(base, side);
+    int scale = compute_scale((base + Eigen::Vector3i::Constant(side/2)).cast<float>(),
+                               tcw, scaled_pix, voxelsize);
     if (SCALE != 4)
       scale = SCALE;
     float stride = std::max(int(pow(2,scale)),1);
