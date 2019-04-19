@@ -39,8 +39,6 @@
 #include <se/commons.h>
 #include <iostream>
 #include <memory>
-#include <perfstats.h>
-#include <timings.h>
 #include <se/config.h>
 #include <se/octree.hpp>
 #include <se/image/image.hpp>

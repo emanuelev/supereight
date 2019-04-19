@@ -79,7 +79,8 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
           normal[pos.x() + pos.y() * normal.width()] = Eigen::Vector3f(INVALID, 0, 0);
         } else {
           // Invert normals if SDF 
-          normal[pos.x() + pos.y() * normal.width()] = std::is_same<T, SDF>::value ?
+          normal[pos.x() + pos.y() * normal.width()] = 
+            (std::is_same<T, SDF>::value || std::is_same<T, MultiresSDF>::value) ?
             (-1.f * surfNorm).normalized() : surfNorm.normalized();
         }
       } else {
@@ -252,7 +253,8 @@ void renderVolumeKernel(const Volume<T>& volume,
           surfNorm = volume.grad(test, [](const auto& val){ return val.x; });
 
           // Invert normals if SDF 
-          surfNorm = std::is_same<T, SDF>::value ? -1.f * surfNorm : surfNorm;
+          surfNorm = (std::is_same<T, SDF>::value || std::is_same<T, MultiresSDF>::value) ?
+            -1.f * surfNorm : surfNorm;
         } else {
           surfNorm = Eigen::Vector3f(INVALID, 0, 0);
         }
