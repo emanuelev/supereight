@@ -261,6 +261,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);
 
+    std::string version;
     if(std::is_same<FieldType, SDF>::value) {
       struct sdf_update funct(float_depth_.data(), framesize, mu, 100);
       se::functor::projective_map(*volume_._map_index,
@@ -269,6 +270,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
           K,
           framesize,
           funct);
+      version = "sdf";
     } else if(std::is_same<FieldType, OFusion>::value) {
 
       float timestamp = (1.f/30.f)*frame;
@@ -282,16 +284,18 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
           K,
           Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
           funct);
+      version = "ofusion";
     } else if(std::is_same<FieldType, MultiresSDF>::value) {
       se::multires::integrate(*volume_._map_index, Tcw, K, voxelsize,
           Eigen::Vector3f::Constant(0.5f), float_depth_, mu, 100);
+      version = "multires";
     }
 
     // if(frame) {
     //   std::stringstream f;
-    //   f << "./slices/integration_" << frame << ".vtk";
-    //   save3DSlice(*volume_._map_index, Eigen::Vector3i(0, 200, 0),
-    //       Eigen::Vector3i(volume_._size, 201, volume_._size),
+    //   f << "./slices/integration_" << version << "_" << std::setfill('0') << std::setw(4) <<  frame << ".vtk";
+    //   save3DSlice(*volume_._map_index, Eigen::Vector3i(0, 250, 0),
+    //       Eigen::Vector3i(volume_._size, 251, volume_._size),
     //       [](const auto& val) { return val.x; }, f.str().c_str());
     //   f.str("");
     //   f.clear();

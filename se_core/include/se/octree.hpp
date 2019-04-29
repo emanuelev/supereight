@@ -538,20 +538,21 @@ VoxelBlock<T> * Octree<T>::insert(const int x, const int y, const int z) {
 template <typename T>
 template <typename FieldSelector>
 float Octree<T>::interp(const Eigen::Vector3f& pos, FieldSelector select) const {
-  return interp(pos, 1, select);
+  return interp(pos, 0, select);
 }
 
 template <typename T>
 template <typename FieldSelector>
-float Octree<T>::interp(const Eigen::Vector3f& pos, const int stride,
+float Octree<T>::interp(const Eigen::Vector3f& pos, const int scale,
     FieldSelector select) const {
   
+  const int stride = 1 << scale; 
   const Eigen::Vector3i base = math::floorf(pos).cast<int>();
   const Eigen::Vector3f factor =  (1/stride) * math::fracf(pos);
   const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
 
   float points[8];
-  internal::gather_points(*this, lower, stride, select, points);
+  internal::gather_points(*this, lower, scale, select, points);
 
   return (((points[0] * (1 - factor(0))
           + points[1] * factor(0)) * (1 - factor(1))

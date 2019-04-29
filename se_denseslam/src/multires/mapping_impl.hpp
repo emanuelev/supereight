@@ -135,16 +135,17 @@ void propagate_down(se::VoxelBlock<T>* block, const int scale) {
           Eigen::Vector3i vox_list[8];
           float delta_sum(0);
 
+          int idx = 0;
           for (int k = 0; k < stride; k += stride/2)
             for (int j = 0; j < stride; j += stride/2)
               for (int i = 0; i < stride; i += stride/2) {
-                int idx = 1*(2*i/stride) + 2*(2*j/stride) + 4*(2*k/stride);
                 vox_list[idx] = parent + Eigen::Vector3i(i, j, k);
                 auto curr = block->data(vox_list[idx], curr_scale -1);
                 // Calculate non normalized child delta
                 curr.delta = virt_sample - curr.x;
                 delta_sum += curr.delta;
                 curr_list[idx] = curr;
+                ++idx;
               }
 
           for (int i = 0; i < 8; i++) {
@@ -209,7 +210,7 @@ struct multires_block_update {
     for(int z = 0; z < side; z += stride)
       for(int y = 0; y < side; y += stride) {
         Eigen::Vector3i pix = base + Eigen::Vector3i(0, y, z);
-        Eigen::Vector3f start = Tcw * (voxel_size * (pix.cast<float>() + offset));
+        Eigen::Vector3f start = Tcw * (voxel_size * (pix.cast<float>() + stride*offset));
         Eigen::Vector3f camerastart = K.topLeftCorner<3,3>() * start;
         for(int x = 0; x < side; x += stride, pix.x() += stride) {
           const Eigen::Vector3f camera_voxel = camerastart + (x*cameraDelta);
@@ -234,13 +235,13 @@ struct multires_block_update {
             * std::sqrt( 1 + se::math::sq(pos.x() / pos.z()) 
                 + se::math::sq(pos.y() / pos.z()));
           if (diff > -mu) {
-            const float sdf = fminf(1.f, diff / mu);
+            const float sdf = fminf(1.f, diff/ mu);
             auto data = block->data(pix, scale);
             auto tmp = data.x;
             data.x = se::math::clamp(
                 (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f),
                 -1.f,
-                1.f);
+                 1.f);
             data.delta = (data.x - tmp)/(data.y + 1);
             data.y = fminf(data.y + 1, maxweight);
             data.delta_y++;

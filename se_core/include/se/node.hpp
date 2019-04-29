@@ -205,6 +205,13 @@ inline void VoxelBlock<T>::data(const Eigen::Vector3i& pos, const int level,
     num_voxels /= 8;
     ++l;
   } 
+
+  if(pos == Eigen::Vector3i(298, 250, 238) ||
+     pos == Eigen::Vector3i(299, 250, 238)) {
+      std::cout << "voxelblock::data::pos \n" <<  pos << std::endl;
+      std::cout << "voxelblock::data::val \n" <<  value.x << std::endl << std::endl;
+  }
+
   const int local_size = side / (1 << level); 
   relative_pos = relative_pos / (1 << level);
   voxel_block_[offset + relative_pos.x() + 
