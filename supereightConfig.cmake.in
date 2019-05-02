@@ -1,14 +1,14 @@
 ################################################################################
-# supereight source dir
-set( supereight_SOURCE_DIR "@CONFIG_SOURCE_DIR@")
+# SUPEREIGHT source dir
+set( _SOURCE_DIR "@CONFIG_SOURCE_DIR@")
 
 ################################################################################
-# supereight build dir
-set( supereight_DIR "@CONFIG_DIR@")
+# SUPEREIGHT build dir
+set( SUPEREIGHT_DIR "@CONFIG_DIR@")
 
 ################################################################################
 # Compute paths
-get_filename_component(supereight_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+get_filename_component(SUPEREIGHT_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
-set( supereight_INCLUDE_DIR  "@supereight_INCLUDE_DIR@" )
-set( supereight_INCLUDE_DIRS  "@supereight_INCLUDE_DIR@" )
+set( SUPEREIGHT_INCLUDE_DIR  "@SUPEREIGHT_INCLUDE_DIR@" )
+set( SUPEREIGHT_INCLUDE_DIRS  "@SUPEREIGHT_INCLUDE_DIR@" )
