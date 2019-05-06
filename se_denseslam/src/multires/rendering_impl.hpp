@@ -60,7 +60,7 @@ inline Eigen::Vector4f raycast(const Volume<MultiresSDF>&     volume,
         }
         f_tt = data.x;
         if(f_tt <= 0.1 && f_tt >= -0.5f){
-          f_tt = volume.interp(position, 1, select_depth);
+          f_tt = volume.interp(position, 0, select_depth);
         }
         if (f_tt < 0)                  // got it, jump out of inner loop
           break;
