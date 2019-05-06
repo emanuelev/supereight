@@ -129,43 +129,19 @@ void propagate_down(se::VoxelBlock<T>* block, const int scale) {
         for(int x = 0; x < side; x += stride) {
           const Eigen::Vector3i parent = base + Eigen::Vector3i(x, y, z);
           auto data = block->data(parent, curr_scale);
-          float virt_sample = data.delta*float(data.y - 1) + data.x;
           typedef voxel_traits<T> traits_type;
-          typename traits_type::value_type curr_list[8];
-          Eigen::Vector3i vox_list[8];
-          float delta_sum(0);
-
-          int idx = 0;
-          for (int k = 0; k < stride; k += stride/2)
-            for (int j = 0; j < stride; j += stride/2)
-              for (int i = 0; i < stride; i += stride/2) {
-                vox_list[idx] = parent + Eigen::Vector3i(i, j, k);
-                auto curr = block->data(vox_list[idx], curr_scale -1);
-                // Calculate non normalized child delta
-                curr.delta = virt_sample - curr.x;
-                delta_sum += curr.delta;
-                curr_list[idx] = curr;
-                ++idx;
+          const int half_step = stride / 2;
+          for(int k = 0; k < stride; k += half_step)
+            for(int j = 0; j < stride; j += half_step)
+              for(int i = 0; i < stride; i += half_step) {
+                const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
+                auto curr = block->data(vox, curr_scale - 1);
+                curr.x  +=  data.delta;
+                curr.y  +=  data.delta_y;
+                curr.delta = data.delta;
+                curr.delta_y = data.delta_y;
+                block->data(vox, curr_scale - 1, curr);
               }
-
-          for (int i = 0; i < 8; i++) {
-            // Update delta_x
-            if (delta_sum != 0)
-              curr_list[i].delta = data.delta*curr_list[i].delta/delta_sum*8;
-
-            // Update x
-            curr_list[i].x = curr_list[i].y == 0 ? data.x :
-                curr_list[i].x += curr_list[i].delta;
-
-            // Update weight (with 0 <= y <= MAX_WEIGHT)
-            curr_list[i].y = curr_list[i].y == 0 ? data.y :
-                             std::min(curr_list[i].y + data.delta_y, 100);
-            curr_list[i].delta_y =data.delta_y;
-
-            block->data(vox_list[i], curr_scale - 1, curr_list[i]);
-          }
-
-          data.delta = 0;
           data.delta_y = 0;
           block->data(parent, curr_scale, data);
         }
