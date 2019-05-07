@@ -181,7 +181,7 @@ struct multires_block_update {
         Tcw.inverse().translation(), scaled_pix, voxel_size, se::math::log2_const(side));
     const int stride = 1 << scale;
 
-    const Eigen::Vector3f delta = Tcw.rotationMatrix() * Eigen::Vector3f(stride * voxel_size, 0, 0);
+    const Eigen::Vector3f delta = Tcw.rotationMatrix() * Eigen::Vector3f(voxel_size, 0, 0);
     const Eigen::Vector3f cameraDelta = K.topLeftCorner<3,3>() * delta;
     for(int z = 0; z < side; z += stride)
       for(int y = 0; y < side; y += stride) {
@@ -200,7 +200,6 @@ struct multires_block_update {
           if (pixel.x() < 0.5f || pixel.x() > depth.width() - 1.5f || 
               pixel.y() < 0.5f || pixel.y() > depth.height() - 1.5f) continue;
           block->active(true);
-
           const Eigen::Vector2i px = pixel.cast<int>();
           const float depthSample = depth[px.x() + depth.width()*px.y()];
           // continue on invalid depth measurement
