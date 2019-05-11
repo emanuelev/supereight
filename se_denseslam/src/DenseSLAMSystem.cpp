@@ -265,7 +265,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
     if(std::is_same<FieldType, SDF>::value) {
       struct sdf_update funct(float_depth_.data(), framesize, mu, 100);
       se::functor::projective_map(*volume_._map_index,
-          volume_.voxel_offset,
+          volume_._map_index->_offset,
           Tcw,
           K,
           framesize,
@@ -279,7 +279,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
           mu, timestamp, voxelsize);
 
       se::functor::projective_map(*volume_._map_index, 
-          volume_.voxel_offset,
+          volume_._map_index->_offset,
           Tcw,
           K,
           Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
@@ -294,8 +294,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
     // if(frame) {
     //   std::stringstream f;
     //   f << "./slices/integration_" << version << "_" << std::setfill('0') << std::setw(4) <<  frame << ".vtk";
-    //   save3DSlice(*volume_._map_index, Eigen::Vector3i(0, 250, 0),
-    //       Eigen::Vector3i(volume_._size, 251, volume_._size),
+    //   save3DSlice(*volume_._map_index, Eigen::Vector3i(0, 200, 0),
+    //       Eigen::Vector3i(512, 201, 512),
     //       [](const auto& val) { return val.x; }, f.str().c_str());
     //   f.str("");
     //   f.clear();

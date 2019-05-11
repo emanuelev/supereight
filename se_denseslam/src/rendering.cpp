@@ -59,6 +59,7 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
   for (y = 0; y < vertex.height(); y++)
 #pragma omp simd
     for (int x = 0; x < vertex.width(); x++) {
+      const int scale = 0;
       Eigen::Vector2i pos(x, y);
       const Eigen::Vector3f dir = 
         (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
@@ -72,7 +73,7 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
       if(hit.w() > 0.0) {
         vertex[x + y * vertex.width()] = hit.head<3>();
         Eigen::Vector3f surfNorm = volume.grad(hit.head<3>(), 
-            0,
+            scale,
             [](const auto& val){ return val.x; });
         if (surfNorm.norm() == 0) {
           //normal[pos] = normalize(surfNorm); // APN added

@@ -41,18 +41,18 @@ inline Eigen::Vector4f raycast(const Volume<MultiresSDF>&     volume,
                                const float            step,
                                const float            largestep) {
 
-  const int voxelsize = volume._extent / volume._size;
   auto select_depth = [](const auto& val){ return val.x; };
   if (tnear < tfar) {
     // first walk with largesteps until we found a hit
     float t = tnear;
     float stepsize = largestep;
     Eigen::Vector3f position = origin + direction * t;
-    float f_t = volume.interp(position, select_depth);
+    const int scale = 0;
+    float f_t = volume.interp(position, scale, select_depth);
     float f_tt = 0;
     if (f_t > 0) { // ups, if we were already in it, then don't render anything here
       for (; t < tfar; t += stepsize) {
-        auto data = volume.get(position);
+        auto data = volume.get(position, scale);
         if (data.y == 0) {
           stepsize = largestep;
           position += stepsize*direction;
@@ -60,7 +60,7 @@ inline Eigen::Vector4f raycast(const Volume<MultiresSDF>&     volume,
         }
         f_tt = data.x;
         if(f_tt <= 0.1 && f_tt >= -0.5f){
-          f_tt = volume.interp(position, 0, select_depth);
+          f_tt = volume.interp(position, scale, select_depth);
         }
         if (f_tt < 0)                  // got it, jump out of inner loop
           break;
