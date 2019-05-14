@@ -179,7 +179,9 @@ struct multires_block_update {
     const Eigen::Vector3i base = block->coordinates();
     int scale = compute_scale((base + Eigen::Vector3i::Constant(side/2)).cast<float>(),
         Tcw.inverse().translation(), scaled_pix, voxel_size, se::math::log2_const(side));
+    block->current_scale(scale);
     const int stride = 1 << scale;
+    bool visible = false;
 
     const Eigen::Vector3f delta = Tcw.rotationMatrix() * Eigen::Vector3f(voxel_size, 0, 0);
     const Eigen::Vector3f cameraDelta = K.topLeftCorner<3,3>() * delta;
@@ -199,7 +201,7 @@ struct multires_block_update {
               camera_voxel.y() * inverse_depth + 0.5f);
           if (pixel.x() < 0.5f || pixel.x() > depth.width() - 1.5f || 
               pixel.y() < 0.5f || pixel.y() > depth.height() - 1.5f) continue;
-          block->active(true);
+          visible = true;
           const Eigen::Vector2i px = pixel.cast<int>();
           const float depthSample = depth[px.x() + depth.width()*px.y()];
           // continue on invalid depth measurement
@@ -224,8 +226,9 @@ struct multires_block_update {
           }
         }
       }
-    propagate_down(block, scale);
+    // propagate_down(block, scale);
     propagate_up(block, scale);
+    block->active(visible);
   }
 };
 

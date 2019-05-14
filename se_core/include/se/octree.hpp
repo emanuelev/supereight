@@ -385,8 +385,8 @@ inline typename Octree<T>::value_type Octree<T>::get_fine(const int x,
     }
     n = tmp;
   }
-
-  return static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z), scale);
+  auto block = static_cast<VoxelBlock<T> *>(n);
+  return block->data(Eigen::Vector3i(x, y, z), std::max(scale, block->current_scale()));
 }
 template <typename T>
 inline typename Octree<T>::value_type Octree<T>::get(const int x,
@@ -566,17 +566,25 @@ float Octree<T>::interp(const Eigen::Vector3f& pos, FieldSelector select) const 
 
 template <typename T>
 template <typename FieldSelector>
-float Octree<T>::interp(const Eigen::Vector3f& pos, const int scale,
+float Octree<T>::interp(const Eigen::Vector3f& pos, const int min_scale,
     FieldSelector select) const {
-  
-  const int stride = 1 << scale; 
-  const Eigen::Vector3f scaled_pos = 1.f/stride * pos - _offset;
-  const Eigen::Vector3f factor =  math::fracf(scaled_pos);
-  const Eigen::Vector3i base = stride * scaled_pos.cast<int>();
-  const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
-
+ 
+  int iter = 0;
+  int scale = min_scale;
   float points[8];
-  internal::gather_points(*this, lower, scale, select, points);
+  Eigen::Vector3f factor;
+  while(iter < 3) {
+    const int stride = 1 << scale; 
+    const Eigen::Vector3f scaled_pos = 1.f/stride * pos - _offset;
+    factor =  math::fracf(scaled_pos);
+    const Eigen::Vector3i base = stride * scaled_pos.cast<int>();
+    const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
+
+    int res = internal::gather_points(*this, lower, scale, select, points);
+    if(res == scale) break;
+    else scale = res;
+    iter++;
+  }
 
   return (((points[0] * (1 - factor(0))
           + points[1] * factor(0)) * (1 - factor(1))
