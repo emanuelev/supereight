@@ -62,7 +62,7 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
       const int scale = 1;
       Eigen::Vector2i pos(x, y);
       const Eigen::Vector3f dir = 
-        (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
+        (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x + 0.5f, y + 0.5f, 1.f)).normalized();
       const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
       se::ray_iterator<T> ray(*volume._map_index, transl, dir, nearPlane, farPlane);
       ray.next();
@@ -70,10 +70,10 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
       const Eigen::Vector4f hit = t_min > 0.f ? 
         raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, largestep) : 
         Eigen::Vector4f::Constant(0.f);
-      if(hit.w() > 0.0) {
+      if(hit.w() >= 0.0) {
         vertex[x + y * vertex.width()] = hit.head<3>();
         Eigen::Vector3f surfNorm = volume.grad(hit.head<3>(), 
-            scale,
+            int(hit.w()),
             [](const auto& val){ return val.x; });
         if (surfNorm.norm() == 0) {
           //normal[pos] = normalize(surfNorm); // APN added

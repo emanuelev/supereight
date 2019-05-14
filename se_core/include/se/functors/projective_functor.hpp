@@ -86,6 +86,7 @@ namespace functor {
         blockSide = se::VoxelBlock<FieldType>::side;
         unsigned int ylast = blockCoord(1) + blockSide;
         unsigned int zlast = blockCoord(2) + blockSide;
+        block->current_scale(0);
 
         for(z = blockCoord(2); z < zlast; ++z)
           for (y = blockCoord(1); y < ylast; ++y){

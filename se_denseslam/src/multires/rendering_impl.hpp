@@ -48,7 +48,8 @@ inline Eigen::Vector4f raycast(const Volume<MultiresSDF>&     volume,
     float stepsize = largestep;
     Eigen::Vector3f position = origin + direction * t;
     const int scale = 0;
-    float f_t = volume.interp(position, scale, select_depth);
+    auto interp_res = volume.interp(position, scale, select_depth);
+    float f_t = interp_res.first;
     float f_tt = 0;
     if (f_t > 0) { // ups, if we were already in it, then don't render anything here
       for (; t < tfar; t += stepsize) {
@@ -60,7 +61,8 @@ inline Eigen::Vector4f raycast(const Volume<MultiresSDF>&     volume,
         }
         f_tt = data.x;
         if(f_tt <= 0.1 && f_tt >= -0.5f) {
-          f_tt = volume.interp(position, scale, select_depth);
+          interp_res = volume.interp(position, scale, select_depth);
+          f_tt = interp_res.first;
         }
         if (f_tt < 0)                  // got it, jump out of inner loop
           break;
@@ -71,11 +73,11 @@ inline Eigen::Vector4f raycast(const Volume<MultiresSDF>&     volume,
       if (f_tt < 0) {           // got it, calculate accurate intersection
         t = t + stepsize * f_tt / (f_t - f_tt);
         Eigen::Vector4f res = (origin + direction * t).homogeneous();
-        res.w() = t;
+        res.w() = interp_res.second;
         return res;
       }
     }
   }
-  return Eigen::Vector4f::Constant(0);
+  return Eigen::Vector4f::Constant(-1.f);
 }
 

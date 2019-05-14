@@ -45,7 +45,7 @@ inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
   if (tnear < tfar) {
     float t = tnear;
     float stepsize = step;
-    float f_t = volume.interp(origin + direction * t, select_occupancy);
+    float f_t = volume.interp(origin + direction * t, select_occupancy).first;
     float f_tt = 0;
 
     // if we are not already in it
@@ -54,7 +54,7 @@ inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
         const Eigen::Vector3f pos =  origin + direction * t;
         Volume<OFusion>::value_type data = volume.get(pos);
         if (data.x > -100.f && data.y > 0.f) {
-          f_tt = volume.interp(origin + direction * t, select_occupancy);
+          f_tt = volume.interp(origin + direction * t, select_occupancy).first;
         }
         if (f_tt > SURF_BOUNDARY)
           break;

@@ -88,7 +88,7 @@ class VolumeTemplate {
     }
 
     template <typename FieldSelector>
-    float interp(const Eigen::Vector3f& pos, FieldSelector select) const {
+    std::pair<float, int> interp(const Eigen::Vector3f& pos, FieldSelector select) const {
       const float inverseVoxelSize = _size / _extent;
       Eigen::Vector3f discrete_pos = inverseVoxelSize * pos;
       return _map_index->interp(discrete_pos, select);
@@ -102,7 +102,7 @@ class VolumeTemplate {
    * \return signed distance function value at voxel position (x, y, z)
    */
     template <typename FieldSelector>
-    float interp(const Eigen::Vector3f& pos, const int h, FieldSelector select) const {
+    std::pair<float, int> interp(const Eigen::Vector3f& pos, const int h, FieldSelector select) const {
       const float inverseVoxelSize = _size / _extent;
       Eigen::Vector3f discrete_pos = (inverseVoxelSize * pos);
       return _map_index->interp(discrete_pos, h, select);
