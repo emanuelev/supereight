@@ -6,8 +6,6 @@ if (OPENNI2_FOUND)
   target_link_libraries(oni2raw ${OPENNI2_LIBRARIES})
 endif(OPENNI2_FOUND)
 
-add_library(lodepng SHARED lodepng.cpp)
-target_include_directories(lodepng PUBLIC .)
 add_executable(scene2raw scene2raw.cpp)
 target_link_libraries(scene2raw lodepng)
 target_include_directories(scene2raw PUBLIC .)

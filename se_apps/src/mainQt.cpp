@@ -21,7 +21,7 @@
 #include <sstream>
 #include <iomanip>
 #include <getopt.h>
-#include <perfstats.h>
+#include <se/perfstats.h>
 #include <PowerMonitor.h>
 
 #include <Eigen/Dense>

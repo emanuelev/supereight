@@ -37,9 +37,8 @@ supereight is made of three main different components:
   se_denseslam and se_apps CMakeLists to see how it is done in our examples.
 * `se_apps`: front-end applications which run the se-denseslam pipelines on
   given inputs or live camera.
-
-Additionally, `se_tools` includes the dataset generation tool and some libraries
-required by `se_denseslam` and `se_apps`.
+* `se_shared`: third party libraries and code required throughout supereight
+* `se_tools`: related tools and scripts (e.g. for converting datasets)
 
 # Dependencies
 The following packages are required to build the `se-denseslam` library:
