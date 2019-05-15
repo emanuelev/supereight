@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 
+# This project name will also be the prefix of the libraries compiled from
+# se_denseslam.
 project(se-denseslam)
 
-if(APPLE)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__APPLE__")
-endif(APPLE)
 
+
+# Find dependencies.
 find_package(Eigen3 REQUIRED)
 find_package(Sophus REQUIRED)
 if(WITH_OPENMP)
@@ -15,40 +16,70 @@ if(WITH_OPENMP)
   endif()
 endif()
 
-set(appname ${PROJECT_NAME})
 
 
-# ---- PREPARE COMMON DEPENDENCIES  ------------ 
-set(compile_flags  -Wall -Wextra -Wno-unknown-pragmas)
-set(libraries lodepng se_shared se_core)
-
+# Set the compiler flags and linked libraries.
+set(compile_flags -Wall -Wextra -Wno-unknown-pragmas)
+set(libraries ${SUPEREIGHT_CORE_LIBS})
+if(APPLE)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__APPLE__")
+endif(APPLE)
 if (WITH_OPENMP AND OPENMP_FOUND)
-    list(APPEND compile_flags ${OpenMP_CXX_FLAGS})
-    list(APPEND libraries ${OpenMP_CXX_FLAGS})
+  list(APPEND compile_flags ${OpenMP_CXX_FLAGS})
+  list(APPEND libraries ${OpenMP_CXX_FLAGS})
 endif()
 
-# ----------------- OFUsion -----------------
-set(field_type SE_FIELD_TYPE=OFusion)
 
-add_library(${appname}-ofusion STATIC ./src/DenseSLAMSystem.cpp)
-target_include_directories(${appname}-ofusion PUBLIC include
-    ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
-target_compile_options(${appname}-ofusion PUBLIC ${compile_flags})
-target_link_libraries(${appname}-ofusion ${libraries})
-target_compile_definitions(${appname}-ofusion PUBLIC ${field_type})
 
-list(APPEND BUILT_LIBS ${appname}-ofusion)
+# List of SE_FIELD_TYPE macro values. The elements of this list shuld coincide
+# with the names of the structs defined in
+# se_denseslam/include/se/volume_traits.cpp. When adding a new field type
+# appending it to this list is enough to compile se-denseslam using it.
+set(SUPEREIGHT_FIELD_TYPES SDF OFusion)
 
-# ----------------- SDF -----------------
-set(field_type SE_FIELD_TYPE=SDF)
+# Iterate over each SE_FIELD_TYPE and compile the se-denseslam library for it.
+foreach(field_type ${SUPEREIGHT_FIELD_TYPES})
+  # Convert the field type name to lowercase for use in filenames.
+  string(TOLOWER ${field_type} field_type_lc)
 
-add_library(${appname}-sdf  ./src/DenseSLAMSystem.cpp)
-target_include_directories(${appname}-sdf PUBLIC include
-    ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
-target_compile_options(${appname}-sdf PUBLIC ${compile_flags})
-target_link_libraries(${appname}-sdf ${libraries})
-target_compile_definitions(${appname}-sdf PUBLIC ${field_type})
+  # Prepare the preprocessor SE_FIELD_TYPE macro.
+  set(field_type_macro SE_FIELD_TYPE=${field_type})
 
-list(APPEND BUILT_LIBS ${appname}-sdf)
+  # Prepare the library name.
+  set(lib_name "${PROJECT_NAME}-${field_type_lc}")
 
-set(BUILT_LIBS ${BUILT_LIBS} PARENT_SCOPE)
+  # Add the static library.
+  add_library(${lib_name} STATIC
+    ./src/DenseSLAMSystem.cpp)
+  target_include_directories(${lib_name} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    ${EIGEN3_INCLUDE_DIR})
+  target_compile_options(${lib_name} PUBLIC ${compile_flags})
+  target_link_libraries(${lib_name} ${libraries})
+  target_compile_definitions(${lib_name} PUBLIC ${field_type_macro})
+
+  # Install the library and headers.
+  install(
+    TARGETS ${lib_name}
+    EXPORT supereightTargets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include)
+  install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    DESTINATION include)
+
+  # Populate the list of libraries that are part of se-denseslam.
+  list(APPEND SUPEREIGHT_DENSESLAM_LIBS ${lib_name})
+endforeach()
+
+
+
+# Make the list of field types available to the parent file.
+set(SUPEREIGHT_FIELD_TYPES ${SUPEREIGHT_FIELD_TYPES} PARENT_SCOPE)
+
+# Make the list of compiled se-denseslam libraries available to the parent file.
+set(SUPEREIGHT_DENSESLAM_LIBS ${SUPEREIGHT_DENSESLAM_LIBS} PARENT_SCOPE)
+

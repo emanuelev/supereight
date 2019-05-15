@@ -4,19 +4,19 @@ volumetric SLAM pipeline implementation.
 
 # Related publications
 This software implements the octree library and dense SLAM system presented in
-our paper 
+our paper
 [Efficient Octree-Based Volumetric SLAM Supporting Signed-Distance and
 Occupancy
 Mapping.](https://spiral.imperial.ac.uk/bitstream/10044/1/55715/2/EVespaRAL_final.pdf)
 If you publish work that relates to this software,
 please cite our paper as:
 
-`@ARTICLE{VespaRAL18, 
+`@ARTICLE{VespaRAL18,
 author={E. Vespa and N. Nikolov and M. Grimm and L. Nardi and P. H. J. Kelly
-and S. Leutenegger}, 
-journal={IEEE Robotics and Automation Letters}, 
+and S. Leutenegger},
+journal={IEEE Robotics and Automation Letters},
 title={Efficient Octree-Based Volumetric SLAM Supporting Signed-Distance and
-Occupancy Mapping}, year={2018}, volume={3}, number={2}, pages={1144-1151}, 
+Occupancy Mapping}, year={2018}, volume={3}, number={2}, pages={1144-1151},
 doi={10.1109/LRA.2018.2792537}, ISSN={}, month={April}}`
 
 # Licence
@@ -43,7 +43,7 @@ supereight is made of three main different components:
 # Dependencies
 The following packages are required to build the `se-denseslam` library:
 * CMake >= 3.10
-* Eigen3 
+* Eigen3
 * Sophus
 * OpenMP (optional)
 * GTest
@@ -60,6 +60,20 @@ From the project root:
 `make`
 This will create a build/ folder from which `cmake ..` is invoked.
 
+# Installation
+After building, supereight can be installed system-wide by running
+```
+sudo make install
+```
+This will also install the appropriate `supereightConfig.cmake` file so that
+supereight can be used in a CMake project by adding `find_package(supereight)`.
+Executables using supereight should be linked against all the libraries in
+`SUPEREIGHT_CORE_LIBS` and, if the dense SLAM pipeline functionality is
+desired, with ONE of the libraries in the `SUPEREIGHT_DENSESLAM_LIBS` CMake
+variable.  More information about the variables defined by using
+`find_package(supereight)` along with usage examples can be found in
+[cmake/Config.cmake.in](cmake/Config.cmake.in).
+
 # Usage example
 To run one of the apps in se_apps you need to first produce an input file. We
 use SLAMBench 1.0 file format (https://github.com/pamela-project/slambench).
@@ -73,7 +87,7 @@ tar xzf living_room_traj2_loop.tgz
 cd ..
 build/se_tools/scene2raw living_room_traj2_loop living_room_traj2_loop/scene.raw
 ```
-Then it can be used as input to one of the apps 
+Then it can be used as input to one of the apps
 
 ```
 ./build/se_apps/se-denseslam-sdf-main -i living_room_traj2_loop/scene.raw -s 4.8 -p 0.34,0.5,0.24 -z 4 -c 2 -r 1 -k 481.2,-480,320,240  > benchmark.log

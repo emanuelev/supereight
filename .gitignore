@@ -35,3 +35,9 @@
 build
 doc
 
+# Benchmark results
+test.bin
+
+# vim temporary files
+*.swp
+

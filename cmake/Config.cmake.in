@@ -1,0 +1,48 @@
+# To include supereight in your project use:
+#   find_package(supereight)
+#
+# This will define the following variables:
+#   SUPEREIGHT_CORE_LIBS
+#     The core octree library. You should always link against this library when
+#     using supereight.
+#
+#   SUPEREIGHT_DENSESLAM_LIBS
+#     The libraries compiled from se-denseslam. Link against ONE of them if you
+#     want to use the supereight dense SLAM pipeline. Each one corresponds to
+#     the se-denseslam pipeline compiled for a different value of the
+#     SE_FIELD_TYPE macro. When linking against one of these libraries the
+#     value of the SE_FIELD_TYPE macro is set automatically.
+#
+#     WARNING: Only one of the libraries in SUPEREIGHT_DENSESLAM_LIBS should be
+#     linked against in a single executable since each one sets the
+#     SE_FIELD_TYPE macro to a different value.
+#
+#   SUPEREIGHT_FIELD_TYPES
+#     The respective values of the SE_FIELD_TYPE macro for the libraries in
+#     SUPEREIGHT_DENSESLAM_LIBS. There is usually no need to manually define
+#     this macro.
+#
+#
+#
+# Example 1: Using only the octree library.
+#   find_package(supereight)
+#   add_executable(example1 example1.cpp)
+#   target_link_libraries(example1 ${SUPEREIGHT_CORE_LIBS})
+#
+# Example 2: Using the dense SLAM pipeline with SDF field type. The contents of
+# SUPEREIGHT_DENSESLAM_LIBS are: se-denseslam-sdf;se-denseslam-ofusion
+#   find_package(supereight)
+#   add_executable(example2 example2.cpp)
+#   target_link_libraries(example2 ${SUPEREIGHT_CORE_LIBS} se-denseslam-sdf)
+
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/supereightTargets.cmake")
+check_required_components("@CMAKE_PROJECT_NAME@")
+
+# Make the supereight field type names and library names available to other
+# projects.
+set(SUPEREIGHT_CORE_LIBS      @SUPEREIGHT_CORE_LIBS@)
+set(SUPEREIGHT_DENSESLAM_LIBS @SUPEREIGHT_DENSESLAM_LIBS@)
+set(SUPEREIGHT_FIELD_TYPES    @SUPEREIGHT_FIELD_TYPES@)
+
