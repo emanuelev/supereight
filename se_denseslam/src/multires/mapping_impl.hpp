@@ -136,6 +136,7 @@ void propagate_down(se::VoxelBlock<T>* block, const int scale) {
               for(int i = 0; i < stride; i += half_step) {
                 const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
                 auto curr = block->data(vox, curr_scale - 1);
+                if(curr.y == 0) continue;
                 curr.x  +=  data.delta;
                 curr.y  +=  data.delta_y;
                 curr.delta = data.delta;
@@ -226,7 +227,7 @@ struct multires_block_update {
           }
         }
       }
-    // propagate_down(block, scale);
+    propagate_down(block, scale);
     propagate_up(block, scale);
     block->active(visible);
   }
@@ -249,9 +250,10 @@ template <>void integrate(se::Octree<MultiresSDF>& map, const Sophus::SE3f& Tcw,
         return b->active();
       };
       const Eigen::Vector2i framesize(depth.width(), depth.height());
+      const Eigen::Matrix4f Pcw = K*Tcw.matrix();
       auto in_frustum_predicate = 
         std::bind(se::algorithms::in_frustum<se::VoxelBlock<MultiresSDF>>, _1, 
-            voxelsize, K*Tcw.matrix(), framesize); 
+            voxelsize, Pcw, framesize); 
       se::algorithms::filter(active_list, block_array, is_active_predicate, 
           in_frustum_predicate);
       struct multires_block_update funct(Tcw, K, voxelsize,
