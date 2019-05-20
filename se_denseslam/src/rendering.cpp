@@ -48,6 +48,24 @@
 #include "bfusion/rendering_impl.hpp"
 #include "kfusion/rendering_impl.hpp"
 
+namespace se {
+  namespace internal {
+    se::Image<int> scale_image(640, 480);
+    std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>> 
+      color_map = 
+      {
+        {102, 194, 165},
+        {252, 141, 98},
+        {141, 160, 203},
+        {231, 138, 195},
+        {166, 216, 84},
+        {255, 217, 47},
+        {229, 196, 148},
+        {179, 179, 179},
+      };
+  }
+}
+
 template<typename T>
 void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
    se::Image<Eigen::Vector3f>& normal,
@@ -73,8 +91,9 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
       if(hit.w() >= 0.0) {
         vertex[x + y * vertex.width()] = hit.head<3>();
         Eigen::Vector3f surfNorm = volume.grad(hit.head<3>(), 
-            int(hit.w()),
+            int(hit.w() + 0.5f),
             [](const auto& val){ return val.x; });
+        se::internal::scale_image(x, y) = static_cast<int>(hit.w());
         if (surfNorm.norm() == 0) {
           //normal[pos] = normalize(surfNorm); // APN added
           normal[pos.x() + pos.y() * normal.width()] = Eigen::Vector3f(INVALID, 0, 0);
@@ -270,7 +289,7 @@ void renderVolumeKernel(const Volume<T>& volume,
         const Eigen::Vector3f dir = Eigen::Vector3f::Constant(fmaxf(surfNorm.normalized().dot(diff), 0.f));
         Eigen::Vector3f col = dir + ambient;
         se::math::clamp(col, Eigen::Vector3f::Constant(0.f), Eigen::Vector3f::Constant(1.f));
-        col *=  255.f;
+        col = col.cwiseProduct(se::internal::color_map[se::internal::scale_image(x, y)]);
         out[idx + 0] = col.x();
         out[idx + 1] = col.y();
         out[idx + 2] = col.z();
