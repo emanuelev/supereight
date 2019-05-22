@@ -178,8 +178,11 @@ struct multires_block_update {
         (Eigen::Vector3f(1, 0 ,1) - Eigen::Vector3f(0, 0, 1)).homogeneous()).x();
     constexpr int side = se::VoxelBlock<MultiresSDF>::side;
     const Eigen::Vector3i base = block->coordinates();
+    const int last_scale = block->current_scale();
     int scale = compute_scale((base + Eigen::Vector3i::Constant(side/2)).cast<float>(),
         Tcw.inverse().translation(), scaled_pix, voxel_size, se::math::log2_const(side));
+    scale = std::max(last_scale - 1, scale);
+    if(last_scale > scale) propagate_down(block, last_scale);
     block->current_scale(scale);
     const int stride = 1 << scale;
     bool visible = false;
@@ -227,7 +230,6 @@ struct multires_block_update {
           }
         }
       }
-    propagate_down(block, scale);
     propagate_up(block, scale);
     block->active(visible);
   }
