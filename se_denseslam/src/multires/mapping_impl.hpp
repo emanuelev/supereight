@@ -236,6 +236,12 @@ struct multires_block_update {
 };
 
 template <typename T>
+void propagate(se::VoxelBlock<T>* block) {
+  propagate_up(block, block->current_scale());
+  propagate_down(block, block->current_scale());
+}
+
+template <typename T>
 void integrate(se::Octree<T>& , const Sophus::SE3f& , const
     Eigen::Matrix4f& , float , const Eigen::Vector3f& , const
     se::Image<float>& , float , int ) {

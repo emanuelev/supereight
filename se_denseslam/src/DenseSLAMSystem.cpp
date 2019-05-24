@@ -348,6 +348,12 @@ void DenseSLAMSystem::renderDepth(unsigned char* out,
 
 void DenseSLAMSystem::dump_mesh(const std::string filename){
 
+  se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(), 
+      [](auto block) { 
+        se::multires::propagate_down(block, block->current_scale());
+        block->current_scale(0); 
+        });
+
   std::vector<Triangle> mesh;
   auto inside = [](const Volume<FieldType>::value_type& val) {
     // meshing::status code;
