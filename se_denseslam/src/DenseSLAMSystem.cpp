@@ -334,6 +334,25 @@ void DenseSLAMSystem::renderVolume(unsigned char* out,
         !(this->viewPose_->isApprox(raycast_pose_)), vertex_,
         normal_);
   }
+
+	// Set parameters work well to visualise the wall
+	// artefacts in the livingroom_traj2 IC dataset
+	int start_frame = 120;
+	int end_frame = 220;
+  int slice_height = int(3*discrete_vol_ptr_->size()/discrete_vol_ptr_->dim());
+
+  if (frame > start_frame && frame < end_frame) {
+    std::stringstream f_dist;
+    f_dist << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/out/map_slice-distance-" << frame << ".vtk";
+
+    std::stringstream f_scale;
+    f_scale << "/home/nils/workspace_ptp/catkin_ws/src/probabilistic_trajectory_planning_ros/ext/probabilistic_trajectory_planning/src/ext/supereight/out/map_slice-scale-" << frame << ".vtk";
+
+    save3DSlice(*discrete_vol_ptr_,
+            Eigen::Vector3i(0, slice_height, discrete_vol_ptr_->size()/2),
+            Eigen::Vector3i(discrete_vol_ptr_->size(), slice_height + 1, discrete_vol_ptr_->size()),
+            [](const auto& val) { return val.x; }, f_dist.str().c_str(), f_scale.str().c_str());
+  }
 }
 
 void DenseSLAMSystem::renderTrack(unsigned char* out,
