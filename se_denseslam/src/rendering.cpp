@@ -93,7 +93,13 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
         Eigen::Vector3f surfNorm = volume.grad(hit.head<3>(), 
             int(hit.w() + 0.5f),
             [](const auto& val){ return val.x; });
-        se::internal::scale_image(x, y) = static_cast<int>(hit.w());
+
+        float slice_height = 3;
+        if (hit.y() >= slice_height && hit.y() <= slice_height + 1*step)
+          se::internal::scale_image(x, y) = 2;
+        else
+          se::internal::scale_image(x, y) = static_cast<int>(hit.w());
+        
         if (surfNorm.norm() == 0) {
           //normal[pos] = normalize(surfNorm); // APN added
           normal[pos.x() + pos.y() * normal.width()] = Eigen::Vector3f(INVALID, 0, 0);
