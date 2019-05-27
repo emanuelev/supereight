@@ -52,10 +52,11 @@ namespace se {
 
     inline float compute_scale(const Eigen::Vector3f& vox, 
         const Eigen::Vector3f& twc,
+        const Eigen::Matrix3f& Rcw,
         const float scaled_pix,
         const float voxelsize,
         const int max_scale) {
-      const float dist = (voxelsize * vox - twc).norm();
+      const float dist = (Rcw*(voxelsize*vox - twc)).z();
       const float pix_size = dist * scaled_pix;
       int scale = std::min(std::max(0, int(log2(pix_size/voxelsize + 0.5f))), 
                            max_scale);
@@ -180,7 +181,7 @@ struct multires_block_update {
     const Eigen::Vector3i base = block->coordinates();
     const int last_scale = block->current_scale();
     int scale = compute_scale((base + Eigen::Vector3i::Constant(side/2)).cast<float>(),
-        Tcw.inverse().translation(), scaled_pix, voxel_size, se::math::log2_const(side));
+        Tcw.inverse().translation(), Tcw.rotationMatrix(), scaled_pix, voxel_size, se::math::log2_const(side));
     scale = std::max(last_scale - 1, scale);
     if(last_scale > scale) propagate_down(block, last_scale);
     block->current_scale(scale);
