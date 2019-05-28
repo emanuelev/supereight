@@ -74,7 +74,7 @@ template <typename T>
 void propagate_up(se::VoxelBlock<T>* block, const int scale) {
   const Eigen::Vector3i base = block->coordinates();
   const int side = se::VoxelBlock<T>::side;
-  for(int curr_scale = scale; curr_scale < se::math::log2_const(side) - 1; ++curr_scale) {
+  for(int curr_scale = scale; curr_scale < se::math::log2_const(side); ++curr_scale) {
     const int stride = 1 << (curr_scale + 1);
     for(int z = 0; z < side; z += stride)
       for(int y = 0; y < side; y += stride)
@@ -120,7 +120,7 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
  * \param[in] scale scale from which propagate down voxel values
 */
 template <typename T>
-void propagate_down(se::VoxelBlock<T>* block, const int scale) {
+void propagate_down(const se::Octree<T>& map, se::VoxelBlock<T>* block, const int scale) {
   const Eigen::Vector3i base = block->coordinates();
   const int side = se::VoxelBlock<T>::side;
   for(int curr_scale = scale; curr_scale > 0; --curr_scale) {
@@ -137,11 +137,20 @@ void propagate_down(se::VoxelBlock<T>* block, const int scale) {
               for(int i = 0; i < stride; i += half_step) {
                 const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
                 auto curr = block->data(vox, curr_scale - 1);
-                if(curr.y == 0) continue;
+                if(curr.y == 0) {
+                  curr.x  =  map.interp(vox.cast<float>().array() + half_step / 2.f,
+                      curr_scale,  [](auto val){ return val.x; }).first;
+                  curr.y  =  map.interp(vox.cast<float>().array() + half_step / 2.f,
+                      curr_scale,  [](auto val){ return val.y; }).first;
+                  curr.delta = 0;
+                  curr.delta_y = 0;
+                  // continue;
+                } else {
                 curr.x  +=  data.delta;
                 curr.y  +=  data.delta_y;
                 curr.delta = data.delta;
                 curr.delta_y = data.delta_y;
+                }
                 block->data(vox, curr_scale - 1, curr);
               }
           data.delta_y = 0;
@@ -151,13 +160,16 @@ void propagate_down(se::VoxelBlock<T>* block, const int scale) {
 }
 
 struct multires_block_update {
-  multires_block_update(const Sophus::SE3f& T,
+  multires_block_update(
+                  const se::Octree<MultiresSDF>& octree,
+                  const Sophus::SE3f& T,
                   const Eigen::Matrix4f& calib,
                   const float vsize,
                   const Eigen::Vector3f& off,
                   const se::Image<float>& d, 
                   const float m,
                   const int mw) : 
+                  map(octree),
                   Tcw(T), 
                   K(calib), 
                   voxel_size(vsize),
@@ -166,6 +178,7 @@ struct multires_block_update {
                   mu(m),
                   maxweight(mw) {}
 
+  const se::Octree<MultiresSDF>& map;
   const Sophus::SE3f& Tcw;
   const Eigen::Matrix4f& K;
   float voxel_size;
@@ -183,7 +196,7 @@ struct multires_block_update {
     int scale = compute_scale((base + Eigen::Vector3i::Constant(side/2)).cast<float>(),
         Tcw.inverse().translation(), Tcw.rotationMatrix(), scaled_pix, voxel_size, se::math::log2_const(side));
     scale = std::max(last_scale - 1, scale);
-    if(last_scale > scale) propagate_down(block, last_scale);
+    if(last_scale > scale) propagate_down(map, block, last_scale);
     block->current_scale(scale);
     const int stride = 1 << scale;
     bool visible = false;
@@ -239,7 +252,7 @@ struct multires_block_update {
 template <typename T>
 void propagate(se::VoxelBlock<T>* block) {
   propagate_up(block, block->current_scale());
-  propagate_down(block, block->current_scale());
+  // propagate_down(block, block->current_scale());
 }
 
 template <typename T>
@@ -265,7 +278,7 @@ template <>void integrate(se::Octree<MultiresSDF>& map, const Sophus::SE3f& Tcw,
             voxelsize, Pcw, framesize); 
       se::algorithms::filter(active_list, block_array, is_active_predicate, 
           in_frustum_predicate);
-      struct multires_block_update funct(Tcw, K, voxelsize,
+      struct multires_block_update funct(map, Tcw, K, voxelsize,
           offset, depth, mu, maxweight);
       se::functor::internal::parallel_for_each(active_list, funct);
  }
