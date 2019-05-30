@@ -123,6 +123,7 @@ template <typename T>
 void propagate_down(const se::Octree<T>& map, se::VoxelBlock<T>* block, const int scale) {
   const Eigen::Vector3i base = block->coordinates();
   const int side = se::VoxelBlock<T>::side;
+  const float voxelsize = map.dim() / map.size();
   for(int curr_scale = scale; curr_scale > 0; --curr_scale) {
     const int stride = 1 << curr_scale;
     for(int z = 0; z < side; z += stride)
@@ -138,18 +139,40 @@ void propagate_down(const se::Octree<T>& map, se::VoxelBlock<T>* block, const in
                 const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
                 auto curr = block->data(vox, curr_scale - 1);
                 if(curr.y == 0) {
-                  curr.x  =  map.interp(vox.cast<float>().array() + half_step / 2.f,
-                      curr_scale,  [](auto val){ return val.x; }).first;
-                  curr.y  =  map.interp(vox.cast<float>().array() + half_step / 2.f,
-                      curr_scale,  [](auto val){ return val.y; }).first;
-                  curr.delta = 0;
-                  curr.delta_y = 0;
+                  const int x_0 = std::max(0, x - stride);
+                  const int x_1 = std::min(side - stride, x + stride);
+                  const int dx  = 
+                    block->data(base + Eigen::Vector3i(x_1, y, z), curr_scale).x - 
+                    block->data(base + Eigen::Vector3i(x_0, y, z), curr_scale).x;
+
+                  const int y_0 = std::max(0, y - stride);
+                  const int y_1 = std::min(side - stride, y + stride);
+                  const int dy = 
+                    block->data(base + Eigen::Vector3i(x, y_1, z), curr_scale).x - 
+                    block->data(base + Eigen::Vector3i(x, y_0, z), curr_scale).x;
+
+                  const int z_0 = std::max(0, z - stride);
+                  const int z_1 = std::min(side - stride, z + stride);
+                  const int dz = 
+                    block->data(base + Eigen::Vector3i(x, y, z_1), curr_scale).x - 
+                    block->data(base + Eigen::Vector3i(x, y, z_0), curr_scale).x;
+
+                  const Eigen::Vector3f surfNorm = Eigen::Vector3f(dx, dy, dz).normalized();
+                  const Eigen::Vector3f dist = voxelsize * (vox - parent).cast<float>(); 
+                  const float sdf = surfNorm.dot(dist);
+                  const float mu = 0.03f;
+                  if(sdf > -mu) {
+                    curr.x = se::math::clamp(sdf/mu + data.x, -1.f, 1.f);
+                    curr.y = data.y;
+                    curr.delta   = 0;
+                    curr.delta_y = 0;
+                  }
                   // continue;
                 } else {
-                curr.x  +=  data.delta;
-                curr.y  +=  data.delta_y;
-                curr.delta = data.delta;
-                curr.delta_y = data.delta_y;
+                  curr.x  +=  data.delta;
+                  curr.y  +=  data.delta_y;
+                  curr.delta = data.delta;
+                  curr.delta_y = data.delta_y;
                 }
                 block->data(vox, curr_scale - 1, curr);
               }
