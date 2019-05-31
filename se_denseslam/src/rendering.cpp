@@ -268,7 +268,7 @@ void renderVolumeKernel(const Volume<T>& volume,
         hit = t_min > 0.f ? 
           raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, largestep) : 
           Eigen::Vector4f::Constant(0.f);
-        if (hit.w() > 0) {
+        if (hit.w() >= 0.f) {
           test = hit.head<3>();
           surfNorm = volume.grad(test, [](const auto& val){ return val.x; });
 
