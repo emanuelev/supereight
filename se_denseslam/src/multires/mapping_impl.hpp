@@ -120,11 +120,15 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
  * \param[in] scale scale from which propagate down voxel values
 */
 template <typename T>
-void propagate_down(const se::Octree<T>& map, se::VoxelBlock<T>* block, const int scale) {
+void propagate_down(const se::Octree<T>& map, 
+                    se::VoxelBlock<T>* block, 
+                    const int scale,
+                    const int min_scale,
+                    const float mu) {
   const Eigen::Vector3i base = block->coordinates();
   const int side = se::VoxelBlock<T>::side;
   const float voxelsize = map.dim() / map.size();
-  for(int curr_scale = scale; curr_scale > 0; --curr_scale) {
+  for(int curr_scale = scale; curr_scale > min_scale; --curr_scale) {
     const int stride = 1 << curr_scale;
     for(int z = 0; z < side; z += stride)
       for(int y = 0; y < side; y += stride)
@@ -141,28 +145,28 @@ void propagate_down(const se::Octree<T>& map, se::VoxelBlock<T>* block, const in
                 if(curr.y == 0) {
                   const int x_0 = std::max(0, x - stride);
                   const int x_1 = std::min(side - stride, x + stride);
-                  const int dx  = 
-                    block->data(base + Eigen::Vector3i(x_1, y, z), curr_scale).x - 
+                  const float dx  = block->data(base + Eigen::Vector3i(x_1, y, z), curr_scale).x - 
                     block->data(base + Eigen::Vector3i(x_0, y, z), curr_scale).x;
 
                   const int y_0 = std::max(0, y - stride);
                   const int y_1 = std::min(side - stride, y + stride);
-                  const int dy = 
+                  const float dy = 
                     block->data(base + Eigen::Vector3i(x, y_1, z), curr_scale).x - 
                     block->data(base + Eigen::Vector3i(x, y_0, z), curr_scale).x;
 
                   const int z_0 = std::max(0, z - stride);
                   const int z_1 = std::min(side - stride, z + stride);
-                  const int dz = 
+                  const float dz = 
                     block->data(base + Eigen::Vector3i(x, y, z_1), curr_scale).x - 
                     block->data(base + Eigen::Vector3i(x, y, z_0), curr_scale).x;
 
                   const Eigen::Vector3f surfNorm = Eigen::Vector3f(dx, dy, dz).normalized();
-                  const Eigen::Vector3f dist = voxelsize * (vox - parent).cast<float>(); 
-                  const float sdf = surfNorm.dot(dist);
-                  const float mu = 0.03f;
-                  if(sdf > -mu) {
-                    curr.x = se::math::clamp(sdf/mu + data.x, -1.f, 1.f);
+                  const Eigen::Vector3f offset(0.5f, 0.5f, 0.5f);
+                  const Eigen::Vector3f dist = voxelsize * 
+                    (((vox.cast<float>() + offset*half_step) - (parent.cast<float>() + offset*stride))); 
+                  const float sdf = surfNorm.dot(dist) / mu + data.x;
+                  if(sdf > -1.f) {
+                    curr.x = se::math::clamp(sdf, -1.f, 1.f);
                     curr.y = data.y;
                     curr.delta   = 0;
                     curr.delta_y = 0;
@@ -219,7 +223,7 @@ struct multires_block_update {
     int scale = compute_scale((base + Eigen::Vector3i::Constant(side/2)).cast<float>(),
         Tcw.inverse().translation(), Tcw.rotationMatrix(), scaled_pix, voxel_size, se::math::log2_const(side));
     scale = std::max(last_scale - 1, scale);
-    if(last_scale > scale) propagate_down(map, block, last_scale);
+    if(last_scale > scale) propagate_down(map, block, last_scale, scale, mu);
     block->current_scale(scale);
     const int stride = 1 << scale;
     bool visible = false;
@@ -253,7 +257,7 @@ struct multires_block_update {
             * std::sqrt( 1 + se::math::sq(pos.x() / pos.z()) 
                 + se::math::sq(pos.y() / pos.z()));
           if (diff > -mu) {
-            const float sdf = fminf(1.f, diff/ mu);
+            const float sdf = fminf(1.f, diff/mu);
             auto data = block->data(pix, scale);
             auto tmp = data.x;
             data.x = se::math::clamp(

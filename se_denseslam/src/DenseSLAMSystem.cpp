@@ -291,13 +291,13 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
       version = "multires";
     }
 
-    // if(frame > 120 && frame < 190) {
-    //   int slice_height = int(3.f*discrete_vol_ptr_->size()/discrete_vol_ptr_->dim());
+    // if(frame > 324 && frame < 341) {
+    //   int slice_height = int(2.1f*discrete_vol_ptr_->size()/discrete_vol_ptr_->dim());
     //   std::stringstream f;
     //   f << "./slices/integration_" << version << "_" << std::setfill('0') << std::setw(4) <<  frame << ".vtk";
     //   save3DSlice(*volume_._map_index, 
-    //       Eigen::Vector3i(0, slice_height, volume_._map_index->size()/2),
-    //       Eigen::Vector3i(volume_._map_index->size(), slice_height + 1, volume_._map_index->size()),
+    //       Eigen::Vector3i(0, slice_height, 0),
+    //       Eigen::Vector3i(volume_._map_index->size(), slice_height + 1,volume_._map_index->size() ),
     //       [](const auto& val) { return val.x; }, f.str().c_str());
     //   f.str("");
     //   f.clear();
@@ -352,7 +352,7 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
 
   se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(), 
       [this](auto block) { 
-        se::multires::propagate_down(*(this->volume_._map_index), block, block->current_scale());
+        se::multires::propagate_down(*(this->volume_._map_index), block, block->current_scale(), 0, mu_);
         block->current_scale(0); 
         });
 
