@@ -182,7 +182,7 @@ void propagate_down(const se::Octree<T>& map,
                   curr.delta_y = 0;
                 } else {
                   curr.x  +=  data.delta;
-                  curr.y  +=  data.delta_y;
+                  curr.y  =  fminf(curr.y + data.delta_y, maxweight);
                   curr.delta = data.delta;
                   curr.delta_y = data.delta_y;
                 }
