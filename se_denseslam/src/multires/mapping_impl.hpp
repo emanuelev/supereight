@@ -168,14 +168,14 @@ void propagate_down(const se::Octree<T>& map,
                     (((vox.cast<float>() + offset*half_step) - (parent.cast<float>() + offset*stride))); 
                   const float sdf = surfNorm.dot(dist) / mu + data.x;
                   if(sdf > -1.f) {
-                    curr.x = se::math::clamp(sdf, -1.f, 1.f);
+                    curr.x = std::max(sdf, -1.f);
                     curr.y = data.y;
                     curr.delta   = 0;
                     curr.delta_y = 0;
                   }
                   // continue;
                 } else {
-                  curr.x  =  se::math::clamp(curr.x + delta, -1.f, 1.f);
+                  curr.x  =  std::max(curr.x + delta, -1.f);
                   curr.y  =  fminf(curr.y + data.delta_y, maxweight);
                   curr.delta = data.delta;
                   curr.delta_y = data.delta_y;
@@ -262,10 +262,9 @@ struct multires_block_update {
             const float sdf = fminf(1.f, diff/mu);
             auto data = block->data(pix, scale);
             auto tmp = data.x;
-            data.x = se::math::clamp(
+            data.x = std::max(
                 (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f),
-                -1.f,
-                 1.f);
+                -1.f);
             data.delta = (data.x - tmp)/(data.y + 1);
             data.y = fminf(data.y + 1, maxweight);
             data.delta_y++;
