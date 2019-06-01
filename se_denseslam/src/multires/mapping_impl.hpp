@@ -100,6 +100,7 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
             mean /= num_samples;
             weight /= num_samples;
             data.x = mean;
+            data.x_last = mean;
             data.y = ceil(weight);
           } else {
             data = voxel_traits<T>::initValue();
@@ -135,6 +136,7 @@ void propagate_down(const se::Octree<T>& map,
         for(int x = 0; x < side; x += stride) {
           const Eigen::Vector3i parent = base + Eigen::Vector3i(x, y, z);
           auto data = block->data(parent, curr_scale);
+          float delta = data.x - data.x_last;
           typedef voxel_traits<T> traits_type;
           const int half_step = stride / 2;
           for(int k = 0; k < stride; k += half_step)
@@ -173,7 +175,7 @@ void propagate_down(const se::Octree<T>& map,
                   }
                   // continue;
                 } else {
-                  curr.x  =  se::math::clamp(curr.x + data.delta, -1.f, 1.f);
+                  curr.x  =  se::math::clamp(curr.x + delta, -1.f, 1.f);
                   curr.y  =  fminf(curr.y + data.delta_y, maxweight);
                   curr.delta = data.delta;
                   curr.delta_y = data.delta_y;
