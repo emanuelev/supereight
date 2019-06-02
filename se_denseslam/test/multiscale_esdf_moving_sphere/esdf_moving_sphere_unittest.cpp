@@ -41,7 +41,6 @@ void update_block (se::VoxelBlock<T>* block,
         const float sample = sphere_dist_noisy(
             vox.cast<float>() + float(stride) * Eigen::Vector3f::Constant(0.5f), 
             center, radius);
-        data.delta = (sample - data.x)/(data.y + 1);
         data.delta_y++;
         data.x = (data.x * data.y + sample)/(data.y + 1);
         data.y = data.y + 1;

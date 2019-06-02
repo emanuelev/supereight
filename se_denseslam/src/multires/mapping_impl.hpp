@@ -100,12 +100,11 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
             mean /= num_samples;
             weight /= num_samples;
             data.x = mean;
+            data.x_last = mean;
             data.y = ceil(weight);
           } else {
             data = voxel_traits<T>::initValue();
           }
-
-          data.delta   = 0;
           data.delta_y = 0;
           block->data(curr, curr_scale + 1, data);
         }
@@ -169,6 +168,7 @@ void propagate_down(const se::Octree<T>& map,
         for(int x = 0; x < side; x += stride) {
           const Eigen::Vector3i parent = base + Eigen::Vector3i(x, y, z);
           auto data = block->data(parent, curr_scale);
+          float delta_x = data.x - data.x_last;
           const int half_step = stride / 2;
           for(int k = 0; k < stride; k += half_step) {
             for(int j = 0; j < stride; j += half_step) {
@@ -179,19 +179,18 @@ void propagate_down(const se::Octree<T>& map,
                   curr.x = std::max(interp(map, block, vox - base, curr_scale - 1,
                       [](const auto& val) { return val.x; }), -1.f);
                   curr.y = data.y;
-                  curr.delta   = 0;
+                  curr.x_last = curr.x;
                   curr.delta_y = 0;
                 } else {
-                  curr.x  =  std::max(curr.x + data.delta, -1.f);
+                  curr.x  =  std::max(curr.x + delta_x, -1.f);
                   curr.y  =  fminf(curr.y + data.delta_y, maxweight);
-                  curr.delta = data.delta;
                   curr.delta_y = data.delta_y;
                 }
                 block->data(vox, curr_scale - 1, curr);
               }
             }
           }
-          data.delta   = 0;
+          data.x_last = data.x;
           data.delta_y = 0;
           block->data(parent, curr_scale, data);
         }
@@ -276,7 +275,6 @@ struct multires_block_update {
             data.x = std::max(
                 (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f),
                 -1.f);
-            data.delta = (data.x - tmp)/(data.y + 1);
             data.y = fminf(data.y + 1, maxweight);
             data.delta_y++;
             block->data(pix, scale, data);
