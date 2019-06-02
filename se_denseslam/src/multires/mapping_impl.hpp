@@ -158,7 +158,8 @@ template <typename T>
 void propagate_down(const se::Octree<T>& map, 
                     se::VoxelBlock<T>* block, 
                     const int scale,
-                    const int min_scale) {
+                    const int min_scale,
+                    const int maxweight = INT_MAX) {
   const Eigen::Vector3i base = block->coordinates();
   const int side = se::VoxelBlock<T>::side;
   for(int curr_scale = scale; curr_scale > min_scale; --curr_scale) {
@@ -235,7 +236,7 @@ struct multires_block_update {
     int scale = compute_scale((base + Eigen::Vector3i::Constant(side/2)).cast<float>(),
         Tcw.inverse().translation(), Tcw.rotationMatrix(), scaled_pix, voxel_size, se::math::log2_const(side));
     scale = std::max(last_scale - 1, scale);
-    if(last_scale > scale) propagate_down(map, block, last_scale, scale);
+    if(last_scale > scale) propagate_down(map, block, last_scale, scale, maxweight);
     block->current_scale(scale);
     const int stride = 1 << scale;
     bool visible = false;
@@ -290,7 +291,6 @@ struct multires_block_update {
 template <typename T>
 void propagate(se::VoxelBlock<T>* block) {
   propagate_up(block, block->current_scale());
-  // propagate_down(block, block->current_scale());
 }
 
 template <typename T>
