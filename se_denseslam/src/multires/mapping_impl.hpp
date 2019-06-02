@@ -124,7 +124,7 @@ float interp(const se::Octree<MultiresSDF>& octree,
   const int stride = 1 << (scale + 1);
 
   const Eigen::Vector3f& offset = se::Octree<MultiresSDF>::_offset;
-  Eigen::Vector3i base = (vox.cast<float>()/stride - offset).cast<int>().cwiseMax(Eigen::Vector3i::Constant(0));
+  Eigen::Vector3i base = stride * (vox.cast<float>()/stride - offset).cast<int>().cwiseMax(Eigen::Vector3i::Constant(0));
   base = (base.array() == side - 1).select(base - Eigen::Vector3i::Constant(1), base);
 
   float points[8];
@@ -168,7 +168,6 @@ void propagate_down(const se::Octree<T>& map,
         for(int x = 0; x < side; x += stride) {
           const Eigen::Vector3i parent = base + Eigen::Vector3i(x, y, z);
           auto data = block->data(parent, curr_scale);
-          typedef voxel_traits<T> traits_type;
           const int half_step = stride / 2;
           for(int k = 0; k < stride; k += half_step) {
             for(int j = 0; j < stride; j += half_step) {
@@ -181,7 +180,6 @@ void propagate_down(const se::Octree<T>& map,
                   curr.y = data.y;
                   curr.delta   = 0;
                   curr.delta_y = 0;
-                  // continue;
                 } else {
                   curr.x  +=  data.delta;
                   curr.y  +=  data.delta_y;
