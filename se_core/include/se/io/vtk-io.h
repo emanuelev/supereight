@@ -65,9 +65,11 @@ void save3DSlice(const MapType& in, const Eigen::Vector3i lower,
   std::ofstream f;
   f.open(filename);
  
-  const int dimX = upper.x() - lower.x();
-  const int dimY = upper.y() - lower.y();
-  const int dimZ = upper.z() - lower.z();
+  const int scale = 0;
+  const int stride = 1 << scale;
+  const int dimX = std::max(1, (upper.x() - lower.x()) / stride);
+  const int dimY = std::max(1, (upper.y() - lower.y()) / stride);
+  const int dimZ = std::max(1, (upper.z() - lower.z()) / stride);
 
   f << "# vtk DataFile Version 1.0" << std::endl;
   f << "vtk mesh generated from KFusion" << std::endl;
@@ -75,18 +77,18 @@ void save3DSlice(const MapType& in, const Eigen::Vector3i lower,
   f << "DATASET RECTILINEAR_GRID" << std::endl;
   f << "DIMENSIONS " << dimX << " " << dimY << " " << dimZ << std::endl;
 
-  for(int x = lower.x(); x < upper.x(); ++x)
+  for(int x = lower.x(); x < upper.x(); x += stride)
     x_coordinates << x << " ";  
-  for(int y = lower.y(); y < upper.y(); ++y)
+  for(int y = lower.y(); y < upper.y(); y += stride)
     y_coordinates << y << " ";  
-  for(int z = lower.z(); z < upper.z(); ++z)
+  for(int z = lower.z(); z < upper.z(); z += stride)
     z_coordinates << z << " ";  
 
-  for(int z = lower.z(); z < upper.z(); ++z)
-    for(int y = lower.y(); y < upper.y(); ++y)
-      for(int x = lower.x(); x < upper.x(); ++x) {
-        float data = in.interp(Eigen::Vector3f(x, y, z), select);
-        data = select(in.get(x, y, z));
+  for(int z = lower.z(); z < upper.z(); z += stride)
+    for(int y = lower.y(); y < upper.y(); y += stride)
+      for(int x = lower.x(); x < upper.x(); x += stride) {
+        // float data = in.interp(Eigen::Vector3f(x, y, z), select).first;
+        float data = in.get_fine(x, y, z, scale).x;
         scalars << data  << std::endl;
       }
 
