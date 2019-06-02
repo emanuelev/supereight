@@ -88,7 +88,7 @@ struct voxel_traits<OFusion> {
 
 typedef struct MultiresSDF {
   float x;
-  float delta;
+  float x_last;
   int   y;
   int   delta_y;
 } MultiresSDF;
@@ -96,8 +96,8 @@ typedef struct MultiresSDF {
 template<>
 struct voxel_traits<MultiresSDF> {
   typedef MultiresSDF value_type;
-  static inline value_type empty(){ return {1.f, -1.f, 0, 0}; }
-  static inline value_type initValue(){ return {1.f, 0.f, 0, 0}; }
+  static inline value_type empty(){ return {1.f, 1.f, 0, 0}; }
+  static inline value_type initValue(){ return {1.f, 1.f, 0, 0}; }
 };
 
 #endif
