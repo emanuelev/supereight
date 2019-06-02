@@ -112,6 +112,41 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
   }
 }
 
+template <typename FieldSelector>
+float interp(const se::Octree<MultiresSDF>& octree,
+             const se::VoxelBlock<MultiresSDF>* block,
+             const Eigen::Vector3i& vox,
+             const int scale,
+             FieldSelector select) {
+
+  // Compute base point in parent block
+  const int side   = se::VoxelBlock<MultiresSDF>::side >> (scale + 1); 
+  const int stride = 1 << (scale + 1);
+
+  const Eigen::Vector3f& offset = se::Octree<MultiresSDF>::_offset;
+  Eigen::Vector3i base = (vox.cast<float>()/stride - offset).cast<int>().cwiseMax(Eigen::Vector3i::Constant(0));
+  base = (base.array() == side - 1).select(base - Eigen::Vector3i::Constant(1), base);
+
+  float points[8];
+  internal::gather_points(octree, block->coordinates() + base, scale + 1, 
+      select, points);
+
+  const Eigen::Vector3f vox_f  = vox.cast<float>() + offset * (stride/2);
+  const Eigen::Vector3f base_f = base.cast<float>() + offset*(stride);
+  const Eigen::Vector3f factor = (vox_f - base_f) / stride;
+
+  const float v_000 = points[0] * (1 - factor.x()) + points[1] * factor.x();
+  const float v_001 = points[2] * (1 - factor.x()) + points[3] * factor.x();
+  const float v_010 = points[4] * (1 - factor.x()) + points[5] * factor.x();
+  const float v_011 = points[6] * (1 - factor.x()) + points[7] * factor.x();
+
+  const float v_0 = v_000 * (1 - factor.y()) + v_001 * (factor.y());
+  const float v_1 = v_010 * (1 - factor.y()) + v_011 * (factor.y());
+
+  const float val = v_0 * (1 - factor.z()) + v_1 * factor.z(); 
+  return val;
+}
+
 /**
  * Update the subgrids of a voxel block starting from a given scale 
  * down to the finest grid.
@@ -123,11 +158,9 @@ template <typename T>
 void propagate_down(const se::Octree<T>& map, 
                     se::VoxelBlock<T>* block, 
                     const int scale,
-                    const int min_scale,
-                    const float mu) {
+                    const int min_scale) {
   const Eigen::Vector3i base = block->coordinates();
   const int side = se::VoxelBlock<T>::side;
-  const float voxelsize = map.dim() / map.size();
   for(int curr_scale = scale; curr_scale > min_scale; --curr_scale) {
     const int stride = 1 << curr_scale;
     for(int z = 0; z < side; z += stride)
@@ -137,40 +170,17 @@ void propagate_down(const se::Octree<T>& map,
           auto data = block->data(parent, curr_scale);
           typedef voxel_traits<T> traits_type;
           const int half_step = stride / 2;
-          for(int k = 0; k < stride; k += half_step)
-            for(int j = 0; j < stride; j += half_step)
+          for(int k = 0; k < stride; k += half_step) {
+            for(int j = 0; j < stride; j += half_step) {
               for(int i = 0; i < stride; i += half_step) {
                 const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
                 auto curr = block->data(vox, curr_scale - 1);
                 if(curr.y == 0) {
-                  const int x_0 = std::max(0, x - stride);
-                  const int x_1 = std::min(side - stride, x + stride);
-                  const float dx  = block->data(base + Eigen::Vector3i(x_1, y, z), curr_scale).x - 
-                    block->data(base + Eigen::Vector3i(x_0, y, z), curr_scale).x;
-
-                  const int y_0 = std::max(0, y - stride);
-                  const int y_1 = std::min(side - stride, y + stride);
-                  const float dy = 
-                    block->data(base + Eigen::Vector3i(x, y_1, z), curr_scale).x - 
-                    block->data(base + Eigen::Vector3i(x, y_0, z), curr_scale).x;
-
-                  const int z_0 = std::max(0, z - stride);
-                  const int z_1 = std::min(side - stride, z + stride);
-                  const float dz = 
-                    block->data(base + Eigen::Vector3i(x, y, z_1), curr_scale).x - 
-                    block->data(base + Eigen::Vector3i(x, y, z_0), curr_scale).x;
-
-                  const Eigen::Vector3f surfNorm = Eigen::Vector3f(dx, dy, dz).normalized();
-                  const Eigen::Vector3f offset(0.5f, 0.5f, 0.5f);
-                  const Eigen::Vector3f dist = voxelsize * 
-                    (((vox.cast<float>() + offset*half_step) - (parent.cast<float>() + offset*stride))); 
-                  const float sdf = surfNorm.dot(dist) / mu + data.x;
-                  if(sdf > -1.f) {
-                    curr.x = se::math::clamp(sdf, -1.f, 1.f);
-                    curr.y = data.y;
-                    curr.delta   = 0;
-                    curr.delta_y = 0;
-                  }
+                  curr.x = se::math::clamp(interp(map, block, vox - base, curr_scale - 1, 
+                      [](const auto& val) { return val.x; }), -1.f, 1.f);
+                  curr.y = data.y;
+                  curr.delta   = 0;
+                  curr.delta_y = 0;
                   // continue;
                 } else {
                   curr.x  +=  data.delta;
@@ -180,11 +190,15 @@ void propagate_down(const se::Octree<T>& map,
                 }
                 block->data(vox, curr_scale - 1, curr);
               }
+            }
+          }
+          data.delta   = 0;
           data.delta_y = 0;
           block->data(parent, curr_scale, data);
         }
   }
 }
+
 
 struct multires_block_update {
   multires_block_update(
@@ -223,7 +237,7 @@ struct multires_block_update {
     int scale = compute_scale((base + Eigen::Vector3i::Constant(side/2)).cast<float>(),
         Tcw.inverse().translation(), Tcw.rotationMatrix(), scaled_pix, voxel_size, se::math::log2_const(side));
     scale = std::max(last_scale - 1, scale);
-    if(last_scale > scale) propagate_down(map, block, last_scale, scale, mu);
+    if(last_scale > scale) propagate_down(map, block, last_scale, scale);
     block->current_scale(scale);
     const int stride = 1 << scale;
     bool visible = false;

@@ -287,11 +287,11 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
       version = "ofusion";
     } else if(std::is_same<FieldType, MultiresSDF>::value) {
       se::multires::integrate(*volume_._map_index, Tcw, K, voxelsize,
-          Eigen::Vector3f::Constant(0.5f), float_depth_, mu, 100);
+          Eigen::Vector3f::Constant(0.5f), float_depth_, mu, 30);
       version = "multires";
     }
 
-    // if(frame > 324 && frame < 341) {
+    // if(frame > 160 && frame < 200) {
     //   int slice_height = int(2.1f*discrete_vol_ptr_->size()/discrete_vol_ptr_->dim());
     //   std::stringstream f;
     //   f << "./slices/integration_" << version << "_" << std::setfill('0') << std::setw(4) <<  frame << ".vtk";
@@ -352,7 +352,7 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
 
   se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(), 
       [this](auto block) { 
-        se::multires::propagate_down(*(this->volume_._map_index), block, block->current_scale(), 0, mu_);
+        se::multires::propagate_down(*(this->volume_._map_index), block, block->current_scale(), 0);
         block->current_scale(0); 
         });
 

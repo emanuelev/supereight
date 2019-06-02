@@ -108,7 +108,8 @@ TEST_F(MultiscaleESDFMovingSphereTest, Fusion) {
   scale = 2;
   for(int i = 5; i < 10; ++i) {
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), update_op);
-    auto op = [&scale](se::VoxelBlock<MultiresSDF>* b) { se::multires::propagate_down(b, scale); };
+    auto& oct_ref = oct_;
+    auto op = [&oct_ref, scale](se::VoxelBlock<MultiresSDF>* b) { se::multires::propagate_down(oct_ref, b, scale, 0); };
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), op);
 
     {
