@@ -58,8 +58,21 @@ namespace se {
         const int max_scale) {
       const float dist = (Rcw*(voxelsize*vox - twc)).z();
       const float pix_size = dist * scaled_pix;
-      int scale = std::min(std::max(0, int(log2(pix_size/voxelsize + 0.5f))), 
-                           max_scale);
+
+      int scale = 0;
+      float pv_ration = pix_size/voxelsize;
+      if (pv_ration < 1.5)
+        scale = 0;
+      else if (pv_ration < 3)
+        scale = 1;
+      else if (pv_ration < 6)
+        scale = 2;
+      else
+        scale = 3;
+      scale = std::min(scale, max_scale);
+
+//      int scale = std::min(std::max(0, int(log2(pix_size/voxelsize + 0.5f))),
+//                           max_scale);
       return scale;
     }
 
