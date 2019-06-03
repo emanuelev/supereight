@@ -176,8 +176,8 @@ void propagate_down(const se::Octree<T>& map,
                 const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
                 auto curr = block->data(vox, curr_scale - 1);
                 if(curr.y == 0) {
-                  curr.x = std::max(interp(map, block, vox - base, curr_scale - 1,
-                      [](const auto& val) { return val.x; }), -1.f);
+                  curr.x = se::math::clamp(interp(map, block, vox - base, curr_scale - 1,
+                      [](const auto& val) { return val.x; }), -1.f, 1.f);
                   curr.y = data.y;
                   curr.x_last = curr.x;
                   curr.delta_y = 0;
@@ -272,9 +272,9 @@ struct multires_block_update {
             const float sdf = fminf(1.f, diff/mu);
             auto data = block->data(pix, scale);
             auto tmp = data.x;
-            data.x = std::max(
+            data.x = se::math::clamp(
                 (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f),
-                -1.f);
+                -1.f, 1.f);
             data.y = fminf(data.y + 1, maxweight);
             data.delta_y++;
             block->data(pix, scale, data);
