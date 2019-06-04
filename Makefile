@@ -1,4 +1,13 @@
-all : 
+icl_dataset_folder = ~/
+icl_camera_parameters = 481.2,-480,320,240
+icl_run_command = ./build/se_apps/se-denseslam-ofusion-main
+icl_run_arguments = --input-file $(icl_dataset_folder)/scene.raw \
+    --volume-size 6 --init-pose 0.5,0.5,0.5 --compute-size-ratio 2 \
+    --integration-rate 1 --rendering-rate 1 --camera $(icl_camera_parameters)
+run_command = $(icl_run_command)
+run_arguments = $(icl_run_arguments)
+
+all :
 	mkdir -p build/
 	cd build/ && cmake -DCMAKE_BUILD_TYPE=Release \
 		$(CMAKE_ARGUMENTS) ..
@@ -9,6 +18,13 @@ debug:
 	mkdir -p build/
 	mkdir -p build/logs/
 	cd build/ && cmake -DCMAKE_BUILD_TYPE=Debug \
+		$(CMAKE_ARGUMENTS) ..
+	$(MAKE) -C build $(MFLAGS)
+
+debug2:
+	mkdir -p build/
+	mkdir -p build/logs/
+	cd build/ && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 		$(CMAKE_ARGUMENTS) ..
 	$(MAKE) -C build $(MFLAGS)
 
@@ -66,3 +82,14 @@ cleanall :
 
 .PRECIOUS: living_room_traj%_loop livingRoom%.gt.freiburg living_room_traj%_loop.raw
 
+.PHONY: run_icl
+run_icl:
+	$(icl_run_command) $(icl_run_arguments)
+
+.PHONY: run
+run:
+	$(run_command) $(run_arguments)
+
+.PHONY: run_gdb
+run_gdb:
+	gdb --args $(run_command) $(run_arguments)
