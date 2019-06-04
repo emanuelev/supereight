@@ -40,7 +40,6 @@ inline Eigen::Vector4f raycast(const Volume<SDF>&     volume,
                                const float            step,
                                const float            largestep) {
 
-  const int voxelsize = volume._extent / volume._size;
   auto select_depth = [](const auto& val){ return val.x; };
   if (tnear < tfar) {
     // first walk with largesteps until we found a hit
