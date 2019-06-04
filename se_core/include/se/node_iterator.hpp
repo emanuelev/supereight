@@ -135,7 +135,7 @@ class node_iterator {
     std::vector<Eigen::Vector3i> occupiedVoxels;
     occupiedVoxels.clear();
 
-    VoxelBlock<T>* block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
+//    VoxelBlock<T>* block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
 
     int xlast = blockCoord(0) + BLOCK_SIDE;
     int ylast = blockCoord(1) + BLOCK_SIDE;
@@ -146,8 +146,9 @@ class node_iterator {
         for (int x = blockCoord(0); x < xlast; ++x) {
           typename VoxelBlock<T>::value_type value;
           const Eigen::Vector3i vox{x, y, z};
-          value = block->data(Eigen::Vector3i(x, y, z));
-          if (value.x >= threshold) {
+          float prob = map_.get(x,y,z).x;
+//          value = block->data(Eigen::Vector3i(x, y, z));
+          if (prob >= threshold) {
 #pragma omp critical
             occupiedVoxels.push_back(vox);
           }
