@@ -196,9 +196,11 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, unsigned in
   if(frame > 2) {
     raycast_pose_ = pose_;
     float step = volume_dimension_.x() / volume_resolution_.x();
+
+    //TODO maintainability
     raycastKernel(volume_, vertex_, normal_,
         raycast_pose_ * getInverseCameraMatrix(k), nearPlane,
-        farPlane, mu, step, step*BLOCK_SIDE);
+        farPlane, mu, step, step*BLOCK_SIDE, surface_voxel_set_, frontier_voxel_set_, occlusion_voxel_set_);
     doRaycast = true;
   }
   return doRaycast;
@@ -472,4 +474,14 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
 
   se::algorithms::marching_cube(*volume_._map_index, select, inside, mesh);
   writeVtkMesh(filename.c_str(), mesh);
+}
+
+
+bool DenseSLAMSystem::getExplorationCandidate(std::unordered_set<uint64_t> &surface_voxel_set,
+                                              std::unordered_set<uint64_t> &frontier_voxel_set,
+                                              std::unordered_set<uint64_t> &occlusion_voxel_set) {
+  surface_voxel_set = surface_voxel_set_;
+  frontier_voxel_set = frontier_voxel_set_;
+  occlusion_voxel_set = occlusion_voxel_set_;
+  return true;
 }
