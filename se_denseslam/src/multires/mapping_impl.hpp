@@ -210,6 +210,109 @@ void propagate_down(const se::Octree<T>& map,
   }
 }
 
+/**
+ * Update a voxel block at a given scale by first propagating down the parent 
+ * values and then integrating the new measurement;
+*/
+template <typename T>
+void propagate_update(const se::Octree<T>& map, 
+                    se::VoxelBlock<T>* block, 
+                    const Sophus::SE3f& Tcw,
+                    const Eigen::Matrix4f& K,
+                    const float voxelsize,
+                    const Eigen::Vector3f& offset,
+                    const se::Image<float>& depth, 
+                    float mu, 
+                    int maxweight,
+                    const int scale) {
+
+  const int side = se::VoxelBlock<T>::side;
+  const int parent_scale = scale + 1;
+  const int stride = 1 << parent_scale;
+  const int half_stride = stride >> 1;
+  bool visible = false;
+
+  const Eigen::Vector3i base = block->coordinates();
+  const Eigen::Vector3f delta = Tcw.rotationMatrix() * 
+    Eigen::Vector3f::Constant(voxelsize);
+  const Eigen::Vector3f cameraDelta = K.topLeftCorner<3,3>() * delta;
+  const Eigen::Vector3f base_scaled = 
+    Tcw * (voxelsize * (block->coordinates().template cast<float>() + half_stride * offset));
+  const Eigen::Vector3f base_camera = K.topLeftCorner<3, 3>() * base_scaled;
+
+  for(int z = 0; z < side; z += stride) {
+    for(int y = 0; y < side; y += stride) {
+      for(int x = 0; x < side; x += stride) {
+        const Eigen::Vector3i parent = base + Eigen::Vector3i(x, y, z);
+        auto data = block->data(parent, parent_scale);
+        float delta_x = data.x - data.x_last;
+        for(int k = 0; k < stride; k += half_stride) {
+          for(int j = 0; j < stride; j += half_stride) {
+            for(int i = 0; i < stride; i += half_stride) {
+              const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
+              auto curr = block->data(vox, scale);
+              if(curr.y == 0) {
+                curr.x = se::math::clamp(interp(map, block, vox - base, scale,
+                      [](const auto& val) { return val.x; }), -1.f, 1.f);
+                curr.y = data.y;
+                curr.x_last = curr.x;
+                curr.delta_y = 0;
+              } else {
+                curr.x  =  se::math::clamp(curr.x + delta_x, -1.f, 1.f);
+                curr.y  =  fminf(curr.y + data.delta_y, maxweight);
+                curr.delta_y = data.delta_y;
+              }
+
+              const Eigen::Vector3f camera_voxel = base_camera + 
+                (Eigen::Vector3f(x + i, y + j, z + k).cwiseProduct(cameraDelta));
+              const Eigen::Vector3f pos = base_scaled + 
+                (Eigen::Vector3f(x + i, y + j, z + k).cwiseProduct(delta));
+              if (pos.z() < 0.0001f) {
+                block->data(vox, scale, curr);
+                continue;
+              }
+
+              const float inverse_depth = 1.f / camera_voxel.z();
+              const Eigen::Vector2f pixel = Eigen::Vector2f(
+                  camera_voxel.x() * inverse_depth + 0.5f,
+                  camera_voxel.y() * inverse_depth + 0.5f);
+              if (pixel.x() < 0.5f || pixel.x() > depth.width() - 1.5f || 
+                  pixel.y() < 0.5f || pixel.y() > depth.height() - 1.5f) {
+                block->data(vox, scale, curr);
+                continue;
+              }
+              visible = true;
+              const Eigen::Vector2i px = pixel.cast<int>();
+              const float depthSample = depth[px.x() + depth.width()*px.y()];
+              // continue on invalid depth measurement
+              if (depthSample <=  0) {
+                block->data(vox, scale, curr);
+                continue;
+              }
+
+              // Update the TSDF
+              const float diff = (depthSample - pos.z())
+                * std::sqrt( 1 + se::math::sq(pos.x() / pos.z()) 
+                    + se::math::sq(pos.y() / pos.z()));
+              if (diff > -mu) {
+                const float sdf = fminf(1.f, diff/mu);
+                curr.x = se::math::clamp(
+                    (static_cast<float>(curr.y) * curr.x + sdf) / (static_cast<float>(curr.y) + 1.f),
+                    -1.f, 1.f);
+                curr.y = fminf(curr.y + 1, maxweight);
+                curr.delta_y++;
+              }
+              block->data(vox, scale, curr);
+            }
+          }
+        }
+        data.x_last = data.x;
+        data.delta_y = 0;
+        block->data(parent, parent_scale, data);
+      }}}
+      block->current_scale(scale);
+      block->active(visible);
+}
 
 struct multires_block_update {
   multires_block_update(
@@ -240,6 +343,7 @@ struct multires_block_update {
   int maxweight;
 
   void operator()(se::VoxelBlock<MultiresSDF>* block) {
+
     const float scaled_pix = (K.inverse() * 
         (Eigen::Vector3f(1, 0 ,1) - Eigen::Vector3f(0, 0, 1)).homogeneous()).x();
     constexpr int side = se::VoxelBlock<MultiresSDF>::side;
@@ -248,7 +352,11 @@ struct multires_block_update {
     int scale = compute_scale((base + Eigen::Vector3i::Constant(side/2)).cast<float>(),
         Tcw.inverse().translation(), Tcw.rotationMatrix(), scaled_pix, voxel_size, se::math::log2_const(side >> 1));
     scale = std::max(last_scale - 1, scale);
-    if(last_scale > scale) propagate_down(map, block, last_scale, scale, maxweight);
+    if(last_scale > scale) {
+      propagate_update(map, block, Tcw, K, voxel_size, offset, depth, mu, maxweight, scale);
+      return;
+    }
+
     block->current_scale(scale);
     const int stride = 1 << scale;
     bool visible = false;
@@ -284,7 +392,6 @@ struct multires_block_update {
           if (diff > -mu) {
             const float sdf = fminf(1.f, diff/mu);
             auto data = block->data(pix, scale);
-            auto tmp = data.x;
             data.x = se::math::clamp(
                 (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f),
                 -1.f, 1.f);
