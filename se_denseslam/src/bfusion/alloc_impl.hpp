@@ -112,9 +112,9 @@ size_t buildOctantList(HashType*              allocation_list,
   Eigen::Matrix4f inv_K = K.inverse();
   const Eigen::Matrix4f inv_P = T_wc * inv_K;
   const int size = map_index.size();
-  const int max_depth = log2(size);
-  const int leaves_depth = max_depth - se::math::log2_const(OctreeT<FieldType>::blockSide);
-
+  const int max_depth = log2(size); // 7
+  const int leaves_depth = max_depth - se::math::log2_const(OctreeT<FieldType>::blockSide);//4
+  // dept 0 = voxel level
 #ifdef _OPENMP
   std::atomic<unsigned int> voxel_count;
   std::atomic<unsigned int> leaves_count;
@@ -133,12 +133,14 @@ size_t buildOctantList(HashType*              allocation_list,
       int tree_depth = max_depth;
       float stepsize = voxel_size;
       const float depth = depth_map[x + y*image_size.x()];
+      // project depth to world
       Eigen::Vector3f world_vertex = (inv_P * Eigen::Vector3f((x + 0.5f) * depth,
             (y + 0.5f) * depth, depth).homogeneous()).head<3>();
-
+      // get stepping direction
       Eigen::Vector3f direction = (camera_pos - world_vertex).normalized();
       const float sigma = se::math::clamp(noise_factor * se::math::sq(depth), 2 * voxel_size, 0.05f);
       const float band = 2 * sigma;
+      // begin the allocation behind the projected 3D point/ max dist from camera
       const Eigen::Vector3f origin = world_vertex - (band * 0.5f) * direction;
       const float dist = (camera_pos - origin).norm();
       Eigen::Vector3f step = direction*stepsize;
@@ -146,7 +148,8 @@ size_t buildOctantList(HashType*              allocation_list,
       Eigen::Vector3f voxel_pos = origin;
       float travelled = 0.f;
       for (; travelled < dist; travelled += stepsize) {
-
+        // begin at the max dist voxel from camera,
+        // conversion [m] to [voxel coord]
         Eigen::Vector3f voxel_scaled = (voxel_pos * inverse_voxel_size).array().floor();
         if ((voxel_scaled.x() < size)
             && (voxel_scaled.y() < size)
@@ -158,6 +161,7 @@ size_t buildOctantList(HashType*              allocation_list,
           auto node_ptr = map_index.fetch_octant(voxel.x(), voxel.y(), voxel.z(),
               tree_depth);
           if (!node_ptr) {
+            // get morton code of voxel block or node depending on distance from camera
             HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),
                 std::min(tree_depth, leaves_depth));
             unsigned int idx = voxel_count++;
@@ -166,6 +170,8 @@ size_t buildOctantList(HashType*              allocation_list,
               allocation_list[idx] = k;
             }
           } else if (tree_depth >= leaves_depth) {
+            // the octant has been allocated and we are on a coarser level, activate the coarser
+            // block
             static_cast<se::VoxelBlock<FieldType>*>(node_ptr)->active(true);
           }
         }
