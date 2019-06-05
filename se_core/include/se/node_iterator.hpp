@@ -41,6 +41,7 @@ class node_iterator {
 
   public:
 
+  typedef  std::vector<Eigen::Vector3i,Eigen::aligned_allocator<Eigen::Vector3i>>  vec3i;
   node_iterator(const Octree<T>& m): map_(m){
     state_ = BRANCH_NODES;
     last = 0;
@@ -75,8 +76,8 @@ class node_iterator {
     return nullptr;
   }
 
-  std::vector<Eigen::Vector3i> getOccupiedVoxels(float threshold = 0.5) {
-    std::vector<Eigen::Vector3i> occupiedVoxels;
+ vec3i getOccupiedVoxels(float threshold = 0.5) {
+    vec3i occupiedVoxels;
     occupiedVoxels.clear();
 
     for (int block_idx = 0; block_idx < map_.block_buffer_.size(); block_idx++) {
@@ -103,8 +104,8 @@ class node_iterator {
     return occupiedVoxels;
   }
 
-  std::vector<Eigen::Vector3i> getSurfaceVoxels(float threshold = 0.25) {
-    std::vector<Eigen::Vector3i> surfaceVoxels;
+ vec3i getSurfaceVoxels(float threshold = 0.25) {
+    vec3i surfaceVoxels;
     surfaceVoxels.clear();
 
     for (int block_idx = 0; block_idx < map_.block_buffer_.size(); block_idx++) {
@@ -131,8 +132,8 @@ class node_iterator {
     return surfaceVoxels;
   }
 
-  std::vector<Eigen::Vector3i> getOccupiedVoxels(float threshold, Eigen::Vector3i blockCoord) {
-    std::vector<Eigen::Vector3i> occupiedVoxels;
+ vec3i getOccupiedVoxels(float threshold,const Eigen::Vector3i& blockCoord) {
+    vec3i occupiedVoxels;
     occupiedVoxels.clear();
 
 //    VoxelBlock<T>* block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
@@ -156,6 +157,38 @@ class node_iterator {
       }
     }
     return occupiedVoxels;
+  }
+  /**
+   *
+   * @param threshold upper and lower range for frontier voxel probability
+   * @param blockCoord of frontier voxel block
+   * @return vector with all frontier voxels
+   */
+   vec3i getFrontierVoxels(float threshold,const Eigen::Vector3i& blockCoord) {
+    vec3i  frontierVoxels;
+    frontierVoxels.clear();
+
+//    VoxelBlock<T>* block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
+
+    int xlast = blockCoord(0) + BLOCK_SIDE;
+    int ylast = blockCoord(1) + BLOCK_SIDE;
+    int zlast = blockCoord(2) + BLOCK_SIDE;
+#pragma omp parallel for
+    for (int z = blockCoord(2); z < zlast; ++z) {
+      for (int y = blockCoord(1); y < ylast; ++y) {
+        for (int x = blockCoord(0); x < xlast; ++x) {
+          typename VoxelBlock<T>::value_type value;
+          const Eigen::Vector3i vox{x, y, z};
+          float prob = map_.get(x,y,z).x;
+//          value = block->data(Eigen::Vector3i(x, y, z));
+          if (-threshold < prob && prob < threshold && map_.get(x,y,z).y==0 ) {
+#pragma omp critical
+            frontierVoxels.push_back(vox);
+          }
+        }
+      }
+    }
+    return frontierVoxels;
   }
 
   private:

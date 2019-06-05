@@ -33,6 +33,7 @@
 #define BFUSION_MAPPING_HPP
 
 #include <se/node.hpp>
+#include <Eigen/StdVector>
 #include <se/functors/projective_functor.hpp>
 #include <se/constant_parameters.h>
 #include <se/image/image.hpp>
@@ -49,7 +50,7 @@
  * should be computed.
  * \return The value of the interpolated depth at proj.
  */
-float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
+float interpDepth(const se::Image<float> &depth, const Eigen::Vector2f &proj) {
   // https://en.wikipedia.org/wiki/Bilinear_interpolation
 
   // Pixels version
@@ -63,7 +64,7 @@ float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
   const float d21 = depth(int(x2), int(y1));
   const float d22 = depth(int(x2), int(y2));
 
-  if ( d11 == 0.f || d12 == 0.f || d21 == 0.f || d22 == 0.f )
+  if (d11 == 0.f || d12 == 0.f || d21 == 0.f || d22 == 0.f)
     return 0.f;
 
   const float f11 = 1.f / d11;
@@ -72,19 +73,14 @@ float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
   const float f22 = 1.f / d22;
 
   // Filtering version
-  const float d =  1.f /
-                    ( (   f11 * (x2 - proj.x()) * (y2 - proj.y())
-                        + f21 * (proj.x() - x1) * (y2 - proj.y())
-                        + f12 * (x2 - proj.x()) * (proj.y() - y1)
-                        + f22 * (proj.x() - x1) * (proj.y() - y1)
-                      ) / ((x2 - x1) * (y2 - y1))
-                    );
+  const float d = 1.f
+      / ((f11 * (x2 - proj.x()) * (y2 - proj.y()) + f21 * (proj.x() - x1) * (y2 - proj.y())
+          + f12 * (x2 - proj.x()) * (proj.y() - y1) + f22 * (proj.x() - x1) * (proj.y() - y1))
+          / ((x2 - x1) * (y2 - y1)));
 
   static const float interp_thresh = 0.05f;
-  if (fabs(d - d11) < interp_thresh
-      && fabs(d - d12) < interp_thresh
-      && fabs(d - d21) < interp_thresh
-      && fabs(d - d22) < interp_thresh) {
+  if (fabs(d - d11) < interp_thresh && fabs(d - d12) < interp_thresh
+      && fabs(d - d21) < interp_thresh && fabs(d - d22) < interp_thresh) {
     return d;
   } else {
     return depth(int(proj.x() + 0.5f), int(proj.y() + 0.5f));
@@ -100,11 +96,12 @@ float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
  */
 static inline float bspline_memoized(float t) {
   float value = 0.f;
-  constexpr float inverseRange = 1/6.f;
+  constexpr float inverseRange = 1 / 6.f;
   if (t >= -3.0f && t <= 3.0f) {
-    unsigned int idx = ((t + 3.f)*inverseRange)*(bspline_num_samples - 1) + 0.5f;
+    auto idx =
+        static_cast<unsigned int>((t + 3.f) * inverseRange * (bspline_num_samples - 1) + 0.5f);
     return bspline_lookup[idx];
-  } else if(t > 3) {
+  } else if (t > 3) {
     value = 1.f;
   }
   return value;
@@ -151,62 +148,78 @@ static inline float applyWindow(const float occupancy,
  * depth frame.
  */
 struct bfusion_update {
-  const float* depth;
+  const float *depth;
   Eigen::Vector2i depthSize;
   float noiseFactor;
   float timestamp;
   float voxelsize;
-  std::vector<Eigen::Vector3i> *occupiedVoxels_ = NULL;
-  std::vector<Eigen::Vector3i> *freedVoxels_ = NULL;
-  std::vector<Eigen::Vector3i> *updatedBlocks_ = NULL;
+//  vec3i& occupiedVoxels_;
+//  vec3i& freedVoxels_;
+  vec3i& updated_blocks_;
 
-  bfusion_update(const float*           d,
-                 const Eigen::Vector2i& framesize,
-                 float                  n,
-                 float                  t,
-                 float                  vs)
-    : depth(d), depthSize(framesize), noiseFactor(n),
-  timestamp(t), voxelsize(vs) {};
+  vec3i& frontier_blocks_;
 
-  bfusion_update(const float*          d, 
-                 const Eigen::Vector2i framesize, 
-                 float                 n, 
-                 float                 t, 
-                 float                 vs,
-                 std::vector<Eigen::Vector3i> *occupiedVoxels,
-                 std::vector<Eigen::Vector3i> *freedVoxels) 
-    : depth(d), depthSize(framesize), noiseFactor(n), 
-    timestamp(t), voxelsize(vs), occupiedVoxels_(occupiedVoxels),
-    freedVoxels_(freedVoxels) {};
+//  bfusion_update(const float *d, const Eigen::Vector2i &framesize, float n, float t, float vs)
+//      :
+//      depth(d), depthSize(framesize), noiseFactor(n), timestamp(t), voxelsize(vs) {};
 
-  bfusion_update(const float*          d, 
-                 const Eigen::Vector2i framesize, 
-                 float                 n,
-                 float                 t, 
-                 float                 vs,
-                 std::vector<Eigen::Vector3i> *updatedBlocks)
-    : depth(d), depthSize(framesize), noiseFactor(n), 
-      timestamp(t), voxelsize(vs), updatedBlocks_(updatedBlocks) {};
+//  bfusion_update(const float *d,
+//                 const Eigen::Vector2i framesize,
+//                 float n,
+//                 float t,
+//                 float vs,
+//                 std::vector<Eigen::Vector3i> *occupiedVoxels,
+//                 std::vector<Eigen::Vector3i> *freedVoxels)
+//      :
+//      depth(d),
+//      depthSize(framesize),
+//      noiseFactor(n),
+//      timestamp(t),
+//      voxelsize(vs),
+//      occupiedVoxels_(occupiedVoxels),
+//      freedVoxels_(freedVoxels) {};
 
-  template <typename DataHandlerT>
-  void operator()(DataHandlerT&          handler,
-                  const Eigen::Vector3i& pix,
-                  const Eigen::Vector3f& pos,
-                  const Eigen::Vector2f& pixel) {
+  bfusion_update(const float *d,
+                 const Eigen::Vector2i &framesize,
+                 float n,
+                 float t,
+                 float vs,
+                 vec3i &updated_blocks,
+                 vec3i &frontier_blocks)
+      :
+      depth(d),
+      depthSize(framesize),
+      noiseFactor(n),
+      timestamp(t),
+      voxelsize(vs),
+      updated_blocks_(updated_blocks),
+      frontier_blocks_(frontier_blocks) {};
 
-    const Eigen::Vector2i px = pixel.cast <int> ();
-    const float depthSample = depth[px.x() + depthSize.x()*px.y()];
+  template<typename DataHandlerT>
+  void operator()(DataHandlerT &handler,
+                  const Eigen::Vector3i &pix,
+                  const Eigen::Vector3f &pos,
+                  const Eigen::Vector2f &pixel) {
+
+    const Eigen::Vector2i px = pixel.cast<int>();
+    const float depthSample = depth[px.x() + depthSize.x() * px.y()];
     // Return on invalid depth measurement
-    if (depthSample <=  0)
+    if (depthSample <= 0)
       return;
 
     // Compute the occupancy probability for the current measurement.
     const float diff = (pos.z() - depthSample);
-    float sigma = se::math::clamp(noiseFactor * se::math::sq(pos.z()),
-        2*voxelsize, 0.05f);
-    float sample = H(diff/sigma, pos.z());
-    if (sample == 0.5f)
+    float sigma = se::math::clamp(noiseFactor * se::math::sq(pos.z()), 2 * voxelsize, 0.05f);
+    float sample = H(diff / sigma, pos.z());
+    // 0.5 = unknown
+    if (sample == 0.5f) {
+      bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
+      if (isVoxel) {
+#pragma omp critical
+        frontier_blocks_.push_back(handler.getNodeCoordinates());
+      }
       return;
+    }
     sample = se::math::clamp(sample, 0.03f, 0.97f);
 
     auto data = handler.get();
@@ -218,29 +231,28 @@ struct bfusion_update {
     data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
     data.y = timestamp;
 
-    if (occupiedVoxels_ != NULL) {
+/*
       bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
       if (prev_occ >= 0.5 && data.x < 0.5 && isVoxel) {
 #pragma omp critical
-        freedVoxels_->push_back(pix);
-      } else if (prev_occ <= 0.5 && data.x > 0.5 && isVoxel) {  
+        freedVoxels_.push_back(pix);
+      } else if (prev_occ <= 0.5 && data.x > 0.5 && isVoxel) {
 #pragma omp critical
-        occupiedVoxels_->push_back(pix);
+        occupiedVoxels_.push_back(pix);
       }
+    */
+
+    bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
+    bool voxelOccupied = prev_occ <= 0.5 && data.x > 0.5;
+    bool voxelFreed = prev_occ >= 0.5 && data.x < 0.5;
+    bool occupancyUpdated = handler.occupancyUpdated();
+    if (isVoxel && !occupancyUpdated && (voxelOccupied || voxelFreed)) {
+#pragma omp critical
+      updated_blocks_.push_back(handler.getNodeCoordinates());
+#pragma omp critical
+      handler.occupancyUpdated(true);
     }
 
-    if (updatedBlocks_ != NULL) {
-      bool isVoxel          = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
-      bool voxelOccupied    = prev_occ <= 0.5 && data.x > 0.5;
-      bool voxelFreed       = prev_occ >= 0.5 && data.x < 0.5;
-      bool occupancyUpdated = handler.occupancyUpdated();
-      if (isVoxel && !occupancyUpdated && (voxelOccupied || voxelFreed)) {
-#pragma omp critical
-        updatedBlocks_->push_back(handler.getNodeCoordinates());
-#pragma omp critical
-        handler.occupancyUpdated(true);
-      }
-    }
     handler.set(data);
   }
 

@@ -349,7 +349,7 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, unsigned in
 //}
 
 bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integration_rate,
-    float mu, unsigned int frame, 
+    float mu, unsigned int frame, vec3i &updated_blocks, vec3i &frontier_blocks) {
 
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
 
@@ -395,8 +395,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
       float timestamp = (1.f/30.f)*frame;
 
       struct bfusion_update funct(float_depth,
-          Eigen::Vector2i(computation_size_.x(), computation_size_.y()), 
-          mu, timestamp, voxelsize, updatedBlocks);
+          Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
+          mu, timestamp, voxelsize, updated_blocks, frontier_blocks);
 
       se::functor::projective_map(*volume_._map_index,
           Sophus::SE3f(pose_).inverse(),
