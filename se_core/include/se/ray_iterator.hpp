@@ -74,6 +74,7 @@ template <typename T>
 class se::ray_iterator {
 
   public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     ray_iterator(const Octree<T>& m, const Eigen::Vector3f& origin, 
         const Eigen::Vector3f& direction, float nearPlane, float farPlane) : map_(m) {
 

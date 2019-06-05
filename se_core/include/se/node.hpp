@@ -45,6 +45,7 @@ template <typename T>
 class Node {
 
 public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   typedef voxel_traits<T> traits_type;
   typedef typename traits_type::value_type value_type;
   value_type empty() const { return traits_type::empty(); }
@@ -94,6 +95,7 @@ template <typename T>
 class VoxelBlock: public Node<T> {
 
   public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     typedef voxel_traits<T> traits_type;
     typedef typename traits_type::value_type value_type;
     static constexpr unsigned int side = BLOCK_SIDE;

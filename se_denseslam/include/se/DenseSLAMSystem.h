@@ -365,7 +365,7 @@ class DenseSLAMSystem {
    *
    * \param[in] pose The desired camera pose encoded in a 4x4 matrix.
    */
-  void setPose(const Eigen::Matrix4f pose) {
+  void setPose(const Eigen::Matrix4f& pose) {
     pose_ = pose;
     pose_.block<3, 1>(0, 3) += init_pose_;
   }

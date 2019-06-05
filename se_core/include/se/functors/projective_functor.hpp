@@ -31,6 +31,7 @@
 #define PROJECTIVE_FUNCTOR_HPP
 #include <functional>
 #include <vector>
+#include <Eigen/StdVector>
 
 #include <sophus/se3.hpp>
 #include "../utils/math_utils.h"
@@ -47,7 +48,7 @@ namespace functor {
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
       projective_functor(MapT<FieldType>& map, UpdateF f, const Sophus::SE3f& Tcw, 
-          const Eigen::Matrix4f& K, const Eigen::Vector2i framesize) : 
+          const Eigen::Matrix4f& K, const Eigen::Vector2i &framesize) :
         _map(map), _function(f), _Tcw(Tcw), _K(K), _frame_size(framesize) {
       } 
 
@@ -222,7 +223,7 @@ namespace functor {
   template <typename FieldType, template <typename FieldT> class MapT, 
             typename UpdateF>
   void projective_map(MapT<FieldType>& map, const Sophus::SE3f& Tcw, 
-          const Eigen::Matrix4f& K, const Eigen::Vector2i framesize,
+          const Eigen::Matrix4f& K, const Eigen::Vector2i& framesize,
           UpdateF funct) {
 
     projective_functor<FieldType, MapT, UpdateF> 

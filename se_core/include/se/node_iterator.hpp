@@ -40,7 +40,7 @@ template <typename T>
 class node_iterator {
 
   public:
-
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   typedef  std::vector<Eigen::Vector3i,Eigen::aligned_allocator<Eigen::Vector3i>>  vec3i;
   node_iterator(const Octree<T>& m): map_(m){
     state_ = BRANCH_NODES;

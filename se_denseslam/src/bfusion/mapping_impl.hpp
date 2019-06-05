@@ -148,6 +148,7 @@ static inline float applyWindow(const float occupancy,
  * depth frame.
  */
 struct bfusion_update {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   const float *depth;
   Eigen::Vector2i depthSize;
   float noiseFactor;
@@ -180,7 +181,7 @@ struct bfusion_update {
 //      freedVoxels_(freedVoxels) {};
 
   bfusion_update(const float *d,
-                 const Eigen::Vector2i &framesize,
+                 const Eigen::Vector2i& framesize,
                  float n,
                  float t,
                  float vs,
