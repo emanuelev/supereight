@@ -6,6 +6,8 @@ project(supereight)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 ################################################################################
+
+#add_definitions(-DEIGEN_DONT_VECTORIZE)
 add_compile_options(-std=c++14 )# -mtune=generic)
 add_subdirectory(se_core)
 add_subdirectory(se_shared)
@@ -17,7 +19,7 @@ option(WITH_OPENMP "Compile with OpenMP" ON)
 
 set(BUILT_LIBS "")
 add_subdirectory(se_denseslam)
-add_subdirectory(se_apps)
+#add_subdirectory(se_apps)
 
 
 ################################################################################
