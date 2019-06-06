@@ -1,4 +1,4 @@
-/*
+
 
  Copyright (c) 2014 University of Edinburgh, Imperial College, University of Manchester.
  Developed in the PAMELA project, EPSRC Programme Grant EP/K008730/1
@@ -56,10 +56,10 @@ void raycastKernel(const Volume<T> &volume,
                    const float farPlane,
                    const float mu,
                    const float step,
-                   const float largestep,
-                   std::unordered_set<uint64_t> &surface_voxel_set,
-                   std::unordered_set<uint64_t> &frontier_voxel_set,
-                   std::unordered_set<uint64_t> &occlusion_voxel_set) {
+                   const float largestep) {
+//                   std::unordered_set<uint64_t> &surface_voxel_set,
+//                   std::unordered_set<uint64_t> &frontier_voxel_set,
+//                   std::unordered_set<uint64_t> &occlusion_voxel_set) {
 
   TICK();
     int y;

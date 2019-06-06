@@ -11,6 +11,8 @@ namespace se {
     class Image {
 
       public:
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
         Image(const unsigned w, const unsigned h) : width_(w), height_(h) {
           assert(width_ > 0 && height_ > 0);
           data_.resize(width_ * height_);
