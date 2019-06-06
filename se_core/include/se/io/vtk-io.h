@@ -60,12 +60,11 @@ void savePointCloud(const T* in, const int num_points,
 
 template <typename MapType, typename FieldSelector>
 void save3DSlice(const MapType& in, const Eigen::Vector3i lower, 
-    const Eigen::Vector3i upper, FieldSelector select, const char* filename){
+    const Eigen::Vector3i upper, FieldSelector select, const int scale, const char* filename){
   std::stringstream x_coordinates, y_coordinates, z_coordinates, scalars;
   std::ofstream f;
   f.open(filename);
  
-  const int scale = 0;
   const int stride = 1 << scale;
   const int dimX = std::max(1, (upper.x() - lower.x()) / stride);
   const int dimY = std::max(1, (upper.y() - lower.y()) / stride);
@@ -87,7 +86,6 @@ void save3DSlice(const MapType& in, const Eigen::Vector3i lower,
   for(int z = lower.z(); z < upper.z(); z += stride)
     for(int y = lower.y(); y < upper.y(); y += stride)
       for(int x = lower.x(); x < upper.x(); x += stride) {
-        // float data = in.interp(Eigen::Vector3f(x, y, z), select).first;
         float data = in.get_fine(x, y, z, scale).x;
         scalars << data  << std::endl;
       }
