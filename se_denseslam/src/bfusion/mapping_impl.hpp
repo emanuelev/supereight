@@ -31,7 +31,7 @@
 
 #ifndef BFUSION_MAPPING_HPP
 #define BFUSION_MAPPING_HPP
-
+#include <cstdlib>
 #include <se/node.hpp>
 #include <Eigen/StdVector>
 #include <se/functors/projective_functor.hpp>
@@ -156,13 +156,14 @@ struct bfusion_update {
   float voxelsize;
 //  vec3i& occupiedVoxels_;
 //  vec3i& freedVoxels_;
-  vec3i& updated_blocks_;
+//  vec3i *updated_blocks_ ;
+//  vec3i *frontier_blocks_ ;
+  std::vector<Eigen::Vector3i> *updated_blocks_ ;
+  std::vector<Eigen::Vector3i> *frontier_blocks_ ;
 
-  vec3i& frontier_blocks_;
-
-//  bfusion_update(const float *d, const Eigen::Vector2i &framesize, float n, float t, float vs)
-//      :
-//      depth(d), depthSize(framesize), noiseFactor(n), timestamp(t), voxelsize(vs) {};
+  bfusion_update(const float *d, const Eigen::Vector2i framesize, float n, float t, float vs)
+      :
+      depth(d), depthSize(framesize), noiseFactor(n), timestamp(t), voxelsize(vs) {};
 
 //  bfusion_update(const float *d,
 //                 const Eigen::Vector2i framesize,
@@ -180,13 +181,21 @@ struct bfusion_update {
 //      occupiedVoxels_(occupiedVoxels),
 //      freedVoxels_(freedVoxels) {};
 
+// TODO fix alignment
+//  bfusion_update(const float *d,
+//                 const Eigen::Vector2i framesize,
+//                 float n,
+//                 float t,
+//                 float vs,
+//                 vec3i *updated_blocks,
+//                 vec3i *frontier_blocks)
   bfusion_update(const float *d,
-                 const Eigen::Vector2i& framesize,
+                 const Eigen::Vector2i framesize,
                  float n,
                  float t,
                  float vs,
-                 vec3i &updated_blocks,
-                 vec3i &frontier_blocks)
+                 std::vector<Eigen::Vector3i> *updated_blocks,
+                 std::vector<Eigen::Vector3i> *frontier_blocks)
       :
       depth(d),
       depthSize(framesize),
@@ -214,10 +223,12 @@ struct bfusion_update {
     float sample = H(diff / sigma, pos.z());
     // 0.5 = unknown
     if (sample == 0.5f) {
-      bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
-      if (isVoxel) {
 #pragma omp critical
-        frontier_blocks_.push_back(handler.getNodeCoordinates());
+      {
+        bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
+        if (isVoxel) {
+              frontier_blocks_->emplace_back(handler.getNodeCoordinates());
+        }
       }
       return;
     }
@@ -242,19 +253,19 @@ struct bfusion_update {
         occupiedVoxels_.push_back(pix);
       }
     */
+#pragma omp critical
+    {
+      bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
+      bool voxelOccupied = prev_occ <= 0.5 && data.x > 0.5;
+      bool voxelFreed = prev_occ >= 0.5 && data.x < 0.5;
+      bool occupancyUpdated = handler.occupancyUpdated();
+      if (isVoxel && !occupancyUpdated && (voxelOccupied || voxelFreed)) {
 
-    bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
-    bool voxelOccupied = prev_occ <= 0.5 && data.x > 0.5;
-    bool voxelFreed = prev_occ >= 0.5 && data.x < 0.5;
-    bool occupancyUpdated = handler.occupancyUpdated();
-    if (isVoxel && !occupancyUpdated && (voxelOccupied || voxelFreed)) {
-#pragma omp critical
-      updated_blocks_.push_back(handler.getNodeCoordinates());
-#pragma omp critical
-      handler.occupancyUpdated(true);
+        updated_blocks_->emplace_back(handler.getNodeCoordinates());
+        handler.occupancyUpdated(true);
+      }
+      handler.set(data);
     }
-
-    handler.set(data);
   }
 
 };

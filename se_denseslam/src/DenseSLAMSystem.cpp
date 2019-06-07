@@ -96,7 +96,7 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i &inputSize,
     print_kernel_timing = true;
 
   // internal buffers to initialize
-  reduction_output_.resize(8 * 32);
+  reduction_output_.resize(sizeof(reduction_output_.data()) * sizeof(reduction_output_.data())*4);
   tracking_result_.resize(computation_size_.x() * computation_size_.y());
 
   for (unsigned int i = 0; i < iterations_.size(); ++i) {
@@ -221,15 +221,16 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f &k, float mu, unsigned in
                   mu,
                   step,
                   step * BLOCK_SIDE,
-                  surface_voxel_set_,
-                  frontier_voxel_set_,
-                  occlusion_voxel_set_);
+                  surface_voxel_set_);
+//                  surface_voxel_set_,
+//                  frontier_voxel_set_,
+//                  occlusion_voxel_set_);
     doRaycast = true;
   }
   return doRaycast;
 }
 
-/*bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integration_rate,
+bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integration_rate,
     float mu, unsigned int frame) {
 
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
@@ -272,6 +273,7 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f &k, float mu, unsigned in
       struct bfusion_update funct(float_depth_.data(),
           Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
           mu, timestamp, voxelsize);
+// Update all active nodes and voxels using the bfusion_update function
 
       se::functor::projective_map(*volume_._map_index,
           Sophus::SE3f(pose_).inverse(),
@@ -293,7 +295,7 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f &k, float mu, unsigned in
     return false;
   }
   return true;
-}*/
+}
 //
 //bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integration_rate,
 //    float mu, unsigned int frame,
@@ -371,12 +373,20 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f &k, float mu, unsigned in
 //  return true;
 //}
 
+// TODO fix alignment
+//bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
+//                                  unsigned int integration_rate,
+//                                  float mu,
+//                                  unsigned int frame,
+//                                  vec3i *updated_blocks,
+//                                  vec3i *frontier_blocks) {
+
 bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   unsigned int integration_rate,
                                   float mu,
                                   unsigned int frame,
-                                  vec3i &updated_blocks,
-                                  vec3i &frontier_blocks) {
+                                  std::vector<Eigen::Vector3i> *updated_blocks,
+                                  std::vector<Eigen::Vector3i> *frontier_blocks) {
 
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
 
@@ -524,11 +534,11 @@ void DenseSLAMSystem::dump_mesh(const std::string filename) {
 }
 
 
-bool DenseSLAMSystem::getExplorationCandidate(std::unordered_set<uint64_t> &surface_voxel_set,
-                                              std::unordered_set<uint64_t> &frontier_voxel_set,
-                                              std::unordered_set<uint64_t> &occlusion_voxel_set) {
+bool DenseSLAMSystem::getExplorationCandidate(std::set<uint64_t> &surface_voxel_set){
+//                                              std::unordered_set<uint64_t> &frontier_voxel_set,
+//                                              std::unordered_set<uint64_t> &occlusion_voxel_set) {
   surface_voxel_set = surface_voxel_set_;
-  frontier_voxel_set = frontier_voxel_set_;
-  occlusion_voxel_set = occlusion_voxel_set_;
+//  frontier_voxel_set = frontier_voxel_set_;
+//  occlusion_voxel_set = occlusion_voxel_set_;
   return true;
 }

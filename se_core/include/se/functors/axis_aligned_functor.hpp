@@ -46,6 +46,7 @@ namespace se {
 
       class axis_aligned {
         public:
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
         axis_aligned(MapT<FieldType>& map, UpdateF f) : _map(map), _function(f),
         _min(Eigen::Vector3i::Constant(0)), 
         _max(Eigen::Vector3i::Constant(map.size())){ }

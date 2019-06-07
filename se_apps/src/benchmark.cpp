@@ -42,6 +42,8 @@ int main(int argc, char ** argv) {
 	assert(config.volume_size.x() > 0);
 	assert(config.volume_resolution.x() > 0);
 
+	std::vector<Eigen::Vector3i>* updated_blocks;
+	std::vector<Eigen::Vector3i>* frontier_blocks;
 	if (config.log_file != "") {
 		logfilestream.open(config.log_file.c_str());
 		logstream = &logfilestream;
@@ -138,7 +140,7 @@ int main(int argc, char ** argv) {
 		// 4 frames.
 		if (tracked || (frame <=3)) {
 			integrated = pipeline.integration(camera, config.integration_rate,
-					config.mu, frame);
+					config.mu, frame, updated_blocks, frontier_blocks);
 		} else {
 			integrated = false;
 		}
