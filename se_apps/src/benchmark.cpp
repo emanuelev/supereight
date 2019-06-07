@@ -42,8 +42,11 @@ int main(int argc, char ** argv) {
 	assert(config.volume_size.x() > 0);
 	assert(config.volume_resolution.x() > 0);
 
-	std::vector<Eigen::Vector3i>* updated_blocks;
-	std::vector<Eigen::Vector3i>* frontier_blocks;
+//	std::vector<Eigen::Vector3i>* updated_blocks;
+//	std::vector<Eigen::Vector3i>* frontier_blocks;
+
+	vec3i *updated_blocks;
+	vec3i *frontier_blocks;
 	if (config.log_file != "") {
 		logfilestream.open(config.log_file.c_str());
 		logstream = &logfilestream;

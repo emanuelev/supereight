@@ -76,40 +76,40 @@ inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
   }
   return Eigen::Vector4f::Constant(0);
 }
-
-inline bool raycastOcclusionVoxel(const Volume<OFusion>& volume,
-                                  const Eigen::Vector3f& origin,
-                                  const Eigen::Vector3f& direction,
-                                  const float            tnear,
-                                  const float            tfar,
-                                  const float,
-                                  const float            step,
-                                  const float,
-                                  std::unordered_set<uint64_t> &occlusion_voxel,
-                                  const float inverseVoxelSize) {
-
-  if (tnear < tfar) {
-    // t = starting distance after surface
-    float t = tnear+step;
-    float stepsize = step;
-
-    //march along the ray from surface away
-    for (; t < tfar; t += stepsize) {
-      const Eigen::Vector3f pos =  origin + direction * t;
-      // get info from map
-      Volume<OFusion>::value_type data = volume.get(pos);
-      // using log odds prob as -100 is a threshold for free space
-      // if valid add morton code to occluded voxel set
-      if (data.x > -100.f && data.y > 0.f) {
-        Eigen::Vector4f occl = (origin + direction * t).homogeneous();
-//          std::cout << "occlusion "<< res << std::endl;
-        Eigen::Vector3i  occl_scaled = (inverseVoxelSize * occl.head<3>()).cast<int>();
-        occlusion_voxel.insert(compute_morton(occl_scaled.x(), occl_scaled.y(), occl_scaled.z()));
-
-      }
-
-    }
-
-  }
-  return true;
-}
+//
+//inline bool raycastOcclusionVoxel(const Volume<OFusion>& volume,
+//                                  const Eigen::Vector3f& origin,
+//                                  const Eigen::Vector3f& direction,
+//                                  const float            tnear,
+//                                  const float            tfar,
+//                                  const float,
+//                                  const float            step,
+//                                  const float,
+//                                  std::unordered_set<uint64_t> &occlusion_voxel,
+//                                  const float inverseVoxelSize) {
+//
+//  if (tnear < tfar) {
+//    // t = starting distance after surface
+//    float t = tnear+step;
+//    float stepsize = step;
+//
+//    //march along the ray from surface away
+//    for (; t < tfar; t += stepsize) {
+//      const Eigen::Vector3f pos =  origin + direction * t;
+//      // get info from map
+//      Volume<OFusion>::value_type data = volume.get(pos);
+//      // using log odds prob as -100 is a threshold for free space
+//      // if valid add morton code to occluded voxel set
+//      if (data.x > -100.f && data.y > 0.f) {
+//        Eigen::Vector4f occl = (origin + direction * t).homogeneous();
+////          std::cout << "occlusion "<< res << std::endl;
+//        Eigen::Vector3i  occl_scaled = (inverseVoxelSize * occl.head<3>()).cast<int>();
+//        occlusion_voxel.insert(compute_morton(occl_scaled.x(), occl_scaled.y(), occl_scaled.z()));
+//
+//      }
+//
+//    }
+//
+//  }
+//  return true;
+//}

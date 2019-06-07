@@ -209,17 +209,17 @@ class DenseSLAMSystem {
 //                   std::vector<Eigen::Vector3i> *occupied_voxels,
 //                   std::vector<Eigen::Vector3i> *freed_voxels);
 // TODO fix alignment
-//  bool integration(const Eigen::Vector4f &k,
-//                   unsigned int integration_rate,
-//                   float mu,
-//                   unsigned int frame,
-//                   vec3i *updated_blocks, vec3i *frontier_blocks);
   bool integration(const Eigen::Vector4f &k,
                    unsigned int integration_rate,
                    float mu,
                    unsigned int frame,
-                   std::vector<Eigen::Vector3i> *updated_blocks,
-                   std::vector<Eigen::Vector3i> *frontier_blocks);
+                   vec3i *updated_blocks, vec3i *frontier_blocks);
+//  bool integration(const Eigen::Vector4f &k,
+//                   unsigned int integration_rate,
+//                   float mu,
+//                   unsigned int frame,
+//                   std::vector<Eigen::Vector3i> *updated_blocks,
+//                   std::vector<Eigen::Vector3i> *frontier_blocks);
   /**
    * Raycast the 3D reconstruction after integration to update the values of
    * the TSDF. This is the fourth stage of the pipeline.

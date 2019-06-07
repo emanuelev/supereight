@@ -227,10 +227,10 @@ int processAll(DepthReader *reader,
                bool reset) {
   static int frameOffset = 0;
   static bool firstFrame = true;
-//  vec3i *updated_blocks;
-//  vec3i *frontier_blocks;
-  std::vector<Eigen::Vector3i>* updated_blocks;
-  std::vector<Eigen::Vector3i>* frontier_blocks;
+  vec3i *updated_blocks;
+  vec3i *frontier_blocks;
+//  std::vector<Eigen::Vector3i>* updated_blocks;
+//  std::vector<Eigen::Vector3i>* frontier_blocks;
   bool tracked = false, integrated = false, raycasted = false;
   std::chrono::time_point<std::chrono::steady_clock> timings[7];
   float3 pos;

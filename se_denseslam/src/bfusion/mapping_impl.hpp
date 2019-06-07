@@ -156,10 +156,10 @@ struct bfusion_update {
   float voxelsize;
 //  vec3i& occupiedVoxels_;
 //  vec3i& freedVoxels_;
-//  vec3i *updated_blocks_ ;
-//  vec3i *frontier_blocks_ ;
-  std::vector<Eigen::Vector3i> *updated_blocks_ ;
-  std::vector<Eigen::Vector3i> *frontier_blocks_ ;
+  vec3i *updated_blocks_ ;
+  vec3i *frontier_blocks_ ;
+//  std::vector<Eigen::Vector3i> *updated_blocks_ ;
+//  std::vector<Eigen::Vector3i> *frontier_blocks_ ;
 
   bfusion_update(const float *d, const Eigen::Vector2i framesize, float n, float t, float vs)
       :
@@ -182,20 +182,20 @@ struct bfusion_update {
 //      freedVoxels_(freedVoxels) {};
 
 // TODO fix alignment
-//  bfusion_update(const float *d,
-//                 const Eigen::Vector2i framesize,
-//                 float n,
-//                 float t,
-//                 float vs,
-//                 vec3i *updated_blocks,
-//                 vec3i *frontier_blocks)
   bfusion_update(const float *d,
                  const Eigen::Vector2i framesize,
                  float n,
                  float t,
                  float vs,
-                 std::vector<Eigen::Vector3i> *updated_blocks,
-                 std::vector<Eigen::Vector3i> *frontier_blocks)
+                 vec3i *updated_blocks,
+                 vec3i *frontier_blocks)
+//  bfusion_update(const float *d,
+//                 const Eigen::Vector2i framesize,
+//                 float n,
+//                 float t,
+//                 float vs,
+//                 std::vector<Eigen::Vector3i> *updated_blocks,
+//                 std::vector<Eigen::Vector3i> *frontier_blocks)
       :
       depth(d),
       depthSize(framesize),

@@ -374,19 +374,19 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
 //}
 
 // TODO fix alignment
-//bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
-//                                  unsigned int integration_rate,
-//                                  float mu,
-//                                  unsigned int frame,
-//                                  vec3i *updated_blocks,
-//                                  vec3i *frontier_blocks) {
-
 bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   unsigned int integration_rate,
                                   float mu,
                                   unsigned int frame,
-                                  std::vector<Eigen::Vector3i> *updated_blocks,
-                                  std::vector<Eigen::Vector3i> *frontier_blocks) {
+                                  vec3i *updated_blocks,
+                                  vec3i *frontier_blocks) {
+
+//bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
+//                                  unsigned int integration_rate,
+//                                  float mu,
+//                                  unsigned int frame,
+//                                  std::vector<Eigen::Vector3i> *updated_blocks,
+//                                  std::vector<Eigen::Vector3i> *frontier_blocks) {
 
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
 
