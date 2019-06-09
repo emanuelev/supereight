@@ -263,7 +263,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
 
     std::string version;
     if(std::is_same<FieldType, SDF>::value) {
-      struct sdf_update funct(float_depth_.data(), framesize, mu, 100);
+      struct sdf_update funct(float_depth_.data(), framesize, mu, maxweight);
       se::functor::projective_map(*volume_._map_index,
           volume_._map_index->_offset,
           Tcw,
@@ -287,7 +287,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
       version = "ofusion";
     } else if(std::is_same<FieldType, MultiresSDF>::value) {
       se::multires::integrate(*volume_._map_index, Tcw, K, voxelsize,
-          Eigen::Vector3f::Constant(0.5f), float_depth_, mu, 30);
+          Eigen::Vector3f::Constant(0.5f), float_depth_, mu, maxweight);
       version = "multires";
     }
 
