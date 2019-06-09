@@ -319,6 +319,8 @@ inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f& p,
   }
 
   // Get the element in the voxel block
+  auto block = static_cast<VoxelBlock<T>*>(n);
+  scale = std::max(block->current_scale(), scale);
   return static_cast<VoxelBlock<T>*>(n)->data(pos, scale);
 }
 
