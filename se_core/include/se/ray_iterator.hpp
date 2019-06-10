@@ -1,6 +1,6 @@
 /*
     Copyright (c) 2009-2011, NVIDIA Corporation
-    Copyright 2016 Emanuele Vespa, Imperial College London 
+    Copyright 2016 Emanuele Vespa, Imperial College London
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
 
@@ -24,7 +24,7 @@
     SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
     CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
     OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #ifndef SE_RAY_ITERATOR_HPP
@@ -43,7 +43,7 @@
  * Original code available at:
  * https://code.google.com/p/efficient-sparse-voxel-octrees/
  *
- * 
+ *
 *****************************************************************************/
 
 static inline int __float_as_int(float value){
@@ -74,7 +74,7 @@ template <typename T>
 class se::ray_iterator {
 
   public:
-    ray_iterator(const Octree<T>& m, const Eigen::Vector3f& origin, 
+    ray_iterator(const Octree<T>& m, const Eigen::Vector3f& origin,
         const Eigen::Vector3f& direction, float nearPlane, float farPlane) : map_(m) {
 
       pos_ = Eigen::Vector3f(1.0f, 1.0f, 1.0f);
@@ -86,20 +86,20 @@ class se::ray_iterator {
       min_scale_ = CAST_STACK_DEPTH - log2(m.size_/Octree<T>::blockSide);
       static const float epsilon = exp2f(-log2(map_.size_));
       voxelSize_ = map_.dim_/map_.size_;
-      state_ = INIT; 
+      state_ = INIT;
 
       for(int i = 0 ; i < CAST_STACK_DEPTH; ++i)
         stack[i] = {0, 0, 0};
 
-      direction_(0) = fabsf(direction(0)) < epsilon ? 
+      direction_(0) = fabsf(direction(0)) < epsilon ?
         copysignf(epsilon, direction(0)) : direction(0);
-      direction_(1) = fabsf(direction(1)) < epsilon ? 
+      direction_(1) = fabsf(direction(1)) < epsilon ?
         copysignf(epsilon, direction(1)) : direction(1);
-      direction_(2) = fabsf(direction(2)) < epsilon ? 
+      direction_(2) = fabsf(direction(2)) < epsilon ?
         copysignf(epsilon, direction(2)) : direction(2);
 
       /* Scaling the origin to resides between coordinates [1,2] */
-      const Eigen::Vector3f scaled_origin = origin/map_.dim_ + 
+      const Eigen::Vector3f scaled_origin = origin/map_.dim_ +
         Eigen::Vector3f::Constant(1.f);
 
       /* Precomputing the ray coefficients */
@@ -107,10 +107,9 @@ class se::ray_iterator {
       t_bias_ = t_coef_.cwiseProduct(scaled_origin);
 
 
-      /* Build the octrant mask to to mirror the coordinate system such that
-       * each ray component points in negative coordinates. The octree is 
+      /* Build the octant mask to to mirror the coordinate system such that
+       * each ray component points in negative coordinates. The octree is
        * assumed to reside at coordinates [1, 2]
-       * 
        */
       octant_mask_ = 7;
       if(direction_(0) > 0.0f) octant_mask_ ^=1, t_bias_(0) = 3.0f * t_coef_(0) - t_bias_(0);
@@ -134,14 +133,13 @@ class se::ray_iterator {
 
     };
 
-    /* 
-     * Advance the ray.
+    /*! \brief Advance the ray.
      */
     inline void advance_ray() {
 
       int step_mask = 0;
 
-      step_mask = (t_corner_(0) <= tc_max_) | 
+      step_mask = (t_corner_(0) <= tc_max_) |
         ((t_corner_(1) <= tc_max_) << 1) | ((t_corner_(2) <= tc_max_) << 2);
       pos_(0) -= scale_exp2_ * bool(step_mask & 1);
       pos_(1) -= scale_exp2_ * bool(step_mask & 2);
@@ -158,7 +156,7 @@ class se::ray_iterator {
         // This is done by xoring the bit patterns of the new and old pos
         // (float_as_int reinterprets a floating point number as int,
         // it is a sort of reinterpret_cast). This work because the volume has
-        // been scaled between [1, 2]. Still digging why this is the case. 
+        // been scaled between [1, 2]. Still digging why this is the case.
 
         unsigned int differing_bits = 0;
         if ((step_mask & 1) != 0) differing_bits |= __float_as_int(pos_(0)) ^ __float_as_int(pos_(0) + scale_exp2_);
@@ -166,8 +164,8 @@ class se::ray_iterator {
         if ((step_mask & 4) != 0) differing_bits |= __float_as_int(pos_(2)) ^ __float_as_int(pos_(2) + scale_exp2_);
 
         // Get the scale at which the two differs. Here's there are different subtlelties related to how fp are stored.
-        // MIND BLOWN: differing bit (i.e. the MSB) extracted using the 
-        // exponent part of the fp representation. 
+        // MIND BLOWN: differing bit (i.e. the MSB) extracted using the
+        // exponent part of the fp representation.
         scale_ = (__float_as_int((float)differing_bits) >> 23) - 127; // position of the highest bit
         scale_exp2_ = __int_as_float((scale_ - CAST_STACK_DEPTH + 127) << 23); // exp2f(scale - s_max)
         struct stack_entry&  e = stack[scale_];
@@ -190,8 +188,7 @@ class se::ray_iterator {
       }
     }
 
-    /* 
-     * Descend the hiararchy and compute the next child position.
+    /*! \brief Descend the hiararchy and compute the next child position.
      */
     inline void descend() {
       float tv_max = fminf(t_max_, tc_max_);
@@ -222,10 +219,8 @@ class se::ray_iterator {
       child_ = NULL;
     }
 
-    /*
-     * Returns the next leaf along the ray direction.
+    /*! \brief Returns the next leaf along the ray direction.
      */
-
     VoxelBlock<T>* next() {
 
       if(state_ == ADVANCE) advance_ray();
@@ -239,7 +234,7 @@ class se::ray_iterator {
 
         if (scale_ == min_scale_ && child_ != NULL){
           state_ = ADVANCE;
-          return static_cast<VoxelBlock<T> *>(child_); 
+          return static_cast<VoxelBlock<T> *>(child_);
         } else if (child_ != NULL && t_min_ <= t_max_){  // If the child is valid, descend the tree hierarchy.
           descend();
           continue;
@@ -249,25 +244,25 @@ class se::ray_iterator {
       return nullptr;
     }
 
-    /*
+    /*!
      * \brief Returns the minimum distance in meters to be travelled along
      * the ray to intersect the voxel cube.
      */
     float tmin() { return t_min_init_ * map_.dim_; }
 
-    /*
+    /*!
      * \brief Returns the minimum distance in meters to be travelled along
      * the ray to exit the voxel cube.
      */
     float tmax() { return t_max_init_ * map_.dim_; }
 
-    /*
+    /*!
      * \brief Returns the minimum distance in meters to be travelled along
      * the ray to reach the currently intersected leaf.
      */
     float tcmin() { return t_min_ * map_.dim_; }
 
-    /*
+    /*!
      * \brief Returns the minimum distance in meters to be travelled along
      * the ray to exit the currently intersected grid.
      */
@@ -287,7 +282,7 @@ class se::ray_iterator {
     } STATE;
 
     const Octree<T>& map_;
-    float voxelSize_; 
+    float voxelSize_;
     Eigen::Vector3f origin_;
     Eigen::Vector3f direction_;
     Eigen::Vector3f t_coef_;

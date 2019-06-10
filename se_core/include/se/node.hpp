@@ -1,6 +1,6 @@
 /*
 
-Copyright 2016 Emanuele Vespa, Imperial College London 
+Copyright 2016 Emanuele Vespa, Imperial College London
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
@@ -40,7 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "utils/memory_pool.hpp"
 #include "io/se_serialise.hpp"
 
-namespace se { 
+namespace se {
+/*! \brief A non-leaf node of the Octree. Each Node has 8 children.
+ */
 template <typename T>
 class Node {
 
@@ -67,7 +69,7 @@ public:
 
     virtual ~Node(){};
 
-    Node *& child(const int x, const int y, 
+    Node *& child(const int x, const int y,
         const int z) {
       return child_ptr_[x + y*2 + z*4];
     };
@@ -86,6 +88,9 @@ private:
     friend void internal::deserialise <> (Node& node, std::ifstream& in);
 };
 
+/*! \brief A leaf node of the Octree. Each VoxelBlock contains BLOCK_SIDE^3
+ * voxels.
+ */
 template <typename T>
 class VoxelBlock: public Node<T> {
 
@@ -95,10 +100,10 @@ class VoxelBlock: public Node<T> {
     static constexpr unsigned int side = BLOCK_SIDE;
     static constexpr unsigned int sideSq = side*side;
 
-    static constexpr value_type empty() { 
-      return traits_type::empty(); 
+    static constexpr value_type empty() {
+      return traits_type::empty();
     }
-    static constexpr value_type initValue() { 
+    static constexpr value_type initValue() {
       return traits_type::initValue();
     }
 
@@ -124,20 +129,20 @@ class VoxelBlock: public Node<T> {
 
     value_type * getBlockRawPtr(){ return voxel_block_; }
     static constexpr int size(){ return sizeof(VoxelBlock<T>); }
-    
+
   private:
     VoxelBlock(const VoxelBlock&) = delete;
     Eigen::Vector3i coordinates_;
     value_type voxel_block_[side*sideSq]; // Brick of data.
     bool active_;
 
-    friend std::ofstream& internal::serialise <> (std::ofstream& out, 
+    friend std::ofstream& internal::serialise <> (std::ofstream& out,
         VoxelBlock& node);
     friend void internal::deserialise <> (VoxelBlock& node, std::ifstream& in);
 };
 
 template <typename T>
-inline typename VoxelBlock<T>::value_type 
+inline typename VoxelBlock<T>::value_type
 VoxelBlock<T>::data(const Eigen::Vector3i& pos) const {
   Eigen::Vector3i offset = pos - coordinates_;
   const value_type& data = voxel_block_[offset(0) + offset(1)*side +
@@ -146,14 +151,14 @@ VoxelBlock<T>::data(const Eigen::Vector3i& pos) const {
 }
 
 template <typename T>
-inline void VoxelBlock<T>::data(const Eigen::Vector3i& pos, 
+inline void VoxelBlock<T>::data(const Eigen::Vector3i& pos,
                                 const value_type &value){
   Eigen::Vector3i offset = pos - coordinates_;
   voxel_block_[offset(0) + offset(1)*side + offset(2)*sideSq] = value;
 }
 
 template <typename T>
-inline typename VoxelBlock<T>::value_type 
+inline typename VoxelBlock<T>::value_type
 VoxelBlock<T>::data(const int i) const {
   const value_type& data = voxel_block_[i];
   return data;
