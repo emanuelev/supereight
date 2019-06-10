@@ -206,6 +206,17 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, unsigned in
         raycast_pose_ * getInverseCameraMatrix(k), nearPlane,
         farPlane, mu, step, step*BLOCK_SIDE);
     doRaycast = true;
+
+    // std::stringstream s;
+    // s << "./out/point_cloud_" << frame;
+    // savePointCloud(vertex_.data(), vertex_.size(), s.str().c_str(), 
+    //     init_pose_);
+
+    // s.str("");
+    // s.clear();
+    // s << "./out/normal_cloud_" << frame;
+    // savePointCloud(normal_.data(), normal_.size(), s.str().c_str(), 
+    //     init_pose_);
   }
   return doRaycast;
 }
@@ -287,7 +298,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
       version = "ofusion";
     } else if(std::is_same<FieldType, MultiresSDF>::value) {
       se::multires::integrate(*volume_._map_index, Tcw, K, voxelsize,
-          Eigen::Vector3f::Constant(0.5f), float_depth_, mu, maxweight);
+          volume_._map_index->_offset, float_depth_, mu, maxweight);
       version = "multires";
     }
 

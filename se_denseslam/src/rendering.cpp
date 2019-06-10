@@ -79,7 +79,7 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
     for (int x = 0; x < vertex.width(); x++) {
       Eigen::Vector2i pos(x, y);
       const Eigen::Vector3f dir = 
-        (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x + 0.5f, y + 0.5f, 1.f)).normalized();
+        (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
       const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
       se::ray_iterator<T> ray(*volume._map_index, transl, dir, nearPlane, farPlane);
       ray.next();
@@ -109,25 +109,6 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
     }
   TOCK("raycastKernel", inputSize.x * inputSize.y);
 }
-
-// void renderNormalKernel(uchar3* out, const float3* normal, uint2 normalSize) {
-// 	TICK();
-// 	unsigned int y;
-// #pragma omp parallel for shared(out), private(y)
-// 	for (y = 0; y < normalSize.y; y++)
-// 		for (unsigned int x = 0; x < normalSize.x; x++) {
-// 			unsigned int pos = (x + y * normalSize.x);
-// 			float3 n = normal[pos];
-// 			if (n.x == -2) {
-// 				out[pos] = make_uchar3(0, 0, 0);
-// 			} else {
-// 				n = normalize(n);
-// 				out[pos] = make_uchar3(n.x * 128 + 128, n.y * 128 + 128,
-// 						n.z * 128 + 128);
-// 			}
-// 		}
-// 	TOCK("renderNormalKernel", normalSize.x * normalSize.y);
-// }
 
 void renderDepthKernel(unsigned char* out, float * depth, 
     const Eigen::Vector2i& depthSize, const float nearPlane, 
@@ -292,12 +273,12 @@ void renderVolumeKernel(const Volume<T>& volume,
         out[idx + 0] = col.x();
         out[idx + 1] = col.y();
         out[idx + 2] = col.z();
-        out[idx + 3] = 0;
+        out[idx + 3] = 255;
       } else {
         out[idx + 0] = 0;
         out[idx + 1] = 0;
         out[idx + 2] = 0;
-        out[idx + 3] = 0;
+        out[idx + 3] = 255;
       }
     }
   }
