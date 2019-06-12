@@ -262,6 +262,14 @@ void dump_volume() {
 	if (filename != "")
 		(*pipeline_pp)->dump_volume(filename.c_str());
 }
+
+void dump_mesh() {
+//Call the dump function
+	std::string filename = appWindow->fileSaveSelector("Save mesh", ".",
+			"mesh (*.vtk);; All files (*.*)");
+	if (filename != "")
+		(*pipeline_pp)->dump_mesh(filename);
+}
 void dumpLog() {
 	std::string filename = appWindow->fileSaveSelector("Save sequence log", ".",
 			"*.log (*.log);; All files (*.*)");
@@ -319,6 +327,7 @@ void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
 
 	//Function to call to dump volume model (also enable dump on file menu)
 	appWindow->setDumpFunction("Save Volume", &dump_volume);
+	appWindow->setDumpFunction("Save Mesh", &dump_mesh);
 	appWindow->setDumpFunction("Save Statistics log", &dumpLog);
 	if (powerMonitor && powerMonitor->isActive())
 		appWindow->setDumpFunction("Save power log ", &dumpPowerLog);

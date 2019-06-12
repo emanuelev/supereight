@@ -363,19 +363,12 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
 
   se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(), 
       [this](auto block) { 
-        se::multires::propagate_down(*(this->volume_._map_index), block, block->current_scale(), 0);
         block->current_scale(0); 
         });
+  std::cout << "saving triangle mesh to file :" << filename  << std::endl;
 
   std::vector<Triangle> mesh;
   auto inside = [](const Volume<FieldType>::value_type& val) {
-    // meshing::status code;
-    // if(val.y == 0.f)
-    //   code = meshing::status::UNKNOWN;
-    // else
-    //   code = val.x < 0.f ? meshing::status::INSIDE : meshing::status::OUTSIDE;
-    // return code;
-    // std::cerr << val.x << " ";
     return val.x < 0.f;
   };
 
