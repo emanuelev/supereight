@@ -40,16 +40,16 @@ endif()
 # list(APPEND BUILT_LIBS ${appname}-ofusion)
 # 
 # # ----------------- SDF -----------------
-# set(field_type SE_FIELD_TYPE=SDF)
-# 
-# add_library(${appname}-sdf  ./src/DenseSLAMSystem.cpp)
-# target_include_directories(${appname}-sdf PUBLIC include
-#     ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
-# target_compile_options(${appname}-sdf PUBLIC ${compile_flags})
-# target_link_libraries(${appname}-sdf ${libraries})
-# target_compile_definitions(${appname}-sdf PUBLIC ${field_type})
-# 
-# list(APPEND BUILT_LIBS ${appname}-sdf)
+set(field_type SE_FIELD_TYPE=SDF)
+
+add_library(${appname}-sdf  ./src/DenseSLAMSystem.cpp)
+target_include_directories(${appname}-sdf PUBLIC include
+    ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
+target_compile_options(${appname}-sdf PUBLIC ${compile_flags})
+target_link_libraries(${appname}-sdf ${libraries})
+target_compile_definitions(${appname}-sdf PUBLIC ${field_type})
+
+list(APPEND BUILT_LIBS ${appname}-sdf)
 
 # ----------------- MultiresSDF -----------------
 set(field_type SE_FIELD_TYPE=MultiresSDF)
