@@ -534,11 +534,10 @@ void DenseSLAMSystem::dump_mesh(const std::string filename) {
 }
 
 
-bool DenseSLAMSystem::getExplorationCandidate(std::set<uint64_t> &surface_voxel_set){
-//                                              std::unordered_set<uint64_t> &frontier_voxel_set,
-//                                              std::unordered_set<uint64_t> &occlusion_voxel_set) {
+bool DenseSLAMSystem::getExplorationCandidate(std::set<uint64_t> &surface_voxel_set,
+    std::set<uint64_t &occlusion_voxel_set){
   surface_voxel_set = surface_voxel_set_;
 //  frontier_voxel_set = frontier_voxel_set_;
-//  occlusion_voxel_set = occlusion_voxel_set_;
+  occlusion_voxel_set = occlusion_voxel_set_;
   return true;
 }

@@ -100,7 +100,7 @@ class DenseSLAMSystem {
 //  // exploration map ; store morton code
   std::set<uint64_t> surface_voxel_set_;
 //  std::unordered_set<uint64_t> frontier_voxel_set_;
-//  std::unordered_set<uint64_t> occlusion_voxel_set_;
+  std::set<uint64_t> occlusion_voxel_set_;
 
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -429,7 +429,8 @@ class DenseSLAMSystem {
     return (computation_size_);
   }
 
-  bool getExplorationCandidate(std::set<uint64_t> &surface_voxel_set);
+  bool getExplorationCandidate(std::set<uint64_t> &surface_voxel_set, std::set<uint64_t>
+      &occlusion_voxel_set);
 };
 
 /**
