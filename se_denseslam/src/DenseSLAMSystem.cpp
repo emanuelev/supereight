@@ -457,8 +457,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   funct);
       vec3i *copy_frontier_blocks = frontier_blocks;
-//      updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks);
-//      frontier_blocks_map= frontier_map_;
+      updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks);
+      frontier_blocks_map= frontier_map_;
 //      for (auto it = frontier_map_.begin(); it != frontier_map_.end(); ++it){
 //        std::cout << it->first << " " ;
 //      }

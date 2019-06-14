@@ -147,7 +147,7 @@ class node_iterator {
         for (int x = blockCoord(0); x < xlast; ++x) {
           typename VoxelBlock<T>::value_type value;
           const Eigen::Vector3i vox{x, y, z};
-          float prob = map_.get(x,y,z).x;
+          float prob = se::math::getProbFromLog(map_.get(x,y,z).x);
 //          value = block->data(Eigen::Vector3i(x, y, z));
 // TODO use state
           if (prob >= threshold) {

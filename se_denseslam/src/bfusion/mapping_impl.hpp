@@ -186,6 +186,7 @@ struct bfusion_update {
 //  vec3i& freedVoxels_;
   vec3i *updated_blocks_;
   vec3i *frontier_blocks_;
+
 //  std::vector<Eigen::Vector3i> *updated_blocks_ ;
 //  std::vector<Eigen::Vector3i> *frontier_blocks_ ;
 
@@ -231,7 +232,7 @@ struct bfusion_update {
                   const Eigen::Vector3i &pix,
                   const Eigen::Vector3f &pos,
                   const Eigen::Vector2f &pixel) {
-
+ // curr voxel size 0.1875m
     const Eigen::Vector2i px = pixel.cast<int>();
     const float depthSample = depth[px.x() + depthSize.x() * px.y()];
     // Return on invalid depth measurement
@@ -252,7 +253,7 @@ struct bfusion_update {
     }
     sample = se::math::clamp(sample, 0.03f, 0.97f);
     // in log2
-    float prev_occ = data.x;
+    float prev_occ = se::math::getProbFromLog(data.x);
     // Update the occupancy probability
     const double delta_t = timestamp - data.y;
     data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
@@ -288,7 +289,13 @@ struct bfusion_update {
           // check if any pixel next to it is equal to 0
           for (int i = px.x() - 1; i <= px.x() + 1; ++i) {
             for (int j = px.y() - 1; j <= px.y() + 1; ++j) {
-              if (depth[i + depthSize.x() * j] <= 0 ) {
+              float curr_depth = depth[i + depthSize.x() * j];
+              if (curr_depth<= 0) {
+                is_occluded = true;
+                // TODO see occlusion gap target images. doesn't get the frontiers there
+              } else if ( curr_depth + voxelsize*1.5 <= depthSample|| curr_depth -
+              voxelsize*1.5 >=depthSample ){
+//                std::cout << "[supereight/mapping] occlusion" << std::endl;
                 is_occluded = true;
               }
             }
@@ -317,8 +324,8 @@ struct bfusion_update {
 #pragma omp critical
     {
       bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
-      bool voxelOccupied = prev_occ <= 0.5 && data.x > 0.5;
-      bool voxelFreed = prev_occ >= 0.5 && data.x < 0.5;
+      bool voxelOccupied = prev_occ <= 0.5 && prob > 0.5;
+      bool voxelFreed = prev_occ >= 0.5 && prob < 0.5;
       bool occupancyUpdated = handler.occupancyUpdated();
       if (isVoxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
           && data.st != voxel_state::kFrontier) {
