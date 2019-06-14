@@ -108,7 +108,9 @@ class Octree {
    * \param y y coordinate in interval [0, size]
    * \param z z coordinate in interval [0, size]
    */
-//  value_type get(const Eigen::Vector3i& pos) const;
+
+  value_type get(const uint64_t& pos_morton) const;
+  value_type get(const Eigen::Vector3i& pos) const;
   value_type get(const int x, const int y, const int z) const;
   value_type get_fine(const int x, const int y, const int z) const;
 
@@ -304,10 +306,15 @@ inline void Octree<T>::set(const int x, const int y, const int z, const value_ty
   static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z), val);
 }
 
-/*template<typename T>
+template <typename T>
+inline typename Octree<T>::value_type Octree<T>::get(const uint64_t &pos_morton) const{
+  Eigen::Vector3i pos = unpack_morton(pos_morton);
+  get(pos);
+}
+template<typename T>
 inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3i &pos) const {
   get(pos.x(), pos.y(), pos.z());
-}*/
+}
 template<typename T>
 inline typename Octree<T>::value_type Octree<T>::get(const int x, const int y, const int z) const {
 
