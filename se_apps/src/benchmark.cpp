@@ -143,7 +143,7 @@ int main(int argc, char ** argv) {
 		// 4 frames.
 		if (tracked || (frame <=3)) {
 			integrated = pipeline.integration(camera, config.integration_rate,
-					config.mu, frame, updated_blocks, frontier_blocks);
+					config.mu, frame);
 		} else {
 			integrated = false;
 		}

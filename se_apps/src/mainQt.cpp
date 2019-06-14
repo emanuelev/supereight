@@ -299,8 +299,7 @@ int processAll(DepthReader *reader,
     // Integrate only if tracking was successful or it is one of the
     // first 4 frames.
     if (tracked || (frame <= 3)) {
-      integrated = pipeline->integration(camera, config->integration_rate, config->mu, frame,
-          updated_blocks, frontier_blocks);
+      integrated = pipeline->integration(camera, config->integration_rate, config->mu, frame);
     } else {
       integrated = false;
     }
