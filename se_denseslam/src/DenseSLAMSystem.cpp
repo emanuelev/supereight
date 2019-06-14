@@ -48,7 +48,7 @@
 #include "kfusion/mapping_impl.hpp"
 #include "bfusion/alloc_impl.hpp"
 #include "kfusion/alloc_impl.hpp"
-
+#include <se/boundary_extraction.hpp>
 PerfStats Stats;
 static bool print_kernel_timing = false;
 
@@ -443,7 +443,6 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
     } else if (std::is_same<FieldType, OFusion>::value) {
 
       float timestamp = (1.f / 30.f) * frame;
-
       struct bfusion_update funct(float_depth,
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   mu,
@@ -544,9 +543,14 @@ void DenseSLAMSystem::dump_mesh(const std::string filename) {
 
 
 bool DenseSLAMSystem::getExplorationCandidate(std::set<uint64_t> &surface_voxel_set,
-    std::set<uint64_t &occlusion_voxel_set){
+    std::set<uint64_t> &occlusion_voxel_set){
   surface_voxel_set = surface_voxel_set_;
 //  frontier_voxel_set = frontier_voxel_set_;
   occlusion_voxel_set = occlusion_voxel_set_;
+  return true;
+}
+
+bool DenseSLAMSystem::getFrontierVoxelMap(map3i &frontier_map){
+  frontier_map= frontier_map_;
   return true;
 }
