@@ -41,6 +41,8 @@
 #include <atomic>
 #include <omp.h>
 
+#include <map>
+#include <se/octant_ops.hpp>
 /**
  * Perform bilinear interpolation on a depth image. See
  * https://en.wikipedia.org/wiki/Bilinear_interpolation for more details.
@@ -144,20 +146,46 @@ static inline float applyWindow(const float occupancy,
 }
 
 /**
+ * update frontier map
+ */
+template<typename DataHandlerT>
+bool updateFrontierMapIntegration(DataHandlerT &data,
+                                  vec3i *frontier_blocks,
+                                  const Eigen::Vector3i &coord,
+                                  const bool &is_frustum_boarder) {
+
+  if (is_frustum_boarder) {
+    frontier_blocks->emplace_back(coord);
+    data.st = voxel_state::kFrontier;
+  }
+}
+
+/**
+ * check if occlusion boundary
+ */
+
+bool isOcclusionBoundary(const float depth) {
+  return false;
+}
+
+/**
  * Struct to hold the data and perform the update of the map from a single
  * depth frame.
  */
+
 struct bfusion_update {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   const float *depth;
   Eigen::Vector2i depthSize;
   float noiseFactor;
   float timestamp;
   float voxelsize;
+
 //  vec3i& occupiedVoxels_;
 //  vec3i& freedVoxels_;
-  vec3i *updated_blocks_ ;
-  vec3i *frontier_blocks_ ;
+  vec3i *updated_blocks_;
+  vec3i *frontier_blocks_;
 //  std::vector<Eigen::Vector3i> *updated_blocks_ ;
 //  std::vector<Eigen::Vector3i> *frontier_blocks_ ;
 
@@ -189,13 +217,6 @@ struct bfusion_update {
                  float vs,
                  vec3i *updated_blocks,
                  vec3i *frontier_blocks)
-//  bfusion_update(const float *d,
-//                 const Eigen::Vector2i framesize,
-//                 float n,
-//                 float t,
-//                 float vs,
-//                 std::vector<Eigen::Vector3i> *updated_blocks,
-//                 std::vector<Eigen::Vector3i> *frontier_blocks)
       :
       depth(d),
       depthSize(framesize),
@@ -209,40 +230,77 @@ struct bfusion_update {
   void operator()(DataHandlerT &handler,
                   const Eigen::Vector3i &pix,
                   const Eigen::Vector3f &pos,
-                  const Eigen::Vector2f &pixel) {
+                  const Eigen::Vector2f &pixel,
+                  const bool &is_frustum_boarder) {
 
     const Eigen::Vector2i px = pixel.cast<int>();
     const float depthSample = depth[px.x() + depthSize.x() * px.y()];
     // Return on invalid depth measurement
-    if (depthSample <= 0)
+    auto data = handler.get();
+    if (depthSample <= 0) {
+      data.st = voxel_state::kUnknown;
       return;
-
+    }
     // Compute the occupancy probability for the current measurement.
     const float diff = (pos.z() - depthSample);
     float sigma = se::math::clamp(noiseFactor * se::math::sq(pos.z()), 2 * voxelsize, 0.05f);
-    float sample = H(diff / sigma, pos.z());
+    float sample = H(diff / sigma, pos.z()); // prob not in log2
+
     // 0.5 = unknown
     if (sample == 0.5f) {
-#pragma omp critical
-      {
-        bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
-        if (isVoxel) {
-              frontier_blocks_->emplace_back(handler.getNodeCoordinates());
-        }
-      }
+      data.st = voxel_state::kUnknown;
       return;
     }
     sample = se::math::clamp(sample, 0.03f, 0.97f);
-
-    auto data = handler.get();
+    // in log2
     float prev_occ = data.x;
-
     // Update the occupancy probability
     const double delta_t = timestamp - data.y;
     data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
     data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
     data.y = timestamp;
+    float prob = se::math::getProbFromLog(data.x);
+#pragma omp critical
+    {
+      if (std::is_same<FieldType, OFusion>::value) {
+        // frustum frontier voxel has to be free and on the image boarder
+        if (prob < 0.5f && (px.x() <= 8 || px.y() <= 8 || px.x() >= depthSize.x() - 8
+            || px.y() >= depthSize.y() - 8)) {
+//        updateFrontierMapIntegration(data,
+//                                     frontier_blocks_,
+//                                     handler.getNodeCoordinates(),
+//                                     is_frustum_boarder);
+          frontier_blocks_->emplace_back(handler.getNodeCoordinates());
+          data.st = voxel_state::kFrontier;
+        } else if (prob >= THRESH_OCC) {
+          data.st = voxel_state::kOccupied;
+        } else if (prob <= THRESH_FREE) {
+          data.st = voxel_state::kFree;
+        } else if ((px.x() > 8 || px.y() > 8 || px.x() < depthSize.x() - 8
+            || px.y() < depthSize.y() - 8)) {
+          // if the occupancy probability is not low or high enough => back to unknown?
+          data.st = voxel_state::kUnknown;
+        }
 
+        // occlusion frontier
+//        // check if the depth next to a free voxel was invalid
+//        if (prob < 0.5 && (px.x() > 8 || px.y() > 8 || px.x() < depthSize.x() - 8
+//            || px.y() < depthSize.y() - 8)) {
+//          // check if any pixel next to it is unequal to 0 and the prob is euqal to free
+//          for (int i = px.x() - 1; i <= px.x() + 1; ++i) {
+//            for (int j = px.y() - 1; i <= px.y() + 1; ++j) {
+//              if (depth[i + depthSize.x() * j] <= 0 && prob < 0.5f) {
+//                data.st = voxel_state::kFrontier;
+//                frontier_blocks_->emplace_back(handler.getNodeCoordinates());
+//                break;
+//              }
+//            }
+//          }
+//        }
+      }
+    }
+
+//    std::cout << static_cast<int>(data.st) << std::endl;
 /*
       bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
       if (prev_occ >= 0.5 && data.x < 0.5 && isVoxel) {
@@ -259,7 +317,8 @@ struct bfusion_update {
       bool voxelOccupied = prev_occ <= 0.5 && data.x > 0.5;
       bool voxelFreed = prev_occ >= 0.5 && data.x < 0.5;
       bool occupancyUpdated = handler.occupancyUpdated();
-      if (isVoxel && !occupancyUpdated && (voxelOccupied || voxelFreed)) {
+      if (isVoxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
+          && data.st != voxel_state::kFrontier) {
 
         updated_blocks_->emplace_back(handler.getNodeCoordinates());
         handler.occupancyUpdated(true);

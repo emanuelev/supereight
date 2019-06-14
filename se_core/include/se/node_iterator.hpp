@@ -149,6 +149,7 @@ class node_iterator {
           const Eigen::Vector3i vox{x, y, z};
           float prob = map_.get(x,y,z).x;
 //          value = block->data(Eigen::Vector3i(x, y, z));
+// TODO use state
           if (prob >= threshold) {
 #pragma omp critical
             occupiedVoxels.push_back(vox);
@@ -177,11 +178,12 @@ class node_iterator {
     for (int z = blockCoord(2); z < zlast; ++z) {
       for (int y = blockCoord(1); y < ylast; ++y) {
         for (int x = blockCoord(0); x < xlast; ++x) {
-          typename VoxelBlock<T>::value_type value;
+
           const Eigen::Vector3i vox{x, y, z};
           float prob = map_.get(x,y,z).x;
+          if (map_.get(x,y,z).st == voxel_state::kFrontier){
 //          value = block->data(Eigen::Vector3i(x, y, z));
-          if (-threshold < prob && prob < threshold && map_.get(x,y,z).y==0 ) {
+//          if (-threshold < prob && prob < threshold && map_.get(x,y,z).y==0 ) {
 #pragma omp critical
             frontierVoxels.push_back(vox);
           }

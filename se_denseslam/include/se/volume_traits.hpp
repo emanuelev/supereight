@@ -30,6 +30,7 @@
 #define VOLUME_H
 
 // Data types definitions
+#include <iostream>
 #include <se/voxel_traits.hpp>
 
 /******************************************************************************
@@ -53,23 +54,39 @@ struct voxel_traits<SDF> {
 /******************************************************************************
  *
  * Bayesian Fusion voxel traits and algorithm specificic defines
+ * state: -1 unknown, 0 free, 1 occupied
  *
-****************************************************************************/
+******************************************************************************/
 
+
+typedef enum class voxel_state: std::int8_t
+{
+  kUnknown = -1,
+  kFree = 0,
+  kFrontier = 1,
+  kOccluded = 2,
+  kOccupied = 3
+};
 typedef struct {
     float x;
     double y;
+    voxel_state st;
 } OFusion;
 
 template<>
 struct voxel_traits<OFusion> {
   typedef struct  {
-    float x;
-    double y;
+    float x; // occ prob
+    double y; // timestamp
+    voxel_state st;
   } value_type;
-  static inline value_type empty(){ return {0.f, 0.f}; }
-  static inline value_type initValue(){ return {0.f, 0.f}; }
+  static inline value_type empty(){ return {0.f, 0.f, voxel_state::kUnknown}; }
+  static inline value_type initValue(){ return {0.f, 0.f, voxel_state::kUnknown}; }
 };
+static  std::ostream& operator<<(std::ostream& os, const voxel_state & dt)
+{
+  return os << static_cast<int>(dt);
+}
 
 // Windowing parameters
 #define DELTA_T   1.f
@@ -79,5 +96,7 @@ struct voxel_traits<OFusion> {
 #define SURF_BOUNDARY 0.f
 #define TOP_CLAMP     1000.f
 #define BOTTOM_CLAMP  (-TOP_CLAMP)
+#define THRESH_OCC 0.8f
+#define THRESH_FREE 0.2f
 
 #endif
