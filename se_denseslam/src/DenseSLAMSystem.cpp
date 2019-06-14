@@ -379,7 +379,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   float mu,
                                   unsigned int frame,
                                   vec3i *updated_blocks,
-                                  vec3i *frontier_blocks) {
+                                  vec3i *frontier_blocks,
+                                  map3i &frontier_blocks_map) {
 
 //bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 //                                  unsigned int integration_rate,
@@ -456,6 +457,14 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   getCameraMatrix(k),
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   funct);
+      vec3i *copy_frontier_blocks = frontier_blocks;
+//      updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks);
+//      frontier_blocks_map= frontier_map_;
+//      for (auto it = frontier_map_.begin(); it != frontier_map_.end(); ++it){
+//        std::cout << it->first << " " ;
+//      }
+      std::cout << std::endl;
+
     }
 
     // if(frame % 15 == 0) {

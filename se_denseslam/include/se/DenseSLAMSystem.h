@@ -51,6 +51,7 @@
 
 #include <Eigen/StdVector>
 #include <set>
+#include <map>
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
  */
@@ -58,6 +59,9 @@ typedef SE_FIELD_TYPE FieldType;
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 
 typedef std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> vec3i;
+typedef std::map<uint64_t , Eigen::Vector3i, std::less<uint64_t >,
+    Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector3i> > > map3i;
+
 extern PerfStats Stats;
 
 class DenseSLAMSystem {
@@ -101,6 +105,8 @@ class DenseSLAMSystem {
   std::set<uint64_t> surface_voxel_set_;
 //  std::unordered_set<uint64_t> frontier_voxel_set_;
   std::set<uint64_t> occlusion_voxel_set_;
+
+  map3i frontier_map_;
 
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -213,7 +219,7 @@ class DenseSLAMSystem {
                    unsigned int integration_rate,
                    float mu,
                    unsigned int frame,
-                   vec3i *updated_blocks, vec3i *frontier_blocks);
+                   vec3i *updated_blocks, vec3i *frontier_blocks, map3i &frontier_blocks_map);
 //  bool integration(const Eigen::Vector4f &k,
 //                   unsigned int integration_rate,
 //                   float mu,
@@ -431,6 +437,8 @@ class DenseSLAMSystem {
 
   bool getExplorationCandidate(std::set<uint64_t> &surface_voxel_set, std::set<uint64_t>
       &occlusion_voxel_set);
+
+  bool getFrontierVoxelMap(map3i &frontier_map_);
 };
 
 /**
