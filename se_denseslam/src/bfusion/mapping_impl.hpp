@@ -230,8 +230,7 @@ struct bfusion_update {
   void operator()(DataHandlerT &handler,
                   const Eigen::Vector3i &pix,
                   const Eigen::Vector3f &pos,
-                  const Eigen::Vector2f &pixel,
-                  const bool &is_frustum_boarder) {
+                  const Eigen::Vector2f &pixel) {
 
     const Eigen::Vector2i px = pixel.cast<int>();
     const float depthSample = depth[px.x() + depthSize.x() * px.y()];

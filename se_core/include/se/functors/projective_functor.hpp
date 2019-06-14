@@ -125,9 +125,6 @@ namespace functor {
               const Eigen::Vector2f pixel = Eigen::Vector2f(
                   camera_voxel(0) * inverse_depth + 0.5f,
                   camera_voxel(1) * inverse_depth + 0.5f);
-              bool frustum_boarder = true;
-//              bool frustum_boarder =algorithms::is_frustum_boarder<se::VoxelBlock<FieldType>>
-//                  (pix, voxel_size, _K*_Tcw.matrix(), _frame_size);
               // Check if the image coordinates are within the image
               if (pixel(0) < 0.5f || pixel(0) > _frame_size(0) - 0.5f ||
                   pixel(1) < 0.5f || pixel(1) > _frame_size(1) - 0.5f ) continue;
@@ -135,7 +132,7 @@ namespace functor {
               is_visible = true;
               // pix is curr 3D block coord
               VoxelBlockHandler<FieldType> handler = {block, pix};
-              _function(handler, pix, pos, pixel, frustum_boarder);
+              _function(handler, pix, pos, pixel );
             }
           }
         }
@@ -173,9 +170,6 @@ namespace functor {
           const Eigen::Vector2f pixel = Eigen::Vector2f(
               pix_hom(0) * inverse_depth + 0.5f,
               pix_hom(1) * inverse_depth + 0.5f);
-          bool frustum_boarder = true;
-//          bool frustum_boarder =algorithms::is_frustum_boarder<se::VoxelBlock<FieldType>>
-//              (voxel+dir, voxel_size, _K*_Tcw.matrix(), _frame_size);
           /* Check if the corner projects into the image */
           if (pixel(0) < 0.5f || pixel(0) > _frame_size(0) - 0.5f  ||
               pixel(1) < 0.5f || pixel(1) > _frame_size(1) - 0.5f) continue;
@@ -184,7 +178,7 @@ namespace functor {
           NodeHandler<FieldType> handler = {node, i};
 
           /* Update the ith child of the given node */
-          _function(handler, voxel + dir, vox_cam, pixel, frustum_boarder); // voxel + dir seems wrong;
+          _function(handler, voxel + dir, vox_cam, pixel); // voxel + dir seems wrong;
           // should be voxel + dir * node->side_ / 2
         }
       }
