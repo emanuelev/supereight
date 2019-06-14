@@ -282,21 +282,25 @@ struct bfusion_update {
           data.st = voxel_state::kUnknown;
         }
 
-        // occlusion frontier
-//        // check if the depth next to a free voxel was invalid
-//        if (prob < 0.5 && (px.x() > 8 || px.y() > 8 || px.x() < depthSize.x() - 8
-//            || px.y() < depthSize.y() - 8)) {
-//          // check if any pixel next to it is unequal to 0 and the prob is euqal to free
-//          for (int i = px.x() - 1; i <= px.x() + 1; ++i) {
-//            for (int j = px.y() - 1; i <= px.y() + 1; ++j) {
-//              if (depth[i + depthSize.x() * j] <= 0 && prob < 0.5f) {
-//                data.st = voxel_state::kFrontier;
-//                frontier_blocks_->emplace_back(handler.getNodeCoordinates());
-//                break;
-//              }
-//            }
-//          }
-//        }
+        // invalid depth value frontier
+        // inside the image the curr voxel is free
+        if (prob < 0.5 && (px.x() > 8 || px.y() > 8 || px.x() < depthSize.x()-8|| px.y() < depthSize.y() - 8)) {
+          bool is_occluded= false;
+          // check if any pixel next to it is equal to 0
+          for (int i = px.x() - 1; i <= px.x() + 1; ++i) {
+            for (int j = px.y() - 1; j <= px.y() + 1; ++j) {
+              if (depth[i + depthSize.x() * j] <= 0 ) {
+                is_occluded = true;
+              }
+            }
+          }
+          // if the curren pixel is next to a 0
+          if(is_occluded) {
+            data.st = voxel_state::kFrontier;
+            frontier_blocks_->emplace_back(handler.getNodeCoordinates());
+          }
+        }
+
       }
     }
 
