@@ -86,6 +86,10 @@ namespace se {
       return (n < 2 ? 0 : 1 + log2_const(n/2));
     }
 
+    static inline float getProbFromLog(float log_prob){
+      return exp2(log_prob)/(1.f+ exp2(log_prob));
+    }
+
     static inline Eigen::Matrix4f toMatrix4f(const Eigen::Vector3f& trans) {
       Eigen::Matrix4f se3_mat;  
       se3_mat << 1.f ,  0.f ,  0.f , trans.x(), 
