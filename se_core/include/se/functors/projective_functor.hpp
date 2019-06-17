@@ -102,7 +102,7 @@ namespace functor {
         for(z = blockCoord(2); z < zlast; ++z) {
           for (y = blockCoord(1); y < ylast; ++y){
             /* This variable has nothing to do with pix but is the side starting point of the side
-               of a given voxel block */
+               of a given voxel block , [voxel coord]*/
             Eigen::Vector3i pix = Eigen::Vector3i(blockCoord(0), y, z);
             // Starting voxel in world frame for the iteration over a voxel line (x in [0; blockSide])
             // in world frame
@@ -116,7 +116,7 @@ namespace functor {
               pix(0) = x + blockCoord(0);
               // Compute "pixel" (depth * [u, v, 1]) for a new x
               const Eigen::Vector3f camera_voxel = camerastart + (x*cameraDelta);
-              // Compute voxel position in camera frame for a new x in world frame
+              // Compute voxel position in camera frame for a new x in world frame [m]
               const Eigen::Vector3f pos = start + (x*delta);
               if (pos(2) < 0.0001f) continue;
 
@@ -128,11 +128,12 @@ namespace functor {
               // Check if the image coordinates are within the image
               if (pixel(0) < 0.5f || pixel(0) > _frame_size(0) - 0.5f ||
                   pixel(1) < 0.5f || pixel(1) > _frame_size(1) - 0.5f ) continue;
+
               // Set voxel to visible to later active the block
               is_visible = true;
               // pix is curr 3D block coord
               VoxelBlockHandler<FieldType> handler = {block, pix};
-              _function(handler, pix, pos, pixel );
+              _function(handler, pix, pos, pixel, _map );
             }
           }
         }
@@ -178,7 +179,7 @@ namespace functor {
           NodeHandler<FieldType> handler = {node, i};
 
           /* Update the ith child of the given node */
-          _function(handler, voxel + dir, vox_cam, pixel); // voxel + dir seems wrong;
+          _function(handler, voxel + dir, vox_cam, pixel,_map); // voxel + dir seems wrong;
           // should be voxel + dir * node->side_ / 2
         }
       }

@@ -49,6 +49,8 @@ class DataHandlerBase {
 
   virtual bool occupancyUpdated() {
   };
+  virtual bool isFrontier(){
+  };
 };
 
 template<typename FieldType>
@@ -57,6 +59,9 @@ class VoxelBlockHandler :
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  typedef std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> vec3i;
+
   VoxelBlockHandler(se::VoxelBlock<FieldType>* ptr, Eigen::Vector3i v) :
     _block(ptr), _voxel(v) {}
 
@@ -80,6 +85,39 @@ public:
   bool occupancyUpdated() {
     return _block->occupancyUpdated();
   }
+
+  template <template <typename FieldT> class MapT>
+  bool isFrontier(const MapT<FieldType> &map){
+    vec3i face_neighbour_voxel (6);
+    face_neighbour_voxel[0] << _voxel.x() -1 , _voxel.y(), _voxel.z();
+    face_neighbour_voxel[1] << _voxel.x() +1, _voxel.y(), _voxel.z();
+    face_neighbour_voxel[2] << _voxel.x() , _voxel.y()-1, _voxel.z();
+    face_neighbour_voxel[3] << _voxel.x() , _voxel.y()+1, _voxel.z();
+    face_neighbour_voxel[4] << _voxel.x() , _voxel.y(), _voxel.z()-1;
+    face_neighbour_voxel[5] << _voxel.x() , _voxel.y(), _voxel.z()+1;
+
+    for(const auto& face_voxel : face_neighbour_voxel){
+      Eigen::Vector3i offset = face_voxel - _voxel;
+      int idx = offset(0) + offset(1)*BLOCK_SIDE +
+          offset(2)*BLOCK_SIDE *BLOCK_SIDE;
+
+      if (idx<0){
+        se::VoxelBlock<FieldType> *neighbour =  map.fetch(face_voxel.x(), face_voxel.y(),
+            face_voxel.z());
+        if(neighbour->data(face_voxel).st == voxel_state::kUnknown){
+//          std::cout << "[supereight/datahandler] neighbour " << std::endl;
+          return true;
+        }
+      }
+      if(_block->data(face_voxel).st == voxel_state::kUnknown){
+//        std::cout << "[supereight/datahandler] is frontier" << std::endl;
+        return true;
+      }
+    }
+    return false;
+  }
+
+
 
   private:
     se::VoxelBlock<FieldType> * _block;  
@@ -111,6 +149,10 @@ class NodeHandler: DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> >
     bool occupancyUpdated() {
       return _node->occupancyUpdated();
     }
+template <template <typename FieldT> class MapT>
+    bool isFrontier(const MapT<FieldType> &map){
+    return false;
+  }
 
   private:
     se::Node<FieldType> * _node; 
