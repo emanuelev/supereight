@@ -362,18 +362,21 @@ inline void PerfStats::print_all_data(std::ostream& out, bool include_all_data) 
 			continue;
 
 		std::cout.precision(10);
-		std::cout << "\"" << it->first << "\" : { ";
+		out << "\"" << it->first << "\" : { ";
 
-		std::cout << "\"mean\":\"" << (*res).mean << "\", ";
-		std::cout << "\"std\":\"" << sqrt((*res).sd / idx)  << "\", ";
-		std::cout << "\"min\":\"" << (*res).min << "\", ";
-		std::cout << "\"max\":\"" << (*res).max << "\", ";
-		std::cout << "\"sum\":\"" << (*res).sum << "\"";
-		std::cout << "}";
+		out << "\"mean\":\"" << (*res).mean << "\", ";
+		out << "\"std\":\"" << sqrt((*res).sd / idx)  << "\", ";
+		out << "\"min\":\"" << (*res).min << "\", ";
+		out << "\"max\":\"" << (*res).max << "\", ";
+		out << "\"sum\":\"" << (*res).sum << "\"";
+		out << "}";
 
 		if (i + 1 != max)
 		{
-			std::cout << ", ";
+			out << ", \n" ;
+		}else
+		{
+			out <<std::endl;
 		}
 
 		++i;
