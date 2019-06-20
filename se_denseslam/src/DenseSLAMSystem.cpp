@@ -397,6 +397,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   unsigned int frame,
                                   vec3i *updated_blocks,
                                   vec3i *frontier_blocks,
+                                  vec3i *occlusion_blocks,
                                   map3i &frontier_blocks_map,
                                   map3i &occlusion_blocks_map) {
 
@@ -412,7 +413,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
     float voxelsize = volume_._extent / volume_._size;
     int num_vox_per_pix = volume_._extent / ((se::VoxelBlock<FieldType>::side) * voxelsize);
 
-    vec3i *occlusion_blocks;
+
     size_t total = num_vox_per_pix * computation_size_.x() * computation_size_.y();
     allocation_list_.reserve(total);
 
@@ -483,6 +484,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   timestamp,
                                   voxelsize,
                                   frontier_blocks,
+                                  occlusion_blocks,
                                   true);
 
       se::functor::projective_map(*volume_._map_index,
@@ -493,7 +495,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
       vec3i *copy_frontier_blocks = frontier_blocks;
 //      updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks);
 //      frontier_blocks_map= frontier_map_;
-//      std::cout << "supereight size" << occlusion_blocks->size() << std::endl;
+      std::cout << "occlusion size " << occlusion_blocks->size() << std::endl;
 //      insertOcclusionBlocksToMap(occlusion_blocks_map, occlusion_blocks);
 
 //      for (auto it = frontier_map_.begin(); it != frontier_map_.end(); ++it){

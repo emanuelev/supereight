@@ -95,8 +95,8 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
     face_neighbour_voxel[5] << _voxel.x(), _voxel.y(), _voxel.z() + 1;
 
     for (const auto &face_voxel : face_neighbour_voxel) {
-    std::cout<< "[se/datahandler] isFrontier for " << _voxel << " and its face voxel " <<
-    face_voxel << ", state " << map.get(face_voxel).st << std::endl;
+//    std::cout<< "[se/datahandler] isFrontier for " << _voxel << " and its face voxel " <<
+//    face_voxel << ", state " << map.get(face_voxel).st << std::endl;
       return voxel_state::kUnknown == map.get(face_voxel).st;
 //      Eigen::Vector3i offset = face_voxel - _voxel;
 //      int idx = offset(0) + offset(1) * BLOCK_SIDE + offset(2) * BLOCK_SIDE * BLOCK_SIDE;

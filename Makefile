@@ -1,4 +1,4 @@
-icl_dataset_folder = ~/
+icl_dataset_folder = ~
 icl_camera_parameters = 481.2,-480,320,240
 icl_run_command = ./build/se_apps/se-denseslam-ofusion-main
 icl_run_arguments = --input-file $(icl_dataset_folder)/scene.raw \

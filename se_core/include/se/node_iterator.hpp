@@ -187,6 +187,30 @@ class node_iterator {
     }
     return frontierVoxels;
   }
+
+  vec3i getOccludedVoxels(float threshold, const Eigen::Vector3i &blockCoord) {
+    vec3i occludedVoxels;
+    occludedVoxels.clear();
+
+    int xlast = blockCoord(0) + BLOCK_SIDE;
+    int ylast = blockCoord(1) + BLOCK_SIDE;
+    int zlast = blockCoord(2) + BLOCK_SIDE;
+#pragma omp parallel for
+    for (int z = blockCoord(2); z < zlast; ++z) {
+      for (int y = blockCoord(1); y < ylast; ++y) {
+        for (int x = blockCoord(0); x < xlast; ++x) {
+
+          const Eigen::Vector3i vox{x, y, z};
+          if (map_.get(x, y, z).st == voxel_state::kOccluded) {
+//          value = block->data(Eigen::Vector3i(x, y, z));
+#pragma omp critical
+            occludedVoxels.push_back(vox);
+          }
+        }
+      }
+    }
+    return occludedVoxels;
+  }
   /**
    * check if frontier voxels are in the voxel block
    * @param blockCoord

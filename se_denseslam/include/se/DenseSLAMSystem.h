@@ -223,6 +223,7 @@ class DenseSLAMSystem {
                    unsigned int frame,
                    vec3i *updated_blocks,
                    vec3i *frontier_blocks,
+                   vec3i *occlusion_blocks,
                    map3i &frontier_blocks_map,
                    map3i &occlusion_blocks_map);
 //  bool integration(const Eigen::Vector4f &k,
