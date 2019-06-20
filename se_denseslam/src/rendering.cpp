@@ -149,7 +149,7 @@ void raycastKernel(const Volume<T> &volume,
             }
           }
         }
-    std::cout << "surface voxel set size: " << surface_voxel_set.size() << std::endl;
+    std::cout << "[supereight] surface voxel set size: " << surface_voxel_set.size() << std::endl;
 //    std::cout << "frontier voxel set size: " << frontier_voxel_set.size() << std::endl;
 //    std::cout << "occlusion voxel set size: " << occlusion_voxel_set.size() << std::endl;
   TOCK("raycastKernel", inputSize.x * inputSize.y);

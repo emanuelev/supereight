@@ -31,13 +31,13 @@
 #include "../utils/math_utils.h"
 #include "../node.hpp"
 
-template <typename SpecialisedHandlerT, typename NodeT>
+template<typename SpecialisedHandlerT, typename NodeT>
 class DataHandlerBase {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   typename NodeT::value_type get() {
     return static_cast<SpecialisedHandlerT *>(this)->get();
-  } 
-  void set(const typename NodeT::value_type& val) {
+  }
+  void set(const typename NodeT::value_type &val) {
     static_cast<SpecialisedHandlerT *>(this)->set(val);
   }
 
@@ -49,34 +49,32 @@ class DataHandlerBase {
 
   virtual bool occupancyUpdated() {
   };
-  virtual bool isFrontier(){
+  virtual bool isFrontier() {
   };
 };
 
 template<typename FieldType>
-class VoxelBlockHandler : 
-  DataHandlerBase<VoxelBlockHandler<FieldType>, se::VoxelBlock<FieldType> > {
+class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
+                                          se::VoxelBlock<FieldType> > {
 
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   typedef std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> vec3i;
 
-  VoxelBlockHandler(se::VoxelBlock<FieldType>* ptr, Eigen::Vector3i v) :
-    _block(ptr), _voxel(v) {}
+  VoxelBlockHandler(se::VoxelBlock<FieldType> *ptr, Eigen::Vector3i v) : _block(ptr), _voxel(v) {}
 
   typename se::VoxelBlock<FieldType>::value_type get() {
     return _block->data(_voxel);
   }
 
-  void set(const typename se::VoxelBlock<FieldType>::value_type& val) {
+  void set(const typename se::VoxelBlock<FieldType>::value_type &val) {
     _block->data(_voxel, val);
   }
 
   Eigen::Vector3i getNodeCoordinates() {
     return _block->coordinates();
   }
-
 
   void occupancyUpdated(const bool o) {
     _block->occupancyUpdated(o);
@@ -86,78 +84,81 @@ public:
     return _block->occupancyUpdated();
   }
 
-  template <template <typename FieldT> class MapT>
-  bool isFrontier(const MapT<FieldType> &map){
-    vec3i face_neighbour_voxel (6);
-    face_neighbour_voxel[0] << _voxel.x() -1 , _voxel.y(), _voxel.z();
-    face_neighbour_voxel[1] << _voxel.x() +1, _voxel.y(), _voxel.z();
-    face_neighbour_voxel[2] << _voxel.x() , _voxel.y()-1, _voxel.z();
-    face_neighbour_voxel[3] << _voxel.x() , _voxel.y()+1, _voxel.z();
-    face_neighbour_voxel[4] << _voxel.x() , _voxel.y(), _voxel.z()-1;
-    face_neighbour_voxel[5] << _voxel.x() , _voxel.y(), _voxel.z()+1;
+  template<template<typename FieldT> class MapT>
+  bool isFrontier(const MapT<FieldType> &map) {
+    vec3i face_neighbour_voxel(6);
+    face_neighbour_voxel[0] << _voxel.x() - 1, _voxel.y(), _voxel.z();
+    face_neighbour_voxel[1] << _voxel.x() + 1, _voxel.y(), _voxel.z();
+    face_neighbour_voxel[2] << _voxel.x(), _voxel.y() - 1, _voxel.z();
+    face_neighbour_voxel[3] << _voxel.x(), _voxel.y() + 1, _voxel.z();
+    face_neighbour_voxel[4] << _voxel.x(), _voxel.y(), _voxel.z() - 1;
+    face_neighbour_voxel[5] << _voxel.x(), _voxel.y(), _voxel.z() + 1;
 
-    for(const auto& face_voxel : face_neighbour_voxel){
-      Eigen::Vector3i offset = face_voxel - _voxel;
-      int idx = offset(0) + offset(1)*BLOCK_SIDE +
-          offset(2)*BLOCK_SIDE *BLOCK_SIDE;
-
-      if (idx<0){
-        se::VoxelBlock<FieldType> *neighbour =  map.fetch(face_voxel.x(), face_voxel.y(),
-            face_voxel.z());
-        if(neighbour->data(face_voxel).st == voxel_state::kUnknown){
-//          std::cout << "[supereight/datahandler] neighbour " << std::endl;
-          return true;
-        }
-      }
-      if(_block->data(face_voxel).st == voxel_state::kUnknown){
-//        std::cout << "[supereight/datahandler] is frontier" << std::endl;
-        return true;
-      }
+    for (const auto &face_voxel : face_neighbour_voxel) {
+    std::cout<< "[se/datahandler] isFrontier for " << _voxel << " and its face voxel " <<
+    face_voxel << ", state " << map.get(face_voxel).st << std::endl;
+      return voxel_state::kUnknown == map.get(face_voxel).st;
+//      Eigen::Vector3i offset = face_voxel - _voxel;
+//      int idx = offset(0) + offset(1) * BLOCK_SIDE + offset(2) * BLOCK_SIDE * BLOCK_SIDE;
+//
+//      if (idx < 0 || idx > BLOCK_SIDE * BLOCK_SIDE * BLOCK_SIDE) {
+//        se::VoxelBlock<FieldType>
+//            *neighbour = map.fetch(face_voxel.x(), face_voxel.y(), face_voxel.z());
+//        if (neighbour == NULL) {
+////          std::cout << "neighbour empty"<< std::endl;
+//          return false;
+//        }
+//        if (neighbour->data(face_voxel).y == 0.0f) {
+////        if (neighbour->data(face_voxel).st == voxel_state::kUnknown) {
+////            std::cout << "[supereight/datahandler] neighbour is frontier" << std::endl;
+//          return true;
+//        }
+//      } else if (_block->data(face_voxel).y == 0.0f) {
+////        std::cout << "[supereight/datahandler] is frontier" << std::endl;
+//        return true;
+//      }
     }
-    return false;
+
   }
 
-
-
-  private:
-    se::VoxelBlock<FieldType> * _block;  
-    Eigen::Vector3i _voxel;
+ private:
+  se::VoxelBlock<FieldType> *_block;
+  Eigen::Vector3i _voxel;
 };
 
 template<typename FieldType>
-class NodeHandler: DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> > {
-  public:
+class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> > {
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  NodeHandler(se::Node<FieldType>* ptr, int i) : _node(ptr), _idx(i) {}
+  NodeHandler(se::Node<FieldType> *ptr, int i) : _node(ptr), _idx(i) {}
 
-    typename se::Node<FieldType>::value_type get() {
-      return _node->value_[_idx];
-    }
+  typename se::Node<FieldType>::value_type get() {
+    return _node->value_[_idx];
+  }
 
-    void set(const typename se::Node<FieldType>::value_type& val) {
-      _node->value_[_idx] = val;
-    }
+  void set(const typename se::Node<FieldType>::value_type &val) {
+    _node->value_[_idx] = val;
+  }
 
-    Eigen::Vector3i getNodeCoordinates() {
-    return Eigen::Vector3i(0,0,0);
-    }
+  Eigen::Vector3i getNodeCoordinates() {
+    return Eigen::Vector3i(0, 0, 0);
+  }
 
-    void occupancyUpdated(const bool o) {
-      _node->occupancyUpdated(o);
-    }
+  void occupancyUpdated(const bool o) {
+    _node->occupancyUpdated(o);
+  }
 
-    bool occupancyUpdated() {
-      return _node->occupancyUpdated();
-    }
-template <template <typename FieldT> class MapT>
-    bool isFrontier(const MapT<FieldType> &map){
+  bool occupancyUpdated() {
+    return _node->occupancyUpdated();
+  }
+  template<template<typename FieldT> class MapT>
+  bool isFrontier(const MapT<FieldType> &map) {
     return false;
   }
 
-  private:
-    se::Node<FieldType> * _node; 
-    int _idx; 
+ private:
+  se::Node<FieldType> *_node;
+  int _idx;
 };
-
 
 #endif

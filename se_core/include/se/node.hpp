@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <time.h>
 #include <atomic>
+#include <se/volume_traits.hpp>
 #include "voxel_traits.hpp"
 #include "octree_defines.h"
 #include "utils/math_utils.h"
@@ -48,6 +49,7 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   typedef voxel_traits<T> traits_type;
   typedef typename traits_type::value_type value_type;
+
   value_type empty() const { return traits_type::empty(); }
   value_type init_val() const { return traits_type::initValue(); }
 
@@ -97,10 +99,10 @@ class VoxelBlock: public Node<T> {
   public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     typedef voxel_traits<T> traits_type;
+  // returns the voxel type struct
     typedef typename traits_type::value_type value_type;
     static constexpr unsigned int side = BLOCK_SIDE;
     static constexpr unsigned int sideSq = side*side;
-
     static constexpr value_type empty() { 
       return traits_type::empty(); 
     }
@@ -118,6 +120,7 @@ class VoxelBlock: public Node<T> {
 
     Eigen::Vector3i coordinates() const { return coordinates_; }
     void coordinates(const Eigen::Vector3i& c){ coordinates_ = c; }
+    //\brief Retrieves voxel value at coordinates (x,y,z)
 
     value_type data(const Eigen::Vector3i& pos) const;
     void data(const Eigen::Vector3i& pos, const value_type& value);
@@ -128,12 +131,13 @@ class VoxelBlock: public Node<T> {
     void active(const bool a){ active_ = a; }
     bool active() const { return active_; }
 
+
     value_type * getBlockRawPtr(){ return voxel_block_; }
     static constexpr int size(){ return sizeof(VoxelBlock<T>); }
     
   private:
     VoxelBlock(const VoxelBlock&) = delete;
-    Eigen::Vector3i coordinates_;
+    Eigen::Vector3i coordinates_; // bottom left corner of the block
     value_type voxel_block_[side*sideSq]; // Brick of data.
     bool active_;
 
@@ -172,5 +176,7 @@ template <typename T>
 inline void VoxelBlock<T>::data(const int i, const value_type &value){
   voxel_block_[i] = value;
 }
-}
+
+
+} //namespace se
 #endif

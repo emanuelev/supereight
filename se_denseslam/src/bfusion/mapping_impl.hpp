@@ -188,6 +188,9 @@ struct bfusion_update {
   vec3i *frontier_blocks_;
   vec3i *occlusion_blocks_;
 
+  bool detect_frontier_;
+  int place_holder_;
+
 //  std::vector<Eigen::Vector3i> *updated_blocks_ ;
 //  std::vector<Eigen::Vector3i> *frontier_blocks_ ;
 
@@ -195,6 +198,23 @@ struct bfusion_update {
       :
       depth(d), depthSize(framesize), noiseFactor(n), timestamp(t), voxelsize(vs) {};
 
+  bfusion_update(const float *d,
+                 const Eigen::Vector2i framesize,
+                 float n,
+                 float t,
+                 float vs,
+                 vec3i *updated_blocks,
+                 bool detect_frontier,
+                 int place_holder)
+      :
+      depth(d),
+      depthSize(framesize),
+      noiseFactor(n),
+      timestamp(t),
+      voxelsize(vs),
+      updated_blocks_(updated_blocks),
+      detect_frontier_(detect_frontier),
+      place_holder_(place_holder) {};
 //  bfusion_update(const float *d,
 //                 const Eigen::Vector2i framesize,
 //                 float n,
@@ -212,26 +232,40 @@ struct bfusion_update {
 //      freedVoxels_(freedVoxels) {};
 
 // TODO fix alignment
+//  bfusion_update(const float *d,
+//                 const Eigen::Vector2i framesize,
+//                 float n,
+//                 float t,
+//                 float vs,
+//                 vec3i *updated_blocks,
+//                 vec3i *frontier_blocks,
+//                 vec3i *occlusion_blocks)
+//      :
+//      depth(d),
+//      depthSize(framesize),
+//      noiseFactor(n),
+//      timestamp(t),
+//      voxelsize(vs),
+//      updated_blocks_(updated_blocks),
+//      frontier_blocks_(frontier_blocks),
+//      occlusion_blocks_(occlusion_blocks){};
   bfusion_update(const float *d,
                  const Eigen::Vector2i framesize,
                  float n,
                  float t,
                  float vs,
-                 vec3i *updated_blocks,
                  vec3i *frontier_blocks,
-                 vec3i *occlusion_blocks)
+                 bool detect_frontier)
       :
       depth(d),
       depthSize(framesize),
       noiseFactor(n),
       timestamp(t),
       voxelsize(vs),
-      updated_blocks_(updated_blocks),
       frontier_blocks_(frontier_blocks),
-      occlusion_blocks_(occlusion_blocks){};
+      detect_frontier_(detect_frontier) {};
 
-
-  template <typename FieldType, template <typename FieldT> class MapT, typename DataHandlerT>
+  template<typename FieldType, template<typename FieldT> class MapT, typename DataHandlerT>
   void operator()(DataHandlerT &handler,
                   const Eigen::Vector3i &pix,
                   const Eigen::Vector3f &pos,
@@ -241,12 +275,39 @@ struct bfusion_update {
     // pix [3D voxel coord], pos point in world frame [m]
     const Eigen::Vector2i px = pixel.cast<int>();
     const float depthSample = depth[px.x() + depthSize.x() * px.y()];
+    const int boarder = 12;
+    bool is_occluded = false;
     // Return on invalid depth measurement
     auto data = handler.get();
+    float prev_occ = se::math::getProbFromLog(data.x);
+
+    // invalid depth measurement
     if (depthSample <= 0) {
-      data.st = voxel_state::kUnknown;
+//      if (detect_frontier_) {
+//        data.st = voxel_state::kUnknown;
+//        for (int i = px.x() - 4; i < px.x() + 5; i++) {
+//          for (int j = px.y() - 4; j < px.y() + 5; j++) {
+//            float curr_depth = depth[i + depthSize.x() * j];
+//            // check if any pixel next to it is equal to 0
+//            if (curr_depth != 0 && handler.isFrontier(map)) {
+////                std::cout << "[supereight.mapping] invalid depth frontier" << std::endl;
+//              is_occluded = true;
+//            }
+//          }
+//        }
+//        if (is_occluded) {
+//#pragma omp critical
+//          {
+//            frontier_blocks_->emplace_back(handler.getNodeCoordinates());
+//            data.st = voxel_state::kFrontier;
+//          }
+//          handler.set(data);
+//        }
+//      }
       return;
+
     }
+
     // Compute the occupancy probability for the current measurement.
     const float diff = (pos.z() - depthSample);
     float sigma = se::math::clamp(noiseFactor * se::math::sq(pos.z()), 2 * voxelsize, 0.05f);
@@ -254,80 +315,96 @@ struct bfusion_update {
 
     // 0.5 = unknown
     if (sample == 0.5f) {
-      data.st = voxel_state::kUnknown;
       return;
     }
     sample = se::math::clamp(sample, 0.03f, 0.97f);
+
     // in log2
-    float prev_occ = se::math::getProbFromLog(data.x);
     // Update the occupancy probability
-    const double delta_t = timestamp - data.y;
-    data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
-    data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
-    data.y = timestamp;
-    float prob = se::math::getProbFromLog(data.x);
-    // TODO for frontiers: check if sibling voxels are unknown
-
+    if (!detect_frontier_) {
+      const double delta_t = timestamp - data.y;
+      data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
+      data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
+      data.y = timestamp;
+      float prob = se::math::getProbFromLog(data.x);
+      if (prob >= THRESH_OCC) {
+        data.st = voxel_state::kOccupied;
+      } else if (prob <= THRESH_FREE) {
+        data.st = voxel_state::kFree;
+      } else {
+        // if the occupancy probability is not low or high enough => back to unknown?
+        data.st = voxel_state::kUnknown;
+      }
 #pragma omp critical
-    {
-      if (std::is_same<FieldType, OFusion>::value) {
-        // frustum frontier voxel has to be free and on the image boarder
-        if (prob < 0.5f
-            && (px.x() <= BLOCK_SIDE || px.y() <= BLOCK_SIDE || px.x() >= depthSize.x() - BLOCK_SIDE
-                || px.y() >= depthSize.y() - BLOCK_SIDE)) {
-//        updateFrontierMapIntegration(data,
-//                                     frontier_blocks_,
-//                                     handler.getNodeCoordinates(),
-//                                     is_frustum_boarder);
+      {
+        bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
+        bool voxelOccupied = prev_occ <= 0.5 && prob > 0.5;
+        bool voxelFreed = prev_occ >= 0.5 && prob < 0.5;
+        bool occupancyUpdated = handler.occupancyUpdated();
+        if (isVoxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
+            && data.st != voxel_state::kFrontier) {
 
-// get neighbors
-          if (handler.isFrontier(map)) {
-            std::cout << "[supereight/mapping] frustum frontier " << std::endl;
-            data.st = voxel_state::kFrontier;
-          }
-//            data.st = voxel_state::kFrontier;
-        } else if (prob >= THRESH_OCC) {
-          data.st = voxel_state::kOccupied;
-        } else if (prob <= THRESH_FREE) {
-          data.st = voxel_state::kFree;
-        } else if ((px.x() > 8 || px.y() > 8 || px.x() < depthSize.x() - 8
-            || px.y() < depthSize.y() - 8)) {
-          // if the occupancy probability is not low or high enough => back to unknown?
-          data.st = voxel_state::kUnknown;
+          updated_blocks_->emplace_back(handler.getNodeCoordinates());
+          handler.occupancyUpdated(true);
         }
+      }
+      handler.set(data);
 
-        // invalid depth value frontier
-        // inside the image the curr voxel is free
-        if (prob < 0.5
-            && (px.x() <= BLOCK_SIDE || px.y() <= BLOCK_SIDE || px.x() >= depthSize.x() - BLOCK_SIDE
-                || px.y() >= depthSize.y() - BLOCK_SIDE)) {
-          bool is_occluded = false;
-          // check if any pixel next to it is equal to 0
-          for (int i = px.x() - 1; i <= px.x() + 1; ++i) {
-            for (int j = px.y() - 1; j <= px.y() + 1; ++j) {
-              float curr_depth = depth[i + depthSize.x() * j];
-              if (curr_depth <= 0 && handler.isFrontier(map)) {
-                std::cout << "[supereight.mapping] invalid depth frontier" << std::endl;
-                is_occluded = true;
-                // TODO see occlusion gap target images. doesn't get the frontiers there
-              } else if (curr_depth + voxelsize * 3 <= depthSample
-                  || depthSample <= curr_depth - voxelsize * 3 && handler.isFrontier(map)) {
-                std::cout << "[supereight/mapping] occlusion frontier depth" << std::endl;
-                is_occluded = true;
-              }
+    }
+
+    if (detect_frontier_) {
+      float prob = se::math::getProbFromLog(data.x);
+#pragma omp critical
+      {
+        if (std::is_same<FieldType, OFusion>::value) {
+          // frustum frontier voxel has to be free and on the image boarder
+          if (data.st ==voxel_state::kFree) {
+//              && (px.x() <= boarder || px.y() <= boarder || px.x() >= depthSize.x() - boarder
+//                  || px.y() >= depthSize.y() - boarder)) {
+            if (handler.isFrontier(map)) {
+//            std::cout << "[supereight/mapping] frustum frontier " << std::endl;
+              frontier_blocks_->emplace_back(handler.getNodeCoordinates());
+              data.st = voxel_state::kFrontier;
+
             }
-          }
+          } d
+
+          // invalid depth value frontier
+          // inside the image the curr voxel is free
+//        if ((px.x() >= boarder || px.y() >= boarder || px.x() <= depthSize.x() - boarder
+//                || px.y() <= depthSize.y() - boarder)) {
+/*          if (handler.isFrontier(map)) {
+            for (int i = px.x() - 4; i < px.x() + 5; i++) {
+              for (int j = px.y() - 4; j < px.y() + 5; j++) {
+                float curr_depth = depth[i + depthSize.x() * j];
+                // invalid measurements frontier
+                if (curr_depth <= 0) {
+//                std::cout << "[supereight.mapping] invalid depth frontier" << std::endl;
+//                  frontier_blocks_->emplace_back(handler.getNodeCoordinates());
+//                  is_occluded = true;
+                  // check for occluding edges (big depth differencce)
+                } else if (curr_depth > 0 && prob < 0.5
+                    && (curr_depth + voxelsize * 2 <= depthSample
+                        || curr_depth - voxelsize * 2 >= depthSample)) {
+//              } else if ((curr_depth + voxelsize * 3 <= depthSample
+//                  || curr_depth - voxelsize * 3 >= depthSample) && handler.isFrontier(map)) {
+//                std::cout << "[supereight/mapping] occlusion frontier depth" << std::endl;
+//                occlusion_blocks_->emplace_back(handler.getNodeCoordinates());
+                  frontier_blocks_->emplace_back(handler.getNodeCoordinates());
+                  is_occluded = true;
+                }
+              }
+            }*/
           // if the curren pixel is next to a 0
           if (is_occluded) {
             data.st = voxel_state::kFrontier;
           }
         }
-        if (data.st == voxel_state::kFrontier) {
-          frontier_blocks_->emplace_back(handler.getNodeCoordinates());
-        }
-      }
-    }
+      }// omp
 
+
+      handler.set(data);
+    }
 //    std::cout << static_cast<int>(data.st) << std::endl;
 /*
       bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
@@ -339,20 +416,6 @@ struct bfusion_update {
         occupiedVoxels_.push_back(pix);
       }
     */
-#pragma omp critical
-    {
-      bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
-      bool voxelOccupied = prev_occ <= 0.5 && prob > 0.5;
-      bool voxelFreed = prev_occ >= 0.5 && prob < 0.5;
-      bool occupancyUpdated = handler.occupancyUpdated();
-      if (isVoxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
-          && data.st != voxel_state::kFrontier) {
-
-        updated_blocks_->emplace_back(handler.getNodeCoordinates());
-        handler.occupancyUpdated(true);
-      }
-      handler.set(data);
-    }
   }
 
 };

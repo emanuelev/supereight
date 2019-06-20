@@ -126,8 +126,8 @@ namespace functor {
                   camera_voxel(0) * inverse_depth + 0.5f,
                   camera_voxel(1) * inverse_depth + 0.5f);
               // Check if the image coordinates are within the image
-              if (pixel(0) < 0.5f || pixel(0) > _frame_size(0) - 0.5f ||
-                  pixel(1) < 0.5f || pixel(1) > _frame_size(1) - 0.5f ) continue;
+              if (pixel(0) < 0.5f || pixel(0) > _frame_size(0) - 1.5f ||
+                  pixel(1) < 0.5f || pixel(1) > _frame_size(1) - 1.5f ) continue;
 
               // Set voxel to visible to later active the block
               is_visible = true;
@@ -172,8 +172,8 @@ namespace functor {
               pix_hom(0) * inverse_depth + 0.5f,
               pix_hom(1) * inverse_depth + 0.5f);
           /* Check if the corner projects into the image */
-          if (pixel(0) < 0.5f || pixel(0) > _frame_size(0) - 0.5f  ||
-              pixel(1) < 0.5f || pixel(1) > _frame_size(1) - 0.5f) continue;
+          if (pixel(0) < 0.5f || pixel(0) > _frame_size(0) - 1.5f  ||
+              pixel(1) < 0.5f || pixel(1) > _frame_size(1) - 1.5f) continue;
 
           /* Get handler for ith child of the given node */
           NodeHandler<FieldType> handler = {node, i};
@@ -204,6 +204,7 @@ namespace functor {
           for(unsigned int i = 0; i < list_size; ++i){
             update_node(nodes_list[i], voxel_size);
          }
+
       }
 
     private:
