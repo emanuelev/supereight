@@ -258,23 +258,62 @@ class node_iterator {
           // make handler with the current voxel
           VoxelBlockHandler<T> handler = {block, Eigen::Vector3i(x, y, z)};
           auto data = handler.get();
-          if (map_.get(x, y, z).st == voxel_state::kFrontier) {
+//          std::cout << "[se/node_it] state "<< map_.get(x,y,z).st << std::endl;
+          if (map_.get(x, y, z).st == voxel_state::kFrontier && !handler.isFrontier(map_)) {
 //            std::cout << " [supereight/node it] voxel is a frontier" << std::endl;
             // check for the curr voxel if it a Frontier / has an unknown voxel next to it
-            if (!handler.isFrontier(map_)) {
+            if (data.x <= THRESH_FREE) {
               data.st = voxel_state::kFree;
-              std::cout << "[superegiht/node_it] frontier=> free , voxel " << x << " " << y << " "
-                        << z << std::endl;
-              handler.set(data);
-
+//              std::cout << "[superegiht/node_it] frontier=> free , voxel " << x << " " << y << " "
+//                        << z << std::endl;
+            } else if (data.x >= THRESH_OCC) {
+              data.st = voxel_state::kOccupied;
             }
+            handler.set(data);
+            has_frontier = true;
           }
 
         }
       }
     }
+    return has_frontier;
+  }
 
-    return true;
+   /**
+   * update all frontier voxels, targeting the frontier voxel just above floor
+   * @param blockCoord bottom left voxel block (node) voxel
+   * @return
+   */
+  bool deleteOcclusionVoxelsviaMorton(const Eigen::Vector3i &blockCoord) {
+//    VoxelBlock<T>* block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
+    bool has_occlusion = false;
+
+    int xlast = blockCoord(0) + BLOCK_SIDE;
+    int ylast = blockCoord(1) + BLOCK_SIDE;
+    int zlast = blockCoord(2) + BLOCK_SIDE;
+    se::VoxelBlock<T> *block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
+    for (int z = blockCoord(2); z < zlast; ++z) {
+      for (int y = blockCoord(1); y < ylast; ++y) {
+        for (int x = blockCoord(0); x < xlast; ++x) {
+          // make handler with the current voxel
+          VoxelBlockHandler<T> handler = {block, Eigen::Vector3i(x, y, z)};
+          auto data = handler.get();
+          if (map_.get(x, y, z).st == voxel_state::kOccluded) {
+            if (data.x <= THRESH_FREE) {
+              data.st = voxel_state::kFree;
+              std::cout << "[superegiht/node_it] frontier=> free , voxel " << x << " " << y << " "
+                        << z << std::endl;
+            } else if (data.x >= THRESH_OCC) {
+              data.st = voxel_state::kOccupied;
+            }
+            handler.set(data);
+            has_occlusion = true;
+          }
+
+        }
+      }
+    }
+    return has_occlusion;
   }
  private:
   typedef enum ITER_STATE {

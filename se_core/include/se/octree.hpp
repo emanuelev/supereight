@@ -309,11 +309,11 @@ inline void Octree<T>::set(const int x, const int y, const int z, const value_ty
 template <typename T>
 inline typename Octree<T>::value_type Octree<T>::get(const uint64_t &pos_morton) const{
   Eigen::Vector3i pos = unpack_morton(pos_morton);
-  get(pos);
+  return get(pos);
 }
 template<typename T>
 inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3i &pos) const {
-  get(pos.x(), pos.y(), pos.z());
+  return get(pos.x(), pos.y(), pos.z());
 }
 template<typename T>
 inline typename Octree<T>::value_type Octree<T>::get(const int x, const int y, const int z) const {

@@ -30,6 +30,7 @@
 #define DATA_HANDLER_HPP
 #include "../utils/math_utils.h"
 #include "../node.hpp"
+#include "../octree.hpp"
 
 template<typename SpecialisedHandlerT, typename NodeT>
 class DataHandlerBase {
@@ -84,8 +85,7 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
     return _block->occupancyUpdated();
   }
 
-  template<template<typename FieldT> class MapT>
-  bool isFrontier(const MapT<FieldType> &map) {
+  bool isFrontier(const se::Octree<FieldType> &map) {
     vec3i face_neighbour_voxel(6);
     face_neighbour_voxel[0] << _voxel.x() - 1, _voxel.y(), _voxel.z();
     face_neighbour_voxel[1] << _voxel.x() + 1, _voxel.y(), _voxel.z();
@@ -96,30 +96,33 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
 
     for (const auto &face_voxel : face_neighbour_voxel) {
 //    std::cout<< "[se/datahandler] isFrontier for " << _voxel << " and its face voxel " <<
-//    face_voxel << ", state " << map.get(face_voxel).st << std::endl;
-//      return voxel_state::kUnknown == map.get(face_voxel).st;
-      Eigen::Vector3i offset = face_voxel - _voxel;
-      int idx = offset(0) + offset(1) * BLOCK_SIDE + offset(2) * BLOCK_SIDE * BLOCK_SIDE;
-
-      if (idx < 0 || idx > BLOCK_SIDE * BLOCK_SIDE * BLOCK_SIDE) {
-        se::VoxelBlock<FieldType>
-            *neighbour = map.fetch(face_voxel.x(), face_voxel.y(), face_voxel.z());
-        if (neighbour == NULL) {
-//          std::cout << "neighbour empty"<< std::endl;
-          return false;
-        }else {
-//          std::cout << "[supereight/datahandler] neighbour state" << neighbour->data(face_voxel).st
-//                    << std::endl;
-          if (neighbour->data(face_voxel).st == voxel_state::kUnknown) {
-            return true;
-          }
-        }
-      } else if (_block->data(face_voxel).st == voxel_state::kUnknown) {
-//        std::cout << "[supereight/datahandler] is frontier" << std::endl;
+//      std::cout << "[se/datahandler] state " << map.get(face_voxel).st << std::endl;
+      if (map.get(face_voxel).st == voxel_state::kUnknown) {
         return true;
       }
+//      return voxel_state::kUnknown == map.get(face_voxel).st;
+//      Eigen::Vector3i offset = face_voxel - _voxel;
+//      int idx = offset(0) + offset(1) * BLOCK_SIDE + offset(2) * BLOCK_SIDE * BLOCK_SIDE;
+//
+//      if (idx < 0 || idx > BLOCK_SIDE * BLOCK_SIDE * BLOCK_SIDE) {
+//        se::VoxelBlock<FieldType>
+//            *neighbour = map.fetch(face_voxel.x(), face_voxel.y(), face_voxel.z());
+//        if (neighbour == NULL) {
+////          std::cout << "neighbour empty"<< std::endl;
+//          return false;
+//        }else {
+//          std::cout << "[supereight/datahandler] neighbour state" << neighbour->data(face_voxel).st
+//                    << std::endl;
+//          if (neighbour->data(face_voxel).st == voxel_state::kUnknown) {
+//            return true;
+//          }
+//        }
+//      } else if (_block->data(face_voxel).st == voxel_state::kUnknown) {
+////        std::cout << "[supereight/datahandler] is frontier" << std::endl;
+//        return true;
+//      }
     }
-   return false;
+    return false;
   }
 
  private:
@@ -152,8 +155,7 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
   bool occupancyUpdated() {
     return _node->occupancyUpdated();
   }
-  template<template<typename FieldT> class MapT>
-  bool isFrontier(const MapT<FieldType> &map) {
+  bool isFrontier(const se::Octree<FieldType> &map) {
     return false;
   }
 

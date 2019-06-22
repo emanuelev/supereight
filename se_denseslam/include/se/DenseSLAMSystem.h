@@ -109,6 +109,7 @@ class DenseSLAMSystem {
   std::set<uint64_t> occlusion_voxel_set_;
   set3i frontier_voxel_set_;
   map3i frontier_map_;
+  map3i occlusion_map_;
 
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
