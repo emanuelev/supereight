@@ -285,26 +285,26 @@ struct bfusion_update {
 
     // invalid depth measurement
     if (depthSample <= 0) {
-      if (detect_frontier_) {
-        for (int i = px.x() - 4; i < px.x() + 5; i++) {
-          for (int j = px.y() - 4; j < px.y() + 5; j++) {
-            float curr_depth = depth[i + depthSize.x() * j];
-            // check if any pixel next to it is equal to 0
-            if (curr_depth != 0 && handler.isFrontier(map)) {
-//                std::cout << "[supereight.mapping] invalid depth frontier" << std::endl;
-  is_occluded = true;
-            }
-          }
-        }
-        if (is_occluded) {
-#pragma omp critical
-          {
-            occlusion_blocks_->emplace_back(handler.getNodeCoordinates());
-            data.st = voxel_state ::kOccluded;
-          }
-          handler.set(data);
-        }
-      }
+//      if (detect_frontier_) {
+//        for (int i = px.x() - 4; i < px.x() + 5; i++) {
+//          for (int j = px.y() - 4; j < px.y() + 5; j++) {
+//            float curr_depth = depth[i + depthSize.x() * j];
+//            // check if any pixel next to it is equal to 0
+//            if (curr_depth != 0 && handler.isFrontier(map)) {
+////                std::cout << "[supereight.mapping] invalid depth frontier" << std::endl;
+//  is_occluded = true;
+//            }
+//          }
+//        }
+//        if (is_occluded) {
+//#pragma omp critical
+//          {
+//            occlusion_blocks_->emplace_back(handler.getNodeCoordinates());
+//            data.st = voxel_state ::kOccluded;
+//          }
+//          handler.set(data);
+//        }
+//      }
       return;
 
     }
@@ -365,6 +365,7 @@ struct bfusion_update {
 //            std::cout << "[supereight/mapping] frustum frontier " << std::endl;
               frontier_blocks_->emplace_back(handler.getNodeCoordinates());
               data.st = voxel_state::kFrontier;
+
             }else {
 
 
@@ -372,18 +373,13 @@ struct bfusion_update {
               // inside the image the curr voxel is free
 //        if ((px.x() >= boarder || px.y() >= boarder || px.x() <= depthSize.x() - boarder
 //                || px.y() <= depthSize.y() - boarder)) {
-              for (int i = px.x() - 4; i < px.x() + 5; i++) {
-                for (int j = px.y() - 4; j < px.y() + 5; j++) {
+              for (int i = px.x() - 2; i < px.x() + 3; i++) {
+                for (int j = px.y() - 2; j < px.y() + 3; j++) {
                   float curr_depth = depth[i + depthSize.x() * j];
-                  // invalid measurements frontier
-//                  if (curr_depth <= 0) {
-//                std::cout << "[supereight.mapping] invalid depth frontier" << std::endl;
-//                  frontier_blocks_->emplace_back(handler.getNodeCoordinates());
-//                  is_occluded = true;
                     // check for occluding edges (big depth differencce)
-                    // TODO remove second part only voxel further back are occluded
-                   if (curr_depth > 0 && (curr_depth + voxelsize * 2 <= depthSample)) {
-//                    || curr_depth - voxelsize * 2 >= depthSample)) {
+                   if (curr_depth > 0.f && (curr_depth + voxelsize * 2 <= depthSample) &&
+                   pos.z()-curr_depth >=0.f) {
+//                    || curr_depth - voxelsize * 2 >= depthSample)&& ) {
 //                std::cout << "[supereight/mapping] occlusion frontier depth" << std::endl;
                     occlusion_blocks_->emplace_back(handler.getNodeCoordinates());
                     is_occluded = true;
@@ -397,10 +393,10 @@ struct bfusion_update {
             }
           }
         }
-      }// omp
 
 
-      handler.set(data);
+        handler.set(data);
+      }
     }
 //    std::cout << static_cast<int>(data.st) << std::endl;
 /*

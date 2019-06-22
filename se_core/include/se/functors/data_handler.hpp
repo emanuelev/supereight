@@ -97,28 +97,29 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
     for (const auto &face_voxel : face_neighbour_voxel) {
 //    std::cout<< "[se/datahandler] isFrontier for " << _voxel << " and its face voxel " <<
 //    face_voxel << ", state " << map.get(face_voxel).st << std::endl;
-      return voxel_state::kUnknown == map.get(face_voxel).st;
-//      Eigen::Vector3i offset = face_voxel - _voxel;
-//      int idx = offset(0) + offset(1) * BLOCK_SIDE + offset(2) * BLOCK_SIDE * BLOCK_SIDE;
-//
-//      if (idx < 0 || idx > BLOCK_SIDE * BLOCK_SIDE * BLOCK_SIDE) {
-//        se::VoxelBlock<FieldType>
-//            *neighbour = map.fetch(face_voxel.x(), face_voxel.y(), face_voxel.z());
-//        if (neighbour == NULL) {
-////          std::cout << "neighbour empty"<< std::endl;
-//          return false;
-//        }
-//        if (neighbour->data(face_voxel).y == 0.0f) {
-////        if (neighbour->data(face_voxel).st == voxel_state::kUnknown) {
-////            std::cout << "[supereight/datahandler] neighbour is frontier" << std::endl;
-//          return true;
-//        }
-//      } else if (_block->data(face_voxel).y == 0.0f) {
-////        std::cout << "[supereight/datahandler] is frontier" << std::endl;
-//        return true;
-//      }
-    }
+//      return voxel_state::kUnknown == map.get(face_voxel).st;
+      Eigen::Vector3i offset = face_voxel - _voxel;
+      int idx = offset(0) + offset(1) * BLOCK_SIDE + offset(2) * BLOCK_SIDE * BLOCK_SIDE;
 
+      if (idx < 0 || idx > BLOCK_SIDE * BLOCK_SIDE * BLOCK_SIDE) {
+        se::VoxelBlock<FieldType>
+            *neighbour = map.fetch(face_voxel.x(), face_voxel.y(), face_voxel.z());
+        if (neighbour == NULL) {
+//          std::cout << "neighbour empty"<< std::endl;
+          return false;
+        }else {
+//          std::cout << "[supereight/datahandler] neighbour state" << neighbour->data(face_voxel).st
+//                    << std::endl;
+          if (neighbour->data(face_voxel).st == voxel_state::kUnknown) {
+            return true;
+          }
+        }
+      } else if (_block->data(face_voxel).st == voxel_state::kUnknown) {
+//        std::cout << "[supereight/datahandler] is frontier" << std::endl;
+        return true;
+      }
+    }
+   return false;
   }
 
  private:
