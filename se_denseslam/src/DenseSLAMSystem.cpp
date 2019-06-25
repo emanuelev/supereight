@@ -395,9 +395,9 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   unsigned int integration_rate,
                                   float mu,
                                   unsigned int frame,
-                                  vec3i *updated_blocks,
-                                  vec3i *frontier_blocks,
-                                  vec3i *occlusion_blocks,
+                                  set3i *updated_blocks,
+                                  set3i *frontier_blocks,
+                                  set3i *occlusion_blocks,
                                   map3i &frontier_blocks_map,
                                   map3i &occlusion_blocks_map) {
 
@@ -492,10 +492,10 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   getCameraMatrix(k),
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   frontier_funct);
-      vec3i *copy_frontier_blocks = frontier_blocks;
+      set3i *copy_frontier_blocks = frontier_blocks;
       updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks);
       frontier_blocks_map= frontier_map_;
-      vec3i *copy_occlusion_blocks = occlusion_blocks;
+      set3i *copy_occlusion_blocks = occlusion_blocks;
       updateOcclusionMap(volume_, occlusion_blocks_map, occlusion_blocks);
 
       std::cout << "occlusion size " << occlusion_blocks->size() << std::endl;

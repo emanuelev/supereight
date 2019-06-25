@@ -22,7 +22,7 @@ typedef std::map<uint64_t,
                  Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector3i> > > map3i;
 
 
-void insertBlocksToMap(map3i &blocks_map, vec3i *blocks) {
+void insertBlocksToMap(map3i &blocks_map, set3i *blocks) {
   if (blocks->size() != 0) {
     std::cout << "[supereight/boundary] adding " << blocks->size()
               << " new blocks "
@@ -62,7 +62,7 @@ void updateFrontierMap(const Volume<T> &volume, map3i &frontier_blocks_map) {
 template<typename T>
 void updateFrontierMap(const Volume<T> &volume,
                        map3i &frontier_blocks_map,
-                       vec3i *frontier_blocks) {
+                       set3i *frontier_blocks) {
   // go through frontier map and check if they are actually frontiers
 
   // check if the ones in the map
@@ -75,7 +75,7 @@ void updateFrontierMap(const Volume<T> &volume,
 template<typename T>
 void updateOcclusionMap(const Volume<T> &volume,
                        map3i &occlusion_blocks_map,
-                       vec3i *occlusion_blocks) {
+                       set3i *occlusion_blocks) {
   se::node_iterator<T> node_it(*(volume._map_index));
   for (auto it = occlusion_blocks_map.begin(); it != occlusion_blocks_map.end(); ++it) {
     if(!node_it.deleteOcclusionVoxelsviaMorton(it->second)) {

@@ -184,9 +184,9 @@ struct bfusion_update {
 
 //  vec3i& occupiedVoxels_;
 //  vec3i& freedVoxels_;
-  vec3i *updated_blocks_;
-  vec3i *frontier_blocks_;
-  vec3i *occlusion_blocks_;
+  set3i *updated_blocks_;
+  set3i *frontier_blocks_;
+  set3i *occlusion_blocks_;
 
   bool detect_frontier_;
   int place_holder_;
@@ -203,7 +203,7 @@ struct bfusion_update {
                  float n,
                  float t,
                  float vs,
-                 vec3i *updated_blocks,
+                 set3i *updated_blocks,
                  bool detect_frontier,
                  int place_holder)
       :
@@ -254,8 +254,8 @@ struct bfusion_update {
                  float n,
                  float t,
                  float vs,
-                 vec3i *frontier_blocks,
-                 vec3i *occlusion_blocks,
+                 set3i *frontier_blocks,
+                 set3i *occlusion_blocks,
                  bool detect_frontier)
       :
       depth(d),
@@ -324,7 +324,7 @@ struct bfusion_update {
         if (isVoxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
             && data.st != voxel_state::kFrontier) {
 
-          updated_blocks_->emplace_back(handler.getNodeCoordinates());
+          updated_blocks_->insert(handler.getNodeCoordinates());
           handler.occupancyUpdated(true);
         }
       }
@@ -341,7 +341,7 @@ struct bfusion_update {
           // conservative estimate as the occupanci probability for a free voxel is set quite low
           if (handler.isFrontier(map) && data.st == voxel_state::kFree) {
 //            std::cout << "[supereight/mapping] frustum frontier " << std::endl;
-            frontier_blocks_->emplace_back(handler.getNodeCoordinates());
+            frontier_blocks_->insert(handler.getNodeCoordinates());
             data.st = voxel_state::kFrontier;
 
           } else if (static_cast<int>(data.st) <= 0){
@@ -358,7 +358,7 @@ struct bfusion_update {
             }
             if (is_occluded) {
               data.st = voxel_state::kOccluded;
-              occlusion_blocks_->emplace_back(handler.getNodeCoordinates());
+              occlusion_blocks_->insert(handler.getNodeCoordinates());
             }
           }
         }

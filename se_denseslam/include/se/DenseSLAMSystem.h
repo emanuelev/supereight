@@ -59,9 +59,10 @@ typedef SE_FIELD_TYPE FieldType;
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 
 typedef std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i> > vec3i;
-typedef std::map<uint64_t , Eigen::Vector3i, std::less<uint64_t >,
+typedef std::map<uint64_t , Eigen::Vector3i, std::less<uint64_t > ,
     Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector3i> > > map3i;
-typedef std::set<Eigen::Vector3i , std::less<Eigen::Vector3i>,
+typedef std::set<Eigen::Vector3i ,
+    std::equal_to<Eigen::Vector3i> ,
     Eigen::aligned_allocator<Eigen::Vector3i> > set3i;
 
 extern PerfStats Stats;
@@ -218,13 +219,22 @@ class DenseSLAMSystem {
 //                   std::vector<Eigen::Vector3i> *occupied_voxels,
 //                   std::vector<Eigen::Vector3i> *freed_voxels);
 // TODO fix alignment
+//  bool integration(const Eigen::Vector4f &k,
+//                   unsigned int integration_rate,
+//                   float mu,
+//                   unsigned int frame,
+//                   vec3i *updated_blocks,
+//                   vec3i *frontier_blocks,
+//                   vec3i *occlusion_blocks,
+//                   map3i &frontier_blocks_map,
+//                   map3i &occlusion_blocks_map);
   bool integration(const Eigen::Vector4f &k,
                    unsigned int integration_rate,
                    float mu,
                    unsigned int frame,
-                   vec3i *updated_blocks,
-                   vec3i *frontier_blocks,
-                   vec3i *occlusion_blocks,
+                   set3i *updated_blocks,
+                   set3i *frontier_blocks,
+                   set3i *occlusion_blocks,
                    map3i &frontier_blocks_map,
                    map3i &occlusion_blocks_map);
 //  bool integration(const Eigen::Vector4f &k,
