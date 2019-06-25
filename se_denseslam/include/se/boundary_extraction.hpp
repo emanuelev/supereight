@@ -21,23 +21,21 @@ typedef std::map<uint64_t,
                  std::less<uint64_t>,
                  Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector3i> > > map3i;
 
-
 void insertBlocksToMap(map3i &blocks_map, set3i *blocks) {
   if (blocks->size() != 0) {
-    std::cout << "[supereight/boundary] adding " << blocks->size()
-              << " new blocks "
-                 "" << std::endl;
+    std::cout << "[supereight/boundary] adding " << blocks->size() << " new blocks "
+                                                                      "" << std::endl;
   } else {
     std::cout << "[supereight/boundary] frontier blocks empty" << std::endl;
     return;
   }
 
   for (auto it = blocks->begin(); it != blocks->end(); ++it) {
-    uint64_t morton = compute_morton(it->x(), it->y(), it->z());
-    blocks_map.emplace(morton, *it);
+//    uint64_t morton = compute_morton(it->x(), it->y(), it->z());
+    Eigen::Vector3i voxel_coord = unpack_morton(*it);
+    blocks_map.emplace(*it, voxel_coord);
   }
-  std::cout << "[supereight/boundary] frontier maps size " << blocks_map.size()
-            << std::endl;
+  std::cout << "[supereight/boundary] frontier maps size " << blocks_map.size() << std::endl;
 }
 /**
  * check if past frontier voxels have been updated and update the std::map
@@ -71,14 +69,13 @@ void updateFrontierMap(const Volume<T> &volume,
   insertBlocksToMap(frontier_blocks_map, frontier_blocks);
 }
 
-
 template<typename T>
 void updateOcclusionMap(const Volume<T> &volume,
-                       map3i &occlusion_blocks_map,
-                       set3i *occlusion_blocks) {
+                        map3i &occlusion_blocks_map,
+                        set3i *occlusion_blocks) {
   se::node_iterator<T> node_it(*(volume._map_index));
   for (auto it = occlusion_blocks_map.begin(); it != occlusion_blocks_map.end(); ++it) {
-    if(!node_it.deleteOcclusionVoxelsviaMorton(it->second)) {
+    if (!node_it.deleteOcclusionVoxelsviaMorton(it->second)) {
       occlusion_blocks_map.erase(it->first);
     }
   }

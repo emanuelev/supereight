@@ -61,9 +61,7 @@ template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 typedef std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i> > vec3i;
 typedef std::map<uint64_t , Eigen::Vector3i, std::less<uint64_t > ,
     Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector3i> > > map3i;
-typedef std::set<Eigen::Vector3i ,
-    std::equal_to<Eigen::Vector3i> ,
-    Eigen::aligned_allocator<Eigen::Vector3i> > set3i;
+typedef std::set<uint64_t > set3i;
 
 extern PerfStats Stats;
 
@@ -232,7 +230,7 @@ class DenseSLAMSystem {
                    unsigned int integration_rate,
                    float mu,
                    unsigned int frame,
-                   set3i *updated_blocks,
+                   std::set<uint64_t > *updated_blocks,
                    set3i *frontier_blocks,
                    set3i *occlusion_blocks,
                    map3i &frontier_blocks_map,

@@ -184,7 +184,7 @@ struct bfusion_update {
 
 //  vec3i& occupiedVoxels_;
 //  vec3i& freedVoxels_;
-  set3i *updated_blocks_;
+  std::set<uint64_t > *updated_blocks_;
   set3i *frontier_blocks_;
   set3i *occlusion_blocks_;
 
@@ -203,7 +203,7 @@ struct bfusion_update {
                  float n,
                  float t,
                  float vs,
-                 set3i *updated_blocks,
+                 std::set<uint64_t > *updated_blocks,
                  bool detect_frontier,
                  int place_holder)
       :
@@ -283,6 +283,8 @@ struct bfusion_update {
     auto data = handler.get();
     float prev_occ = se::math::getProbFromLog(data.x);
 
+    Eigen::Vector3i coord = handler.getNodeCoordinates();
+    uint64_t morton_code = compute_morton(coord.x(), coord.y(), coord.z());
     // invalid depth measurement
     if (depthSample <= 0) {
       return;
@@ -323,8 +325,7 @@ struct bfusion_update {
         bool occupancyUpdated = handler.occupancyUpdated();
         if (isVoxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
             && data.st != voxel_state::kFrontier) {
-
-          updated_blocks_->insert(handler.getNodeCoordinates());
+          updated_blocks_->insert(morton_code);
           handler.occupancyUpdated(true);
         }
       }
@@ -341,7 +342,7 @@ struct bfusion_update {
           // conservative estimate as the occupanci probability for a free voxel is set quite low
           if (handler.isFrontier(map) && data.st == voxel_state::kFree) {
 //            std::cout << "[supereight/mapping] frustum frontier " << std::endl;
-            frontier_blocks_->insert(handler.getNodeCoordinates());
+            frontier_blocks_->insert(morton_code);
             data.st = voxel_state::kFrontier;
 
           } else if (static_cast<int>(data.st) <= 0){
@@ -358,7 +359,7 @@ struct bfusion_update {
             }
             if (is_occluded) {
               data.st = voxel_state::kOccluded;
-              occlusion_blocks_->insert(handler.getNodeCoordinates());
+              occlusion_blocks_->insert(morton_code);
             }
           }
         }

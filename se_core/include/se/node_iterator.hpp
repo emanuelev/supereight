@@ -131,10 +131,10 @@ class node_iterator {
     return surfaceVoxels;
   }
 
-  vec3i getOccupiedVoxels(float threshold, const Eigen::Vector3i &blockCoord) {
+  vec3i getOccupiedVoxels(float threshold, const uint64_t morton) {
     vec3i occupiedVoxels;
     occupiedVoxels.clear();
-
+  Eigen::Vector3i blockCoord = unpack_morton(morton);
 //    VoxelBlock<T>* block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
 
     int xlast = blockCoord(0) + BLOCK_SIDE;
@@ -164,10 +164,11 @@ class node_iterator {
    * @param blockCoord of frontier voxel block
    * @return vector with all frontier voxels
    */
-  vec3i getFrontierVoxels(float threshold, const Eigen::Vector3i &blockCoord) {
+  vec3i getFrontierVoxels(float threshold, const uint64_t morton) {
     vec3i frontierVoxels;
     frontierVoxels.clear();
 
+    Eigen::Vector3i blockCoord = unpack_morton(morton);
     int xlast = blockCoord(0) + BLOCK_SIDE;
     int ylast = blockCoord(1) + BLOCK_SIDE;
     int zlast = blockCoord(2) + BLOCK_SIDE;
@@ -188,10 +189,11 @@ class node_iterator {
     return frontierVoxels;
   }
 
-  vec3i getOccludedVoxels(float threshold, const Eigen::Vector3i &blockCoord) {
+  vec3i getOccludedVoxels(float threshold, const uint64_t morton) {
     vec3i occludedVoxels;
     occludedVoxels.clear();
 
+    Eigen::Vector3i blockCoord = unpack_morton(morton);
     int xlast = blockCoord(0) + BLOCK_SIDE;
     int ylast = blockCoord(1) + BLOCK_SIDE;
     int zlast = blockCoord(2) + BLOCK_SIDE;
