@@ -23,7 +23,7 @@ typedef std::map<uint64_t,
 
 void insertBlocksToMap(map3i &blocks_map, set3i *blocks) {
   if (blocks->size() != 0) {
-    std::cout << "[supereight/boundary] adding " << blocks->size() << " new blocks "
+    std::cout << "[supereight/boundary] adding " << blocks->size() << " new candidate blocks "
                                                                       "" << std::endl;
   } else {
     std::cout << "[supereight/boundary] frontier blocks empty" << std::endl;
@@ -50,7 +50,7 @@ void updateFrontierMap(const Volume<T> &volume, map3i &frontier_blocks_map) {
     // check if the occupancy probability of the frontier voxels has been updated
     // changes voxel states from frontier to free or occupied
     if (!node_it.deleteFrontierVoxelBlockviaMorton(it->second)) {
-//      std::cout << "[supereight/boundary] no frontier in voxel block => erase" << std::endl;
+      std::cout << "[supereight/boundary] no frontier in voxel block => erase" << std::endl;
       frontier_blocks_map.erase(it->first);
     }
   }
@@ -64,7 +64,7 @@ void updateFrontierMap(const Volume<T> &volume,
   // go through frontier map and check if they are actually frontiers
 
   // check if the ones in the map
-  updateFrontierMap(volume, frontier_blocks_map);
+//  updateFrontierMap(volume, frontier_blocks_map);
   // insert new frontier blocks to map
   insertBlocksToMap(frontier_blocks_map, frontier_blocks);
 }

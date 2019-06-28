@@ -164,7 +164,7 @@ class node_iterator {
    * @param blockCoord of frontier voxel block
    * @return vector with all frontier voxels
    */
-  vec3i getFrontierVoxels(float threshold, const uint64_t morton) {
+  vec3i getFrontierVoxels(const uint64_t morton) {
     vec3i frontierVoxels;
     frontierVoxels.clear();
 
@@ -189,7 +189,7 @@ class node_iterator {
     return frontierVoxels;
   }
 
-  vec3i getOccludedVoxels(float threshold, const uint64_t morton) {
+  vec3i getOccludedVoxels(const uint64_t morton) {
     vec3i occludedVoxels;
     occludedVoxels.clear();
 
@@ -271,7 +271,10 @@ class node_iterator {
             } else if (data.x >= THRESH_OCC) {
               data.st = voxel_state::kOccupied;
             }
+            std::cout << "change from frontier to " << data.st << std::endl;
             handler.set(data);
+
+          }else if(handler.isFrontier(map_)){
             has_frontier = true;
           }
 

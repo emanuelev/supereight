@@ -233,9 +233,9 @@ class DenseSLAMSystem {
                    unsigned int integration_rate,
                    float mu,
                    unsigned int frame,
-                   std::set<uint64_t > *updated_blocks,
+                   set3i *updated_blocks,
                    set3i *frontier_blocks,
-                   set3i *occlusion_blocks,
+                   set3i *occlusion_blocks);
                    map3i &frontier_blocks_map,
                    map3i &occlusion_blocks_map);
 //  bool integration(const Eigen::Vector4f &k,

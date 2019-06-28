@@ -344,13 +344,13 @@ struct bfusion_update {
 //            std::cout << "[supereight/mapping] frustum frontier " << std::endl;
             frontier_blocks_->insert(morton_code);
             data.st = voxel_state::kFrontier;
-
-          } else if (static_cast<int>(data.st) <= 0){
+// for  unknown voxel check if it is occluded
+          } else if (data.st == voxel_state::kUnknown){
             for (int i = px.x() - 2; i < px.x() + 3; i++) {
               for (int j = px.y() - 2; j < px.y() + 3; j++) {
                 float curr_depth = depth[i + depthSize.x() * j];
                 // check for occluding edges (big depth differencce)
-                if (curr_depth > 0.f && (curr_depth + voxelsize * 2 <= depthSample)
+                if (curr_depth > 0.f && (curr_depth + voxelsize * 3 <= depthSample)
                     && pos.z() - curr_depth >= 0.f) {
 //                std::cout << "[supereight/mapping] occlusion frontier depth" << std::endl;
                   is_occluded = true;
