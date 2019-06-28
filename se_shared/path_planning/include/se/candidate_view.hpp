@@ -28,26 +28,24 @@ struct pose3D {
   Eigen::Quaternionf q;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  pose3D(Eigen::Vector3f point, Eigen::Quaternionf quat) : p(point), q(quat){}
+  pose3D(Eigen::Vector3f point, Eigen::Quaternionf quat) : p(point), q(quat) {}
 };
 
 static inline std::ostream &operator<<(std::ostream &os, const pose3D &pose) {
   return os << pose.p.x() << pose.p.y() << pose.p.z() << pose.q.x() << pose.q.y() << pose.q.z()
             << pose.q.z();
 }
-static inline std::istream& operator>>(std::istream& input, pose3D& pose) {
-  input >> pose.p.x() >> pose.p.y() >> pose.p.z() >> pose.q.x() >>
-        pose.q.y() >> pose.q.z() >> pose.q.w();
+static inline std::istream &operator>>(std::istream &input, pose3D &pose) {
+  input >> pose.p.x() >> pose.p.y() >> pose.p.z() >> pose.q.x() >> pose.q.y() >> pose.q.z()
+        >> pose.q.w();
   // Normalize the quaternion to account for precision loss due to
   // serialization.
   pose.q.normalize();
   return input;
 }
 
-
-
-static Eigen::IOFormat InLine(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", " ",
-    ";");
+static Eigen::IOFormat
+    InLine(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", " ", ";");
 typedef std::vector<pose3D, Eigen::aligned_allocator<pose3D> > posevector;
 
 namespace exploration {
@@ -64,7 +62,7 @@ typedef std::map<uint64_t,
                  Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector3i> > > map3i;
 
 template<typename T>
-static void printFaceVoxels(const Volume<T> & volume, const Eigen::Vector3i &_voxel) {
+static void printFaceVoxels(const Volume<T> &volume, const Eigen::Vector3i &_voxel) {
   vec3i face_neighbour_voxel(6);
   face_neighbour_voxel[0] << _voxel.x() - 1, _voxel.y(), _voxel.z();
   face_neighbour_voxel[1] << _voxel.x() + 1, _voxel.y(), _voxel.z();
@@ -72,20 +70,31 @@ static void printFaceVoxels(const Volume<T> & volume, const Eigen::Vector3i &_vo
   face_neighbour_voxel[3] << _voxel.x(), _voxel.y() + 1, _voxel.z();
   face_neighbour_voxel[4] << _voxel.x(), _voxel.y(), _voxel.z() - 1;
   face_neighbour_voxel[5] << _voxel.x(), _voxel.y(), _voxel.z() + 1;
-  std::cout<< "[se/cand view] face voxel states " ;
+  std::cout << "[se/cand view] face voxel states ";
   for (const auto &face_voxel : face_neighbour_voxel) {
     std::cout << volume._map_index->get(face_voxel).st << " ";
   }
   std::cout << std::endl;
 }
-
+/**
+ *
+ * @tparam T
+ * @param volume
+ * @param cand_v [vx coord]
+ * @param frontier_voxels  vector with frontier voxels
+ * @param res [m/voxel]
+ * @param offset [m]
+ * @return
+ */
 template<typename T>
-static Eigen::Vector3i getOffsetCandidate(const Volume<T> &volume, const Eigen::Vector3i &cand_v,
+static Eigen::Vector3i getOffsetCandidate(const Volume<T> &volume,
+                                          const Eigen::Vector3i &cand_v,
                                           const vec3i &frontier_voxels,
-                                          const double res) {
+                                          const double res,
+                                          const float offset) {
   Eigen::Vector3i offset_cand_v(0, 0, 0);
-  float offset = 0.4; // [m]
-  std::cout << "[se/cand view/getoffset] res " << res << std::endl;
+
+//  std::cout << "[se/cand view/getoffset] res " << res << std::endl;
   // curr res 24m/128 vox = 0.1875 m/vx
   int offset_v = static_cast<int>(offset / res); // 2 vox
   // fit plane through frontier voxels in the block
@@ -145,39 +154,35 @@ static Eigen::Vector3i getOffsetCandidate(const Volume<T> &volume, const Eigen::
     normal.z() = det_z;
   }
   normal = normal.normalized();
-  if (std::abs(normal.dot(cand_v.cast<float>())) > 0.01) {
-    std::cout << "[se/cand view] cand point is " << normal.dot(cand_v.cast<float>())
-              << " voxel dist away from plane" << std::endl;
-  }
+
   // offset candidate
-  offset_cand_v.x() = ceil(normal.x()*offset_v);
-  offset_cand_v.y() = ceil(normal.y()*offset_v);
-  offset_cand_v.z() = ceil(normal.z()*offset_v);
+  offset_cand_v.x() = ceil(normal.x() * offset_v);
+  offset_cand_v.y() = ceil(normal.y() * offset_v);
+  offset_cand_v.z() = ceil(normal.z() * offset_v);
   offset_cand_v = cand_v + offset_cand_v.cast<int>();
   // TODO check which direction is into freespace
-  std::cout << "[se/cand view] normal "<< normal.x() << " " <<normal.y() << " " << normal.z() <<
-  std::endl;
+  std::cout << "[se/cand view] normal " << normal.x() << " " << normal.y() << " " << normal.z()
+            << std::endl;
   printFaceVoxels(volume, offset_cand_v);
 
-  if(volume._map_index->get(offset_cand_v).st != voxel_state::kFree){
+  if (volume._map_index->get(offset_cand_v).st != voxel_state::kFree) {
 
-    offset_cand_v.x() = ceil(-normal.x()*offset_v);
-    offset_cand_v.y() = ceil(-normal.y()*offset_v);
-    offset_cand_v.z() = ceil(-normal.z()*offset_v);
+    offset_cand_v.x() = ceil(-normal.x() * offset_v);
+    offset_cand_v.y() = ceil(-normal.y() * offset_v);
+    offset_cand_v.z() = ceil(-normal.z() * offset_v);
     offset_cand_v = cand_v + offset_cand_v.cast<int>();
     printFaceVoxels(volume, offset_cand_v);
-    if(volume._map_index->get(offset_cand_v).st == voxel_state::kFree) {
+    if (volume._map_index->get(offset_cand_v).st == voxel_state::kFree) {
       normal = -normal;
-    } else{
+    } else {
       std::cout << "[se/cand view] no free voxel after offset. next candidate" << std::endl;
-//      return Eigen::Vector3i(0,0,0);
+      return Eigen::Vector3i(0,0,0);
     }
   }
   std::cout << " [se/cand view] candidate " << cand_v.x() << " " << cand_v.y() << " " << cand_v.z()
             << " offset by " << offset_v << " results in " << offset_cand_v.x() << " "
-            << offset_cand_v.y() << " " << offset_cand_v.z() << " voxel state " <<
-            volume._map_index->get(offset_cand_v).st << std::endl;
-
+            << offset_cand_v.y() << " " << offset_cand_v.z() << " voxel state "
+            << volume._map_index->get(offset_cand_v).st << std::endl;
 
   return offset_cand_v;
 
@@ -192,7 +197,7 @@ template<typename T>
 vec3i getCandidateViews(const Volume<T> &volume,
                         const map3i &frontier_blocks_map,
                         const double res,
-                        const int  num_cand_views) {
+                        const Planning_Configuration& config) {
   vec3i cand_views;
   mapvec3i frontier_voxels_map;
   node_iterator<T> node_it(*(volume._map_index));
@@ -210,6 +215,9 @@ vec3i getCandidateViews(const Volume<T> &volume,
     frontier_voxels_map[frontier_block.first] = frontier_voxels;
 
   }
+  if(frontier_voxels_map.size() != frontier_blocks_map.size()){
+    std::cout<< "[se/cand view] block and voxel map size not equal " << std::endl;
+  }
   std::cout << "[se/cand view] frontier voxels map size " << frontier_blocks_map.size()
             << std::endl;
 
@@ -217,25 +225,38 @@ vec3i getCandidateViews(const Volume<T> &volume,
   std::uniform_int_distribution<int> distribution_block(0, frontier_blocks_map.size() - 1);
 
   // generate cand views
-  for (int i = 0 ; i <= num_cand_views ; i++) {
+  for (int i = 0 ; i <= config.num_cand_views ; i++) {
     auto it = frontier_voxels_map.begin();
     std::advance(it, distribution_block(generator));
     uint64_t rand_morton = it->first;
-    std::uniform_int_distribution<int> distribution_voxel(0, frontier_voxels_map[rand_morton].size() -
-    1);
+    if(frontier_voxels_map[rand_morton].size()<40 ){
+      // happens when voxel status is updated but the morton code was not removed from map
+      continue;
+    }
+    std::uniform_int_distribution<int>
+        distribution_voxel(0, frontier_voxels_map[rand_morton].size() - 1);
+
+    std::cout << "[se/cand view] frontier voxel map size at "<< rand_morton << " is " <<
+    frontier_voxels_map[rand_morton].size() << std::endl;
+
     int rand_voxel = distribution_voxel(generator);
     Eigen::Vector3i candidate_frontier_voxel = frontier_voxels_map[rand_morton].at(rand_voxel);
+
     std::cout << "[se/cand view] rand morton " << rand_morton << " rand voxel " << rand_voxel
-    << std::endl;
+              << std::endl;
     std::cout << "[se/cand view] candidate frontier voxel " << candidate_frontier_voxel.x() << " "
               << candidate_frontier_voxel.y() << " " << candidate_frontier_voxel.z() << std::endl;
     vec3i frontier_voxels_vec = frontier_voxels_map[rand_morton];
+
 //  random sample N views
 // from morton code with max frontier voxels, generate a cand view
     Eigen::Vector3i cand_view_v =
-        getOffsetCandidate(volume, candidate_frontier_voxel, frontier_voxels_vec, res);
+        getOffsetCandidate(volume, candidate_frontier_voxel, frontier_voxels_vec, res, config.cand_view_offset);
+
     std::cout << "[se/cand view] cand view v " << cand_view_v.format(InLine) << std::endl;
+
     if (cand_view_v != Eigen::Vector3i(0, 0, 0)) {
+      cand_views.push_back(candidate_frontier_voxel);// for debug only
       cand_views.push_back(cand_view_v);
     }
   }
@@ -267,12 +288,10 @@ void getExplorationPath(const Volume<T> &volume,
                         posevector &path,
                         vec3i &cand_views) {
 //  std::cout << " [se/candidate_view] getExplorationPath "  << std::endl;
-  cand_views= getCandidateViews(volume, frontier_map, res, config.num_cand_views);
+  cand_views = getCandidateViews(volume, frontier_map, res, config);
   std::cout << "[se/cand view] cand view length " << cand_views.size() << std::endl;
-  pose3D tmp_pose({0.f, 0.f, 0.f},{0.f, 0.f, 0.f, 1.f});
+  pose3D tmp_pose({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f, 1.f});
   path.push_back(tmp_pose);
-
-
 
 }
 
