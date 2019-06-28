@@ -398,6 +398,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 // TODO fix alignment
 bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   unsigned int integration_rate,
+                                  unsigned int frontier_map_update_rate,
                                   float mu,
                                   unsigned int frame,
                                   set3i *updated_blocks,
@@ -496,7 +497,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   frontier_funct);
       std::set<uint64_t > *copy_frontier_blocks = frontier_blocks;
-      updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks);
+      bool update_frontier_map = (frame % frontier_map_update_rate) == 0;
+      updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
 
       std::cout << "occlusion size " << occlusion_blocks->size() << std::endl;
 //      insertOcclusionBlocksToMap(occlusion_blocks_map, occlusion_blocks);

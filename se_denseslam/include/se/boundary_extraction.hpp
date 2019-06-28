@@ -41,6 +41,7 @@ void insertBlocksToMap(map3i &blocks_map, set3i *blocks) {
  * check if past frontier voxels have been updated and update the std::map
  * via voxel blocks / its morton code
  * TODO how to use OMP
+ * Issue map wide function
  */
 template<typename T>
 void updateFrontierMap(const Volume<T> &volume, map3i &frontier_blocks_map) {
@@ -60,11 +61,14 @@ void updateFrontierMap(const Volume<T> &volume, map3i &frontier_blocks_map) {
 template<typename T>
 void updateFrontierMap(const Volume<T> &volume,
                        map3i &frontier_blocks_map,
-                       set3i *frontier_blocks) {
+                       set3i *frontier_blocks,
+                       const bool update_frontier_map) {
   // go through frontier map and check if they are actually frontiers
 
   // check if the ones in the map
-//  updateFrontierMap(volume, frontier_blocks_map);
+  if(update_frontier_map){
+  updateFrontierMap(volume, frontier_blocks_map);
+  }
   // insert new frontier blocks to map
   insertBlocksToMap(frontier_blocks_map, frontier_blocks);
 }
