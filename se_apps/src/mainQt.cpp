@@ -70,7 +70,8 @@ void qtLinkKinectQt(int argc,
                     void *depthRender,
                     void *trackRender,
                     void *volumeModel,
-                    void *inputRGB);
+                    void *inputRGB,
+                    Planning_Configuration *planning_config);
 
 void storeStats(int frame,
                 std::chrono::time_point<std::chrono::steady_clock> *timings,
@@ -116,6 +117,7 @@ void storeStats(int frame,
 int main(int argc, char **argv) {
 
   Configuration config = parseArgs(argc, argv);
+  Planning_Configuration planning_config = getDefaultPlanningConfig();
   powerMonitor = new PowerMonitor();
 
   // ========= READER INITIALIZATION  =========
@@ -142,7 +144,8 @@ int main(int argc, char **argv) {
                                  Eigen::Vector3f::Constant(config.volume_size.x()),
                                  init_pose,
                                  config.pyramid,
-                                 config);
+                                 config,
+                                 planning_config);
 
   if (config.log_file != "") {
     logfilestream.open(config.log_file.c_str());
@@ -158,7 +161,8 @@ int main(int argc, char **argv) {
   //We can opt to not run the gui which would be faster
   if (!config.no_gui) {
 #ifdef __QT__
-    qtLinkKinectQt(argc,argv, &pipeline, &reader, &config, depthRender, trackRender, volumeRender, inputRGB);
+    qtLinkKinectQt(argc,argv, &pipeline, &reader, &config, depthRender, trackRender,
+        volumeRender, inputRGB, &planning_config);
 #else
     if ((reader == NULL) || (reader->cameraActive == false)) {
       std::cerr << "No valid input file specified\n";

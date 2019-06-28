@@ -57,27 +57,31 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i &inputSize,
                                  const Eigen::Vector3f &volumeDimensions,
                                  const Eigen::Vector3f &initPose,
                                  std::vector<int> &pyramid,
-                                 const Configuration &config)
+                                 const Configuration &config,
+                                 const Planning_Configuration &planning_config)
     :
     DenseSLAMSystem(inputSize,
                     volumeResolution,
                     volumeDimensions,
                     se::math::toMatrix4f(initPose),
                     pyramid,
-                    config) {}
+                    config,
+                    planning_config) {}
 
 DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i &inputSize,
                                  const Eigen::Vector3i &volumeResolution,
                                  const Eigen::Vector3f &volumeDimensions,
                                  const Eigen::Matrix4f &initPose,
                                  std::vector<int> &pyramid,
-                                 const Configuration &config)
+                                 const Configuration &config,
+                                const Planning_Configuration &planning_config )
     :
     computation_size_(inputSize),
     vertex_(computation_size_.x(), computation_size_.y()),
     normal_(computation_size_.x(), computation_size_.y()),
     float_depth_(computation_size_.x(), computation_size_.y()) {
-
+  planning_config_ = planning_config;
+  std::cout << "[se/constructor] config " << planning_config.num_cand_views << std::endl;
   this->init_pose_ = initPose.block<3, 1>(0, 3);
   this->volume_dimension_ = volumeDimensions;
   this->volume_resolution_ = volumeResolution;

@@ -33,6 +33,7 @@ int main(int argc, char ** argv) {
 
 	Configuration config = parseArgs(argc, argv);
 
+	Planning_Configuration planning_config = getDefaultPlanningConfig();
 	// ========= CHECK ARGS =====================
 
 	std::ostream* logstream = &std::cout;
@@ -105,7 +106,7 @@ int main(int argc, char ** argv) {
       Eigen::Vector2i(computationSize.x, computationSize.y), 
       config.volume_resolution, config.volume_size, 
       init_pose,
-      config.pyramid, config);
+      config.pyramid, config, planning_config);
      
 	std::chrono::time_point<std::chrono::steady_clock> timings[7];
 	timings[0] = std::chrono::steady_clock::now();

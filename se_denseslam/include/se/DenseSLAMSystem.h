@@ -43,6 +43,7 @@
 #include <perfstats.h>
 #include <timings.h>
 #include <se/config.h>
+#include <se/planner_config.h>
 #include <se/octree.hpp>
 #include <se/image/image.hpp>
 #include "volume_traits.hpp"
@@ -80,7 +81,7 @@ class DenseSLAMSystem {
   float mu_;
   bool need_render_ = false;
   Configuration config_;
-
+  Planning_Configuration planning_config_;
   // input once
   std::vector<float> gaussian_;
 
@@ -131,7 +132,8 @@ class DenseSLAMSystem {
                   const Eigen::Vector3f &volume_dimension_,
                   const Eigen::Vector3f &initPose,
                   std::vector<int> &pyramid,
-                  const Configuration &config_);
+                  const Configuration &config_,
+                  const Planning_Configuration &planning_config_);
   /**
    * Constructor using the initial camera position.
    *
@@ -149,7 +151,8 @@ class DenseSLAMSystem {
                   const Eigen::Vector3f &volume_dimension_,
                   const Eigen::Matrix4f &initPose,
                   std::vector<int> &pyramid,
-                  const Configuration &config_);
+                  const Configuration &config_,
+                  const Planning_Configuration &planning_config_);
 
   /**
    * Preprocess a single depth measurement frame and add it to the pipeline.

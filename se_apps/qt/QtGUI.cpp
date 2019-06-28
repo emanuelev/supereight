@@ -47,6 +47,7 @@ extern DepthReader *createReader(Configuration *config, std::string filename =
 static DenseSLAMSystem **pipeline_pp;
 static DepthReader **reader_pp;
 static Configuration *config;
+static Planning_Configuration *planning_config;
 
 //forceRender is passed to the GUI, and used to tell this file if a GUI event which requires rerendering of models to occur
 //Typically this is when we rotate an image
@@ -90,7 +91,7 @@ static void newDenseSLAMSystem(bool resetPose) {
 		*pipeline_pp = new DenseSLAMSystem(
 				Eigen::Vector2i(640 / config->compute_size_ratio, 480 / config->compute_size_ratio),
 				config->volume_resolution,
-        config->volume_size, init_pose, config->pyramid, *config);
+        config->volume_size, init_pose, config->pyramid, *config, *planning_config);
   }
 	else {
     Eigen::Matrix<float, 6, 1> twist;
@@ -106,7 +107,7 @@ static void newDenseSLAMSystem(bool resetPose) {
 				config->volume_resolution,
 				config->volume_size,
         init_pose,
-        config->pyramid, *config);
+        config->pyramid, *config, *planning_config);
 	}
 	appWindow->viewers->setBufferSize(640 / config->compute_size_ratio,
 			480 / config->compute_size_ratio);
@@ -285,9 +286,11 @@ void dumpPowerLog() {
 
 void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
 		DepthReader **_depthReader, Configuration *_config, void *depthRender,
-		void *trackRender, void *volumeRender, void *inputRGB) {
+		void *trackRender, void *volumeRender, void *inputRGB, Planning_Configuration
+		*_planning_config) {
 	pipeline_pp = _pipe;
 	config = _config;
+	planning_config = _planning_config;
 	reader_pp = _depthReader;
   Eigen::Matrix<float, 6, 1> twist;
   twist << config->initial_pos_factor.x() * config->volume_size.x(),
