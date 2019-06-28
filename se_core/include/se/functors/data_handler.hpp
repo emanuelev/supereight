@@ -97,7 +97,11 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
     for (const auto &face_voxel : face_neighbour_voxel) {
 //    std::cout<< "[se/datahandler] isFrontier for " << _voxel << " and its face voxel " <<
 //      std::cout << "[se/datahandler] state " << map.get(face_voxel).st << std::endl;
-      if (map.get(face_voxel).st == voxel_state::kUnknown) {
+//      bool prob_unknown = se::math::getProbFromLog(map.get(face_voxel).x) >= THRESH_FREE &&
+//          se::math::getProbFromLog(map.get(face_voxel).x)<=THRESH_OCC;
+//      std::cout << "[se/datahandler] prob face voxel " << se::math::getProbFromLog(map.get
+//      (face_voxel).x) << " state " << map.get(face_voxel).st <<  std::endl;
+      if (map.get(face_voxel).st == voxel_state::kUnknown  ) {
         return true;
       }
 //      return voxel_state::kUnknown == map.get(face_voxel).st;
