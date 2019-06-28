@@ -53,6 +53,8 @@
 #include <Eigen/StdVector>
 #include <set>
 #include <map>
+
+#include "path_planning/include/se/candidate_view.hpp"
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
  */
@@ -63,6 +65,8 @@ typedef std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i> >
 typedef std::map<uint64_t , Eigen::Vector3i, std::less<uint64_t > ,
     Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector3i> > > map3i;
 typedef std::set<uint64_t > set3i;
+
+
 
 extern PerfStats Stats;
 
@@ -236,8 +240,6 @@ class DenseSLAMSystem {
                    set3i *updated_blocks,
                    set3i *frontier_blocks,
                    set3i *occlusion_blocks);
-                   map3i &frontier_blocks_map,
-                   map3i &occlusion_blocks_map);
 //  bool integration(const Eigen::Vector4f &k,
 //                   unsigned int integration_rate,
 //                   float mu,
@@ -260,6 +262,7 @@ class DenseSLAMSystem {
    */
   bool raycasting(const Eigen::Vector4f &k, float mu, unsigned int frame);
 
+  bool planning(se::posevector &path, vec3i &cand_views);
   /*
    * TODO Implement this.
    */

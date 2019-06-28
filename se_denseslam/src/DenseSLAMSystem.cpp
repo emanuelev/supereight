@@ -49,6 +49,7 @@
 #include "bfusion/alloc_impl.hpp"
 #include "kfusion/alloc_impl.hpp"
 #include <se/boundary_extraction.hpp>
+
 PerfStats Stats;
 static bool print_kernel_timing = false;
 
@@ -402,8 +403,6 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   set3i *updated_blocks,
                                   set3i *frontier_blocks,
                                   set3i *occlusion_blocks) {
-                                  map3i &frontier_blocks_map,
-                                  map3i &occlusion_blocks_map) {
 
 //bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 //                                  unsigned int integration_rate,
@@ -498,9 +497,6 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   frontier_funct);
       std::set<uint64_t > *copy_frontier_blocks = frontier_blocks;
       updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks);
-      frontier_blocks_map= frontier_map_;
-//      std::set<uint64_t > *copy_occlusion_blocks = occlusion_blocks;
-//      updateOcclusionMap(volume_, occlusion_blocks_map, occlusion_blocks);
 
       std::cout << "occlusion size " << occlusion_blocks->size() << std::endl;
 //      insertOcclusionBlocksToMap(occlusion_blocks_map, occlusion_blocks);
@@ -524,6 +520,14 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
     return false;
   }
   return true;
+}
+
+bool DenseSLAMSystem::planning(se::posevector &path, vec3i &cand_views) {
+  std::cout << "[se/denseSLAM] planning num cand view "<< planning_config_.num_cand_views <<std::endl;
+  double res_v = volume_dimension_.cast<double>().x()/volume_resolution_.cast<double>().x();
+  se::exploration::getExplorationPath(volume_, frontier_map_, res_v, planning_config_, path,
+      cand_views);
+  std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
 }
 
 void DenseSLAMSystem::dump_volume(std::string) {
