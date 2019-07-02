@@ -47,6 +47,7 @@ inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
     float stepsize = step;
     float f_t = volume.interp(origin + direction * t, select_occupancy).first;
     float f_tt = 0;
+    int scale = 0;
 
     // if we are not already in it
     if (f_t <= SURF_BOUNDARY) {
@@ -64,7 +65,7 @@ inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
         // got it, calculate accurate intersection
         t = t - stepsize * (f_tt - SURF_BOUNDARY) / (f_tt - f_t);
         Eigen::Vector4f res = (origin + direction * t).homogeneous();
-        res.w() = t;
+        res.w() = scale;
         return res;
       }
     }
