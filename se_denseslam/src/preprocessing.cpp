@@ -110,6 +110,21 @@ void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
 	TOCK("depth2vertexKernel", imageSize.x * imageSize.y);
 }
 
+void vertex2depth( se::Image<float>& depth,
+    const se::Image<Eigen::Vector3f>& vertex,
+    const Eigen::Matrix4f& Tcw) {
+TICK();
+int x, y;
+#pragma omp parallel for \
+       shared(vertex), private(x, y)
+for (y = 0; y < depth.height(); y++) {
+  for (x = 0; x < depth.width(); x++) {
+    depth(x, y) = (Tcw * vertex(x, y).homogeneous()).z();
+  }
+}
+TOCK("vertex2depth", imageSize.x * imageSize.y);
+}
+
 template <bool NegY>
 void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out, 
     const se::Image<Eigen::Vector3f>& in) {
