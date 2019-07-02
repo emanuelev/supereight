@@ -28,16 +28,16 @@ if (WITH_OPENMP AND OPENMP_FOUND)
 endif()
 
 # # ----------------- OFUsion -----------------
-# set(field_type SE_FIELD_TYPE=OFusion)
-# 
-# add_library(${appname}-ofusion STATIC ./src/DenseSLAMSystem.cpp)
-# target_include_directories(${appname}-ofusion PUBLIC include
-#     ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
-# target_compile_options(${appname}-ofusion PUBLIC ${compile_flags})
-# target_link_libraries(${appname}-ofusion ${libraries})
-# target_compile_definitions(${appname}-ofusion PUBLIC ${field_type})
-# 
-# list(APPEND BUILT_LIBS ${appname}-ofusion)
+set(field_type SE_FIELD_TYPE=OFusion)
+
+add_library(${appname}-ofusion STATIC ./src/DenseSLAMSystem.cpp)
+target_include_directories(${appname}-ofusion PUBLIC include
+    ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
+target_compile_options(${appname}-ofusion PUBLIC ${compile_flags})
+target_link_libraries(${appname}-ofusion ${libraries})
+target_compile_definitions(${appname}-ofusion PUBLIC ${field_type})
+
+list(APPEND BUILT_LIBS ${appname}-ofusion)
 # 
 # # ----------------- SDF -----------------
 set(field_type SE_FIELD_TYPE=SDF)
