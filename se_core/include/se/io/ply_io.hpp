@@ -112,5 +112,31 @@ namespace se {
         f << ss_faces.str();
       }
     }
+
+  template <typename T>
+    void savePointCloudPly(const T* in, const int num_points, 
+        const char* filename, const Eigen::Vector3f init_pose) {
+      std::stringstream points;
+      for(int i = 0; i < num_points; ++i ){
+        points << in[i].x() - init_pose.x() 
+          << " " << in[i].y()  - init_pose.y() << " " 
+          << in[i].z() - init_pose.z() << std::endl; 
+      }   
+
+      {
+        std::ofstream f;
+        f.open(std::string(filename).c_str());
+
+        f << "ply" << std::endl;
+        f << "format ascii 1.0" << std::endl;
+        f << "comment octree structure" << std::endl;
+        f << "element vertex " << num_points <<  std::endl;
+        f << "property float x" << std::endl;
+        f << "property float y" << std::endl;
+        f << "property float z" << std::endl;
+        f << "end_header" << std::endl;
+        f << points.str();
+      }
+    }
 }
 #endif

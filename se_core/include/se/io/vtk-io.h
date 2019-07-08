@@ -47,7 +47,7 @@ void savePointCloud(const T* in, const int num_points,
   }   
 
   std::ofstream f;
-  f.open(std::string(filename).append(".vtk").c_str());
+  f.open(filename);
   f << "# vtk DataFile Version 1.0" << std::endl;
   f << "vtk mesh generated from KFusion" << std::endl;
   f << "ASCII" << std::endl;
