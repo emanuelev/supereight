@@ -575,7 +575,7 @@ std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& pos, const int mi
  
   int iter = 0;
   int scale = min_scale;
-  float points[8];
+  float points[8] = { select(init_val()) };
   Eigen::Vector3f factor;
   while(iter < 3) {
     const int stride = 1 << scale; 
@@ -583,6 +583,9 @@ std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& pos, const int mi
     factor =  math::fracf(scaled_pos);
     const Eigen::Vector3i base = stride * scaled_pos.cast<int>();
     const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
+    if(((lower + Eigen::Vector3i::Constant(stride)).array() >= size_).any()) {
+      return {select(init_val()), scale};
+    }
 
     int res = internal::gather_points(*this, lower, scale, select, points);
     if(res == scale) break;
