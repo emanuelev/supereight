@@ -363,19 +363,60 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
 
   se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(), 
       [this](auto block) { 
-        block->current_scale(0); 
-        });
-  std::cout << "saving triangle mesh to file :" << filename  << std::endl;
+      block->current_scale(block->min_scale_); 
+      });
 
-  std::vector<Triangle> mesh;
-  auto inside = [](const Volume<FieldType>::value_type& val) {
-    return val.x < 0.f;
-  };
+  using alloc = Eigen::aligned_allocator<Eigen::Vector4f>;
+  std::vector<Eigen::Vector4f, alloc> points;
 
-  auto select = [](const Volume<FieldType>::value_type& val) {
-    return val.x;
-  };
+  const float voxelsize =  volume_._extent/volume_._size;
+  const int scale  = 2;
+  const int stride = 1 << scale; 
+  for(unsigned int y = 1; y < volume_._size - 1; y += stride) {
+    for(unsigned int x = 1; x < volume_._size - 1; x += stride) {
+      const Eigen::Vector3f origin(x, y, 1);
+      raycast_full(volume_, points, voxelsize * origin, 
+          Eigen::Vector3f(0.0f, 0.0f, 1.0f), volume_._extent, voxelsize, 
+          0.75f*mu_);
+    }
+  }
 
-  se::algorithms::marching_cube(*volume_._map_index, select, inside, mesh);
-  writeVtkMesh(filename.c_str(), mesh);
+  for(unsigned int z = 1; z < volume_._size - 1; z += stride) {
+    for(unsigned int x = 1; x < volume_._size - 1; x += stride) {
+      const Eigen::Vector3f origin(x, 1, z);
+      raycast_full(volume_, points, voxelsize * origin, 
+          Eigen::Vector3f(0.0f, 1.0f, 0.0f), volume_._extent, voxelsize, 
+          0.75f*mu_);
+    }
+  }
+
+  for(unsigned int z = 1; z < volume_._size - 1; z += stride) {
+    for(unsigned int y = 1; y < volume_._size - 1; y += stride) {
+      const Eigen::Vector3f origin(1, y, z);
+      raycast_full(volume_, points, voxelsize * origin, 
+          Eigen::Vector3f(1.0f, 0.0f, 0.0f), volume_._extent, voxelsize, 
+          0.75f*mu_);
+    }
+  }
+
+  se::savePointCloudPly(points.data(), points.size(), filename.c_str(),
+      this->init_pose_);
+
+  // se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(), 
+  //     [this](auto block) { 
+  //       block->current_scale(0); 
+  //       });
+  // std::cout << "saving triangle mesh to file :" << filename  << std::endl;
+
+  // std::vector<Triangle> mesh;
+  // auto inside = [](const Volume<FieldType>::value_type& val) {
+  //   return val.x < 0.f;
+  // };
+
+  // auto select = [](const Volume<FieldType>::value_type& val) {
+  //   return val.x;
+  // };
+
+  // se::algorithms::marching_cube(*volume_._map_index, select, inside, mesh);
+  // writeVtkMesh(filename.c_str(), mesh);
 }

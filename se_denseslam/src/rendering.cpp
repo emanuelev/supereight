@@ -316,7 +316,7 @@ void raycast_full(const Volume<T>& volume,
 
   for (; t < farPlane; t += stepsize) {
     f_tt = volume.interp(origin + direction * t, [](const auto& val){ return val.x;}).first;
-    if (f_tt < 0.f && f_t > 0.f) {     // got it, jump out of inner loop
+    if (f_tt < 0.f && f_t > 0.f && std::abs(f_tt - f_t) < 0.5f) {     // got it, jump out of inner loop
       auto data_t  = volume.get(origin + direction * (t-stepsize));
       auto data_tt = volume.get(origin + direction * t);
       if(f_t == 1.0 || f_tt == 1.0 || data_t.y == 0 || data_tt.y == 0 ){

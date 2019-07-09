@@ -352,6 +352,7 @@ struct multires_block_update {
     int scale = compute_scale((base + Eigen::Vector3i::Constant(side/2)).cast<float>(),
         Tcw.inverse().translation(), Tcw.rotationMatrix(), scaled_pix, voxel_size, se::math::log2_const(side >> 1));
     scale = std::max(last_scale - 1, scale);
+    block->min_scale_ = block->min_scale_ < 0 ? scale : std::min(block->min_scale_, scale);
     if(last_scale > scale) {
       propagate_update(map, block, Tcw, K, voxel_size, offset, depth, mu, maxweight, scale);
       return;
