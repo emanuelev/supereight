@@ -54,6 +54,7 @@
 #include <set>
 #include <map>
 
+#include <se/utils/eigen_utils.h>
 #include "path_planning/include/se/candidate_view.hpp"
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
@@ -61,9 +62,6 @@
 typedef SE_FIELD_TYPE FieldType;
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 
-typedef std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i> > vec3i;
-typedef std::map<uint64_t , Eigen::Vector3i, std::less<uint64_t > ,
-    Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector3i> > > map3i;
 typedef std::set<uint64_t > set3i;
 
 
