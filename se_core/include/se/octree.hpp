@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "geometry/aabb_collision.hpp"
 #include "interpolation/interp_gather.hpp"
 
+
 namespace se {
 
 template<typename T>
@@ -128,6 +129,8 @@ class Octree {
    * \param depth maximum depth to be searched 
    */
   Node<T> *fetch_octant(const int x, const int y, const int z, const int depth) const;
+  void fetch_octant(const int x, const int y, const int z, Node<T> *&pointer, bool &voxelblock)
+  const;
 
   /*! \brief Insert the octant at (x,y,z). Not thread safe.
    * \param x x coordinate in interval [0, size]
@@ -418,6 +421,40 @@ void Octree<T>::init(int size, float dim) {
   reserved_ = 1024;
   keys_at_level_ = new key_t[reserved_];
   std::memset(keys_at_level_, 0, reserved_);
+}
+
+template<typename T>
+inline void Octree<T>::fetch_octant(const int x, const int y, const int z, Node<T>* &pointer,
+    bool &voxelblock)
+const {
+ voxelblock = false;
+
+  Node<T> *n = root_;
+  if (!n) {
+    pointer = nullptr;
+    std::cout << " no root" <<std::endl;
+    return ;
+  }
+
+  // Get the block.
+  unsigned edge = size_ / 2;
+  for (; edge >= blockSide; edge /= 2) {
+    Node<T> *tmp  = n->child((x & edge) > 0u, (y & edge) > 0u, (z & edge) > 0u);
+    if (!tmp) {
+      pointer = n;
+      std::cout << "pointer = n "<< std::endl;
+      return ;
+    }
+    n= tmp;
+  }
+//  return static_cast<VoxelBlock<T> * > (n);
+  voxelblock = true;
+  pointer = n;
+  if(voxelblock){
+   std::cout << "coord " << static_cast<VoxelBlock<T> * > (pointer)->coordinates() << std::endl;
+  }
+  std::cout << "voxelblock exits " << voxelblock << " pointer " << pointer << " n "<< n <<std::endl;
+
 }
 
 template<typename T>
