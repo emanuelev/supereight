@@ -56,10 +56,7 @@ void raycastKernel(const Volume<T> &volume,
                    const float farPlane,
                    const float mu,
                    const float step,
-                   const float largestep,
-                   std::set<uint64_t> &surface_voxel_set ){
-//                   std::unordered_set<uint64_t> &frontier_voxel_set,
-//                   std::unordered_set<uint64_t> &occlusion_voxel_set) {
+                   const float largestep) {
 
   TICK();
     int y;
@@ -106,52 +103,12 @@ void raycastKernel(const Volume<T> &volume,
                                               : surfNorm.normalized();
             }
 
-            const Eigen::Vector3i hit_scaled = (inverseVoxelSize * hit.head<3>()).cast<int>();
-            float voxel_prob =
-                volume._map_index->get(hit_scaled.x(), hit_scaled.y(), hit_scaled.z()).x;
-            // only if the occpuany probability exceeds a certain threshold
-            if (voxel_prob > occ_tresh) {
-              morton_code = compute_morton(hit_scaled.x(), hit_scaled.y(), hit_scaled.z());
-#pragma omp critical
-              {
-                surface_voxel_set.insert(morton_code);
-              }
-              is_surface = true;
-              pos_old = pos;
-              dir_old = dir;
-              transl_old = transl;
-              surface_dist_old = hit.w();
-            }
-            // ray ends in free space
-
           } else {
             vertex[pos.x() + pos.y() * vertex.width()] = Eigen::Vector3f::Constant(0);
             normal[pos.x() + pos.y() * normal.width()] = Eigen::Vector3f(INVALID, 0, 0);
 
-            // frontier voxels
-            Eigen::Vector4f frontier_pos = (transl + dir * ray.tmax()).homogeneous();
-            Eigen::Vector3i
-                front_pos_scaled = (inverseVoxelSize * frontier_pos.head<3>()).cast<int>();
-            double voxel_state = volume._map_index->get(front_pos_scaled.x(), front_pos_scaled.y
-                (), front_pos_scaled.z()).y;
-            if (voxel_state == 0) {
-//              std::cout<<"prob "<< volume._map_index->get(front_pos_scaled).x << std::endl;
-              morton_code =
-                  compute_morton(front_pos_scaled.x(), front_pos_scaled.y(), front_pos_scaled.z());
-              // if the voxel block is not in surface voxel set
-//              if (surface_voxel_set.find(morton_code) == surface_voxel_set.end()) {
-////                std::cout<< "not in surface voxel" << std::endl;
-//#pragma omp critical
-//                {
-//                  frontier_voxel_set.insert(morton_code);
-//                }
-//              }
             }
           }
-        }
-    std::cout << "[supereight] surface voxel set size: " << surface_voxel_set.size() << std::endl;
-//    std::cout << "frontier voxel set size: " << frontier_voxel_set.size() << std::endl;
-//    std::cout << "occlusion voxel set size: " << occlusion_voxel_set.size() << std::endl;
   TOCK("raycastKernel", inputSize.x * inputSize.y);
 }
 
