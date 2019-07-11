@@ -56,6 +56,7 @@
 
 #include <se/utils/eigen_utils.h>
 #include "path_planning/include/se/candidate_view.hpp"
+#include <path_planning/include/se/exploration_utils.hpp>
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
  */
@@ -226,9 +227,9 @@ class DenseSLAMSystem {
 //                   unsigned int integration_rate,
 //                   float mu,
 //                   unsigned int frame,
-//                   vec3i *updated_blocks,
-//                   vec3i *frontier_blocks,
-//                   vec3i *occlusion_blocks,
+//                   VectorVec3i *updated_blocks,
+//                   VectorVec3i *frontier_blocks,
+//                   VectorVec3i *occlusion_blocks,
 //                   map3i &frontier_blocks_map,
 //                   map3i &occlusion_blocks_map);
   bool integration(const Eigen::Vector4f &k,
@@ -261,7 +262,7 @@ class DenseSLAMSystem {
    */
   bool raycasting(const Eigen::Vector4f &k, float mu, unsigned int frame);
 
-  bool planning(se::posevector &path, vec3i &cand_views);
+  bool planning(se::exploration::posevector &path, VectorVec3i &cand_views);
   /*
    * TODO Implement this.
    */

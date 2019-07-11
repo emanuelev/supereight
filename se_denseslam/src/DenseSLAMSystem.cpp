@@ -225,8 +225,7 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f &k, float mu, unsigned in
                   farPlane,
                   mu,
                   step,
-                  step * BLOCK_SIDE,
-                  surface_voxel_set_);
+                  step * BLOCK_SIDE);
 //                  surface_voxel_set_,
 //                  frontier_voxel_set_,
 //                  occlusion_voxel_set_);
@@ -524,11 +523,19 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
   return true;
 }
 
-bool DenseSLAMSystem::planning(se::posevector &path, vec3i &cand_views) {
+bool DenseSLAMSystem::planning(se::exploration::posevector &path, VectorVec3i &cand_views) {
   std::cout << "[se/denseSLAM] planning num cand view "<< planning_config_.num_cand_views <<std::endl;
-  double res_v = volume_dimension_.cast<double>().x()/volume_resolution_.cast<double>().x();
-  se::exploration::getExplorationPath(volume_, frontier_map_, res_v, planning_config_, path,
-      cand_views);
+  float res_v = volume_dimension_.cast<float>().x()/volume_resolution_.cast<float>().x();
+
+  float step = volume_dimension_.x() / volume_resolution_.x();
+  se::exploration::getExplorationPath(volume_,
+                                      frontier_map_,
+                                      res_v,
+                                      step,
+                                      planning_config_,
+                                      config_,
+                                      cand_views,
+                                      path);
   std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
 }
 

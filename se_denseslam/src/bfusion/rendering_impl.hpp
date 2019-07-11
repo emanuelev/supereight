@@ -31,18 +31,17 @@
 
 #include <se/utils/math_utils.h>
 #include <type_traits>
-#include <unordered_set>
 
-inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
-                               const Eigen::Vector3f& origin,
-                               const Eigen::Vector3f& direction,
-                               const float            tnear,
-                               const float            tfar,
+inline Eigen::Vector4f raycast(const Volume<OFusion> &volume,
+                               const Eigen::Vector3f &origin,
+                               const Eigen::Vector3f &direction,
+                               const float tnear,
+                               const float tfar,
                                const float,
-                               const float            step,
+                               const float step,
                                const float) {
 
-  auto select_occupancy = [](const auto& val){ return val.x; };
+  auto select_occupancy = [](const auto &val) { return val.x; };
   // march from camera away
   if (tnear < tfar) {
     float t = tnear; // closer bound to camera
@@ -53,7 +52,7 @@ inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
     // check if current pos is free
     if (f_t <= SURF_BOUNDARY) {
       for (; t < tfar; t += stepsize) {
-        const Eigen::Vector3f pos =  origin + direction * t;
+        const Eigen::Vector3f pos = origin + direction * t;
         Volume<OFusion>::value_type data = volume.get(pos);
         // check if the voxel has been updated before
         if (data.x > -100.f && data.y > 0.f) {

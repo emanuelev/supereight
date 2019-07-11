@@ -85,7 +85,13 @@ class VolumeTemplate {
     value_type operator[](const Eigen::Vector3i& p) const {
       return _map_index->get(p.x(), p.y(), p.z());
     }
-
+  /**
+   *
+   * @tparam FieldSelector
+   * @param pos [m]
+   * @param select
+   * @return interpolated probability of pos
+   */
     template <typename FieldSelector>
     float interp(const Eigen::Vector3f& pos, FieldSelector select) const {
       const float inverseVoxelSize = _size / _extent;

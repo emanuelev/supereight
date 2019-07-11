@@ -150,7 +150,7 @@ static inline float applyWindow(const float occupancy,
  */
 template<typename DataHandlerT>
 bool updateFrontierMapIntegration(DataHandlerT &data,
-                                  vec3i *frontier_blocks,
+                                  VectorVec3i *frontier_blocks,
                                   const Eigen::Vector3i &coord,
                                   const bool &is_frustum_boarder) {
 
@@ -182,9 +182,9 @@ struct bfusion_update {
   float timestamp;
   float voxelsize;
 
-//  vec3i& occupiedVoxels_;
-//  vec3i& freedVoxels_;
-  std::set<uint64_t > *updated_blocks_;
+//  VectorVec3i& occupiedVoxels_;
+//  VectorVec3i& freedVoxels_;
+  set3i *updated_blocks_;
   set3i *frontier_blocks_;
   set3i *occlusion_blocks_;
 
@@ -237,9 +237,9 @@ struct bfusion_update {
 //                 float n,
 //                 float t,
 //                 float vs,
-//                 vec3i *updated_blocks,
-//                 vec3i *frontier_blocks,
-//                 vec3i *occlusion_blocks)
+//                 VectorVec3i *updated_blocks,
+//                 VectorVec3i *frontier_blocks,
+//                 VectorVec3i *occlusion_blocks)
 //      :
 //      depth(d),
 //      depthSize(framesize),

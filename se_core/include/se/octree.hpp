@@ -555,7 +555,14 @@ template<typename T>
 VoxelBlock<T> *Octree<T>::insert(const int x, const int y, const int z) {
   return static_cast<VoxelBlock<T> * >(insert(x, y, z, max_level_));
 }
-
+/**
+ *
+ * @tparam T
+ * @tparam FieldSelector
+ * @param pos [voxel coord] to be interpolated
+ * @param select
+ * @return interpolated probability
+ */
 template<typename T>
 template<typename FieldSelector>
 float Octree<T>::interp(const Eigen::Vector3f &pos, FieldSelector select) const {

@@ -95,36 +95,30 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
     face_neighbour_voxel[5] << _voxel.x(), _voxel.y(), _voxel.z() + 1;
 
     for (const auto &face_voxel : face_neighbour_voxel) {
-//    std::cout<< "[se/datahandler] isFrontier for " << _voxel << " and its face voxel " <<
-//      std::cout << "[se/datahandler] state " << map.get(face_voxel).st << std::endl;
-//      bool prob_unknown = se::math::getProbFromLog(map.get(face_voxel).x) >= THRESH_FREE &&
-//          se::math::getProbFromLog(map.get(face_voxel).x)<=THRESH_OCC;
-//      std::cout << "[se/datahandler] prob face voxel " << se::math::getProbFromLog(map.get
-//      (face_voxel).x) << " state " << map.get(face_voxel).st <<  std::endl;
-      if (map.get(face_voxel).st == voxel_state::kUnknown  ) {
+
+
+      // TODO change to octree allocation . currently fix grid
+/*
+// check if face voxel is not inside same voxel block
+      if ((std::ceil((_voxel.x()+1) / BLOCK_SIDE) != std::ceil((face_voxel.x()+1) / BLOCK_SIDE))
+          || (std::ceil((_voxel.y()+1) / BLOCK_SIDE) != std::ceil((face_voxel.y()+1) / BLOCK_SIDE))
+          || (std::ceil((_voxel.z() +1)/ BLOCK_SIDE) != std::ceil((face_voxel.z()+1) /BLOCK_SIDE))) {
+        se::VoxelBlock<FieldType>
+            *block = map.fetch(face_voxel.x(), face_voxel.y(), face_voxel.z());
+        if (block != NULL) {
+          if (block->data(face_voxel).st == voxel_state::kUnknown)
+            return true;
+        } else {
+          // neighbour block is unallocated / unknown
+          return true;
+        }
+      }    */
+      // in same voxel block
+      if (map.get(face_voxel).st == voxel_state::kUnknown) {
+
         return true;
       }
-//      return voxel_state::kUnknown == map.get(face_voxel).st;
-//      Eigen::Vector3i offset = face_voxel - _voxel;
-//      int idx = offset(0) + offset(1) * BLOCK_SIDE + offset(2) * BLOCK_SIDE * BLOCK_SIDE;
-//
-//      if (idx < 0 || idx > BLOCK_SIDE * BLOCK_SIDE * BLOCK_SIDE) {
-//        se::VoxelBlock<FieldType>
-//            *neighbour = map.fetch(face_voxel.x(), face_voxel.y(), face_voxel.z());
-//        if (neighbour == NULL) {
-////          std::cout << "neighbour empty"<< std::endl;
-//          return false;
-//        }else {
-//          std::cout << "[supereight/datahandler] neighbour state" << neighbour->data(face_voxel).st
-//                    << std::endl;
-//          if (neighbour->data(face_voxel).st == voxel_state::kUnknown) {
-//            return true;
-//          }
-//        }
-//      } else if (_block->data(face_voxel).st == voxel_state::kUnknown) {
-////        std::cout << "[supereight/datahandler] is frontier" << std::endl;
-//        return true;
-//      }
+
     }
     return false;
   }
