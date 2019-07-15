@@ -54,8 +54,17 @@ struct eulerAngles {
   float yaw, pitch, roll;
 };
 
-// source wikipedia https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-static inline Eigen::Quaternionf toQuaternion(float yaw, float pitch, float roll) // yaw (Z),
+// source https://cs.stanford.edu/~acoates/quaternion.h
+
+/**
+ * @brief Euler Angles to Quaternion
+ * @param yaw
+ * @param pitch
+ * @param roll
+ * @return quaternion
+ */
+static inline Eigen::Quaternionf toQuaternion(float yaw, float pitch, float roll)
+// yaw (Z),
 // pitch (Y),
 // roll (X)
 {
@@ -69,9 +78,9 @@ static inline Eigen::Quaternionf toQuaternion(float yaw, float pitch, float roll
 
   Eigen::Quaternionf q;
   q.w() = cy * cp * cr + sy * sp * sr;
-  q.x() = cy * cp * sr - sy * sp * cr;
-  q.y() = sy * cp * sr + cy * sp * cr;
-  q.z() = sy * cp * cr - cy * sp * sr;
+  q.x() = sy * cp * cr - cy * sp * sr;
+  q.y() = cy * sp * cr + sy * cp * sr;
+  q.z() = cy * cp * sr - sy * sp * cr;
 
   return q;
 }
@@ -99,15 +108,53 @@ static inline eulerAngles toEulerAngles(Eigen::Quaternionf q)
 
   return angles;
 }
+/** @brief Returns an equivalent euler angle representation of
+ * this quaternion.
+ * @return Euler angles in roll-pitch-yaw order.
+ */
+static inline eulerAngles toEulerAngles2(Eigen::Quaternionf q){
+  eulerAngles euler;
+  const static float PI_OVER_2 = M_PI * 0.5;
+  const static float EPSILON = 1e-10;
+  float sqw, sqx, sqy, sqz;
+
+  // quick conversion to Euler angles to give tilt to user
+  sqw = q.w()*q.w();
+  sqx = q.x()*q.x();
+  sqy = q.y()* q.y();
+  sqz = q.z() * q.z();
+
+  euler.pitch = asin(2.0 * (q.w()*q.y() - q.x() * q.z()));
+  if (PI_OVER_2 - fabs(euler.pitch) > EPSILON) {
+    euler.yaw = atan2(2.0 * (q.x() * q.y() + q.w()*q.z()),
+                     sqx - sqy - sqz + sqw);
+    euler.roll = atan2(2.0 * (q.w()*q.x() + q.y() * q.z()),
+                     sqw - sqx - sqy + sqz);
+  } else {
+    // compute heading from local 'down' vector
+    euler.yaw = atan2(2*q.y() * q.z() - 2 * q.x() * q.w(),
+                     2* q.x() * q.z() + 2 * q.y() * q.w());
+    euler.roll = 0.0;
+
+    // If facing down, reverse yaw
+    if (euler.pitch < 0)
+      euler.yaw = M_PI - euler.yaw;
+  }
+  return euler;
+}
+
+/**
+ * @brief calculate entropy
+ * @param prob_log logarithmic occupancy probability
+ * @return entropy
+ */
 static inline double getEntropy(float prob_log) {
   float prob = se::math::getProbFromLog(prob_log);
   double temp_entropy = 0.0f;
   if (prob == 0.0 || (1 - prob) == 0.0) {
     return 0.0;
   }
-
   temp_entropy = -prob * log2(prob) - (1 - prob) * log2(1 - prob);
-
   return temp_entropy;
 
 }
