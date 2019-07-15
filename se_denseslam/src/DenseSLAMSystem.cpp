@@ -363,15 +363,20 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
 
   se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(), 
       [this](auto block) { 
-      block->current_scale(block->min_scale_); 
+        if(std::is_same<FieldType, MultiresSDF>::value) {
+          block->current_scale(block->min_scale_); 
+        } else {
+          block->current_scale(0);
+        }
       });
 
   using alloc = Eigen::aligned_allocator<Eigen::Vector4f>;
   std::vector<Eigen::Vector4f, alloc> points;
 
   const float voxelsize =  volume_._extent/volume_._size;
-  const int scale  = 2;
+  const int scale  = 0;
   const int stride = 1 << scale; 
+
   for(unsigned int y = 1; y < volume_._size - 1; y += stride) {
     for(unsigned int x = 1; x < volume_._size - 1; x += stride) {
       const Eigen::Vector3f origin(x, y, 1);
@@ -393,6 +398,33 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
   for(unsigned int z = 1; z < volume_._size - 1; z += stride) {
     for(unsigned int y = 1; y < volume_._size - 1; y += stride) {
       const Eigen::Vector3f origin(1, y, z);
+      raycast_full(volume_, points, voxelsize * origin, 
+          Eigen::Vector3f(1.0f, 0.0f, 0.0f), volume_._extent, voxelsize, 
+          0.75f*mu_);
+    }
+  }
+
+  for(unsigned int y = volume_._size; y > 0; y -= stride) {
+    for(unsigned int x = volume_._size; x > 0; x -= stride) {
+      const Eigen::Vector3f origin(x, y, volume_._size);
+      raycast_full(volume_, points, voxelsize * origin, 
+          Eigen::Vector3f(0.0f, 0.0f, 1.0f), volume_._extent, voxelsize, 
+          0.75f*mu_);
+    }
+  }
+
+  for(unsigned int z = volume_._size; z > 0; z -= stride) {
+    for(unsigned int x = volume_._size; x > 0; x -= stride) {
+      const Eigen::Vector3f origin(x, volume_._size, z);
+      raycast_full(volume_, points, voxelsize * origin, 
+          Eigen::Vector3f(0.0f, 1.0f, 0.0f), volume_._extent, voxelsize, 
+          0.75f*mu_);
+    }
+  }
+
+  for(unsigned int z = volume_._size; z > 0; z -= stride) {
+    for(unsigned int y = volume_._size; y > 0; y -= stride) {
+      const Eigen::Vector3f origin(volume_._size, y, z);
       raycast_full(volume_, points, voxelsize * origin, 
           Eigen::Vector3f(1.0f, 0.0f, 0.0f), volume_._extent, voxelsize, 
           0.75f*mu_);
