@@ -521,13 +521,18 @@ template <typename T>
 template <typename FieldSelector>
 float Octree<T>::interp(const Eigen::Vector3f& pos, FieldSelector select) const {
 
+  // The integer part of the interpolation point voxel coordinates.
   const Eigen::Vector3i base = math::floorf(pos).cast<int>();
+  // The fractional part of the interpolation point voxel coordinates.
   const Eigen::Vector3f factor = math::fracf(pos);
+  // Ensure the integer part is non-negative.
   const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
 
+  // Get the values stored in the 8 nearest voxels/octants.
   float points[8];
   gather_points(*this, lower, select, points);
 
+  // Interpolate the value based on the fractional part.
   return (((points[0] * (1 - factor(0))
           + points[1] * factor(0)) * (1 - factor(1))
           + (points[2] * (1 - factor(0))
