@@ -94,7 +94,7 @@ class DenseSLAMSystem {
 
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    
+
     /**
      * Constructor using the initial camera position.
      *
@@ -196,8 +196,10 @@ class DenseSLAMSystem {
                      unsigned               frame);
 
     /**
-     * Raycast the 3D reconstruction after integration to update the values of
-     * the TSDF. This is the fourth stage of the pipeline.
+     * Raycast the map from the current pose to create a point cloud (vertex
+     * map) and respective normal vectors (normal map). The vertex and normal
+     * maps are then used to track the next frame in DenseSLAMSystem::tracking.
+     * This is the fourth stage of the pipeline.
      *
      * @note Raycast is not performed on the first 3 frames (those with an
      * index up to 2).
@@ -224,7 +226,9 @@ class DenseSLAMSystem {
     void dump_mesh(const std::string filename);
 
     /**
-     * Render the current 3D reconstruction.
+     * Render the current 3D reconstruction. This function performs raycasting
+     * if needed, otherwise it uses the vertex and normal maps created in
+     * DenseSLAMSystem::raycasting.
      *
      * \param[out] out A pointer to an array containing the rendered frame.
      * The array must be allocated before calling this function. The storage
