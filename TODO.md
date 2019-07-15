@@ -10,7 +10,6 @@
 	- `get_neighbors(coordinate_offsets, neighbor_list&) // Return pointers to
 	  neighbors defined by relative offsets`
 - Dense allocation [Almost done - Nils]
-- Install script [Done, will merge - Sot]
 - Return updated voxels. Return voxel indices/addresses and delta (changes in
   their stored values). Can then be filtered by a user-defined function.
 - Proper camera model class instead of K matrix. Allow changing near/far plane
@@ -54,4 +53,6 @@ planning/exploration in separate ROS nodes.
 
 
 # Completed tasks
+- System-wide installation using CMake
+- Dependency install script
 

@@ -55,6 +55,11 @@ The benchmarking and GUI apps additionally require:
 * PkgConfig/Qt5
 * Python/Numpy for evaluation scripts
 
+To install the dependencies run
+```
+./se_tools/install_dependencies.sh
+```
+
 # Build
 From the project root:
 `make`
