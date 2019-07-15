@@ -85,8 +85,11 @@ struct Configuration {
 
   int voxel_block_size;
 
-  /*
-   * TODO
+  /**
+   * The position of the first pose inside the volume. The coordinates are
+   * expressed as fractions [0, 1] of the volume's extent. The default value of
+   * (0.5, 0.5, 0) results in the first pose being placed halfway along the x
+   * and y axes and at the beginning of the z axis.
    * <br>\em Default: (0.5, 0.5, 0)
    */
   Eigen::Vector3f initial_pos_factor;
