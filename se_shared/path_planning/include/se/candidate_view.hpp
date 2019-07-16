@@ -368,8 +368,6 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
   float fov_vert = fov_hor * 480.f / 640.f; // image size
   float cyl_h = static_cast<float>(2 * r_max * sin(fov_vert * M_PI / 360.0f)); // from paper [2]
   float dr = 0.1f; //[1]
-  float dphi_rad = M_PI * 10.f / 180.f; // [1]
-  float dtheta_rad = M_PI * 10.f / 180.f; //[1]
 
   // temporary
   int dtheta = 20;
@@ -379,7 +377,9 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
   float r = 0.5; // [m] random radius
   int phi, theta;
   float phi_rad, theta_rad;
-
+  int col = fov_vert/dphi; //9
+  int row = 360 /dtheta; // 18
+  Eigen::MatrixXd gain_matrix(col, row);
   std::map<int, double> gain_per_yaw;
   gain_per_yaw.empty();
 // cand view in voxel coord
@@ -411,6 +411,7 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
         //get IG along ray
         double gain_tmp =
             t_min > 0.f ? getInformationGain(volume_, dir, t_min, r_max, step, cand_view_m) : 0.f;
+        gain_matrix << gain_tmp;
         gain += gain_tmp;
         std::cout << " gain tmp " << gain_tmp << " update " << gain << std::endl;
       }
@@ -442,6 +443,8 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
         best_yaw = yaw;
       }
     }
+    gain_matrix.transpose();
+    std::cout << "[se/candview] gain_matrix \n" << gain_matrix << std::endl;
     std::cout << "[se/candview] for cand " << cand_view.format(InLine) << " best theta angle is "
               << best_yaw << ", best ig is " << best_yaw_gain << std::endl;
 
@@ -469,6 +472,17 @@ std::pair<pose3D,
       best_cand = cand.first;
       max_gain = cand.second;
     }
+  }
+
+  se::Node<T> *parent = volume_._map_index->fetch_octant(best_cand.p.x(), best_cand.p.y(),
+      best_cand.p.z(), 2);
+  for(int i = 0; i<8 ; i++){
+    std::cout << "se node value state , depth 2 " <<parent->value_[i].x << std::endl;
+  }
+  se::Node<T> *parent4 = volume_._map_index->fetch_octant(best_cand.p.x(), best_cand.p.y(),
+                                                         best_cand.p.z(), 4);
+  for(int i = 0; i<8 ; i++){
+    std::cout << "se node value state , depth 4 " <<parent4->value_[i].x << std::endl;
   }
   return std::make_pair(best_cand, max_gain);
 }

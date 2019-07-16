@@ -138,23 +138,22 @@ TEST(AllocationTest, FetchOctant_NoVoxelblock) {
                      vox_t(2),
                      node,
                      is_voxel_block);
-    Eigen::Vector3i coord(0, 0, 0);
+    Eigen::Vector3i coord= se::keyops::decode(node->code_);
     std::cout << " code " << node->code_ << " side " << node->side_ << std::endl;
+    oct.set(coord.x(), coord.y(), coord.z(), 0.5);
     if (is_voxel_block) {
       se::VoxelBlock<float> *block = static_cast<se::VoxelBlock<float> *> (node);
       coord = block->coordinates();
-    }
-    else{
-      std::cout << se::keyops::decode(node->code_)<< " "<<oct.get(se::keyops::decode(node->code_))
-      <<
-      std::endl;
+    } else{
+      std::cout << se::keyops::decode(node->code_) << "not a voxel block " << oct.get
+      (se::keyops::decode(node->code_))<<std::endl;
     }
     std::cout << "coord " << se::keyops::decode(node->code_)<< std::endl;
     ASSERT_EQ(node_side[i], node->side_);
     i++;
   }
   std::string output = testing::internal::GetCapturedStdout();
-//  EXPECT_TRUE(false) << output;
+  EXPECT_TRUE(false) << output;
 }
 
 TEST(AllocationTest, FetchOctant) {
