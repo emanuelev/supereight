@@ -38,12 +38,12 @@
 
 namespace se {
   /*!
-   * Voxel face neighbor gather offsets.
-   *
-   * \todo Rearrange the offsets for optimal cache locality.
+   * Voxel face neighbor gather offsets. The order is -z -y -x +x +y +z which
+   * is the order the voxels will have in memory if they belong to the same
+   * VoxelBlock.
    */
   static const Eigen::Vector3i face_neighbor_offsets[6] =
-  {{-1, 0, 0}, {1, 0, 0}, {0, -1, 0}, {0, 1, 0}, {0, 0, -1}, {0, 0, 1}};
+  {{0, 0, -1}, {0, -1, 0}, {-1, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
 
 }
 
