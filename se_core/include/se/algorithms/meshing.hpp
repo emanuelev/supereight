@@ -42,6 +42,36 @@ namespace meshing {
     INSIDE = 0xFF, // 255
   };
 
+  void savePointCloudPly(const std::vector<Triangle>& mesh, 
+      const char* filename, const Eigen::Vector3f init_pose) {
+    std::stringstream points;
+    int num_points = 0;
+    for(int i = 0; i < mesh.size(); ++i ){
+      const Triangle& t = mesh[i];
+      for(int j = 0; j < 3; ++j) {
+        points << t.vertexes[j].x() - init_pose.x() << " " 
+               << t.vertexes[j].y() - init_pose.y() << " " 
+               << t.vertexes[j].z() - init_pose.z() << std::endl; 
+        num_points++;
+      }
+    }   
+
+    {
+      std::ofstream f;
+      f.open(std::string(filename).c_str());
+
+      f << "ply" << std::endl;
+      f << "format ascii 1.0" << std::endl;
+      f << "comment octree structure" << std::endl;
+      f << "element vertex " << num_points <<  std::endl;
+      f << "property float x" << std::endl;
+      f << "property float y" << std::endl;
+      f << "property float z" << std::endl;
+      f << "end_header" << std::endl;
+      f << points.str();
+    }
+  }
+
   template <typename Map, typename FieldSelector>
     inline Eigen::Vector3f compute_intersection(const Map& volume, FieldSelector select,
         const Eigen::Vector3i& source, const Eigen::Vector3i& dest){
