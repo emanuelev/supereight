@@ -362,93 +362,51 @@ void DenseSLAMSystem::renderDepth(unsigned char* out,
 void DenseSLAMSystem::dump_mesh(const std::string filename){
 
   se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(), 
-      [this](auto block) { 
+      [](auto block) { 
         if(std::is_same<FieldType, MultiresSDF>::value) {
-          block->current_scale(block->min_scale_); 
+          block->current_scale(block->min_scale_);
         } else {
           block->current_scale(0);
         }
       });
 
-  using alloc = Eigen::aligned_allocator<Eigen::Vector4f>;
-  std::vector<Eigen::Vector4f, alloc> points;
+  auto interp_down = [this](auto block) { 
+    if(block->min_scale_ == 0) return;
+    const Eigen::Vector3f& offset = this->volume_._map_index->_offset;
+    const Eigen::Vector3i base = block->coordinates();
+    const int side = block->side;
+    for(int z = 0; z < side; ++z)
+      for(int y = 0; y < side; ++y)
+        for(int x = 0; x < side; ++x) {
+          const Eigen::Vector3i vox = base + Eigen::Vector3i(x, y , z);
+          auto curr = block->data(vox, 0);
+          curr.x = this->volume_._map_index->interp(
+              vox.cast<float>() + offset, [](const auto& val) { return val.x; }).first;
+          curr.y = this->volume_._map_index->interp(
+              vox.cast<float>() + offset, [](const auto& val) { return val.y; }).first;
+          block->data(vox, 0, curr);
+        }
+  };
 
-  const float voxelsize =  volume_._extent/volume_._size;
-  const int scale  = 0;
-  const int stride = 1 << scale; 
+  se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(),
+      interp_down);
+  se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(), 
+      [](auto block) { 
+          block->current_scale(0);
+      });
 
-  for(unsigned int y = 1; y < volume_._size - 1; y += stride) {
-    for(unsigned int x = 1; x < volume_._size - 1; x += stride) {
-      const Eigen::Vector3f origin(x, y, 1);
-      raycast_full(volume_, points, voxelsize * origin, 
-          Eigen::Vector3f(0.0f, 0.0f, 1.0f), volume_._extent, voxelsize, 
-          0.75f*mu_);
-    }
-  }
+    std::cout << "saving triangle mesh to file :" << filename  << std::endl;
 
-  for(unsigned int z = 1; z < volume_._size - 1; z += stride) {
-    for(unsigned int x = 1; x < volume_._size - 1; x += stride) {
-      const Eigen::Vector3f origin(x, 1, z);
-      raycast_full(volume_, points, voxelsize * origin, 
-          Eigen::Vector3f(0.0f, 1.0f, 0.0f), volume_._extent, voxelsize, 
-          0.75f*mu_);
-    }
-  }
+    std::vector<Triangle> mesh;
+    auto inside = [](const Volume<FieldType>::value_type& val) {
+      return val.x < 0.f;
+    };
 
-  for(unsigned int z = 1; z < volume_._size - 1; z += stride) {
-    for(unsigned int y = 1; y < volume_._size - 1; y += stride) {
-      const Eigen::Vector3f origin(1, y, z);
-      raycast_full(volume_, points, voxelsize * origin, 
-          Eigen::Vector3f(1.0f, 0.0f, 0.0f), volume_._extent, voxelsize, 
-          0.75f*mu_);
-    }
-  }
+    auto select = [](const Volume<FieldType>::value_type& val) {
+      return val.x;
+    };
 
-  for(unsigned int y = volume_._size; y > 0; y -= stride) {
-    for(unsigned int x = volume_._size; x > 0; x -= stride) {
-      const Eigen::Vector3f origin(x, y, volume_._size);
-      raycast_full(volume_, points, voxelsize * origin, 
-          Eigen::Vector3f(0.0f, 0.0f, 1.0f), volume_._extent, voxelsize, 
-          0.75f*mu_);
-    }
-  }
-
-  for(unsigned int z = volume_._size; z > 0; z -= stride) {
-    for(unsigned int x = volume_._size; x > 0; x -= stride) {
-      const Eigen::Vector3f origin(x, volume_._size, z);
-      raycast_full(volume_, points, voxelsize * origin, 
-          Eigen::Vector3f(0.0f, 1.0f, 0.0f), volume_._extent, voxelsize, 
-          0.75f*mu_);
-    }
-  }
-
-  for(unsigned int z = volume_._size; z > 0; z -= stride) {
-    for(unsigned int y = volume_._size; y > 0; y -= stride) {
-      const Eigen::Vector3f origin(volume_._size, y, z);
-      raycast_full(volume_, points, voxelsize * origin, 
-          Eigen::Vector3f(1.0f, 0.0f, 0.0f), volume_._extent, voxelsize, 
-          0.75f*mu_);
-    }
-  }
-
-  se::savePointCloudPly(points.data(), points.size(), filename.c_str(),
-      this->init_pose_);
-
-  // se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(), 
-  //     [this](auto block) { 
-  //       block->current_scale(0); 
-  //       });
-  // std::cout << "saving triangle mesh to file :" << filename  << std::endl;
-
-  // std::vector<Triangle> mesh;
-  // auto inside = [](const Volume<FieldType>::value_type& val) {
-  //   return val.x < 0.f;
-  // };
-
-  // auto select = [](const Volume<FieldType>::value_type& val) {
-  //   return val.x;
-  // };
-
-  // se::algorithms::marching_cube(*volume_._map_index, select, inside, mesh);
-  // writeVtkMesh(filename.c_str(), mesh);
+    se::algorithms::marching_cube(*volume_._map_index, select, inside, mesh);
+    // writeVtkMesh(filename.c_str(), mesh, this->init_pose_);
+    se::meshing::savePointCloudPly(mesh, filename.c_str(), this->init_pose_);
 }
