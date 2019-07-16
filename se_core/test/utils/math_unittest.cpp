@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <se/utils/math_utils.h>
-#include <Eigen/Core>
+#include <Eigen/Dense>
 #include "gtest/gtest.h"
 
 TEST(EigenUtils, ClampFixVec3) {
@@ -52,4 +52,21 @@ TEST(EigenUtils, ClampFixVec2) {
 
   ASSERT_TRUE(base.x() >= min.x() && base.x() <= max.x());
   ASSERT_TRUE(base.y() >= min.y() && base.y() <= max.y());
+}
+
+TEST(EigenUtils, rot_to_quat){
+
+  Eigen::Matrix4f matrix = Eigen::Matrix4f::Identity();
+
+  Eigen::Quaternionf q_return = se::math::rot_mat_2_quat(matrix.block<3,3>(0,0));
+  Eigen::Quaternionf q_identity= {1.0, 0.0, 0.0, 0.0};
+
+  testing::internal::CaptureStdout();
+  std::cout << "My test \n";
+  std::cout << q_identity.w() << q_identity.vec() << " " << q_return.w() << q_return.vec() <<
+  std::endl;
+  std::string output = testing::internal::GetCapturedStdout();
+//  EXPECT_TRUE(false) << output;
+  ASSERT_EQ(q_identity.w(), q_return.w());
+  ASSERT_EQ(q_identity.vec(), q_return.vec());
 }

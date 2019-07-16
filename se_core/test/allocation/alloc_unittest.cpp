@@ -81,6 +81,11 @@ TEST(AllocationTest, FetchOctant_NodetoVoxelblock) {
   const se::key_t code = oct.hash(vox(0), vox(1), vox(2));
   se::key_t allocList[1] = {code};
   oct.allocate(allocList, 1);
+  oct.set(vox(0), vox(1), vox(2), 0.3);
+//  oct.set(vox_block_coord(0), vox_block_coord(1), vox_block_coord(2), 0.3);
+  std::cout << oct.get(vox_block_coord) <<std::endl;
+  std::cout << "vox code " << code <<" vox block coord " << oct.hash(24,64,120) <<
+  " 23,64,120 " <<oct.hash(23, 64, 120) << std::endl;
 
   se::Node<float> *node = nullptr;
   bool is_voxel_block;
@@ -90,12 +95,16 @@ TEST(AllocationTest, FetchOctant_NodetoVoxelblock) {
   Eigen::Vector3i coord(0, 0, 0);
 
   std::cout << " code " << node->code_<< " side " << node->side_ <<  std::endl;
+  std::cout << " decode code " << se::keyops::decode(node->code_)<< " unpack " <<
+  unpack_morton(node->code_)<<std::endl;
+  std::cout<< "get " << oct.get(se::keyops::decode(node->code_)) <<std::endl;
   if (is_voxel_block) {
     se::VoxelBlock<float> *block = static_cast<se::VoxelBlock<float> *> (node);
     coord = block->coordinates();
   }
   std::string output = testing::internal::GetCapturedStdout();
-//  EXPECT_TRUE(false)<< output;
+  EXPECT_TRUE(false)<< output;
+
   ASSERT_EQ(vox_block_coord, coord);
 }
 
@@ -134,6 +143,11 @@ TEST(AllocationTest, FetchOctant_NoVoxelblock) {
     if (is_voxel_block) {
       se::VoxelBlock<float> *block = static_cast<se::VoxelBlock<float> *> (node);
       coord = block->coordinates();
+    }
+    else{
+      std::cout << se::keyops::decode(node->code_)<< " "<<oct.get(se::keyops::decode(node->code_))
+      <<
+      std::endl;
     }
     std::cout << "coord " << se::keyops::decode(node->code_)<< std::endl;
     ASSERT_EQ(node_side[i], node->side_);

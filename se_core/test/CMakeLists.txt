@@ -3,7 +3,8 @@ project(octree_lib_unit_testing)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
 # GTest Root - Change to reflect your install dir
-set(GTEST_ROOT ~/software/googletest/googletest)
+set(GTEST_ROOT /home/anna/Software/googletest/googletest)
+message(STATUS "google test path " ${GTEST_INCLUDE_DIRS})
 find_package(GTest REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Sophus REQUIRED)

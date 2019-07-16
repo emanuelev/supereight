@@ -296,10 +296,11 @@ inline void Octree<T>::set(const int x, const int y, const int z, const value_ty
   if (!n) {
     return;
   }
-
+  std::cout << "[set] size_ " << size_ ;
   unsigned edge = size_ >> 1;
   for (; edge >= blockSide; edge = edge >> 1) {
     Node<T> *tmp = n->child((x & edge) > 0, (y & edge) > 0, (z & edge) > 0);
+    std::cout << " edge " << edge << " x & edge " << (x & edge )<< std::endl;
     if (!tmp) {
       return;
     }
@@ -453,7 +454,8 @@ const {
   if(voxelblock){
    std::cout << "coord " << static_cast<VoxelBlock<T> * > (pointer)->coordinates() << std::endl;
   }
-  std::cout << "voxelblock exits " << voxelblock << " pointer " << pointer << " n "<< n <<std::endl;
+  std::cout << "voxelblock exists " << voxelblock << " pointer " << pointer << " n "<< n
+  <<std::endl;
 
 }
 
