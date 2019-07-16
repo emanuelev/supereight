@@ -6,7 +6,6 @@
 - Efficient neighbor queries at voxel level [PRIORITY]
 	- Generic function to get arbitrary neighbors and specialized (and faster)
 	  function for common neighbors (face, face+edge, face+edge+corner etc.)
-	- `get_face_neighbors(neighbor_list&) // Return pointers to neighbors`
 	- `get_neighbors(coordinate_offsets, neighbor_list&) // Return pointers to
 	  neighbors defined by relative offsets`
 - Dense allocation [Almost done - Nils]
@@ -55,4 +54,5 @@ planning/exploration in separate ROS nodes.
 # Completed tasks
 - System-wide installation using CMake
 - Dependency install script
+- Function to get the values of face neighbors (`Octree::get_face_neighbors()`)
 
