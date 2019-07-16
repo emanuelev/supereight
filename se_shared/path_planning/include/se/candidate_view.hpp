@@ -279,13 +279,12 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
 //  random sample N views
 // from morton code with max frontier voxels, generate a cand view
     Eigen::Vector3i cand_view_v = getOffsetCandidate(candidate_frontier_voxel, frontier_voxels_vec);
-    pose3D cand_pose_v;
-    cand_pose_v.p = cand_view_v.cast<float>();
+
 //    std::cout << "[se/cand view] cand view v " << cand_view_v.format(InLine) << std::endl;
 
     if (cand_view_v != Eigen::Vector3i(0, 0, 0)) {
 //      cand_views_.push_back(candidate_frontier_voxel);// for debug only
-      cand_views_.push_back(cand_pose_v);
+      cand_views_.push_back(cand_view_v);
     }
   }
 //  std::cout << "[se/cand view] getCandView size " << cand_views_.size() << std::endl;
@@ -509,7 +508,7 @@ void getExplorationPath(const Volume<T> &volume,
                         posevector &cand_views) {
 
   CandidateView<T> candidate_view(volume, planning_config, static_cast<float>(res), config, pose);
-  cand_views = candidate_view.getCandidateViews(frontier_map);
+  candidate_view.getCandidateViews(frontier_map);
 
   VectorPairPoseDouble pose_gain = candidate_view.getCandidateGain(step);
 
@@ -518,8 +517,9 @@ void getExplorationPath(const Volume<T> &volume,
             << " yaw " << toEulerAngles2(best_cand_pose_with_gain.first.q).pitch * 180.f / M_PI
             << " with gain " << best_cand_pose_with_gain.second << std::endl;
   pose3D tmp_pose({0.f, 0.f, 0.f}, {1.f, 0.f, 0.f, 0.f});
+  path.push_back(tmp_pose);
   for (const auto &pose : pose_gain) {
-    path.push_back(pose.first);
+    cand_views.push_back(pose.first);
   }
 
 }

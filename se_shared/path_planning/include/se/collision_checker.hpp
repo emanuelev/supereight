@@ -52,8 +52,6 @@ CollisionCheck<T>::CollisionCheck(const VolumeTemplate<T, se::Octree> &volume,
 template<typename T>
 bool CollisionCheck<T>::isSphereCollisionFree(const Eigen::Vector3i pos_v) {
   int radius_v = static_cast<int>(planning_config_.cand_view_safety_radius / res_); // m/(m/voxel)
-  std::cout << "[se/collision_checker] sphere radius " << planning_config_.cand_view_safety_radius
-  << " [m] =  " << radius_v << " voxels around center " << pos_v.format(InLine) << std::endl;
   for (int x = -radius_v; x <= radius_v; x++) {
     for (int y = -radius_v; y <= radius_v; y++) {
       for (int z = -radius_v; z <= radius_v; z++) {
@@ -77,7 +75,7 @@ bool CollisionCheck<T>::isSphereCollisionFree(const Eigen::Vector3i pos_v) {
               std::cout << "[se/collision_checker] get sphere point " << point_vox.format(InLine)
                         <<std::endl;*/
           } else {
-            std::cout << "[se/collision_check] sphere voxel not allocated" << std::endl;
+//            std::cout << "[se/collision_check] sphere voxel not allocated" << std::endl;
             return false;
           }
 
@@ -85,6 +83,8 @@ bool CollisionCheck<T>::isSphereCollisionFree(const Eigen::Vector3i pos_v) {
       }
     }
   }
+//  std::cout << "[se/collision_checker] sphere radius " << planning_config_.cand_view_safety_radius
+//            << " [m] =  " << radius_v << " voxels around center " << pos_v.format(InLine) << std::endl;
   return true;
 }
 template<typename T>

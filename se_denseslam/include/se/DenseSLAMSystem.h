@@ -107,9 +107,6 @@ class DenseSLAMSystem {
   Eigen::Matrix4f raycast_pose_;
 
 //  // exploration map ; store morton code
-  std::set<uint64_t> surface_voxel_set_;
-//  std::unordered_set<uint64_t> frontier_voxel_set_;
-  std::set<uint64_t> occlusion_voxel_set_;
   set3i frontier_voxel_set_;
   map3i frontier_map_;
   map3i occlusion_map_;
@@ -262,7 +259,7 @@ class DenseSLAMSystem {
    */
   bool raycasting(const Eigen::Vector4f &k, float mu, unsigned int frame);
 
-  bool planning(se::exploration::posevector &path, VectorVec3i &cand_views);
+  bool planning(se::exploration::posevector &path, se::exploration::posevector &cand_views);
   /*
    * TODO Implement this.
    */

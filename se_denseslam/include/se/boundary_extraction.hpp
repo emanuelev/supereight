@@ -70,17 +70,5 @@ void updateFrontierMap(const Volume<T> &volume,
   insertBlocksToMap(frontier_blocks_map, frontier_blocks);
 }
 
-template<typename T>
-void updateOcclusionMap(const Volume<T> &volume,
-                        map3i &occlusion_blocks_map,
-                        set3i *occlusion_blocks) {
-  se::node_iterator<T> node_it(*(volume._map_index));
-  for (auto it = occlusion_blocks_map.begin(); it != occlusion_blocks_map.end(); ++it) {
-    if (!node_it.deleteOcclusionVoxelsviaMorton(it->second)) {
-      occlusion_blocks_map.erase(it->first);
-    }
-  }
-  insertBlocksToMap(occlusion_blocks_map, occlusion_blocks);
-}
 
 #endif //SUPEREIGHT_BOUNDARY_EXTRACTION_HPP

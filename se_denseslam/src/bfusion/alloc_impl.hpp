@@ -44,15 +44,15 @@
 static inline float compute_stepsize(const float dist_travelled,
                                      const float band,
                                      const float voxel_size) {
-  float new_stepsize = voxel_size;
-//  float half = band * 0.5f;
-//  if (dist_travelled < band) {
-//    new_stepsize = voxel_size;
-//  } else if (dist_travelled < band + half) {
-//    new_stepsize = 10.f * voxel_size;
-//  } else {
-//    new_stepsize = 30.f * voxel_size;
-//  }
+  float new_stepsize;
+  float half = band * 0.5f;
+  if (dist_travelled < band) {
+    new_stepsize = voxel_size;
+  } else if (dist_travelled < band + half) {
+    new_stepsize = 10.f * voxel_size;
+  } else {
+    new_stepsize = 30.f * voxel_size;
+  }
   return new_stepsize;
 }
 

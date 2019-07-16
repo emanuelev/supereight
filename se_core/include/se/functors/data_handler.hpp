@@ -98,25 +98,23 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
 
 
       // TODO change to octree allocation . currently fix grid
-/*
-// check if face voxel is not inside same voxel block
-      if ((std::ceil((_voxel.x()+1) / BLOCK_SIDE) != std::ceil((face_voxel.x()+1) / BLOCK_SIDE))
-          || (std::ceil((_voxel.y()+1) / BLOCK_SIDE) != std::ceil((face_voxel.y()+1) / BLOCK_SIDE))
-          || (std::ceil((_voxel.z() +1)/ BLOCK_SIDE) != std::ceil((face_voxel.z()+1) /BLOCK_SIDE))) {
-        se::VoxelBlock<FieldType>
-            *block = map.fetch(face_voxel.x(), face_voxel.y(), face_voxel.z());
-        if (block != NULL) {
-          if (block->data(face_voxel).st == voxel_state::kUnknown)
-            return true;
-        } else {
-          // neighbour block is unallocated / unknown
-          return true;
-        }
-      }    */
-      // in same voxel block
-      if (map.get(face_voxel).st == voxel_state::kUnknown) {
+      Eigen::Vector3i coord;
+// check if face voxel is inside same voxel block
+      if (map.hash(_voxel.x(), _voxel.y(), _voxel.z()) ==
+              map.hash(face_voxel.x(), face_voxel.y(), face_voxel.z())) {
+        return map.get(face_voxel).st == voxel_state::kUnknown;
+      } else {
+        se::Node<FieldType> *node = nullptr;
+        bool is_voxel_block;
+        map.fetch_octant(face_voxel(0), face_voxel(1), face_voxel(2), node, is_voxel_block);
 
-        return true;
+        if (is_voxel_block) {
+          se::VoxelBlock<FieldType> *block = static_cast<se::VoxelBlock<FieldType> *> (node);
+          return block->data(face_voxel).st == voxel_state::kUnknown;
+        }else{
+          // check whats in node
+          return map.get(se::keyops::decode(node->code_)).st == voxel_state ::kUnknown;
+        }
       }
 
     }
