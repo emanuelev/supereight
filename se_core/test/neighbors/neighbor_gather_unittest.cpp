@@ -92,20 +92,20 @@ TEST_F(NeighborGatherTest, GetFaceNeighborsLocal) {
   std::array<voxel_traits<testT>::value_type, 6> neighbor_values
       = octree_.get_face_neighbors(1, 1, 1);
 
-  // Voxel -x (0, 1, 1).
-  EXPECT_EQ(neighbor_values[0], 6 * value_increment_);
-
-  // Voxel +x (2, 1, 1).
-  EXPECT_EQ(neighbor_values[1], 9 * value_increment_);
+  // Voxel -z (1, 1, 0).
+  EXPECT_EQ(neighbor_values[0], 8 * value_increment_);
 
   // Voxel -y (1, 0, 1).
-  EXPECT_EQ(neighbor_values[2], 7 * value_increment_);
+  EXPECT_EQ(neighbor_values[1], 7 * value_increment_);
+
+  // Voxel -x (0, 1, 1).
+  EXPECT_EQ(neighbor_values[2], 6 * value_increment_);
+
+  // Voxel +x (2, 1, 1).
+  EXPECT_EQ(neighbor_values[3], 9 * value_increment_);
 
   // Voxel +y (1, 2, 1).
-  EXPECT_EQ(neighbor_values[3], 10 * value_increment_);
-
-  // Voxel -z (1, 1, 0).
-  EXPECT_EQ(neighbor_values[4], 8 * value_increment_);
+  EXPECT_EQ(neighbor_values[4], 10 * value_increment_);
 
   // Voxel +z (1, 1, 2).
   EXPECT_EQ(neighbor_values[5], 11 * value_increment_);
@@ -119,20 +119,39 @@ TEST_F(NeighborGatherTest, GetFaceNeighborsVolumeCorner) {
   std::array<voxel_traits<testT>::value_type, 6> neighbor_values
       = octree_.get_face_neighbors(0, 0, 0);
 
-  // Voxel -x (-1, 0, 0).
+  // Voxel -z (0, 0, -1).
   EXPECT_EQ(neighbor_values[0], voxel_traits<testT>::initValue());
 
-  // Voxel +x (1, 0, 0).
-  EXPECT_EQ(neighbor_values[1], 2 * value_increment_);
-
   // Voxel -y (0, -1, 0).
+  EXPECT_EQ(neighbor_values[1], voxel_traits<testT>::initValue());
+
+  // Voxel -x (-1, 0, 0).
   EXPECT_EQ(neighbor_values[2], voxel_traits<testT>::initValue());
 
+  // Voxel +x (1, 0, 0).
+  EXPECT_EQ(neighbor_values[3], 2 * value_increment_);
+
   // Voxel +y (0, 1, 0).
-  EXPECT_EQ(neighbor_values[3], 3 * value_increment_);
+  EXPECT_EQ(neighbor_values[4], 3 * value_increment_);
+
+  // Voxel +z (0, 0, 1).
+  EXPECT_EQ(neighbor_values[5], 4 * value_increment_);
+}
+
+  // Voxel -x (-1, 0, 0).
+  EXPECT_EQ(neighbor_values[2], voxel_traits<testT>::initValue());
+
+  // Voxel +x (1, 0, 0).
+  EXPECT_EQ(neighbor_values[3], 2 * value_increment_);
+
+  // Voxel -y (0, -1, 0).
+  EXPECT_EQ(neighbor_values[1], voxel_traits<testT>::initValue());
+
+  // Voxel +y (0, 1, 0).
+  EXPECT_EQ(neighbor_values[4], 3 * value_increment_);
 
   // Voxel -z (0, 0, -1).
-  EXPECT_EQ(neighbor_values[4], voxel_traits<testT>::initValue());
+  EXPECT_EQ(neighbor_values[0], voxel_traits<testT>::initValue());
 
   // Voxel +z (0, 0, 1).
   EXPECT_EQ(neighbor_values[5], 4 * value_increment_);
