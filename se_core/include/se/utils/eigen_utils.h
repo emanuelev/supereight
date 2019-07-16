@@ -12,12 +12,17 @@
 #include <Eigen/Core>
 #include <Eigen/StdVector>
 
-typedef std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i> > vec3i;
+template <typename Type>
+using AlignedVector = std::vector<Type, Eigen::aligned_allocator<Type> > ;
+
+typedef AlignedVector<Eigen::Vector3i> VectorVec3i;
+typedef AlignedVector<std::pair<Eigen::Vector3i, double>> VectorPair3iDouble;
+
 
 typedef std::map<int,
-                 vec3i,
+                 VectorVec3i,
                  std::less<int>,
-                 Eigen::aligned_allocator<std::pair<const int, vec3i> > > mapvec3i;
+                 Eigen::aligned_allocator<std::pair<const int, VectorVec3i> > > mapvec3i;
 
 typedef std::map<uint64_t,
                  Eigen::Vector3i,

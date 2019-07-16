@@ -523,7 +523,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
   return true;
 }
 
-bool DenseSLAMSystem::planning(se::exploration::posevector &path, VectorVec3i &cand_views) {
+bool DenseSLAMSystem::planning(se::exploration::posevector &path, se::exploration::posevector
+&cand_views) {
   std::cout << "[se/denseSLAM] planning num cand view "<< planning_config_.num_cand_views <<std::endl;
   float res_v = volume_dimension_.cast<float>().x()/volume_resolution_.cast<float>().x();
 
@@ -534,8 +535,9 @@ bool DenseSLAMSystem::planning(se::exploration::posevector &path, VectorVec3i &c
                                       step,
                                       planning_config_,
                                       config_,
-                                      cand_views,
-                                      path);
+                                      pose_,
+                                      path,
+                                      cand_views);
   std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
 }
 
@@ -599,13 +601,6 @@ void DenseSLAMSystem::dump_mesh(const std::string filename) {
   writeVtkMesh(filename.c_str(), mesh);
 }
 
-bool DenseSLAMSystem::getExplorationCandidate(std::set<uint64_t> &surface_voxel_set,
-                                              std::set<uint64_t> &occlusion_voxel_set) {
-  surface_voxel_set = surface_voxel_set_;
-//  frontier_voxel_set = frontier_voxel_set_;
-  occlusion_voxel_set = occlusion_voxel_set_;
-  return true;
-}
 
 bool DenseSLAMSystem::getFrontierVoxelMap(map3i &frontier_map) {
   frontier_map = frontier_map_;
