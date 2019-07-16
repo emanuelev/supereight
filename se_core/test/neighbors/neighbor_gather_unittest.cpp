@@ -55,10 +55,8 @@ class NeighborGatherTest : public ::testing::Test {
       octree_.init(64, 1);
 
       // Allocate some VoxelBlocks.
-      constexpr size_t num_voxel_blocks = 2;
-      const Eigen::Vector3i blocks[num_voxel_blocks] =
-          {{0, 0, 0},
-           {octree_.blockSide, octree_.blockSide, octree_.blockSide}};
+      constexpr size_t num_voxel_blocks = 1;
+      const Eigen::Vector3i blocks[num_voxel_blocks] = {{0, 0, 0}};
       se::key_t alloc_list[num_voxel_blocks];
       for (size_t i = 0; i < num_voxel_blocks; ++i) {
         alloc_list[i] = octree_.hash(blocks[i](0), blocks[i](1), blocks[i](2));
@@ -119,41 +117,51 @@ TEST_F(NeighborGatherTest, GetFaceNeighborsVolumeCorner) {
   std::array<voxel_traits<testT>::value_type, 6> neighbor_values
       = octree_.get_face_neighbors(0, 0, 0);
 
-  // Voxel -z (0, 0, -1).
+  // Voxel -z (0, 0, -1), outside.
   EXPECT_EQ(neighbor_values[0], voxel_traits<testT>::initValue());
 
-  // Voxel -y (0, -1, 0).
+  // Voxel -y (0, -1, 0), outside.
   EXPECT_EQ(neighbor_values[1], voxel_traits<testT>::initValue());
 
-  // Voxel -x (-1, 0, 0).
+  // Voxel -x (-1, 0, 0), outside.
   EXPECT_EQ(neighbor_values[2], voxel_traits<testT>::initValue());
 
-  // Voxel +x (1, 0, 0).
+  // Voxel +x (1, 0, 0), inside.
   EXPECT_EQ(neighbor_values[3], 2 * value_increment_);
 
-  // Voxel +y (0, 1, 0).
+  // Voxel +y (0, 1, 0), inside.
   EXPECT_EQ(neighbor_values[4], 3 * value_increment_);
 
-  // Voxel +z (0, 0, 1).
+  // Voxel +z (0, 0, 1), inside.
   EXPECT_EQ(neighbor_values[5], 4 * value_increment_);
 }
 
-  // Voxel -x (-1, 0, 0).
-  EXPECT_EQ(neighbor_values[2], voxel_traits<testT>::initValue());
 
-  // Voxel +x (1, 0, 0).
-  EXPECT_EQ(neighbor_values[3], 2 * value_increment_);
 
-  // Voxel -y (0, -1, 0).
-  EXPECT_EQ(neighbor_values[1], voxel_traits<testT>::initValue());
+// Get the face neighbor values of a voxel located on the corner of a
+// VoxelBlock and surrounded by unallocated VoxelBlocks.
+// NOTE Unallocated neighbors have a value of initValue().
+TEST_F(NeighborGatherTest, GetFaceNeighborsCornerUnallocated) {
+  std::array<voxel_traits<testT>::value_type, 6> neighbor_values
+      = octree_.get_face_neighbors(octree_.blockSide - 1,
+      octree_.blockSide - 1, octree_.blockSide - 1);
 
-  // Voxel +y (0, 1, 0).
-  EXPECT_EQ(neighbor_values[4], 3 * value_increment_);
-
-  // Voxel -z (0, 0, -1).
+  // Voxel -z (0, 0, -1), allocated.
   EXPECT_EQ(neighbor_values[0], voxel_traits<testT>::initValue());
 
-  // Voxel +z (0, 0, 1).
-  EXPECT_EQ(neighbor_values[5], 4 * value_increment_);
+  // Voxel -y (0, -1, 0), allocated.
+  EXPECT_EQ(neighbor_values[1], voxel_traits<testT>::initValue());
+
+  // Voxel -x (-1, 0, 0), allocated.
+  EXPECT_EQ(neighbor_values[2], voxel_traits<testT>::initValue());
+
+  // Voxel +x (1, 0, 0), unallocated.
+  EXPECT_EQ(neighbor_values[3], voxel_traits<testT>::initValue());
+
+  // Voxel +y (0, 1, 0), unallocated.
+  EXPECT_EQ(neighbor_values[4], voxel_traits<testT>::initValue());
+
+  // Voxel +z (0, 0, 1), unallocated.
+  EXPECT_EQ(neighbor_values[5], voxel_traits<testT>::initValue());
 }
 

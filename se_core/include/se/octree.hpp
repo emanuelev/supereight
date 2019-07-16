@@ -123,7 +123,7 @@ class Octree {
    * \param z z coordinate in interval [0, size]
    * \return An std::array with the values of the 6 neighboring voxels. The
    * voxels are returned in the order: -z -y -x +x +y +z. Neighboring voxels
-   * outside the map have the initial value.
+   * that are not allocated or are outside the map have the initial value.
    *
    * \todo The implementation is not yet efficient. A method similar to the one
    * used in interp_gather should be used.
