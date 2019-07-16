@@ -53,71 +53,148 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sophus/se3.hpp>
 #endif
 
-
 namespace se {
-  namespace math {
-    template <typename T>
-    static inline T fracf(const T& v) {
-        return v - v.array().floor().matrix();
-      }
+namespace math {
+template<typename T>
+static inline T fracf(const T &v) {
+  return v - v.array().floor().matrix();
+}
 
-    template <typename T>
-    static inline T floorf(const T& v) {
-        return v.array().floor();
-      }
+template<typename T>
+static inline T floorf(const T &v) {
+  return v.array().floor();
+}
 
-    template <typename T>
-    static inline T fabs(const T& v) {
-        return v.cwiseAbs();
-      }
+template<typename T>
+static inline T fabs(const T &v) {
+  return v.cwiseAbs();
+}
 
-    template <typename Scalar>
-    static inline Scalar sq(Scalar a) {
-        return a*a;
-      };
+template<typename Scalar>
+static inline Scalar sq(Scalar a) {
+  return a * a;
+};
 
-    template <typename Scalar>
-    static inline bool in(const Scalar v, const Scalar a, 
-          const Scalar b) {
-        return v >= a && v <= b;
-      }
+template<typename Scalar>
+static inline bool in(const Scalar v, const Scalar a, const Scalar b) {
+  return v >= a && v <= b;
+}
 
-    constexpr int log2_const(int n){
-      return (n < 2 ? 0 : 1 + log2_const(n/2));
-    }
+constexpr int log2_const(int n) {
+  return (n < 2 ? 0 : 1 + log2_const(n / 2));
+}
 
-    static inline float getProbFromLog(float log_prob){
-      return exp2(log_prob)/(1.f+ exp2(log_prob));
-    }
+static inline float getProbFromLog(float log_prob) {
+  return exp2(log_prob) / (1.f + exp2(log_prob));
+}
 
-    static inline Eigen::Matrix4f toMatrix4f(const Eigen::Vector3f& trans) {
-      Eigen::Matrix4f se3_mat;  
-      se3_mat << 1.f ,  0.f ,  0.f , trans.x(), 
-              0.f ,  1.f ,  0.f , trans.y(), 
-              0.f ,  0.f ,  1.f , trans.z(), 
-              0.f ,  0.f ,  0.f ,  1.f;
-      return se3_mat;
-    }
+static inline Eigen::Matrix4f toMatrix4f(const Eigen::Vector3f &trans) {
+  Eigen::Matrix4f se3_mat;
+  se3_mat
+      << 1.f, 0.f, 0.f, trans.x(), 0.f, 1.f, 0.f, trans.y(), 0.f, 0.f, 1.f, trans.z(), 0.f, 0.f, 0.f, 1.f;
+  return se3_mat;
+}
 
+template<typename T>
+static inline typename std::enable_if<std::is_arithmetic<T>::value, T>::type clamp(const T &f,
+                                                                                   const T &a,
+                                                                                   const T &b) {
+  return std::max(a, std::min(f, b));
+}
 
-    template <typename T>
-      static inline typename std::enable_if<std::is_arithmetic<T>::value, T>::type
-      clamp(const T& f, const T& a, const T& b) {
-        return std::max(a, std::min(f, b));
-      }
+static inline void clamp(Eigen::Ref<Eigen::VectorXf> res,
+                         const Eigen::Ref<const Eigen::VectorXf> a,
+                         const Eigen::Ref<Eigen::VectorXf> b) {
+  res = (res.array() < a.array()).select(a, res);
+  res = (res.array() >= b.array()).select(b, res);
+}
 
-    static inline void clamp(Eigen::Ref<Eigen::VectorXf> res, const Eigen::Ref<const Eigen::VectorXf> a, 
-        const Eigen::Ref<Eigen::VectorXf> b) {
-      res = (res.array() < a.array()).select(a, res);
-      res = (res.array() >= b.array()).select(b, res);
-    } 
+template<typename R, typename A, typename B>
+static inline void clamp(Eigen::MatrixBase<R> &res,
+                         const Eigen::MatrixBase<A> &a,
+                         const Eigen::MatrixBase<B> &b) {
+  res = res.array().max(a.array());
+  res = res.array().min(b.array());
+}
 
-    template <typename R, typename A, typename B>
-      static inline void clamp(Eigen::MatrixBase<R>& res, const Eigen::MatrixBase<A>& a, 
-          const Eigen::MatrixBase<B>& b) {
-        res = res.array().max(a.array());
-        res = res.array().min(b.array());
-      }
+// Returns sign of a scalar.
+static inline float sgn(float x) {
+  return (x >= 0.0f) ? +1.0f : -1.0f;
+}
+
+// Returns Euclidean norm of a 4x1 vector.
+static inline float norm(float a, float b, float c, float d) {
+  return std::sqrt(a * a + b * b + c * c + d * d);
+}
+
+/**
+ * Convert rotation matrix to quaternion
+ *
+ * @param  rot_mat rotation matrix.
+ * @return Quaternion equivalent of the rotation matrix.
+ */
+static Eigen::Quaternionf rot_mat_2_quat(const Eigen::Matrix3f &rot_mat) {
+  float r11 = rot_mat(0, 0);
+  float r12 = rot_mat(0, 1);
+  float r13 = rot_mat(0, 2);
+  float r21 = rot_mat(1, 0);
+  float r22 = rot_mat(1, 1);
+  float r23 = rot_mat(1, 2);
+  float r31 = rot_mat(2, 0);
+  float r32 = rot_mat(2, 1);
+  float r33 = rot_mat(2, 2);
+  float q0 = (r11 + r22 + r33 + 1.0f) / 4.0f;
+  float q1 = (r11 - r22 - r33 + 1.0f) / 4.0f;
+  float q2 = (-r11 + r22 - r33 + 1.0f) / 4.0f;
+  float q3 = (-r11 - r22 + r33 + 1.0f) / 4.0f;
+  if (q0 < 0.0f) {
+    q0 = 0.0f;
   }
+  if (q1 < 0.0f) {
+    q1 = 0.0f;
+  }
+  if (q2 < 0.0f) {
+    q2 = 0.0f;
+  }
+  if (q3 < 0.0f) {
+    q3 = 0.0f;
+  }
+  q0 = std::sqrt(q0);
+  q1 = std::sqrt(q1);
+  q2 = std::sqrt(q2);
+  q3 = std::sqrt(q3);
+  if (q0 >= q1 && q0 >= q2 && q0 >= q3) {
+    q0 *= +1.0f;
+    q1 *= sgn(r32 - r23);
+    q2 *= sgn(r13 - r31);
+    q3 *= sgn(r21 - r12);
+  } else if (q1 >= q0 && q1 >= q2 && q1 >= q3) {
+    q0 *= sgn(r32 - r23);
+    q1 *= +1.0f;
+    q2 *= sgn(r21 + r12);
+    q3 *= sgn(r13 + r31);
+  } else if (q2 >= q0 && q2 >= q1 && q2 >= q3) {
+    q0 *= sgn(r13 - r31);
+    q1 *= sgn(r21 + r12);
+    q2 *= +1.0f;
+    q3 *= sgn(r32 + r23);
+  } else if (q3 >= q0 && q3 >= q1 && q3 >= q2) {
+    q0 *= sgn(r21 - r12);
+    q1 *= sgn(r31 + r13);
+    q2 *= sgn(r32 + r23);
+    q3 *= +1.0f;
+  } else {
+    printf("coding error\n");
+  }
+  float r = norm(q0, q1, q2, q3);
+  q0 /= r;
+  q1 /= r;
+  q2 /= r;
+  q3 /= r;
+
+  Eigen::Quaternionf quat(q0, q1, q2, q3);
+  return quat;
+}
+}
 }
 #endif
