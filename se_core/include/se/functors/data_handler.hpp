@@ -96,7 +96,9 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
 
     for (const auto &face_voxel : face_neighbour_voxel) {
 
-
+//     if(map.get(face_voxel).st == voxel_state::kUnknown){
+//       return true;
+//     }
       // TODO change to octree allocation . currently fix grid
 
       // check if face voxel is inside same voxel block
@@ -104,7 +106,8 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
           && ((_voxel.y() + 1) / BLOCK_SIDE) == ((face_voxel.y() + 1) / BLOCK_SIDE)
           && ((_voxel.z() + 1) / BLOCK_SIDE) == ((face_voxel.z() + 1) / BLOCK_SIDE)) {
         // same voxel block
-        return map.get(face_voxel).st == voxel_state::kUnknown;
+        if( map.get(face_voxel).st == voxel_state::kUnknown)
+          return true;
       } else {
         // not same voxel block => check if neighbour is a voxel block
         se::Node<FieldType> *node = nullptr;
@@ -114,13 +117,15 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
         if (is_voxel_block) {
           // neighbour is a voxel block
           se::VoxelBlock<FieldType> *block = static_cast<se::VoxelBlock<FieldType> *> (node);
-          return block->data(face_voxel).st == voxel_state::kUnknown;
+          if( block->data(face_voxel).st == voxel_state::kUnknown)
+            return true;
+//          return block->data(face_voxel).st == voxel_state::kUnknown;
         } else {
           // neighbour is a node
-          return map.get(se::keyops::decode(node->code_)).st == voxel_state::kUnknown;
+          if (map.get(se::keyops::decode(node->code_)).st == voxel_state::kUnknown)
+            return true;
         }
       }
-
     }
     return false;
   }
