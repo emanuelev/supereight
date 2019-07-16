@@ -231,8 +231,8 @@ int processAll(DepthReader *reader,
                bool reset) {
   static int frameOffset = 0;
   static bool firstFrame = true;
-  vec3i *updated_blocks;
-  vec3i *frontier_blocks;
+  VectorVec3i *updated_blocks;
+  VectorVec3i *frontier_blocks;
 //  std::vector<Eigen::Vector3i>* updated_blocks;
 //  std::vector<Eigen::Vector3i>* frontier_blocks;
   bool tracked = false, integrated = false, raycasted = false;
