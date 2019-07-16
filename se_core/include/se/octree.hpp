@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <parallel/algorithm>
 #endif
 
+#include <array>
 #include <tuple>
 #include <queue>
 #include <unordered_set>
@@ -52,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "algorithms/unique.hpp"
 #include "geometry/aabb_collision.hpp"
 #include "interpolation/interp_gather.hpp"
+#include "neighbors/neighbor_gather.hpp"
 
 
 namespace se {
@@ -115,7 +117,19 @@ class Octree {
   value_type get(const int x, const int y, const int z) const;
   value_type get_fine(const int x, const int y, const int z) const;
 
-  /*! \brief Fetch the voxel block at which contains voxel  (x,y,z)
+  /*! \brief Retrieves voxel values for the neighbors of voxel at coordinates (x,y,z)
+   * \param x x coordinate in interval [0, size]
+   * \param y y coordinate in interval [0, size]
+   * \param z z coordinate in interval [0, size]
+   *
+   * \todo The implementation is not yet efficient. A method similar to the one
+   * used in interp_gather should be used.
+   */
+  std::array<value_type, 6> get_face_neighbors(const int x,
+                                               const int y,
+                                               const int z) const;
+
+  /*! \brief Fetch the voxel block which contains voxel (x,y,z)
    * \param x x coordinate in interval [0, size]
    * \param y y coordinate in interval [0, size]
    * \param z z coordinate in interval [0, size]
@@ -364,7 +378,28 @@ inline typename Octree<T>::value_type Octree<T>::get_fine(const int x,
   return static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z));
 }
 
-template<typename T>
+template <typename T>
+inline std::array<typename Octree<T>::value_type, 6> Octree<T>::get_face_neighbors(
+    const int x,
+    const int y,
+    const int z) const {
+
+  std::array<typename Octree<T>::value_type, 6> neighbor_values;
+
+  for (size_t i = 0; i < 6; ++i) {
+    // Compute the neighbor voxel coordinates.
+    const int neighbor_x = x + face_neighbor_offsets[i].x();
+    const int neighbor_y = y + face_neighbor_offsets[i].y();
+    const int neighbor_z = z + face_neighbor_offsets[i].z();
+
+    // Get the value of the neighbor voxel.
+    neighbor_values[i] = get(neighbor_x, neighbor_y, neighbor_z);
+  }
+
+  return neighbor_values;
+}
+
+template <typename T>
 inline typename Octree<T>::value_type Octree<T>::get(const int x,
                                                      const int y,
                                                      const int z,
