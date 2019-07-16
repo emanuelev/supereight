@@ -324,6 +324,7 @@ void writefile(std::string prefix, int idx, T * data, unsigned int size) {
 
 inline void writeVtkMesh(const char * filename, 
                          const std::vector<Triangle>& mesh,
+                         const Eigen::Vector3f& init_pose,
                          const float * point_data = NULL,
                          const float * cell_data = NULL){
   std::stringstream points;
@@ -338,12 +339,17 @@ inline void writeVtkMesh(const char * filename,
   for(unsigned int i = 0; i < mesh.size(); ++i ){
     const Triangle& t = mesh[i];
 
-    points << t.vertexes[0](0) << " " << t.vertexes[0](1) << " " 
-      << t.vertexes[0](2) << std::endl; 
-    points << t.vertexes[1](0) << " " << t.vertexes[1](1) << " " 
-      << t.vertexes[1](2) << std::endl; 
-    points << t.vertexes[2](0) << " " << t.vertexes[2](1) << " " 
-      << t.vertexes[2](2) << std::endl; 
+    points << t.vertexes[0].x() - init_pose.x() << " " 
+           << t.vertexes[0].y() - init_pose.y() << " " 
+           << t.vertexes[0].z() - init_pose.z() << std::endl; 
+
+    points << t.vertexes[1].x() - init_pose.x() << " " 
+           << t.vertexes[1].y() - init_pose.y() << " " 
+           << t.vertexes[1].z() - init_pose.z() << std::endl; 
+
+    points << t.vertexes[2].x() - init_pose.x() << " " 
+           << t.vertexes[2].y() - init_pose.y() << " " 
+           << t.vertexes[2].z() - init_pose.z() << std::endl; 
 
     polygons << "3 " << point_count << " " << point_count+1 << 
       " " << point_count+2 << std::endl;
