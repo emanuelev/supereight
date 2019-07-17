@@ -60,15 +60,9 @@ void raycastKernel(const Volume<T> &volume,
 
   TICK();
     int y;
-    uint64_t morton_code;
-    bool is_edge = false;
-    bool is_surface = false;
-    float occ_tresh = 0.5;
     Eigen::Vector2i pos_old(0, 0);
     Eigen::Vector3f dir_old(0, 0, 0);
     Eigen::Vector3f transl_old(0, 0, 0);
-    float surface_dist_old;
-    const float inverseVoxelSize = volume._size / volume._extent;
 
 //#pragma omp parallel for shared(normal, vertex), private(y)
 #pragma omp parallel for
