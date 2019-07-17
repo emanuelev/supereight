@@ -35,9 +35,9 @@
 namespace se {
 namespace geometry {
 enum class collision_status {
+  empty,
   occupied,
-  unseen,
-  empty
+  unseen
 };
 static  std::ostream& operator<<(std::ostream& os, const collision_status & dt)
 {
@@ -84,6 +84,8 @@ collision_status collides_with(const se::VoxelBlock<FieldType>* block,
   int xlast = blockCoord(0) + blockSide;
   int ylast = blockCoord(1) + blockSide;
   int zlast = blockCoord(2) + blockSide;
+  Eigen::Vector3i center = bbox + side/2;
+
   for(z = blockCoord(2); z < zlast; ++z){
     for (y = blockCoord(1); y < ylast; ++y){
       for (x = blockCoord(0); x < xlast; ++x){
@@ -93,7 +95,11 @@ collision_status collides_with(const se::VoxelBlock<FieldType>* block,
         if(!geometry::aabb_aabb_collision(bbox, side, 
           vox, Eigen::Vector3i::Constant(1))) continue;
         value = block->data(Eigen::Vector3i(x, y, z));
+        if((Eigen::Vector3i(x,y,z)- center).norm()> side.x()/2){
+          std::cout << "se/collision bbox collision larger than radius" <<std::endl;
+        }
         status = update_status(status, test(value));
+
       }
     }
   }

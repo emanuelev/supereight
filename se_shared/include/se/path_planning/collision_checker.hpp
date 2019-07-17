@@ -51,13 +51,15 @@ CollisionCheck<T>::CollisionCheck(const VolumeTemplate<T, se::Octree> &volume,
 
 template<typename T>
 bool CollisionCheck<T>::isSphereCollisionFree(const Eigen::Vector3i pos_v) {
-  int radius_v = static_cast<int>(planning_config_.cand_view_safety_radius / res_); // m/(m/voxel)
+  int radius_v = static_cast<int>(planning_config_.cand_view_safety_radius / res_);// m/(m/voxel)
+  radius_v *=radius_v;
   for (int x = -radius_v; x <= radius_v; x++) {
     for (int y = -radius_v; y <= radius_v; y++) {
       for (int z = -radius_v; z <= radius_v; z++) {
         Eigen::Vector3i point_offset_v(x, y, z);
         //check if point is inside the sphere radius
-        if (point_offset_v.norm() <= radius_v) {
+        if (point_offset_v.squaredNorm() <= radius_v) {
+
 
           // check if voxelblock is allocated or only node
           Eigen::Vector3i point_v = point_offset_v + pos_v;
