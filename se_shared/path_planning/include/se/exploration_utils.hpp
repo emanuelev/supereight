@@ -68,6 +68,7 @@ static inline Eigen::Quaternionf toQuaternion(float yaw, float pitch, float roll
 // pitch (Y),
 // roll (X)
 {
+//  yaw = 90*M_PI/180;
   // Abbreviations for the various angular functions
   float cy = cos(yaw * 0.5);
   float sy = sin(yaw * 0.5);
@@ -78,9 +79,11 @@ static inline Eigen::Quaternionf toQuaternion(float yaw, float pitch, float roll
 
   Eigen::Quaternionf q;
   q.w() = cy * cp * cr + sy * sp * sr;
-  q.x() = sy * cp * cr - cy * sp * sr;
-  q.y() = cy * sp * cr + sy * cp * sr;
-  q.z() = cy * cp * sr - sy * sp * cr;
+  q.x() =cy * cp * sr - sy * sp * cr;
+  q.y() = sy * cp * sr + cy * sp * cr;
+  q.z() = sy * cp * cr - cy * sp * sr;
+  std::cout << "quaternion  "<< q.w() << " " << q.vec().format(InLine) << " yaw "
+  << yaw << std::endl;
 
   return q;
 }

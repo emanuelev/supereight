@@ -406,8 +406,8 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
         // calculate ray cast direction
         phi_rad = static_cast<float>(M_PI * phi / 180.0f);
         vec[0] = cand_view_m[0] + r_max * cos(theta_rad) * sin(phi_rad);
-        vec[1] = cand_view_m[1] + r_max * cos(phi_rad);
-        vec[2] = cand_view_m[2] - r_max * sin(theta_rad) * sin(phi_rad);
+        vec[1] = cand_view_m[1] + r_max * sin(theta_rad) * sin(phi_rad);
+        vec[2] = cand_view_m[2] + r_max * cos(phi_rad);
         dir = (vec - cand_view_m).normalized();
         // initialize ray
         se::ray_iterator<T> ray(*volume_._map_index, cand_view_m, dir, nearPlane, farPlane);
@@ -463,7 +463,7 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
     float yaw_rad = M_PI * best_yaw / 180.f;
     pose3D best_pose;
     best_pose.p = cand_view.cast<float>();
-    best_pose.q = toQuaternion(0.0, yaw_rad, 0.0); // [rad] as input
+    best_pose.q = toQuaternion(yaw_rad, 0.0 , 0.0); // [rad] as input
     cand_pose_w_gain.push_back(std::make_pair(best_pose, best_yaw_gain));
   }
   return cand_pose_w_gain;
@@ -540,9 +540,9 @@ void getExplorationPath(const Volume<T> &volume,
 
   std::pair<pose3D, double> best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain);
   std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)
-            << " yaw " << toEulerAngles(best_cand_pose_with_gain.first.q).pitch * 180.f / M_PI
+            << " yaw " << toEulerAngles(best_cand_pose_with_gain.first.q).yaw * 180.f / M_PI
 
-      << " yaw " << toEulerAngles2(best_cand_pose_with_gain.first.q).pitch * 180.f / M_PI
+      << " yaw " << toEulerAngles2(best_cand_pose_with_gain.first.q).yaw * 180.f / M_PI
             << " with gain " << best_cand_pose_with_gain.second << std::endl;
   pose3D tmp_pose({0.f, 0.f, 0.f}, {1.f, 0.f, 0.f, 0.f});
   path.push_back(tmp_pose);

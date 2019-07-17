@@ -73,6 +73,8 @@ class DenseSLAMSystem {
 
  private:
   Eigen::Vector2i computation_size_;
+
+  Eigen::Matrix4f Tbc_ ;
   Eigen::Matrix4f pose_;
   Eigen::Matrix4f *viewPose_;
   Eigen::Vector3f volume_dimension_;

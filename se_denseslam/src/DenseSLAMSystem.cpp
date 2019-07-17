@@ -88,7 +88,11 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i &inputSize,
   this->volume_resolution_ = volumeResolution;
   this->mu_ = config.mu;
   pose_ = initPose;
-  raycast_pose_ = initPose;
+  Tbc_ << 0,0,1,0,
+         -1, 0,0,0,
+         0,-1,0,0,
+         0,0,0,1;
+  raycast_pose_ = initPose * Tbc_;
 
   this->iterations_.clear();
   for (std::vector<int>::iterator it = pyramid.begin(); it != pyramid.end(); it++) {
@@ -213,7 +217,7 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f &k, float mu, unsigned in
   bool doRaycast = false;
 
   if (frame > 2) {
-    raycast_pose_ = pose_;
+    raycast_pose_ = pose_*Tbc_; // camera to world
     float step = volume_dimension_.x() / volume_resolution_.x();
 
     //TODO maintainability
@@ -251,7 +255,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
       allocated = buildAllocationList(allocation_list_.data(),
                                       allocation_list_.capacity(),
                                       *volume_._map_index,
-                                      pose_,
+                                      pose_* Tbc_,
                                       getCameraMatrix(k),
                                       float_depth_.data(),
                                       computation_size_,
@@ -433,7 +437,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
       allocated = buildAllocationList(allocation_list_.data(),
                                       allocation_list_.capacity(),
                                       *volume_._map_index,
-                                      pose_,
+                                      pose_*Tbc_,
                                       getCameraMatrix(k),
                                       float_depth,
                                       computation_size_,
@@ -444,7 +448,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
       allocated = buildOctantList(allocation_list_.data(),
                                   allocation_list_.capacity(),
                                   *volume_._map_index,
-                                  pose_,
+                                  pose_* Tbc_,
                                   getCameraMatrix(k),
                                   float_depth,
                                   computation_size_,
@@ -460,7 +464,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
       struct sdf_update funct
           (float_depth, Eigen::Vector2i(computation_size_.x(), computation_size_.y()), mu, 100);
       se::functor::projective_map(*volume_._map_index,
-                                  Sophus::SE3f(pose_).inverse(),
+                                  Sophus::SE3f(pose_*Tbc_).inverse(),
                                   getCameraMatrix(k),
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   funct);
@@ -477,7 +481,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 // Update all active nodes and voxels using the bfusion_update function
 
       se::functor::projective_map(*volume_._map_index,
-                                  Sophus::SE3f(pose_).inverse(),
+                                  Sophus::SE3f(pose_*Tbc_).inverse(),
                                   getCameraMatrix(k),
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   funct);
@@ -491,7 +495,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   true);
 
       se::functor::projective_map(*volume_._map_index,
-                                  Sophus::SE3f(pose_).inverse(),
+                                  Sophus::SE3f(pose_*Tbc_).inverse(),
                                   getCameraMatrix(k),
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   frontier_funct);
@@ -533,7 +537,7 @@ bool DenseSLAMSystem::planning(se::exploration::posevector &path, se::exploratio
                                       step,
                                       planning_config_,
                                       config_,
-                                      pose_,
+                                      pose_*Tbc_,
                                       path,
                                       cand_views);
   std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
