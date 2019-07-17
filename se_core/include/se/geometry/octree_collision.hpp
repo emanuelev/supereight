@@ -39,7 +39,10 @@ enum class collision_status {
   unseen,
   empty
 };
-
+static  std::ostream& operator<<(std::ostream& os, const collision_status & dt)
+{
+  return os << static_cast<int>(dt);
+}
 /*! \brief Implements a simple state machine to update the collision status.
  * The importance order is given as follows in ascending order: 
  * Empty, Unseen, Occupied.

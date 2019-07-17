@@ -31,11 +31,17 @@
 #include "exploration_utils.hpp"
 
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
-
+typedef SE_FIELD_TYPE FieldType;
 namespace se {
 
 namespace exploration {
 
+
+static se::geometry::collision_status test_voxel2(const Volume<FieldType>::value_type & val) {
+  if(val.st == voxel_state::kUnknown) return se::geometry::collision_status::unseen;
+  if(val.st == voxel_state::kFree) return se::geometry::collision_status::empty;
+  return se::geometry::collision_status::occupied;
+};
 /**
  * Candidate View
  */
@@ -223,8 +229,35 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
             << offset_cand_v.y() << " " << offset_cand_v.z() << " voxel state "
             << volume_._map_index->get(offset_cand_v).st;*/
 
+ Eigen::Vector3i corner_offset(offset_v, offset_v, offset_v);
+ Eigen::Vector3i bbox_corner = offset_cand_v-corner_offset;
+ Eigen::Vector3i bbox_sides = {offset_v*2, offset_v*2, offset_v*2};
+  std::chrono::time_point<std::chrono::steady_clock> timings[2];
+
+  timings[0] = std::chrono::steady_clock::now();
+  bool free_sphere = collision_check.isSphereCollisionFree(offset_cand_v);
+
+  timings[1] = std::chrono::steady_clock::now();
+
+  se::geometry::collision_status bbox_status = se::geometry::collides_with(*volume_._map_index,
+      bbox_corner,
+      bbox_sides,
+      test_voxel2);
+  timings[2] = std::chrono::steady_clock::now();
+  double sphere_time = std::chrono::duration<double>(timings[1] -timings[0]).count();
+  double bbox_time = std::chrono::duration<double>(timings[1] - timings[2]).count();
+  std::cout << "[se/cand view] sphere check time: " << sphere_time
+    << " collision " << free_sphere
+      << std::endl;
+
+  std::cout << "[se/candview] bbox check time: " << bbox_time
+  << " collision " << bbox_status
+   << std::endl;
+  if (sphere_time>bbox_time){
+    std::cout << "\n[se/candview] sphere slower" <<std::endl;
+  }
   if (is_valid) {
-    if (collision_check.isSphereCollisionFree(offset_cand_v)) {
+    if (free_sphere) {
       return offset_cand_v;
     } else {
       // is valid but the sphere is not collision free
