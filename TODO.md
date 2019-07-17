@@ -48,6 +48,10 @@ planning/exploration in separate ROS nodes.
 
 ## Backlog
 - Pangolin visualization
+- Re-evaluate the names for the functions used in `voxel_traits` (`empty()` and
+  `initVal()`). Use more descriptive names (`invalid()` and `unknown()` maybe?)
+and properly document their meaning. Wait for the multires merge before doing
+this.
 
 
 
