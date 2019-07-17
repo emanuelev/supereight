@@ -387,7 +387,7 @@ inline std::array<typename Octree<T>::value_type, 6> Octree<T>::get_face_neighbo
     const int neighbor_z = z + face_neighbor_offsets[i].z();
 
     // Get the value of the neighbor voxel.
-    neighbor_values[i] = get(neighbor_x, neighbor_y, neighbor_z);
+    neighbor_values[i] = get_fine(neighbor_x, neighbor_y, neighbor_z);
   }
 
   return neighbor_values;
