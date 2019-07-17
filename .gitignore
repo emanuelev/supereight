@@ -37,4 +37,11 @@ build
 doc
 cmake-build-debug
 
+# Benchmark results
+test.bin
+
+# vim temporary files
+*.swp
+
 .idea
+

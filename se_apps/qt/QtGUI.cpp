@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include "interface.h"
 #include <se/config.h>
-#include <perfstats.h>
+#include <se/perfstats.h>
 #include <PowerMonitor.h>
 
 #include "ApplicationWindow.h"

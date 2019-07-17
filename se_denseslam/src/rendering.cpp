@@ -35,7 +35,7 @@
  */
 #include <se/utils/math_utils.h>
 #include <se/commons.h>
-#include <timings.h>
+#include <se/timings.h>
 #include <tuple>
 
 #include <sophus/se3.hpp>

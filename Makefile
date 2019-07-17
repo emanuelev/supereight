@@ -38,7 +38,7 @@ install:
 	cd build && make install
 
 uninstall:
-	xargs rm -f -d < build/install_manifest.txt
+	cd build && make uninstall
 
 #### DATA SET GENERATION ####
 

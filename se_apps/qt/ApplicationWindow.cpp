@@ -14,7 +14,7 @@
 #include <time.h>
 #include "ApplicationWindow.h"
 #include "MainWindow.h"
-#include <perfstats.h>
+#include <se/perfstats.h>
 #include <iostream>
 #include <string>
 #include <assert.h>
