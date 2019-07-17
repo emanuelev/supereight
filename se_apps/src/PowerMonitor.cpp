@@ -8,7 +8,7 @@
  */
 
 #include <stdio.h>
-#include <perfstats.h>
+#include <se/perfstats.h>
 #include "PowerMonitor.h"
 
 PowerMonitor::PowerMonitor() {

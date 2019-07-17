@@ -40,8 +40,8 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
-#include <perfstats.h>
-#include <timings.h>
+#include <se/perfstats.h>
+#include <se/timings.h>
 #include <se/config.h>
 #include <se/planner_config.h>
 #include <se/octree.hpp>
@@ -55,8 +55,8 @@
 #include <map>
 
 #include <se/utils/eigen_utils.h>
-#include "path_planning/include/se/candidate_view.hpp"
-#include <path_planning/include/se/exploration_utils.hpp>
+#include "se/path_planning/candidate_view.hpp"
+#include <se/path_planning/exploration_utils.hpp>
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
  */

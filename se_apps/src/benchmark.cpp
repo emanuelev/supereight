@@ -23,7 +23,7 @@
 #include <sstream>
 #include <iomanip>
 #include <getopt.h>
-#include <perfstats.h>
+#include <se/perfstats.h>
 
 /***
  * This program loop over a scene recording
