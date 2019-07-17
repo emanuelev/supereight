@@ -19,16 +19,11 @@ template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 
 
 void insertBlocksToMap(map3i &blocks_map, set3i *blocks) {
-  if (blocks->size() != 0) {
-    std::cout << "[supereight/boundary] adding " << blocks->size() << " new candidate blocks "
-                                                                      "" << std::endl;
-  } else {
-    std::cout << "[supereight/boundary] frontier blocks empty" << std::endl;
+  if (blocks->size() == 0) {
     return;
   }
 
   for (auto it = blocks->begin(); it != blocks->end(); ++it) {
-//    uint64_t morton = compute_morton(it->x(), it->y(), it->z());
     Eigen::Vector3i voxel_coord = unpack_morton(*it);
     blocks_map.emplace(*it, voxel_coord);
   }
@@ -42,17 +37,18 @@ void insertBlocksToMap(map3i &blocks_map, set3i *blocks) {
  */
 template<typename T>
 void updateFrontierMap(const Volume<T> &volume, map3i &frontier_blocks_map) {
-  std::cout << "[supereight] frontier map size: before " << frontier_blocks_map.size();
+//  std::cout << "[supereight] frontier map size: before " << frontier_blocks_map.size()
+//  <<std::endl;
   se::node_iterator<T> node_it(*(volume._map_index));
   for (auto it = frontier_blocks_map.begin(); it != frontier_blocks_map.end(); ++it) {
     // check if the occupancy probability of the frontier voxels has been updated
     // changes voxel states from frontier to free or occupied
     if (!node_it.deleteFrontierVoxelBlockviaMorton(it->second)) {
-      std::cout << "[supereight/boundary] no frontier in voxel block => erase" << std::endl;
+//      std::cout << "[supereight/boundary] no frontier in voxel block => erase" << std::endl;
       frontier_blocks_map.erase(it->first);
     }
   }
-  std::cout << ", updated " << frontier_blocks_map.size() << std::endl;
+//  std::cout << ", updated " << frontier_blocks_map.size() << std::endl;
 }
 
 template<typename T>
@@ -60,7 +56,6 @@ void updateFrontierMap(const Volume<T> &volume,
                        map3i &frontier_blocks_map,
                        set3i *frontier_blocks,
                        const bool update_frontier_map) {
-  // go through frontier map and check if they are actually frontiers
 
   // check if the ones in the map
   if(update_frontier_map){
