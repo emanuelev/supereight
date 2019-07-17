@@ -540,7 +540,7 @@ bool DenseSLAMSystem::planning(se::exploration::posevector &path, se::exploratio
                                       pose_*Tbc_,
                                       path,
                                       cand_views);
-  std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
+//  std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
 }
 
 void DenseSLAMSystem::dump_volume(std::string) {
