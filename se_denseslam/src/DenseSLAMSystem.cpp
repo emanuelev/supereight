@@ -405,8 +405,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   float mu,
                                   unsigned int frame,
                                   set3i *updated_blocks,
-                                  set3i *frontier_blocks,
-                                  set3i *occlusion_blocks) {
+                                  set3i *frontier_blocks) {
 
 //bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 //                                  unsigned int integration_rate,
@@ -491,7 +490,6 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   timestamp,
                                   voxelsize,
                                   frontier_blocks,
-                                  occlusion_blocks,
                                   true);
 
       se::functor::projective_map(*volume_._map_index,
@@ -502,11 +500,6 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
       std::set<uint64_t > *copy_frontier_blocks = frontier_blocks;
       bool update_frontier_map = (frame % frontier_map_update_rate) == 0;
       updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
-//      insertOcclusionBlocksToMap(occlusion_blocks_map, occlusion_blocks);
-
-//      for (auto it = frontier_map_.begin(); it != frontier_map_.end(); ++it){
-//        std::cout << it->first << " " ;
-//      }
 
     }
 
@@ -540,7 +533,7 @@ bool DenseSLAMSystem::planning(se::exploration::posevector &path, se::exploratio
                                       pose_*Tbc_,
                                       path,
                                       cand_views);
-  std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
+//  std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
 }
 
 void DenseSLAMSystem::dump_volume(std::string) {

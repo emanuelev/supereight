@@ -108,10 +108,9 @@ class DenseSLAMSystem {
   Eigen::Matrix4f old_pose_;
   Eigen::Matrix4f raycast_pose_;
 
-//  // exploration map ; store morton code
-  set3i frontier_voxel_set_;
+  //exploration
   map3i frontier_map_;
-  map3i occlusion_map_;
+
 
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -221,30 +220,14 @@ class DenseSLAMSystem {
 //                   unsigned int frame,
 //                   std::vector<Eigen::Vector3i> *occupied_voxels,
 //                   std::vector<Eigen::Vector3i> *freed_voxels);
-// TODO fix alignment
-//  bool integration(const Eigen::Vector4f &k,
-//                   unsigned int integration_rate,
-//                   float mu,
-//                   unsigned int frame,
-//                   VectorVec3i *updated_blocks,
-//                   VectorVec3i *frontier_blocks,
-//                   VectorVec3i *occlusion_blocks,
-//                   map3i &frontier_blocks_map,
-//                   map3i &occlusion_blocks_map);
+
   bool integration(const Eigen::Vector4f &k,
                    unsigned int integration_rate,
                    unsigned int frontier_map_update_rate,
                    float mu,
                    unsigned int frame,
                    set3i *updated_blocks,
-                   set3i *frontier_blocks,
-                   set3i *occlusion_blocks);
-//  bool integration(const Eigen::Vector4f &k,
-//                   unsigned int integration_rate,
-//                   float mu,
-//                   unsigned int frame,
-//                   std::vector<Eigen::Vector3i> *updated_blocks,
-//                   std::vector<Eigen::Vector3i> *frontier_blocks);
+                   set3i *frontier_blocks);
   /**
    * Raycast the 3D reconstruction after integration to update the values of
    * the TSDF. This is the fourth stage of the pipeline.
