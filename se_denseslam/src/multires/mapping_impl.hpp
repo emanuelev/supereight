@@ -129,7 +129,8 @@ float interp(const se::Octree<MultiresSDF>& octree,
              const se::VoxelBlock<MultiresSDF>* block,
              const Eigen::Vector3i& vox,
              const int scale,
-             FieldSelector select) {
+             FieldSelector select,
+             bool& valid) {
 
   // Compute base point in parent block
   const int side   = se::VoxelBlock<MultiresSDF>::side >> (scale + 1); 
@@ -142,6 +143,17 @@ float interp(const se::Octree<MultiresSDF>& octree,
   float points[8];
   internal::gather_points(octree, block->coordinates() + base, scale + 1, 
       select, points);
+
+  float weights[8];
+  internal::gather_points(octree, block->coordinates() + base, scale + 1, 
+      [](const auto& val) { return val.y; }, weights);
+  for(int i = 0; i < 8; ++i) {
+    if(weights[i] == 0) { 
+      valid = false;
+      return select(octree.init_val());
+    }
+  }
+  valid = true;
 
   const Eigen::Vector3f vox_f  = vox.cast<float>() + offset * (stride/2);
   const Eigen::Vector3f base_f = base.cast<float>() + offset*(stride);
@@ -189,9 +201,10 @@ void propagate_down(const se::Octree<T>& map,
                 const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
                 auto curr = block->data(vox, curr_scale - 1);
                 if(curr.y == 0) {
+                  bool is_valid;
                   curr.x = se::math::clamp(interp(map, block, vox - base, curr_scale - 1,
-                      [](const auto& val) { return val.x; }), -1.f, 1.f);
-                  curr.y = data.y;
+                      [](const auto& val) { return val.x; }, is_valid), -1.f, 1.f);
+                  curr.y = is_valid ? data.y : 0;
                   curr.x_last = curr.x;
                   curr.delta_y = 0;
                 } else {
@@ -252,9 +265,10 @@ void propagate_update(const se::Octree<T>& map,
               const Eigen::Vector3i vox = parent + Eigen::Vector3i(i, j , k);
               auto curr = block->data(vox, scale);
               if(curr.y == 0) {
+                bool is_valid;
                 curr.x = se::math::clamp(interp(map, block, vox - base, scale,
-                      [](const auto& val) { return val.x; }), -1.f, 1.f);
-                curr.y = data.y;
+                      [](const auto& val) { return val.x; }, is_valid), -1.f, 1.f);
+                curr.y = is_valid ? data.y : 0;
                 curr.x_last = curr.x;
                 curr.delta_y = 0;
               } else {

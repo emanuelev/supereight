@@ -172,6 +172,11 @@ public:
   template <typename FieldSelect>
   std::pair<float, int> interp(const Eigen::Vector3f& pos, const int stride, FieldSelect f) const;
 
+  template <typename FieldSelect>
+  std::pair<float, int> interp_checked(const Eigen::Vector3f& pos, 
+      const int stride, FieldSelect f) const;
+
+
   /*! \brief Compute gradient at voxel position  (x,y,z)
    * \param pos three-dimensional coordinates in which each component belongs 
    * to the interval [0, _size]
@@ -591,6 +596,52 @@ std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& pos, const int mi
     if(res == scale) break;
     else scale = res;
     iter++;
+  }
+
+  return {(((points[0] * (1 - factor(0))
+          + points[1] * factor(0)) * (1 - factor(1))
+          + (points[2] * (1 - factor(0))
+          + points[3] * factor(0)) * factor(1))
+          * (1 - factor(2))
+          + ((points[4] * (1 - factor(0))
+          + points[5] * factor(0))
+          * (1 - factor(1))
+          + (points[6] * (1 - factor(0))
+          + points[7] * factor(0))
+          * factor(1)) * factor(2)), scale};
+}
+
+template <typename T>
+template <typename FieldSelector>
+std::pair<float, int> Octree<T>::interp_checked(const Eigen::Vector3f& pos, 
+    const int min_scale, FieldSelector select) const {
+ 
+  int iter = 0;
+  int scale = min_scale;
+  float points[8] = { select(init_val()) };
+  float   weights[8];
+  Eigen::Vector3f factor;
+  while(iter < 3) {
+    const int stride = 1 << scale; 
+    const Eigen::Vector3f scaled_pos = 1.f/stride * pos - _offset;
+    factor =  math::fracf(scaled_pos);
+    const Eigen::Vector3i base = stride * scaled_pos.cast<int>();
+    const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
+    if(((lower + Eigen::Vector3i::Constant(stride)).array() >= size_).any()) {
+      return {select(init_val()), -1};
+    }
+
+    int res = internal::gather_points(*this, lower, scale, select, points);
+    internal::gather_points(*this, lower, scale, [](const auto& val) {
+        return val.y; }, weights);
+
+    if(res == scale) break;
+    else scale = res;
+    iter++;
+  }
+
+  for(int i = 0; i < 8; ++i) {
+    if(weights[i] == 0) return {select(init_val()), -1};
   }
 
   return {(((points[0] * (1 - factor(0))

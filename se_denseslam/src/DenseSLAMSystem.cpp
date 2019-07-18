@@ -380,10 +380,15 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
         for(int x = 0; x < side; ++x) {
           const Eigen::Vector3i vox = base + Eigen::Vector3i(x, y , z);
           auto curr = block->data(vox, 0);
-          curr.x = this->volume_._map_index->interp(
-              vox.cast<float>() + offset, [](const auto& val) { return val.x; }).first;
-          curr.y = this->volume_._map_index->interp(
-              vox.cast<float>() + offset, [](const auto& val) { return val.y; }).first;
+          auto res = this->volume_._map_index->interp_checked(
+              vox.cast<float>() + offset, 0, [](const auto& val) { return val.x; });
+          if(res.second >= 0) {
+            curr.x = res.first;
+            curr.y = this->volume_._map_index->interp(
+                vox.cast<float>() + offset, [](const auto& val) { return val.y; }).first;
+          } else {
+            curr.y = 0;
+          }
           block->data(vox, 0, curr);
         }
   };
