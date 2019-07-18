@@ -184,6 +184,7 @@ struct bfusion_update {
 
   set3i *updated_blocks_;
   set3i *frontier_blocks_;
+  set3i *free_blocks_;
 
   bool detect_frontier_;
   int place_holder_;
@@ -197,7 +198,8 @@ struct bfusion_update {
                  float n,
                  float t,
                  float vs,
-                 std::set<uint64_t> *updated_blocks,
+                 set3i *updated_blocks,
+                 set3i *free_blocks,
                  bool detect_frontier,
                  int place_holder)
       :
@@ -207,6 +209,7 @@ struct bfusion_update {
       timestamp(t),
       voxelsize(vs),
       updated_blocks_(updated_blocks),
+      free_blocks_(free_blocks),
       detect_frontier_(detect_frontier),
       place_holder_(place_holder) {};
 //  bfusion_update(const float *d,
@@ -258,6 +261,8 @@ struct bfusion_update {
 
     Eigen::Vector3i coord = handler.getNodeCoordinates();
     uint64_t morton_code = compute_morton(coord.x(), coord.y(), coord.z());
+
+    bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
     // invalid depth measurement
     if (depthSample <= 0) {
       return;
@@ -286,13 +291,16 @@ struct bfusion_update {
         data.st = voxel_state::kOccupied;
       } else if (prob <= THRESH_FREE) {
         data.st = voxel_state::kFree;
+        if(isVoxel){
+#pragma omp critical
+          free_blocks_->insert(morton_code);
+        }
       } else {
         // if the occupancy probability is not low or high enough => back to unknown
         data.st = voxel_state::kUnknown;
       }
 #pragma omp critical
       {
-        bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
         bool voxelOccupied = prev_occ <= 0.5 && prob > 0.5;
         bool voxelFreed = prev_occ >= 0.5 && prob < 0.5;
         bool occupancyUpdated = handler.occupancyUpdated();
@@ -301,6 +309,7 @@ struct bfusion_update {
           updated_blocks_->insert(morton_code);
           handler.occupancyUpdated(true);
         }
+
       }
       handler.set(data);
 

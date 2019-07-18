@@ -403,7 +403,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   float mu,
                                   unsigned int frame,
                                   set3i *updated_blocks,
-                                  set3i *frontier_blocks) {
+                                  set3i *frontier_blocks,
+                                  set3i *free_blocks) {
 
 //bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 //                                  unsigned int integration_rate,
@@ -474,6 +475,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   timestamp,
                                   voxelsize,
                                   updated_blocks,
+                                  free_blocks,
                                   false, 1);
 // Update all active nodes and voxels using the bfusion_update function
 

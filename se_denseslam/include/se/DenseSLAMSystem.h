@@ -227,7 +227,8 @@ class DenseSLAMSystem {
                    float mu,
                    unsigned int frame,
                    set3i *updated_blocks,
-                   set3i *frontier_blocks);
+                   set3i *frontier_blocks,
+                   set3i *free_blocks);
   /**
    * Raycast the 3D reconstruction after integration to update the values of
    * the TSDF. This is the fourth stage of the pipeline.
