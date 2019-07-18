@@ -13,12 +13,14 @@
 
 #include <cstdlib>
 #include <cmath>
-#include <se/utils/eigen_utils.h>
+#include "se/utils/eigen_utils.h"
+#include "exploration_utils.hpp"
 
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 namespace se {
 namespace exploration {
 
+//typedef FieldType OFusion;
 template<typename T>
 class CollisionCheck {
  public:
@@ -51,37 +53,64 @@ CollisionCheck<T>::CollisionCheck(const VolumeTemplate<T, se::Octree> &volume,
 
 template<typename T>
 bool CollisionCheck<T>::isSphereCollisionFree(const Eigen::Vector3i pos_v) {
-  int radius_v = static_cast<int>(planning_config_.cand_view_safety_radius / res_);// m/(m/voxel)
-  radius_v *=radius_v;
+  int radius_v = static_cast<int>(planning_config_.cand_view_safety_radius / res_); // m/(m/voxel)
+
+  se::Node<OFusion> *node = nullptr;
+  se::VoxelBlock<OFusion> *block = nullptr;
+  bool is_voxel_block;
+  Eigen::Vector3i prev_pos(0, 0, 0);
   for (int x = -radius_v; x <= radius_v; x++) {
     for (int y = -radius_v; y <= radius_v; y++) {
       for (int z = -radius_v; z <= radius_v; z++) {
         Eigen::Vector3i point_offset_v(x, y, z);
         //check if point is inside the sphere radius
-        if (point_offset_v.squaredNorm() <= radius_v) {
-
-
+        if (point_offset_v.norm() <= radius_v) {
           // check if voxelblock is allocated or only node
           Eigen::Vector3i point_v = point_offset_v + pos_v;
-          // check if voxel exists
-          if (volume_._map_index->fetch(point_v.x(), point_v.y(), point_v.z()) != NULL) {
-            if (volume_._map_index->get(point_v).x > 0) {
+          // first round
+          if (node == nullptr || block == nullptr) {
+            volume_._map_index->fetch_octant(point_v.x(),
+                                             point_v.y(),
+                                             point_v.z(),
+                                             node,
+                                             is_voxel_block);
+            prev_pos = point_v;
+            if (is_voxel_block) {
+              block = static_cast<se::VoxelBlock<OFusion> *> (node);
+            } else {
+              if (volume_._map_index->get(se::keyops::decode(node->code_)).x >= 0.f)
+                return false;
+            }
+          }
+          // if true keep old voxelblock pointer and fetch
+          // else get new voxel block
+          if (isSameBlock(point_v, prev_pos) && block != nullptr) {
+            std::cout << "[secollision] same block" << std::endl;
+            if (block->data(point_v).x >= 0.f) {
               return false;
             }
-            // TODO make it to octree
-            /*          se::VoxelBlock<T>
-              *block = volume_._map_index->fetch_octant(point_vox.x(), point_vox.y(), point_vox.z());
-            // voxel block allocated
-            if(block !=NULL){
-
-              std::cout << "[se/collision_checker] get sphere point " << point_vox.format(InLine)
-                        <<std::endl;*/
           } else {
-//            std::cout << "[se/collision_check] sphere voxel not allocated" << std::endl;
-            return false;
-          }
+            std::cout << "[secollision]  not same block" << std::endl;
+            volume_._map_index->fetch_octant(point_v.x(),
+                                             point_v.y(),
+                                             point_v.z(),
+                                             node,
+                                             is_voxel_block);
+            if (is_voxel_block) {
+              block = static_cast<se::VoxelBlock<OFusion> *> (node);
+              if (block->data(point_v).x >= 0.f) {
+                return false;
+              }
+            } else {
+              block = nullptr;
+              if (volume_._map_index->get(se::keyops::decode(node->code_)).x >= 0.f)
+                return false;
+            }
 
+          }
+          prev_pos = point_v;
         }
+
       }
     }
   }
