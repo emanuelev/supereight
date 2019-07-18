@@ -103,14 +103,14 @@ class node_iterator {
     return occupiedVoxels;
   }
 
-  vec3i getSurfaceVoxels(float threshold = 0.25) {
-    vec3i surfaceVoxels;
-    surfaceVoxels.clear();
+  vec3i getFreeVoxels(float threshold , const uint64_t morton) {
+    vec3i freeVoxels;
+    freeVoxels.clear();
 
-    for (int block_idx = 0; block_idx < map_.block_buffer_.size(); block_idx++) {
-      VoxelBlock<T> *block = map_.block_buffer_[block_idx];
-      const Eigen::Vector3i blockCoord = block->coordinates();
+    typename VoxelBlock<T>::value_type value;
+    Eigen::Vector3i blockCoord = unpack_morton(morton);
 
+    VoxelBlock<T>* block = map_.fetch(morton);
       int x, y, z;
       int xlast = blockCoord(0) + BLOCK_SIDE;
       int ylast = blockCoord(1) + BLOCK_SIDE;
@@ -118,25 +118,24 @@ class node_iterator {
       for (z = blockCoord(2); z < zlast; ++z) {
         for (y = blockCoord(1); y < ylast; ++y) {
           for (x = blockCoord(0); x < xlast; ++x) {
-            typename VoxelBlock<T>::value_type value;
             const Eigen::Vector3i vox{x, y, z};
-            value = block->data(Eigen::Vector3i(x, y, z));
-            if (value.x >= -threshold && value.x <= threshold) {
-              surfaceVoxels.push_back(vox);
+            value = block->data(vox);
+            if (value.x <= threshold) {
+              freeVoxels.push_back(vox);
             }
           }
         }
       }
-    }
-    return surfaceVoxels;
+    return freeVoxels;
   }
 
   vec3i getOccupiedVoxels(float threshold, const uint64_t morton) {
     vec3i occupiedVoxels;
     occupiedVoxels.clear();
   Eigen::Vector3i blockCoord = unpack_morton(morton);
-//    VoxelBlock<T>* block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
+    VoxelBlock<T>* block = map_.fetch(morton);
 
+    typename VoxelBlock<T>::value_type value;
     int xlast = blockCoord(0) + BLOCK_SIDE;
     int ylast = blockCoord(1) + BLOCK_SIDE;
     int zlast = blockCoord(2) + BLOCK_SIDE;
@@ -144,12 +143,11 @@ class node_iterator {
     for (int z = blockCoord(2); z < zlast; ++z) {
       for (int y = blockCoord(1); y < ylast; ++y) {
         for (int x = blockCoord(0); x < xlast; ++x) {
-          typename VoxelBlock<T>::value_type value;
           const Eigen::Vector3i vox{x, y, z};
-          float prob = map_.get(x, y, z).x;
-//          value = block->data(Eigen::Vector3i(x, y, z));
+//          float prob = map_.get(x, y, z).x;
+          value = block->data(vox);
 // TODO use state
-          if (prob >= threshold) {
+          if (value.x >= threshold) {
 #pragma omp critical
             occupiedVoxels.push_back(vox);
           }
