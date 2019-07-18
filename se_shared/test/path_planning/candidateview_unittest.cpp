@@ -26,16 +26,16 @@
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 #include <random>
-#include <se/octree.hpp>
-#include <se/node.hpp>
-#include <se/utils/math_utils.h>
-#include <se/utils/morton_utils.hpp>
-#include <se/functors/axis_aligned_functor.hpp>
-#include <se/config.h>
-#include <se/planner_config.h>
+#include "se/octree.hpp"
+#include "se/node.hpp"
+#include "se/utils/math_utils.h"
+#include "se/utils/morton_utils.hpp"
+#include "se/functors/axis_aligned_functor.hpp"
+#include "se/config.h"
+#include "se/planner_config.h"
 #include "gtest/gtest.h"
 
-#include <se/path_planning/candidate_view.hpp>
+#include "se/path_planning/candidate_view.hpp"
 
 typedef std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i> > vec3i;
 
