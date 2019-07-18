@@ -32,11 +32,11 @@
 #include <functional>
 #include <vector>
 
-#include "utils/math_utils.h"
-#include "algorithms/filter.hpp"
-#include "node.hpp"
-#include "functors/data_handler.hpp"
-#include "geometry/aabb_collision.hpp"
+#include <se/utils/math_utils.h>
+#include <se/algorithms/filter.hpp>
+#include <se/node.hpp>
+#include <se/functors/data_handler.hpp>
+#include <se/geometry/aabb_collision.hpp>
 
 namespace se {
   namespace functor {

@@ -15,19 +15,21 @@
 #include <random>
 #include <iterator>
 #include <type_traits>
+#include <cmath>
 
 #include <Eigen/StdVector>
 
 #include <se/continuous/volume_template.hpp>
 #include <se/octree.hpp>
 #include <se/node_iterator.hpp>
-
+#include <se/constant_parameters.h>
 #include <se/ray_iterator.hpp>
 #include <se/utils/math_utils.h>
 #include <se/config.h>
 #include <se/utils/eigen_utils.h>
 #include "collision_checker.hpp"
 #include "exploration_utils.hpp"
+
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 
 namespace se {
@@ -69,7 +71,12 @@ class CandidateView {
   std::pair<pose3D, double> getBestCandidate(const VectorPairPoseDouble &cand_list);
 
   pose3D getCurrPose();
-
+  const float getIGWeight_tanh(const float tanh_range,
+                               const float tanh_ratio,
+                               const float t,
+                               const float prob_log,
+                               float &t_hit,
+                               bool &hit_unknown) const;
  private:
   Eigen::Matrix4f curr_pose_;
   VectorVec3i cand_views_;
@@ -78,6 +85,8 @@ class CandidateView {
   Planning_Configuration planning_config_;
   Configuration config_;
   float occ_thresh_ = 0.f;
+
+
 };
 
 template<typename T>
@@ -299,23 +308,30 @@ std::pair<double, float> CandidateView<T>::getInformationGain(const Volume<T> &v
   auto select_occupancy = [](typename Volume<T>::value_type val) { return val.x; };
   // march from camera away
   double ig_entropy = 0.0f;
+  float tanh_range = 4.f;
+  const float tanh_ratio = tanh_range / tfar ;
   float t = tnear; // closer bound to camera
+  bool hit_unknown= false;
+  float t_hit  = 0.f;
   if (tnear < tfar) {
     float stepsize = step;
     // occupancy prob in log2
     float prob_log = volume.interp(origin + direction * t, select_occupancy);
+    float weight = 1.0f;
     // check if current pos is free
     if (prob_log <= SURF_BOUNDARY + occ_thresh_) {
-      ig_entropy = getEntropy(prob_log);
+      ig_entropy = weight * getEntropy(prob_log);
       for (; t < tfar; t += stepsize) {
         const Eigen::Vector3f pos = origin + direction * t;
         typename Volume<T>::value_type data = volume.get(pos);
         prob_log = volume.interp(origin + direction * t, select_occupancy);
-        ig_entropy += getEntropy(prob_log);
-//        std::cout << "[se/candview] raycast dist " << t << " at pos " << pos.format(InLine)
-//                  << " prob " << se::math::getProbFromLog(prob_log) << " updated entropy "
-//                  << ig_entropy << std::endl;
-
+        weight = getIGWeight_tanh(tanh_range, tanh_ratio, t, prob_log, t_hit, hit_unknown);
+        ig_entropy +=  weight * getEntropy(prob_log);
+/*        if (prob_log == 0.f) {
+          std::cout << "[se/candview] raycast dist " << t
+                    << " prob " << se::math::getProbFromLog(prob_log) << " weight " << weight
+                    << " updated entropy " << ig_entropy << std::endl;
+        }*/
 // next step along the ray hits a surface with a secure threshold return
         if (prob_log > SURF_BOUNDARY + occ_thresh_) {
           break;
@@ -326,7 +342,27 @@ std::pair<double, float> CandidateView<T>::getInformationGain(const Volume<T> &v
   return std::make_pair(ig_entropy,t);
 }
 
- // TODO parametrize variables
+template<typename T>
+const float CandidateView<T>::getIGWeight_tanh(const float tanh_range,
+                                               const float tanh_ratio,
+                                               const float t,
+                                               const float prob_log,
+                                               float &t_hit,
+                                               bool &hit_unknown) const {
+  float weight;
+  if (prob_log == 0.f) {
+          if (!hit_unknown){
+            t_hit = t;
+            hit_unknown = true;
+          }
+          weight = tanh(tanh_range - (t-t_hit) * tanh_ratio);
+        } else {
+          weight = 1.f;
+        }
+  return weight;
+}
+
+// TODO parametrize variables
 
 // information gain calculation
 // source [1] aeplanner gainCubature
