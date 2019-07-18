@@ -262,7 +262,7 @@ struct bfusion_update {
     Eigen::Vector3i coord = handler.getNodeCoordinates();
     uint64_t morton_code = compute_morton(coord.x(), coord.y(), coord.z());
 
-    bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
+    bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<FieldType>>::value;
     // invalid depth measurement
     if (depthSample <= 0) {
       return;
