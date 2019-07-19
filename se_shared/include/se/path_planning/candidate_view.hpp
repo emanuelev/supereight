@@ -18,7 +18,7 @@
 #include <cmath>
 
 #include <Eigen/StdVector>
-
+#include "se/geometry/octree_collision.hpp"
 #include "se/continuous/volume_template.hpp"
 #include "se/octree.hpp"
 #include "se/node_iterator.hpp"
@@ -234,6 +234,8 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
  Eigen::Vector3i bbox_sides = {offset_v*2, offset_v*2, offset_v*2};
   std::chrono::time_point<std::chrono::steady_clock> timings[3];
 
+  std::cout << "[se/candview] sphere center " << offset_cand_v.format(InLine) <<
+            " bbox corner " <<  bbox_corner.format(InLine) << std::endl;
   timings[0] = std::chrono::steady_clock::now();
   bool free_sphere = collision_check.isSphereCollisionFree(offset_cand_v);
 
@@ -244,26 +246,30 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
       bbox_sides,
       test_voxel2);
   timings[2] = std::chrono::steady_clock::now();
+
+
   double sphere_time = std::chrono::duration_cast<std::chrono::duration<double> >(timings[1]
       -timings[0]).count();
   double bbox_time = std::chrono::duration_cast<std::chrono::duration<double> >(timings[2] -
       timings[1]).count();
   std::cout << "[se/cand view] sphere check time: " << sphere_time
-    << " collision " << free_sphere
+    << " collision free " << free_sphere
       << std::endl;
 
   std::cout << "[se/candview] bbox check time: " << bbox_time
-  << " collision " << bbox_status
+  << " collision free = 2 " << bbox_status
    << std::endl;
   if (sphere_time>bbox_time){
     std::cout << "\n[se/candview] sphere slower" <<std::endl;
   }
   if ((int)free_sphere != (int)bbox_status){
-    std::cout << "[se/candview] status not equal ";
+    std::cout << "[se/candview] status not equal " << std::endl;
     if(free_sphere==0){
       std::cout << "sphere check free and bbox check " << bbox_status << std::endl;
     }
   }
+
+
 
   if (is_valid) {
     if (free_sphere) {

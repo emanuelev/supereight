@@ -160,10 +160,10 @@ static inline double getEntropy(float prob_log) {
 
 }
 
-static inline int isSameBlock (Eigen::Vector3i voxel , Eigen::Vector3i face_voxel){
-  return ((voxel.x() + 1) / BLOCK_SIDE) == ((face_voxel.x() + 1) / BLOCK_SIDE)
-          && ((voxel.y() + 1) / BLOCK_SIDE) == ((face_voxel.y() + 1) / BLOCK_SIDE)
-          && ((voxel.z() + 1) / BLOCK_SIDE) == ((face_voxel.z() + 1) / BLOCK_SIDE);
+static inline bool isSameBlock (Eigen::Vector3i voxel , Eigen::Vector3i face_voxel){
+  return (voxel.x()  / BLOCK_SIDE) == (face_voxel.x() / BLOCK_SIDE)
+          && ((voxel.y() ) / BLOCK_SIDE) == (face_voxel.y()  / BLOCK_SIDE)
+          && ((voxel.z() ) / BLOCK_SIDE) == (face_voxel.z() / BLOCK_SIDE);
 }
 
 } //exploration

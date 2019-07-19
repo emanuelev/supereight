@@ -78,35 +78,44 @@ bool CollisionCheck<T>::isSphereCollisionFree(const Eigen::Vector3i pos_v) {
             if (is_voxel_block) {
               block = static_cast<se::VoxelBlock<OFusion> *> (node);
             } else {
-              if (volume_._map_index->get(se::keyops::decode(node->code_)).x >= 0.f)
+              if (volume_._map_index->get(se::keyops::decode(node->code_)).x >= 0.f) {
+                std::cout << " [secollision] collision at node "
+                          << se::keyops::decode(node->code_).format(InLine) << std::endl;
                 return false;
+              }
             }
-          }
-          // if true keep old voxelblock pointer and fetch
-          // else get new voxel block
-          if (isSameBlock(point_v, prev_pos) && block != nullptr) {
-            std::cout << "[secollision] same block" << std::endl;
-            if (block->data(point_v).x >= 0.f) {
-              return false;
-            }
-          } else {
-            std::cout << "[secollision]  not same block" << std::endl;
-            volume_._map_index->fetch_octant(point_v.x(),
-                                             point_v.y(),
-                                             point_v.z(),
-                                             node,
-                                             is_voxel_block);
-            if (is_voxel_block) {
-              block = static_cast<se::VoxelBlock<OFusion> *> (node);
+          }else {
+            // if true keep old voxelblock pointer and fetch
+            // else get new voxel block
+            if (isSameBlock(point_v, prev_pos)) {
               if (block->data(point_v).x >= 0.f) {
+                std::cout << " [secollision] collision at " << point_v.format(InLine) << " plog "
+                          << block->data(point_v).x << std::endl;
                 return false;
               }
             } else {
-              block = nullptr;
-              if (volume_._map_index->get(se::keyops::decode(node->code_)).x >= 0.f)
-                return false;
-            }
+              volume_._map_index->fetch_octant(point_v.x(),
+                                               point_v.y(),
+                                               point_v.z(),
+                                               node,
+                                               is_voxel_block);
+              if (is_voxel_block) {
+                block = static_cast<se::VoxelBlock<OFusion> *> (node);
+                if (block->data(point_v).x >= 0.f) {
+                  std::cout << " [secollision] collision at " << point_v.format(InLine) << " plog "
+                            << block->data(point_v).x << std::endl;
+                  return false;
+                }
+              } else {
+                block = nullptr;
+                if (volume_._map_index->get(se::keyops::decode(node->code_)).x >= 0.f) {
+                  std::cout << " [secollision] collision at node "
+                            << se::keyops::decode(node->code_).format(InLine) << std::endl;
+                  return false;
+                }
+              }
 
+            }
           }
           prev_pos = point_v;
         }
