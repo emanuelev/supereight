@@ -228,46 +228,7 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
             << " offset by " << offset_v << " results in " << offset_cand_v.x() << " "
             << offset_cand_v.y() << " " << offset_cand_v.z() << " voxel state "
             << volume_._map_index->get(offset_cand_v).st;*/
-
- Eigen::Vector3i corner_offset(offset_v, offset_v, offset_v);
- Eigen::Vector3i bbox_corner = offset_cand_v-corner_offset;
- Eigen::Vector3i bbox_sides = {offset_v*2, offset_v*2, offset_v*2};
-  std::chrono::time_point<std::chrono::steady_clock> timings[3];
-
-  std::cout << "[se/candview] sphere center " << offset_cand_v.format(InLine) <<
-            " bbox corner " <<  bbox_corner.format(InLine) << std::endl;
-  timings[0] = std::chrono::steady_clock::now();
   int free_sphere = collision_check.isSphereCollisionFree(offset_cand_v);
-
-  timings[1] = std::chrono::steady_clock::now();
-
-  se::geometry::collision_status bbox_status = se::geometry::collides_with(*volume_._map_index,
-      bbox_corner,
-      bbox_sides,
-      test_voxel2);
-  timings[2] = std::chrono::steady_clock::now();
-
-
-  double sphere_time = std::chrono::duration_cast<std::chrono::duration<double> >(timings[1]
-      -timings[0]).count();
-  double bbox_time = std::chrono::duration_cast<std::chrono::duration<double> >(timings[2] -
-      timings[1]).count();
-  std::cout << "[se/cand view] sphere check time: " << sphere_time
-    << " collision free = 1 " << free_sphere << std::endl;
-
-  std::cout << "[se/candview] bbox check time: " << bbox_time
-  << " collision free = 2 " << bbox_status << std::endl;
-  if (sphere_time>bbox_time){
-    std::cout << "\n[se/candview] sphere slower" <<std::endl;
-  }
-  if (free_sphere != (int)bbox_status){
-    std::cout << "[se/candview] status not equal " << std::endl;
-    if(free_sphere==0){
-      std::cout << "sphere check free and bbox check " << bbox_status << std::endl;
-    }
-  }
-
-
 
   if (is_valid) {
     if (free_sphere==1.f) {
@@ -593,9 +554,9 @@ void getExplorationPath(const Volume<T> &volume,
   VectorPairPoseDouble pose_gain = candidate_view.getCandidateGain(step);
 
   std::pair<pose3D, double> best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain);
-/*  std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)
+  std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)
             << " yaw " << toEulerAngles(best_cand_pose_with_gain.first.q).yaw * 180.f / M_PI
-            << " with gain " << best_cand_pose_with_gain.second << std::endl;*/
+            << " with gain " << best_cand_pose_with_gain.second << std::endl;
   pose3D tmp_pose({0.f, 0.f, 0.f}, {1.f, 0.f, 0.f, 0.f});
   path.push_back(tmp_pose);
   for (const auto &pose : pose_gain) {
