@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "node_iterator.hpp"
 #include "functors/axis_aligned_functor.hpp"
 #include "gtest/gtest.h"
+#include "utils/eigen_utils.h"
 
 using namespace se::geometry;
 typedef float testT;
@@ -104,7 +105,7 @@ TEST_F(OctreeCollisionTest, PartiallyUnseen) {
   const Eigen::Vector3i test_bbox = {47, 0, 239};
   const Eigen::Vector3i width = {6, 6, 6};
   const collision_status collides = collides_with(oct_, test_bbox, width, test_voxel);
-  ASSERT_EQ(collides, collision_status::unseen);
+  ASSERT_EQ(collides, collision_status::occupied);
 }
 
 TEST_F(OctreeCollisionTest, Empty) {
@@ -141,16 +142,15 @@ TEST_F(OctreeCollisionTest, CollisionFreeLeaf) {
   const Eigen::Vector3i blockCoord = block->coordinates();
   int x, y, z, blockSide;
   blockSide = (int) se::VoxelBlock<testT>::side;
-  testing::internal::CaptureStdout();
+//  testing::internal::CaptureStdout();
   int xlast = blockCoord(0) + blockSide;
   int ylast = blockCoord(1) + blockSide;
   int zlast = blockCoord(2) + blockSide;
   for (z = blockCoord(2); z < zlast; ++z) {
     for (y = blockCoord(1); y < ylast; ++y) {
       for (x = blockCoord(0); x < xlast; ++x) {
-        if ((blockCoord(0) ) < x && x < (xlast - 4)
-            && (blockCoord(1) ) < y && y < (ylast - 4)
-            && (blockCoord(2) ) < z && z < (zlast - 4)) {
+        if ((blockCoord(0)) < x && x < (xlast - 4) && (blockCoord(1)) < y && y < (ylast - 4)
+            && (blockCoord(2)) < z && z < (zlast - 4)) {
           block->data(Eigen::Vector3i(x, y, z), 2.f);
         } else {
           block->data(Eigen::Vector3i(x, y, z), 10.f);
@@ -161,13 +161,12 @@ TEST_F(OctreeCollisionTest, CollisionFreeLeaf) {
 
   const collision_status collides = collides_with(oct_, test_bbox, width, test_voxel);
   const collision_status collidesSphere = isSphereCollisionFree(oct_, center, radius);
-  std::string output = testing::internal::GetCapturedStdout();
+//  std::string output = testing::internal::GetCapturedStdout();
 //  EXPECT_TRUE(false) << output;
   ASSERT_EQ(collides, collision_status::empty);
   ASSERT_EQ(collidesSphere, collision_status::empty);
 
 }
-
 
 TEST_F(OctreeCollisionTest, CollisionLeaf) {
   // Allocated block: {56, 8, 248};
@@ -175,7 +174,7 @@ TEST_F(OctreeCollisionTest, CollisionLeaf) {
   const Eigen::Vector3i width = {5, 5, 5};
 
   // sphere
-    const Eigen::Vector3i center = {60, 11, 251};
+  const Eigen::Vector3i center = {60, 11, 251};
   const int radius = 2;
   /* Update leaves as occupied node */
   se::VoxelBlock<testT> *block = oct_.fetch(56, 12, 254);
@@ -213,7 +212,7 @@ TEST_F(OctreeCollisionTest, NoSphereYesBox) {
   const Eigen::Vector3i width = {5, 5, 5};
 
   // sphere
-  const Eigen::Vector3i center = test_bbox + Eigen::Vector3i(2,2,2);
+  const Eigen::Vector3i center = test_bbox + Eigen::Vector3i(2, 2, 2);
   const int radius = 2;
 
 
@@ -229,10 +228,10 @@ TEST_F(OctreeCollisionTest, NoSphereYesBox) {
   for (z = blockCoord(2); z < zlast; ++z) {
     for (y = blockCoord(1); y < ylast; ++y) {
       for (x = blockCoord(0); x < xlast; ++x) {
-        if ( x < (xlast - 6) && y < (ylast - 6) && z < (zlast - 6)) {
+        if (x < (xlast - 6) && y < (ylast - 6) && z < (zlast - 6)) {
           block->data(Eigen::Vector3i(x, y, z), 2.f);
-          std::cout << "fill " << Eigen::Vector3i(x,y,z).format(InLine) << " status 2.f"
-          <<std::endl;
+          std::cout << "fill " << Eigen::Vector3i(x, y, z).format(InLine) << " status 2.f"
+                    << std::endl;
         } else {
           block->data(Eigen::Vector3i(x, y, z), 10.f);
         }
@@ -250,8 +249,7 @@ TEST_F(OctreeCollisionTest, NoSphereYesBox) {
   ASSERT_EQ(collidesSphere, collision_status::empty);
 }
 
-
-TEST_F(OctreeCollisionTest, AcrossBlocksOccupied) {
+TEST_F(OctreeCollisionTest, AcrossBlocksOccupied1) {
   // Allocated block: {56, 8, 248};
   // bottom left corner of the box
   const Eigen::Vector3i test_bbox = {55, 7, 247};
@@ -274,7 +272,7 @@ TEST_F(OctreeCollisionTest, AcrossBlocksOccupied) {
   for (z = blockCoord(2); z < zlast; ++z) {
     for (y = blockCoord(1); y < ylast; ++y) {
       for (x = blockCoord(0); x < xlast; ++x) {
-        if ( x < (xlast - 6) && y < (ylast - 6) && z < (zlast - 6)) {
+        if (x < (xlast - 6) && y < (ylast - 6) && z < (zlast - 6)) {
           block->data(Eigen::Vector3i(x, y, z), 2.f);
         } else {
           block->data(Eigen::Vector3i(x, y, z), 10.f);
@@ -287,20 +285,20 @@ TEST_F(OctreeCollisionTest, AcrossBlocksOccupied) {
   const collision_status collidesSphere = isSphereCollisionFree(oct_, center, radius);
   std::string output = testing::internal::GetCapturedStdout();
 //  EXPECT_TRUE(false) << output;
-// THEN : the corner of the bounding box is occupied, whereas the sphere doesn't collide with it
+// THEN : box and sphere collide partially with occupied space, hence return occupied
   ASSERT_EQ(collides, collision_status::occupied);
 
   ASSERT_EQ(collidesSphere, collision_status::occupied);
 }
 
-TEST_F(OctreeCollisionTest, AcrossBlocksFree) {
+TEST_F(OctreeCollisionTest, AcrossBlocksOccupied2) {
   // Allocated block: {56, 8, 248};
   // bottom left corner of the box
   const Eigen::Vector3i test_bbox = {62, 14, 254};
   const Eigen::Vector3i width = {5, 5, 5};
 
   // sphere
-  const Eigen::Vector3i center = test_bbox + Eigen::Vector3i(2,2,2);
+  const Eigen::Vector3i center = test_bbox + Eigen::Vector3i(2, 2, 2);
   const int radius = 2;
 
 
@@ -309,14 +307,13 @@ TEST_F(OctreeCollisionTest, AcrossBlocksFree) {
   const Eigen::Vector3i blockCoord = block->coordinates();
   int x, y, z, blockSide;
   blockSide = (int) se::VoxelBlock<testT>::side;
-  testing::internal::CaptureStdout();
   int xlast = blockCoord(0) + blockSide;
   int ylast = blockCoord(1) + blockSide;
   int zlast = blockCoord(2) + blockSide;
   for (z = blockCoord(2); z < zlast; ++z) {
     for (y = blockCoord(1); y < ylast; ++y) {
       for (x = blockCoord(0); x < xlast; ++x) {
-        if ( x < (xlast - 6) && y < (ylast - 6) && z < (zlast - 6)) {
+        if (x < (xlast - 6) && y < (ylast - 6) && z < (zlast - 6)) {
           block->data(Eigen::Vector3i(x, y, z), 2.f);
         } else {
           block->data(Eigen::Vector3i(x, y, z), 10.f);
@@ -324,13 +321,59 @@ TEST_F(OctreeCollisionTest, AcrossBlocksFree) {
       }
     }
   }
-
+ // WHEN checking the sphere and blocks
   const collision_status collides = collides_with(oct_, test_bbox, width, test_voxel);
   const collision_status collidesSphere = isSphereCollisionFree(oct_, center, radius);
-  std::string output = testing::internal::GetCapturedStdout();
-  EXPECT_TRUE(false) << output;
-// THEN : the corner of the bounding box is occupied, whereas the sphere doesn't collide with it
-  EXPECT_EQ(collides, collision_status::empty);
 
-  EXPECT_EQ(collidesSphere, collision_status::empty);
+// THEN : because neighbour nodes are allocated but not updated, unseen is treated as occupied
+// for path planning
+  ASSERT_EQ(collides, collision_status::occupied);
+
+  ASSERT_EQ(collidesSphere, collision_status::occupied);
+}
+TEST_F(OctreeCollisionTest, AcrossBlocksFree) {
+  // GIVEN: a map which is set to all free , except a small cube
+  // Allocated block: {56, 8, 248};
+  // bottom left corner of the box
+  const Eigen::Vector3i test_bbox = {62, 14, 254};
+  const Eigen::Vector3i width = {5, 5, 5};
+
+  // sphere
+  const Eigen::Vector3i center = test_bbox + Eigen::Vector3i(2, 2, 2);
+  const int radius = 2;
+ // set map to free
+  auto set_to_ten = [](auto &handler, const Eigen::Vector3i &coords) {
+    if ((coords.array() >= Eigen::Vector3i(0,0,0).array()).all()) {
+      handler.set(10.f);
+    }
+  };
+  se::functor::axis_aligned_map(oct_, set_to_ten);
+  /* Update leaves as occupied node */
+  se::VoxelBlock<testT> *block = oct_.fetch(56, 12, 254);
+  const Eigen::Vector3i blockCoord = block->coordinates();
+  int x, y, z, blockSide;
+  blockSide = (int) se::VoxelBlock<testT>::side;
+  int xlast = blockCoord(0) + blockSide;
+  int ylast = blockCoord(1) + blockSide;
+  int zlast = blockCoord(2) + blockSide;
+  for (z = blockCoord(2); z < zlast; ++z) {
+    for (y = blockCoord(1); y < ylast; ++y) {
+      for (x = blockCoord(0); x < xlast; ++x) {
+        if (x < (xlast - 6) && y < (ylast - 6) && z < (zlast - 6)) {
+          block->data(Eigen::Vector3i(x, y, z), 2.f);
+        } else {
+          block->data(Eigen::Vector3i(x, y, z), 10.f);
+        }
+      }
+    }
+  }
+// WHEN: checking box and sphere which map across different free voxel blocks
+const collision_status collides = collides_with(oct_, test_bbox, width, test_voxel);
+const collision_status collidesSphere = isSphereCollisionFree(oct_, center, radius);
+
+//output;
+// THEN : the collision status should be empty
+EXPECT_EQ(collides, collision_status::empty);
+
+EXPECT_EQ(collidesSphere, collision_status::empty);
 }

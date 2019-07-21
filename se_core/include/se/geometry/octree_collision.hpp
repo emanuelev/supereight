@@ -51,10 +51,7 @@ inline collision_status update_status(const collision_status previous_status,
                                       const collision_status new_status) {
   switch (previous_status) {
     case collision_status::unseen:
-      if (new_status != collision_status::occupied)
-        return previous_status;
-      else
-        return new_status;
+        return collision_status::occupied;
       break;
     case collision_status::occupied:return previous_status;
       break;
@@ -93,11 +90,9 @@ collision_status collides_with(const se::VoxelBlock<FieldType> *block,
         if (!geometry::aabb_aabb_collision(bbox, side, vox, Eigen::Vector3i::Constant(1))) continue;
         value = block->data(Eigen::Vector3i(x, y, z));
         status = update_status(status, test(value));
-        std::cout << "[se/collision] vb " << vox.format(InLine) << " status " << status
-                  << std::endl;
-//        if((Eigen::Vector3i(x,y,z)- center).norm()> side.x()/2){
-//
-//        }
+//        std::cout << "[se/collision] vb " << vox.format(InLine) << " status " << status
+//                  << std::endl;
+        if(status == collision_status::occupied){return status;}
       }
     }
   }
@@ -145,9 +140,9 @@ collision_status collides_with(const Octree<FieldType> &map,
 
     if (node->isLeaf()) {
       status = collides_with(static_cast<se::VoxelBlock<FieldType> *>(node), bbox, side, test);
-      std::cout << "[bbox] node leaf" << se::keyops::decode(node->code_).format(InLine) << " "
-                                                                                           "status "
-                << status << std::endl;
+//      std::cout << "[bbox] node leaf" << se::keyops::decode(node->code_).format(InLine)
+//      << " status "<< status << std::endl;
+      if(status == collision_status::occupied){return status;}
     }
 
     if (node->children_mask_ == 0) {
@@ -176,8 +171,9 @@ collision_status collides_with(const Octree<FieldType> &map,
         stack[stack_idx++] = child_descr;
       } else if (overlaps && child == NULL) {
         status = update_status(status, test(node->value_[0]));
-        std::cout << "[bbox] node " << se::keyops::decode(node->code_).format(InLine) << " status "
-                  << status << std::endl;
+//        std::cout << "[bbox] node " << se::keyops::decode(node->code_).format(InLine) << " status "
+//                  << status << std::endl;
+        if(status == collision_status::occupied){return status;}
       }
     }
     current = stack[--stack_idx];
@@ -185,6 +181,17 @@ collision_status collides_with(const Octree<FieldType> &map,
   return status;
 }
 
+
+
+
+/**
+ * used only in unit test, same logic as in path planning folder
+ * @tparam FieldType
+ * @param map
+ * @param center
+ * @param radius
+ * @return
+ */
 template<typename FieldType>
 collision_status isSphereCollisionFree(const Octree<FieldType> &map,
                                        const Eigen::Vector3i center,
@@ -199,7 +206,7 @@ collision_status isSphereCollisionFree(const Octree<FieldType> &map,
       for (int z = -radius; z <= radius; z++) {
         Eigen::Vector3i point_offset_v(x, y, z);
         //check if point is inside the sphere radius
-        std::cout << "sphere norm " << point_offset_v.norm() <<std::endl;
+//        std::cout << "sphere norm " << point_offset_v.norm() <<std::endl;
         if (point_offset_v.norm() <= radius) {
           // check if voxelblock is allocated or only node
           Eigen::Vector3i point_v = point_offset_v + center;
