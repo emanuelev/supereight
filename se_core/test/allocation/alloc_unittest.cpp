@@ -103,7 +103,7 @@ TEST(AllocationTest, FetchOctant_NodetoVoxelblock) {
     coord = block->coordinates();
   }
   std::string output = testing::internal::GetCapturedStdout();
-  EXPECT_TRUE(false)<< output;
+//  EXPECT_TRUE(false)<< output;
 
   ASSERT_EQ(vox_block_coord, coord);
 }
@@ -153,7 +153,7 @@ TEST(AllocationTest, FetchOctant_NoVoxelblock) {
     i++;
   }
   std::string output = testing::internal::GetCapturedStdout();
-  EXPECT_TRUE(false) << output;
+//  EXPECT_TRUE(false) << output;
 }
 
 TEST(AllocationTest, FetchOctant) {
