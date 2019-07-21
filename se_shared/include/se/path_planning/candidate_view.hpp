@@ -237,7 +237,7 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
   std::cout << "[se/candview] sphere center " << offset_cand_v.format(InLine) <<
             " bbox corner " <<  bbox_corner.format(InLine) << std::endl;
   timings[0] = std::chrono::steady_clock::now();
-  bool free_sphere = collision_check.isSphereCollisionFree(offset_cand_v);
+  int free_sphere = collision_check.isSphereCollisionFree(offset_cand_v);
 
   timings[1] = std::chrono::steady_clock::now();
 
@@ -253,16 +253,14 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
   double bbox_time = std::chrono::duration_cast<std::chrono::duration<double> >(timings[2] -
       timings[1]).count();
   std::cout << "[se/cand view] sphere check time: " << sphere_time
-    << " collision free " << free_sphere
-      << std::endl;
+    << " collision free = 1 " << free_sphere << std::endl;
 
   std::cout << "[se/candview] bbox check time: " << bbox_time
-  << " collision free = 2 " << bbox_status
-   << std::endl;
+  << " collision free = 2 " << bbox_status << std::endl;
   if (sphere_time>bbox_time){
     std::cout << "\n[se/candview] sphere slower" <<std::endl;
   }
-  if ((int)free_sphere != (int)bbox_status){
+  if (free_sphere != (int)bbox_status){
     std::cout << "[se/candview] status not equal " << std::endl;
     if(free_sphere==0){
       std::cout << "sphere check free and bbox check " << bbox_status << std::endl;
@@ -272,7 +270,7 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
 
 
   if (is_valid) {
-    if (free_sphere) {
+    if (free_sphere==1.f) {
       return offset_cand_v;
     } else {
       // is valid but the sphere is not collision free
