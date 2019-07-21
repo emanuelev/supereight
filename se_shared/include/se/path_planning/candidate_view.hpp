@@ -229,9 +229,8 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
             << offset_cand_v.y() << " " << offset_cand_v.z() << " voxel state "
             << volume_._map_index->get(offset_cand_v).st;*/
   int free_sphere = collision_check.isSphereCollisionFree(offset_cand_v);
-
   if (is_valid) {
-    if (free_sphere==1.f) {
+    if (free_sphere==1) {
       return offset_cand_v;
     } else {
       // is valid but the sphere is not collision free

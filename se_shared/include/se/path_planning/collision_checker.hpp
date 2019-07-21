@@ -51,9 +51,9 @@ CollisionCheck<T>::CollisionCheck(const VolumeTemplate<T, se::Octree> &volume,
 
 
 template<typename T>
-int CollisionCheck<T>::isSphereCollisionFree( const Eigen::Vector3i center) {
+int CollisionCheck<T>::isSphereCollisionFree(const Eigen::Vector3i center) {
 
-  int radius_v= static_cast<int>(planning_config_.cand_view_safety_radius/ res_); // m/(m/voxel)
+  int radius_v = static_cast<int>(planning_config_.cand_view_safety_radius / res_); // m/(m/voxel)
   se::Node<T> *node = nullptr;
   se::VoxelBlock<T> *block = nullptr;
   bool is_voxel_block;
@@ -69,8 +69,11 @@ int CollisionCheck<T>::isSphereCollisionFree( const Eigen::Vector3i center) {
           Eigen::Vector3i point_v = point_offset_v + center;
           // first round
           if (node == nullptr || block == nullptr) {
-            volume_._map_index->fetch_octant(point_v.x(), point_v.y(), point_v.z(), node,
-                is_voxel_block);
+            volume_._map_index->fetch_octant(point_v.x(),
+                                             point_v.y(),
+                                             point_v.z(),
+                                             node,
+                                             is_voxel_block);
             prev_pos = point_v;
             if (is_voxel_block) {
               block = static_cast<se::VoxelBlock<T> *> (node);
@@ -89,17 +92,20 @@ int CollisionCheck<T>::isSphereCollisionFree( const Eigen::Vector3i center) {
                 && ((point_v.z()) / BLOCK_SIDE) == (prev_pos.z() / BLOCK_SIDE)) {
               if (block->data(point_v).x >= 0.f) {
 //                std::cout << " [secollision] collision at " << point_v.format(InLine) << " plog "
-//                          << block->data(point_v) << std::endl;
+//                          << block->data(point_v).x << std::endl;
                 return 0;
               }
             } else {
-              volume_._map_index->fetch_octant(point_v.x(), point_v.y(), point_v.z(), node,
-                  is_voxel_block);
+              volume_._map_index->fetch_octant(point_v.x(),
+                                               point_v.y(),
+                                               point_v.z(),
+                                               node,
+                                               is_voxel_block);
               if (is_voxel_block) {
                 block = static_cast<se::VoxelBlock<T> *> (node);
                 if (block->data(point_v).x >= 0.f) {
 //                  std::cout << " [secollision] collision at " << point_v.format(InLine) << " plog "
-//                            << block->data(point_v) << std::endl;
+//                            << block->data(point_v).x << std::endl;
                   return 0;
                 }
               } else {
