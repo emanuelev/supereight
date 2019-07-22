@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <parallel/algorithm>
 #endif
 
+#include <array>
 #include <tuple>
 #include <queue>
 #include <unordered_set>
@@ -52,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "algorithms/unique.hpp"
 #include "geometry/aabb_collision.hpp"
 #include "interpolation/interp_gather.hpp"
+#include "neighbors/neighbor_gather.hpp"
 
 
 namespace se {
@@ -115,7 +117,34 @@ class Octree {
   value_type get(const int x, const int y, const int z) const;
   value_type get_fine(const int x, const int y, const int z) const;
 
-  /*! \brief Fetch the voxel block at which contains voxel  (x,y,z)
+  /*! \brief Retrieves voxel values for the neighbors of voxel at coordinates
+   * (x,y,z)
+   * If the safe template variable is true, then proper checks will be used so
+   * that neighboring voxels outside the map will have a value of empty at a
+   * cost of performance. Otherwise if the safe template variable is false,
+   * neighboring voxels outside the map will not be detected and will have the
+   * value of some voxel inside the map. If you are certain your code will not
+   * ask for the neighbors of voxels at the edge of the map, then the non-safe
+   * version should be safe to use and will result in better performance.
+   *
+   * \param x x coordinate in interval [0, size]
+   * \param y y coordinate in interval [0, size]
+   * \param z z coordinate in interval [0, size]
+   * \return An std::array with the values of the 6 neighboring voxels. The
+   * voxels are returned in the order: -z -y -x +x +y +z. Neighboring voxels
+   * that are not allocated have the initial value. Neighboring voxels that are
+   * outside the map have the empty value if safe is true, otherwise their
+   * value is undetermined.
+   *
+   * \todo The implementation is not yet efficient. A method similar to the one
+   * used in interp_gather should be used.
+   */
+  template <bool safe>
+  std::array<value_type, 6> get_face_neighbors(const int x,
+                                               const int y,
+                                               const int z) const;
+
+  /*! \brief Fetch the voxel block which contains voxel (x,y,z)
    * \param x x coordinate in interval [0, size]
    * \param y y coordinate in interval [0, size]
    * \param z z coordinate in interval [0, size]
@@ -364,7 +393,41 @@ inline typename Octree<T>::value_type Octree<T>::get_fine(const int x,
   return static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z));
 }
 
-template<typename T>
+template <typename T>
+template <bool safe>
+inline std::array<typename Octree<T>::value_type, 6> Octree<T>::get_face_neighbors(
+    const int x,
+    const int y,
+    const int z) const {
+
+  std::array<typename Octree<T>::value_type, 6> neighbor_values;
+
+  for (size_t i = 0; i < 6; ++i) {
+    // Compute the neighbor voxel coordinates.
+    const int neighbor_x = x + face_neighbor_offsets[i].x();
+    const int neighbor_y = y + face_neighbor_offsets[i].y();
+    const int neighbor_z = z + face_neighbor_offsets[i].z();
+
+    if (safe) {
+      if (    (neighbor_x >= 0) and (neighbor_x < size())
+          and (neighbor_y >= 0) and (neighbor_y < size())
+          and (neighbor_z >= 0) and (neighbor_z < size())) {
+        // The neighbor voxel is inside the volume, get its value.
+        neighbor_values[i] = get_fine(neighbor_x, neighbor_y, neighbor_z);
+      } else {
+        // The neighbor voxel is outside the volume, set the value to empty.
+        neighbor_values[i] = empty();
+      }
+    } else {
+      // Get the value of the neighbor voxel.
+      neighbor_values[i] = get_fine(neighbor_x, neighbor_y, neighbor_z);
+    }
+  }
+
+  return neighbor_values;
+}
+
+template <typename T>
 inline typename Octree<T>::value_type Octree<T>::get(const int x,
                                                      const int y,
                                                      const int z,
