@@ -434,7 +434,6 @@ const {
   Node<T> *n = root_;
   if (!n) {
     pointer = nullptr;
-    std::cout << " no root" <<std::endl;
     return ;
   }
 
@@ -444,7 +443,7 @@ const {
     Node<T> *tmp  = n->child((x & edge) > 0u, (y & edge) > 0u, (z & edge) > 0u);
     if (!tmp) {
       pointer = n;
-      std::cout << "pointer = n "<< std::endl;
+
       return ;
     }
     n= tmp;
