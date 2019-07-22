@@ -228,16 +228,13 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
             << " offset by " << offset_v << " results in " << offset_cand_v.x() << " "
             << offset_cand_v.y() << " " << offset_cand_v.z() << " voxel state "
             << volume_._map_index->get(offset_cand_v).st;*/
+
   int free_sphere = collision_check.isSphereCollisionFree(offset_cand_v);
-  if (is_valid) {
-    if (free_sphere==1) {
+
+  if (is_valid && free_sphere == 1) {
       return offset_cand_v;
-    } else {
-      // is valid but the sphere is not collision free
-      return Eigen::Vector3i(0, 0, 0);
-    }
   } else {
-    // not a valid view
+    // not a valid view or sphere is not collision free
     return Eigen::Vector3i(0, 0, 0);
   }
 
@@ -263,7 +260,6 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
   //check if block and voxel map size are equal
   if (frontier_voxels_map.size() != frontier_blocks_map.size()) {
   }
-
   // random candidate view generator
   std::default_random_engine generator;
   std::uniform_int_distribution<int> distribution_block(0, frontier_blocks_map.size() - 1);
@@ -553,11 +549,10 @@ void getExplorationPath(const Volume<T> &volume,
   VectorPairPoseDouble pose_gain = candidate_view.getCandidateGain(step);
 
   std::pair<pose3D, double> best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain);
-  std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)
-            << " yaw " << toEulerAngles(best_cand_pose_with_gain.first.q).yaw * 180.f / M_PI
-            << " with gain " << best_cand_pose_with_gain.second << std::endl;
-  pose3D tmp_pose({0.f, 0.f, 0.f}, {1.f, 0.f, 0.f, 0.f});
-  path.push_back(tmp_pose);
+//  std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)
+//            << " yaw " << toEulerAngles(best_cand_pose_with_gain.first.q).yaw * 180.f / M_PI
+//            << " with gain " << best_cand_pose_with_gain.second << std::endl;
+  path.push_back(best_cand_pose_with_gain.first);
   for (const auto &pose : pose_gain) {
     cand_views.push_back(pose.first);
   }

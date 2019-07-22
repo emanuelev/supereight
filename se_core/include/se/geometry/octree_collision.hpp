@@ -36,14 +36,17 @@
 namespace se {
 namespace geometry {
 enum class collision_status {
-  occupied, unseen, empty
+  occupied,
+  unseen,
+  empty
 };
 static std::ostream &operator<<(std::ostream &os, const collision_status &dt) {
   return os << static_cast<int>(dt);
 }
 /*! \brief Implements a simple state machine to update the collision status.
+ * For path planning, treat unseen as occupied.
  * The importance order is given as follows in ascending order: 
- * Empty, Unseen, Occupied.
+ * Occupied, Unseen, Empty.
  * \param previous_status
  * \param new_status 
  */
@@ -201,9 +204,9 @@ collision_status isSphereCollisionFree(const Octree<FieldType> &map,
   se::VoxelBlock<FieldType> *block = nullptr;
   bool is_voxel_block;
   Eigen::Vector3i prev_pos(0, 0, 0);
-  for (int x = -radius; x <= radius; x++) {
+  for (int z = -radius; z <= radius; z++) {
     for (int y = -radius; y <= radius; y++) {
-      for (int z = -radius; z <= radius; z++) {
+      for (int x = -radius; x <= radius; x++) {
         Eigen::Vector3i point_offset_v(x, y, z);
         //check if point is inside the sphere radius
 //        std::cout << "sphere norm " << point_offset_v.norm() <<std::endl;

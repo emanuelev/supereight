@@ -33,8 +33,7 @@ struct pose3D {
 };
 
 static inline std::ostream &operator<<(std::ostream &os, const pose3D &pose) {
-  return os << pose.p.x() << pose.p.y() << pose.p.z() <<
-  pose.q.x() << pose.q.y() << pose.q.z()
+  return os << pose.p.x() << pose.p.y() << pose.p.z() << pose.q.x() << pose.q.y() << pose.q.z()
             << pose.q.z();
 }
 static inline std::istream &operator>>(std::istream &input, pose3D &pose) {
@@ -55,7 +54,7 @@ struct eulerAngles {
 };
 
 // source https://cs.stanford.edu/~acoates/quaternion.h
- // TODO write tests
+// TODO write tests
 /**
  * @brief Euler Angles to Quaternion
  * @param yaw [rad]
@@ -79,15 +78,14 @@ static inline Eigen::Quaternionf toQuaternion(float yaw, float pitch, float roll
 
   Eigen::Quaternionf q;
   q.w() = cy * cp * cr + sy * sp * sr;
-  q.x() =cy * cp * sr - sy * sp * cr;
+  q.x() = cy * cp * sr - sy * sp * cr;
   q.y() = sy * cp * sr + cy * sp * cr;
   q.z() = sy * cp * cr - cy * sp * sr;
 
   return q;
 }
 
-static inline eulerAngles toEulerAngles(Eigen::Quaternionf q)
-{
+static inline eulerAngles toEulerAngles(Eigen::Quaternionf q) {
   eulerAngles angles;
 
   // roll (x-axis rotation)
@@ -113,28 +111,25 @@ static inline eulerAngles toEulerAngles(Eigen::Quaternionf q)
  * this quaternion.
  * @return Euler angles in roll-pitch-yaw order.
  */
-static inline eulerAngles toEulerAngles2(Eigen::Quaternionf q){
+static inline eulerAngles toEulerAngles2(Eigen::Quaternionf q) {
   eulerAngles euler;
   const static float PI_OVER_2 = M_PI * 0.5;
   const static float EPSILON = 1e-10;
   float sqw, sqx, sqy, sqz;
 
   // quick conversion to Euler angles to give tilt to user
-  sqw = q.w()*q.w();
-  sqx = q.x()*q.x();
-  sqy = q.y()* q.y();
+  sqw = q.w() * q.w();
+  sqx = q.x() * q.x();
+  sqy = q.y() * q.y();
   sqz = q.z() * q.z();
 
-  euler.pitch = asin(2.0 * (q.w()*q.y() - q.x() * q.z()));
+  euler.pitch = asin(2.0 * (q.w() * q.y() - q.x() * q.z()));
   if (PI_OVER_2 - fabs(euler.pitch) > EPSILON) {
-    euler.yaw = atan2(2.0 * (q.x() * q.y() + q.w()*q.z()),
-                     sqx - sqy - sqz + sqw);
-    euler.roll = atan2(2.0 * (q.w()*q.x() + q.y() * q.z()),
-                     sqw - sqx - sqy + sqz);
+    euler.yaw = atan2(2.0 * (q.x() * q.y() + q.w() * q.z()), sqx - sqy - sqz + sqw);
+    euler.roll = atan2(2.0 * (q.w() * q.x() + q.y() * q.z()), sqw - sqx - sqy + sqz);
   } else {
     // compute heading from local 'down' vector
-    euler.yaw = atan2(2*q.y() * q.z() - 2 * q.x() * q.w(),
-                     2* q.x() * q.z() + 2 * q.y() * q.w());
+    euler.yaw = atan2(2 * q.y() * q.z() - 2 * q.x() * q.w(), 2 * q.x() * q.z() + 2 * q.y() * q.w());
     euler.roll = 0.0;
 
     // If facing down, reverse yaw
@@ -160,10 +155,10 @@ static inline double getEntropy(float prob_log) {
 
 }
 
-static inline bool isSameBlock (Eigen::Vector3i voxel , Eigen::Vector3i face_voxel){
-  return (voxel.x()  / BLOCK_SIDE) == (face_voxel.x() / BLOCK_SIDE)
-          && ((voxel.y() ) / BLOCK_SIDE) == (face_voxel.y()  / BLOCK_SIDE)
-          && ((voxel.z() ) / BLOCK_SIDE) == (face_voxel.z() / BLOCK_SIDE);
+static inline bool isSameBlock(Eigen::Vector3i voxel, Eigen::Vector3i face_voxel) {
+  return (voxel.x() / BLOCK_SIDE) == (face_voxel.x() / BLOCK_SIDE)
+      && (voxel.y() / BLOCK_SIDE) == (face_voxel.y() / BLOCK_SIDE)
+      && (voxel.z() / BLOCK_SIDE) == (face_voxel.z() / BLOCK_SIDE);
 }
 
 } //exploration

@@ -129,6 +129,7 @@ TEST_F(OctreeCollisionTest, Collision) {
 }
 
 TEST_F(OctreeCollisionTest, CollisionFreeLeaf) {
+  // GIVEN this octree
   // Allocated block: {56, 8, 248};
   const Eigen::Vector3i test_bbox = {61, 13, 253};
   const Eigen::Vector3i width = {3, 3, 3};
@@ -137,12 +138,11 @@ TEST_F(OctreeCollisionTest, CollisionFreeLeaf) {
   const Eigen::Vector3i center = {61, 13, 253};
   const int radius = 1;
 
-  /* Update leaves as occupied node */
+  /* Update bottom left corner as occupied */
   se::VoxelBlock<testT> *block = oct_.fetch(56, 12, 254);
   const Eigen::Vector3i blockCoord = block->coordinates();
   int x, y, z, blockSide;
   blockSide = (int) se::VoxelBlock<testT>::side;
-//  testing::internal::CaptureStdout();
   int xlast = blockCoord(0) + blockSide;
   int ylast = blockCoord(1) + blockSide;
   int zlast = blockCoord(2) + blockSide;
@@ -158,17 +158,18 @@ TEST_F(OctreeCollisionTest, CollisionFreeLeaf) {
       }
     }
   }
-
+ // WHEN checking for collision in the upper right corner
   const collision_status collides = collides_with(oct_, test_bbox, width, test_voxel);
   const collision_status collidesSphere = isSphereCollisionFree(oct_, center, radius);
-//  std::string output = testing::internal::GetCapturedStdout();
-//  EXPECT_TRUE(false) << output;
+
+// THEN the space should be collision free
   ASSERT_EQ(collides, collision_status::empty);
   ASSERT_EQ(collidesSphere, collision_status::empty);
 
 }
 
 TEST_F(OctreeCollisionTest, CollisionLeaf) {
+  // GIVEN this octree
   // Allocated block: {56, 8, 248};
   const Eigen::Vector3i test_bbox = {57, 9, 249};
   const Eigen::Vector3i width = {5, 5, 5};
@@ -176,7 +177,7 @@ TEST_F(OctreeCollisionTest, CollisionLeaf) {
   // sphere
   const Eigen::Vector3i center = {60, 11, 251};
   const int radius = 2;
-  /* Update leaves as occupied node */
+  /* Update the center of the voxel block as occupied */
   se::VoxelBlock<testT> *block = oct_.fetch(56, 12, 254);
   const Eigen::Vector3i blockCoord = block->coordinates();
   int x, y, z, blockSide;
@@ -197,15 +198,17 @@ TEST_F(OctreeCollisionTest, CollisionLeaf) {
       }
     }
   }
-
+ // WHEN checking for collision in the voxel block
   const collision_status collides = collides_with(oct_, test_bbox, width, test_voxel);
   const collision_status collidesSphere = isSphereCollisionFree(oct_, center, radius);
   std::string output = testing::internal::GetCapturedStdout();
 //  EXPECT_TRUE(false) << output;
+// THEN: the collision status should be occupied, although some voxels are free
   ASSERT_EQ(collides, collision_status::occupied);
   ASSERT_EQ(collidesSphere, collision_status::occupied);
 }
 TEST_F(OctreeCollisionTest, NoSphereYesBox) {
+  // GIVEN this octree
   // Allocated block: {56, 8, 248};
   // bottom left corner of the box
   const Eigen::Vector3i test_bbox = {57, 9, 249};
@@ -216,7 +219,7 @@ TEST_F(OctreeCollisionTest, NoSphereYesBox) {
   const int radius = 2;
 
 
-  /* Update leaves as occupied node */
+  /* Update a small bottom left corner as occupied */
   se::VoxelBlock<testT> *block = oct_.fetch(56, 12, 254);
   const Eigen::Vector3i blockCoord = block->coordinates();
   int x, y, z, blockSide;
@@ -238,11 +241,12 @@ TEST_F(OctreeCollisionTest, NoSphereYesBox) {
       }
     }
   }
-
+// THEN checking for collision
   const collision_status collides = collides_with(oct_, test_bbox, width, test_voxel);
   const collision_status collidesSphere = isSphereCollisionFree(oct_, center, radius);
   std::string output = testing::internal::GetCapturedStdout();
 //  EXPECT_TRUE(false) << output;
+
 // THEN : the corner of the bounding box is occupied, whereas the sphere doesn't collide with it
   ASSERT_EQ(collides, collision_status::occupied);
 
@@ -260,7 +264,7 @@ TEST_F(OctreeCollisionTest, AcrossBlocksOccupied1) {
   const int radius = 2;
 
 
-  /* Update leaves as occupied node */
+  /* Update a small bottom left corner as occupied */
   se::VoxelBlock<testT> *block = oct_.fetch(56, 12, 254);
   const Eigen::Vector3i blockCoord = block->coordinates();
   int x, y, z, blockSide;
@@ -302,7 +306,7 @@ TEST_F(OctreeCollisionTest, AcrossBlocksOccupied2) {
   const int radius = 2;
 
 
-  /* Update leaves as occupied node */
+  /* Update a small bottom left corner as occupied */
   se::VoxelBlock<testT> *block = oct_.fetch(56, 12, 254);
   const Eigen::Vector3i blockCoord = block->coordinates();
   int x, y, z, blockSide;
@@ -348,7 +352,7 @@ TEST_F(OctreeCollisionTest, AcrossBlocksFree) {
     }
   };
   se::functor::axis_aligned_map(oct_, set_to_ten);
-  /* Update leaves as occupied node */
+  /* Update a small bottom left corner as occupied */
   se::VoxelBlock<testT> *block = oct_.fetch(56, 12, 254);
   const Eigen::Vector3i blockCoord = block->coordinates();
   int x, y, z, blockSide;
