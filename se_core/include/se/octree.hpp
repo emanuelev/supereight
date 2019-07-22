@@ -98,9 +98,18 @@ public:
    */
   void init(int size, float dim);
 
+  /*! \brief Number of voxels per map edge.
+   */
   inline int size() const { return size_; }
+
+  /*! \brief Dimension of the map in map units.
+   */
   inline float dim() const { return dim_; }
+
+  /*! \brief Dimension of the voxel edge in map units.
+   */
   inline float voxelDim() const { return dim_ / size_; }
+
   inline Node<T>* root() const { return root_; }
 
   /*! \brief Sets voxel value at coordinates (x,y,z), if not present it
