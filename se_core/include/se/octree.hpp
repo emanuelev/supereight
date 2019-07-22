@@ -141,9 +141,9 @@ public:
    * used in interp_gather should be used.
    */
   template <bool safe>
-  std::array<value_type, 6> get_face_neighbors(const int x,
-                                               const int y,
-                                               const int z) const;
+  std::array<value_type, 6> get_face_neighbor_values(const int x,
+                                                     const int y,
+                                                     const int z) const;
 
   /*! \brief Fetch the voxel block which contains voxel (x,y,z)
    * \param x x coordinate in interval [0, size]
@@ -386,7 +386,7 @@ inline typename Octree<T>::value_type Octree<T>::get_fine(const int x,
 
 template <typename T>
 template <bool safe>
-inline std::array<typename Octree<T>::value_type, 6> Octree<T>::get_face_neighbors(
+inline std::array<typename Octree<T>::value_type, 6> Octree<T>::get_face_neighbor_values(
     const int x,
     const int y,
     const int z) const {

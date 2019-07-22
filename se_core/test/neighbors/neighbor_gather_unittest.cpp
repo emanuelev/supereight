@@ -89,10 +89,10 @@ class NeighborGatherTest : public ::testing::Test {
 TEST_F(NeighborGatherTest, GetFaceNeighborsLocal) {
   // Safe version.
   std::array<voxel_traits<testT>::value_type, 6> neighbor_values_safe
-      = octree_.get_face_neighbors<true>(1, 1, 1);
+      = octree_.get_face_neighbor_values<true>(1, 1, 1);
   // Unsafe version.
   std::array<voxel_traits<testT>::value_type, 6> neighbor_values_unsafe
-      = octree_.get_face_neighbors<false>(1, 1, 1);
+      = octree_.get_face_neighbor_values<false>(1, 1, 1);
 
   // Voxel -z (1, 1, 0).
   EXPECT_EQ(neighbor_values_safe[0], 8 * value_increment_);
@@ -126,10 +126,10 @@ TEST_F(NeighborGatherTest, GetFaceNeighborsLocal) {
 TEST_F(NeighborGatherTest, GetFaceNeighborsVolumeCorner) {
   // Safe version.
   std::array<voxel_traits<testT>::value_type, 6> neighbor_values_safe
-      = octree_.get_face_neighbors<true>(0, 0, 0);
+      = octree_.get_face_neighbor_values<true>(0, 0, 0);
   // Unsafe version.
   std::array<voxel_traits<testT>::value_type, 6> neighbor_values_unsafe
-      = octree_.get_face_neighbors<false>(0, 0, 0);
+      = octree_.get_face_neighbor_values<false>(0, 0, 0);
 
   // Voxel -z (0, 0, -1), outside.
   EXPECT_EQ(neighbor_values_safe[0], voxel_traits<testT>::empty());
@@ -161,11 +161,11 @@ TEST_F(NeighborGatherTest, GetFaceNeighborsVolumeCorner) {
 TEST_F(NeighborGatherTest, GetFaceNeighborsCornerUnallocated) {
   // Safe version.
   std::array<voxel_traits<testT>::value_type, 6> neighbor_values_safe
-      = octree_.get_face_neighbors<true>(octree_.blockSide - 1,
+      = octree_.get_face_neighbor_values<true>(octree_.blockSide - 1,
       octree_.blockSide - 1, octree_.blockSide - 1);
   // Unsafe version.
   std::array<voxel_traits<testT>::value_type, 6> neighbor_values_unsafe
-      = octree_.get_face_neighbors<false>(octree_.blockSide - 1,
+      = octree_.get_face_neighbor_values<false>(octree_.blockSide - 1,
       octree_.blockSide - 1, octree_.blockSide - 1);
 
   // Voxel -z (0, 0, -1), allocated.
