@@ -100,6 +100,7 @@ public:
 
   inline int size() const { return size_; }
   inline float dim() const { return dim_; }
+  inline float voxelDim() const { return dim_ / size_; }
   inline Node<T>* root() const { return root_; }
 
   /*! \brief Sets voxel value at coordinates (x,y,z), if not present it
@@ -693,7 +694,7 @@ Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos) const {
             - get(upper(0), upper(1), lower_upper(2), n)(0))
           * factor(0)) * factor(1)) * factor(2);
 
-  return (0.5f * dim_ / size_) * gradient;
+  return (0.5f * voxelDim()) * gradient;
 }
 
 template <typename T>
@@ -780,7 +781,7 @@ Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos, FieldSelector select
             - select(get(upper(0), upper(1), lower_upper(2), n)))
           * factor(0)) * factor(1)) * factor(2);
 
-  return (0.5f * dim_ / size_) * gradient;
+  return (0.5f * voxelDim()) * gradient;
 }
 
 template <typename T>
