@@ -32,17 +32,17 @@
 #ifndef BFUSION_MAPPING_HPP
 #define BFUSION_MAPPING_HPP
 #include <cstdlib>
-#include <se/node.hpp>
 #include <Eigen/StdVector>
-#include <se/functors/projective_functor.hpp>
-#include <se/constant_parameters.h>
-#include <se/image/image.hpp>
-#include "bspline_lookup.cc"
 #include <atomic>
 #include <omp.h>
-
 #include <map>
-#include <se/octant_ops.hpp>
+
+#include "se/functors/projective_functor.hpp"
+#include "se/node.hpp"
+#include "se/constant_parameters.h"
+#include "se/image/image.hpp"
+#include "bspline_lookup.cc"
+#include "se/octant_ops.hpp"
 /**
  * Perform bilinear interpolation on a depth image. See
  * https://en.wikipedia.org/wiki/Bilinear_interpolation for more details.
@@ -259,10 +259,19 @@ struct bfusion_update {
     auto data = handler.get();
     float prev_occ = se::math::getProbFromLog(data.x);
 
-    Eigen::Vector3i coord = handler.getNodeCoordinates();
-    uint64_t morton_code = compute_morton(coord.x(), coord.y(), coord.z());
+    const bool is_voxel = std::is_same<DataHandlerT, VoxelBlockHandler<FieldType>>::value;
 
-    bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<FieldType>>::value;
+    const key_t morton_code_parent_node = handler.get_morton_code(); // parent node morton code
+    const int level_child = se::keyops::level(morton_code_parent_node) + 1;
+    // TODO find a way to pass max_level around or make it constant
+    const int max_level = 7;
+    const Eigen::Vector3i child_coord = handler.get_child_coord();
+    // compute morton code of current node / voxelblock
+    const key_t morton_code_child = se::keyops::encode(child_coord.x(),
+                                                child_coord.y(),
+                                                child_coord.z(),
+                                                level_child,
+                                                max_level);
     // invalid depth measurement
     if (depthSample <= 0) {
       return;
@@ -291,10 +300,8 @@ struct bfusion_update {
         data.st = voxel_state::kOccupied;
       } else if (prob <= THRESH_FREE) {
         data.st = voxel_state::kFree;
-        if(isVoxel){
 #pragma omp critical
-          free_blocks_->insert(morton_code);
-        }
+        free_blocks_->insert(morton_code_child);
       } else {
         // if the occupancy probability is not low or high enough => back to unknown
         data.st = voxel_state::kUnknown;
@@ -304,15 +311,13 @@ struct bfusion_update {
         bool voxelOccupied = prev_occ <= 0.5 && prob > 0.5;
         bool voxelFreed = prev_occ >= 0.5 && prob < 0.5;
         bool occupancyUpdated = handler.occupancyUpdated();
-        if (isVoxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
+        if (is_voxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
             && data.st != voxel_state::kFrontier) {
-          updated_blocks_->insert(morton_code);
+          updated_blocks_->insert(morton_code_child);
           handler.occupancyUpdated(true);
         }
-
       }
       handler.set(data);
-
     }
 
     if (detect_frontier_) {
@@ -321,17 +326,15 @@ struct bfusion_update {
         if (std::is_same<FieldType, OFusion>::value) {
           // conservative estimate as the occupancy probability for a free voxel is set quite low
           if (handler.isFrontier(map) && data.st == voxel_state::kFree) {
-            frontier_blocks_->insert(morton_code);
+            frontier_blocks_->insert(morton_code_child);
             data.st = voxel_state::kFrontier;
-
           }
         }
-
         handler.set(data);
       }
     }
 /*
-      bool isVoxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
+      bool is_voxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
       if (prev_occ >= 0.5 && data.x < 0.5 && isVoxel) {
 #pragma omp critical
         freedVoxels_.push_back(pix);

@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef NODE_ITERATOR_H
 #define NODE_ITERATOR_H
 #include "octree.hpp"
-#include "Eigen/Dense"
+#include <Eigen/Dense>
 #include "functors/data_handler.hpp"
 namespace se {
 
@@ -103,18 +103,26 @@ class node_iterator {
     return occupiedVoxels;
   }
 
-  vec3i getFreeVoxels(float threshold , const uint64_t morton) {
+  vec3i getFreeVoxels(float threshold, const uint64_t morton) {
     vec3i freeVoxels;
     freeVoxels.clear();
 
     typename VoxelBlock<T>::value_type value;
-    Eigen::Vector3i blockCoord = unpack_morton(morton);
+    const Eigen::Vector3i blockCoord = keyops::decode(morton);
+    const int level = keyops::level(morton);
 
-    VoxelBlock<T>* block = map_.fetch(morton);
+    Node<T> *node = nullptr;
+    bool is_block = false;
+    map_.fetch_octant(blockCoord(0), blockCoord(1), blockCoord(2), node, is_block);
+    if (!is_block) {
+      freeVoxels.push_back(blockCoord);
+      freeVoxels.push_back(Eigen::Vector3i(0, 0, 0));
+    } else {
+      VoxelBlock<T> *block = static_cast< VoxelBlock<T> *> (node);
       int x, y, z;
-      int xlast = blockCoord(0) + BLOCK_SIDE;
-      int ylast = blockCoord(1) + BLOCK_SIDE;
-      int zlast = blockCoord(2) + BLOCK_SIDE;
+      const int xlast = blockCoord(0) + BLOCK_SIDE;
+      const int ylast = blockCoord(1) + BLOCK_SIDE;
+      const int zlast = blockCoord(2) + BLOCK_SIDE;
       for (z = blockCoord(2); z < zlast; ++z) {
         for (y = blockCoord(1); y < ylast; ++y) {
           for (x = blockCoord(0); x < xlast; ++x) {
@@ -126,19 +134,20 @@ class node_iterator {
           }
         }
       }
+    }
     return freeVoxels;
   }
 
   vec3i getOccupiedVoxels(float threshold, const uint64_t morton) {
     vec3i occupiedVoxels;
     occupiedVoxels.clear();
-  Eigen::Vector3i blockCoord = unpack_morton(morton);
-    VoxelBlock<T>* block = map_.fetch(morton);
+    Eigen::Vector3i blockCoord = keyops::decode(morton);
+    VoxelBlock<T> *block = map_.fetch(morton);
 
     typename VoxelBlock<T>::value_type value;
-    int xlast = blockCoord(0) + BLOCK_SIDE;
-    int ylast = blockCoord(1) + BLOCK_SIDE;
-    int zlast = blockCoord(2) + BLOCK_SIDE;
+    const int xlast = blockCoord(0) + BLOCK_SIDE;
+    const int ylast = blockCoord(1) + BLOCK_SIDE;
+    const int zlast = blockCoord(2) + BLOCK_SIDE;
 #pragma omp parallel for
     for (int z = blockCoord(2); z < zlast; ++z) {
       for (int y = blockCoord(1); y < ylast; ++y) {
@@ -166,27 +175,38 @@ class node_iterator {
     vec3i frontierVoxels;
     frontierVoxels.clear();
 
-    Eigen::Vector3i blockCoord = unpack_morton(morton);
-    int xlast = blockCoord(0) + BLOCK_SIDE;
-    int ylast = blockCoord(1) + BLOCK_SIDE;
-    int zlast = blockCoord(2) + BLOCK_SIDE;
-#pragma omp parallel for
-    for (int z = blockCoord(2); z < zlast; ++z) {
-      for (int y = blockCoord(1); y < ylast; ++y) {
-        for (int x = blockCoord(0); x < xlast; ++x) {
+    typename VoxelBlock<T>::value_type value;
+    const Eigen::Vector3i blockCoord = keyops::decode(morton);
+    const int level = keyops::level(morton);
 
-          const Eigen::Vector3i vox{x, y, z};
-          if (map_.get(x, y, z).st == voxel_state::kFrontier) {
-//          value = block->data(Eigen::Vector3i(x, y, z));
+    Node<T> *node = nullptr;
+    bool is_block = false;
+    map_.fetch_octant(blockCoord(0), blockCoord(1), blockCoord(2), node, is_block);
+    if (!is_block) {
+      frontierVoxels.push_back(blockCoord);
+      frontierVoxels.push_back(Eigen::Vector3i(0, 0, 0));
+    } else {
+      VoxelBlock<T> *block = static_cast< VoxelBlock<T> *> (node);
+      const int xlast = blockCoord(0) + BLOCK_SIDE;
+      const int ylast = blockCoord(1) + BLOCK_SIDE;
+      const int zlast = blockCoord(2) + BLOCK_SIDE;
+#pragma omp parallel for
+      for (int z = blockCoord(2); z < zlast; ++z) {
+        for (int y = blockCoord(1); y < ylast; ++y) {
+          for (int x = blockCoord(0); x < xlast; ++x) {
+
+            const Eigen::Vector3i vox{x, y, z};
+            value = block->data(vox);
+            if (value.st == voxel_state::kFrontier) {
 #pragma omp critical
-            frontierVoxels.push_back(vox);
+              frontierVoxels.push_back(vox);
+            }
           }
         }
       }
     }
     return frontierVoxels;
   }
-
 
   /**
    * check if frontier voxels are in the voxel block
@@ -225,9 +245,9 @@ class node_iterator {
 //    VoxelBlock<T>* block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
     bool has_frontier = false;
 
-    int xlast = blockCoord(0) + BLOCK_SIDE;
-    int ylast = blockCoord(1) + BLOCK_SIDE;
-    int zlast = blockCoord(2) + BLOCK_SIDE;
+    const int xlast = blockCoord(0) + BLOCK_SIDE;
+    const int ylast = blockCoord(1) + BLOCK_SIDE;
+    const int zlast = blockCoord(2) + BLOCK_SIDE;
     se::VoxelBlock<T> *block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
     for (int z = blockCoord(2); z < zlast; ++z) {
       for (int y = blockCoord(1); y < ylast; ++y) {
@@ -246,10 +266,9 @@ class node_iterator {
             } else if (data.x >= THRESH_OCC) {
               data.st = voxel_state::kOccupied;
             }
-            std::cout << "change from frontier to " << data.st << std::endl;
             handler.set(data);
 
-          }else if(handler.isFrontier(map_)){
+          } else if (handler.isFrontier(map_)) {
             has_frontier = true;
           }
 
@@ -258,7 +277,6 @@ class node_iterator {
     }
     return has_frontier;
   }
-
 
  private:
   typedef enum ITER_STATE {
