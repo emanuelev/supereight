@@ -121,15 +121,29 @@ public:
   void set(const int x, const int y, const int z, const value_type val);
 
   /*! \brief Retrieves voxel value at coordinates (x,y,z)
+   *
    * \param x x coordinate in interval [0, size]
    * \param y y coordinate in interval [0, size]
    * \param z z coordinate in interval [0, size]
+   * \return The value of the voxel. If the voxel at coordinates (x,y,z) has
+   * not been allocated, the value of a child of the lowest level allocated
+   * Node is returned.
    */
   value_type get(const int x, const int y, const int z) const;
+
+  /*! \brief Retrieves voxel value at coordinates (x,y,z)
+   *
+   * \param x x coordinate in interval [0, size]
+   * \param y y coordinate in interval [0, size]
+   * \param z z coordinate in interval [0, size]
+   * \return The value of the voxel. If the voxel at coordinates (x,y,z) has
+   * not been allocated, the voxel initial value is returned.
+   */
   value_type get_fine(const int x, const int y, const int z) const;
 
   /*! \brief Retrieves voxel values for the neighbors of voxel at coordinates
    * (x,y,z)
+   *
    * If the safe template variable is true, then proper checks will be used so
    * that neighboring voxels outside the map will have a value of empty at a
    * cost of performance. Otherwise if the safe template variable is false,
@@ -351,46 +365,60 @@ inline void  Octree<T>::set(const int x,
 
 template <typename T>
 inline typename Octree<T>::value_type Octree<T>::get(const int x,
-    const int y, const int z) const {
+                                                     const int y,
+                                                     const int z) const {
 
   Node<T> * n = root_;
-  if(!n) {
+  if (!n) {
+    // The octree has not been properly initialized.
     return init_val();
   }
 
+  // Traverse the octree until a VoxelBlock (leaf) is reached.
   unsigned edge = size_ >> 1;
-  for(; edge >= blockSide; edge = edge >> 1){
-    const int childid = ((x & edge) > 0) +  2 * ((y & edge) > 0) +  4*((z & edge) > 0);
+  for (; edge >= blockSide; edge = edge >> 1) {
+    const int childid = ((x & edge) > 0) +  2 * ((y & edge) > 0)
+        + 4*((z & edge) > 0);
     Node<T>* tmp = n->child(childid);
-    if(!tmp){
+    if (!tmp) {
+      // The octree has not been allocated at the VoxelBlock (leaf) level at
+      // this region. Return the value stored at the lowest level allocated
+      // Node.
       return n->value_[childid];
     }
     n = tmp;
   }
 
+  // Reached the VoxelBlock (leaf) level.
   return static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z));
 }
 
 template <typename T>
 inline typename Octree<T>::value_type Octree<T>::get_fine(const int x,
-    const int y, const int z) const {
+                                                          const int y,
+                                                          const int z) const {
 
   Node<T> * n = root_;
-  if(!n) {
+  if (!n) {
+    // The octree has not been properly initialized.
     return init_val();
   }
 
+  // Traverse the octree until a VoxelBlock (leaf) is reached.
   unsigned edge = size_ >> 1;
-  for(; edge >= blockSide; edge = edge >> 1){
+  for (; edge >= blockSide; edge = edge >> 1) {
     const int childid = ((x & edge) > 0) +  2 * ((y & edge) > 0)
-      +  4*((z & edge) > 0);
+      + 4*((z & edge) > 0);
     Node<T>* tmp = n->child(childid);
-    if(!tmp){
+    if (!tmp) {
+      // The octree has not been allocated at the VoxelBlock (leaf) level at
+      // this region. Return the initial voxel value.
       return init_val();
     }
     n = tmp;
   }
 
+  // Reached the VoxelBlock (leaf) level.
   return static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z));
 }
 
