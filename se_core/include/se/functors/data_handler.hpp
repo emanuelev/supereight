@@ -53,11 +53,13 @@ class DataHandlerBase {
   virtual bool isFrontier() {
   };
 
-  virtual key_t  get_mortoncode(){};
+  virtual key_t  get_morton_code(){};
 
-  virtual int get_childidx(){};
+  virtual int get_child_idx(){};
 
   virtual NodeT * get_node(){};
+
+  virtual Eigen::Vector3i get_child_coord(){};
 };
 
 template<typename FieldType>
@@ -136,17 +138,21 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
     return false;
   }
 
-  key_t  get_mortoncode(){
+  key_t  get_morton_code(){
     return _block->code_;
   }
 // only for nodes
-  int get_childidx(){
+  int get_child_idx(){
     return -1;
   };
 
   se::VoxelBlock<FieldType> * get_node(){
     return _block;
   }
+
+  Eigen::Vector3i get_child_coord(){
+    return _block->coordinates();
+  };
  private:
   se::VoxelBlock<FieldType> *_block;
   Eigen::Vector3i _voxel;
@@ -181,16 +187,20 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
     return false;
   }
 
-  key_t  get_mortoncode(){
+  key_t  get_morton_code(){
     return _node->code_;
   };
 
-  int get_childidx(){
+  int get_child_idx(){
     return _idx;
   }
 
   se::Node<FieldType> * get_node(){
     return  _node;
+  }
+
+  Eigen::Vector3i get_child_coord() {
+   return _node->childCoordinates(_idx);
   }
 
  private:
