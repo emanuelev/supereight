@@ -412,6 +412,5 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
     };
 
     se::algorithms::marching_cube(*volume_._map_index, select, inside, mesh);
-    // writeVtkMesh(filename.c_str(), mesh, this->init_pose_);
-    se::meshing::savePointCloudPly(mesh, filename.c_str(), this->init_pose_);
+    writeVtkMesh(filename.c_str(), mesh, this->init_pose_);
 }
