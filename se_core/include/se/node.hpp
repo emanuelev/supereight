@@ -32,13 +32,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef NODE_H
 #define NODE_H
 
-#include <time.h>
 #include <atomic>
-#include "voxel_traits.hpp"
+#include <ctime>
+
+#include <Eigen/Dense>
+
+#include "io/se_serialise.hpp"
+#include "octant_ops.hpp"
 #include "octree_defines.h"
 #include "utils/math_utils.h"
 #include "utils/memory_pool.hpp"
-#include "io/se_serialise.hpp"
+#include "utils/morton_utils.hpp"
+#include "voxel_traits.hpp"
 
 namespace se {
 /*! \brief A non-leaf node of the Octree. Each Node has 8 children.
@@ -46,44 +51,53 @@ namespace se {
 template <typename T>
 class Node {
 
-public:
-  typedef voxel_traits<T> traits_type;
-  typedef typename traits_type::value_type value_type;
-  value_type empty() const { return traits_type::empty(); }
-  value_type init_val() const { return traits_type::initValue(); }
+  public:
+    typedef voxel_traits<T> traits_type;
+    typedef typename traits_type::value_type value_type;
+    value_type empty() const { return traits_type::empty(); }
+    value_type init_val() const { return traits_type::initValue(); }
 
-  value_type value_[8];
-  key_t code_;
-  unsigned int side_;
-  unsigned char children_mask_;
+    value_type value_[8];
+    key_t code_;
+    unsigned int side_;
+    unsigned char children_mask_;
 
-  Node(){
-    code_ = 0;
-    side_ = 0;
-    children_mask_ = 0;
-    for (unsigned int i = 0; i < 8; i++){
-      value_[i]     = init_val();
-      child_ptr_[i] = NULL;
+    const Eigen::Vector3i child_offsets_[8] =
+        {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0},
+         {0, 0, 1}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1}};
+
+    Node(){
+      code_ = 0;
+      side_ = 0;
+      children_mask_ = 0;
+      for (unsigned int i = 0; i < 8; i++) {
+        value_[i]     = init_val();
+        child_ptr_[i] = nullptr;
+      }
     }
-  }
 
     virtual ~Node(){};
 
-    Node *& child(const int x, const int y,
-        const int z) {
+    Node *& child(const int x, const int y, const int z) {
       return child_ptr_[x + y*2 + z*4];
     };
 
-    Node *& child(const int offset ){
+    Node *& child(const int offset){
       return child_ptr_[offset];
     }
 
     virtual bool isLeaf(){ return false; }
 
+    Eigen::Vector3i childCoordinates(const int offset) const {
+      // Get the Node coordinates from the Morton code and add the child
+      // offset.
+      return keyops::decode(code_) + (side_ >> 1) * child_offsets_[offset];
+    }
 
-protected:
+
+  protected:
     Node *child_ptr_[8];
-private:
+  private:
     friend std::ofstream& internal::serialise <> (std::ofstream& out, Node& node);
     friend void internal::deserialise <> (Node& node, std::ifstream& in);
 };
