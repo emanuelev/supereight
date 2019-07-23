@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "geometry/aabb_collision.hpp"
 #include "interpolation/interp_gather.hpp"
 #include "neighbors/neighbor_gather.hpp"
+#include "neighbors/voxel_abstraction.hpp"
 
 namespace se {
 
@@ -140,6 +141,19 @@ public:
    * not been allocated, the voxel initial value is returned.
    */
   value_type get_fine(const int x, const int y, const int z) const;
+
+  /*! \brief Retrieves voxel value at coordinates (x,y,z) as a VoxelAbstration
+   *
+   * \param x x coordinate in interval [0, size]
+   * \param y y coordinate in interval [0, size]
+   * \param z z coordinate in interval [0, size]
+   * \return A VoxelAbstration with the value, coordinates and dimensions of
+   * the voxel. If the voxel at coordinates (x,y,z) has not been allocated, the
+   * lowest level allocated Node is returned.
+   */
+  VoxelAbstration<T> getLowestAsVoxel(const int x,
+                                      const int y,
+                                      const int z) const;
 
   /*! \brief Retrieves voxel values for the neighbors of voxel at coordinates
    * (x,y,z)
@@ -431,6 +445,48 @@ inline typename Octree<T>::value_type Octree<T>::get_fine(const int x,
 
   // Reached the VoxelBlock (leaf) level.
   return static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z));
+}
+
+template <typename T>
+inline VoxelAbstration<T> Octree<T>::getLowestAsVoxel(const int x,
+                                                      const int y,
+                                                      const int z) const {
+  VoxelAbstration<T> va;
+
+  Node<T> * n = root_;
+  if (n == nullptr) {
+    // The octree has not been properly initialized. Return the whole volume as
+    // a VoxelAbstration.
+    va.pos_  = Eigen::Vector3i::Constant(0);
+    va.side_ = size();
+    va.data_ = init_val();
+    return va;
+  }
+
+  // Traverse the octree until a VoxelBlock (leaf) is reached.
+  unsigned edge = size_ >> 1;
+  for (; edge >= blockSide; edge = edge >> 1) {
+    const int childid = ((x & edge) > 0) +  2 * ((y & edge) > 0)
+        + 4*((z & edge) > 0);
+    Node<T>* tmp = n->child(childid);
+    if (tmp == nullptr) {
+      // The octree has not been allocated at the VoxelBlock (leaf) level at
+      // this region. Return a child of the lowest level allocated Node as a
+      // VoxelAbstration.
+      va.pos_  = n->childCoordinates(childid);
+      va.side_ = edge >> 1;
+      va.data_ = n->value_[childid];
+      return va;
+    }
+    n = tmp;
+  }
+
+  // Reached the VoxelBlock (leaf) level. Return the single voxel as a
+  // VoxelAbstration.
+  va.pos_  = Eigen::Vector3i(x, y, z);
+  va.side_ = 1;
+  va.data_ = static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z));
+  return va;
 }
 
 template <typename T>

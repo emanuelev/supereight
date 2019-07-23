@@ -90,7 +90,11 @@ class OctreeTest : public ::testing::Test {
     // allocated parent Node has been changed from the initial value.
     static constexpr size_t num_unallocated_voxels_ = 5;
     const Eigen::Vector3i unallocated_voxels_[num_unallocated_voxels_] =
-        {{16, 0, 1}, {3, 21, 8}, {5, 9, 1}, {18, 32, 8}, {45, 2, 15}};
+        {{16, 0, 1}, {3, 21, 8}, {5, 9, 1}, {18, 32, 8}, {45, 2, 55}};
+    const Eigen::Vector3i parent_nodes_[num_unallocated_voxels_] =
+        {{16, 0, 0}, {0, 16, 0}, {0, 8, 0}, {0, 32, 0}, {32, 0, 32}};
+    const int parent_node_side_[num_unallocated_voxels_] =
+        {8, 8, 4, 16, 16};
 };
 
 
@@ -138,6 +142,40 @@ TEST_F(OctreeTest, GetFineUnallocated) {
                                      unallocated_voxels_[i].y(),
                                      unallocated_voxels_[i].z()),
                                      voxel_traits<testT>::initValue());
+  }
+}
+
+
+
+// Call get_lowest_as_voxel on allocated voxels.
+TEST_F(OctreeTest, GetLowestAsVoxelAllocated) {
+  for (size_t i = 0; i < num_allocated_voxels_; ++i) {
+    se::VoxelAbstration<testT> va = octree_.getLowestAsVoxel(
+        allocated_voxels_[i].x(),
+        allocated_voxels_[i].y(),
+        allocated_voxels_[i].z());
+    EXPECT_EQ(va.pos_.x(),    allocated_voxels_[i].x());
+    EXPECT_EQ(va.pos_.y(),    allocated_voxels_[i].y());
+    EXPECT_EQ(va.pos_.z(),    allocated_voxels_[i].z());
+    EXPECT_EQ(va.side_,       1);
+    EXPECT_FLOAT_EQ(va.data_, value_increment_ * (i + 1));
+  }
+}
+
+
+
+// Call get_lowest_as_voxel on unallocated voxels.
+TEST_F(OctreeTest, GetLowestAsVoxelUnallocated) {
+  for (size_t i = 0; i < num_unallocated_voxels_; ++i) {
+    se::VoxelAbstration<testT> va = octree_.getLowestAsVoxel(
+        unallocated_voxels_[i].x(),
+        unallocated_voxels_[i].y(),
+        unallocated_voxels_[i].z());
+    EXPECT_EQ(va.pos_.x(),    parent_nodes_[i].x());
+    EXPECT_EQ(va.pos_.y(),    parent_nodes_[i].y());
+    EXPECT_EQ(va.pos_.z(),    parent_nodes_[i].z());
+    EXPECT_EQ(va.side_,       parent_node_side_[i]);
+    EXPECT_FLOAT_EQ(va.data_, voxel_traits<testT>::initValue());
   }
 }
 
