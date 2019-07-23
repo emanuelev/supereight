@@ -330,8 +330,8 @@ std::pair<double, float> CandidateView<T>::getInformationGain(const Volume<T> &v
         const Eigen::Vector3f pos = origin + direction * t;
         typename Volume<T>::value_type data = volume.get(pos);
         prob_log = volume.interp(origin + direction * t, select_occupancy);
-        weight = getIGWeight_tanh(tanh_range, tanh_ratio, t, prob_log, t_hit, hit_unknown);
-        ig_entropy += weight * getEntropy(prob_log);
+//        weight = getIGWeight_tanh(tanh_range, tanh_ratio, t, prob_log, t_hit, hit_unknown);
+        ig_entropy +=   getEntropy(prob_log);
 /*        if (prob_log == 0.f) {
           std::cout << "[se/candview] raycast dist " << t
                     << " prob " << se::math::getProbFromLog(prob_log) << " weight " << weight
@@ -343,7 +343,13 @@ std::pair<double, float> CandidateView<T>::getInformationGain(const Volume<T> &v
         }
       }
     }
+  } else{
+    // TODO 0.4 is set fix in ray_iterator
+    float num_it = (tfar-0.4)/step;
+    ig_entropy = num_it * 1.f;
+    t = tfar;
   }
+
   return std::make_pair(ig_entropy, t);
 }
 
@@ -395,22 +401,22 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
   float dr = 0.1f; //[1]
 
   // temporary
-  int dtheta = 20;
-  int dphi = 10;
+  int dtheta = 10;
+  int dphi = 5;
   float r_min = 0.01; // depth camera r min [m]  gazebo model
 
   float r = 0.5; // [m] random radius
   int phi, theta;
   float phi_rad, theta_rad;
-  int n_col = fov_vert / dphi;
-  int n_row = 360 / dtheta;
+  const int n_col = fov_vert / dphi;
+  const int n_row = 360 / dtheta;
 
   // debug matrices
   Eigen::MatrixXd gain_matrix(n_row, n_col + 2);
   Eigen::MatrixXd depth_matrix(n_row, n_col + 1);
   std::map<int, double> gain_per_yaw;
   gain_per_yaw.empty();
-
+  int cand_num = 1;
 // cand view in voxel coord
   for (const auto &cand_view : cand_views_) {
     Eigen::Vector3f vec(0.0, 0.0, 0.0); //[m]
@@ -440,7 +446,8 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
         const float t_min = ray.tcmin(); /* Get distance to the first intersected block */
         //get IG along ray
         std::pair<double, float> gain_tmp =
-            t_min > 0.f ? getInformationGain(volume_, dir, t_min, r_max, step, cand_view_m)
+            t_min > 0.f ? getInformationGain(volume_, dir, t_min, r_max, step,
+                cand_view_m)
                         : std::make_pair(0., 0.f);
         gain_matrix(row, col) = gain_tmp.first;
         depth_matrix(row, col) = gain_tmp.second;
@@ -478,16 +485,19 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
       }
     }
 
-    std::cout << "[se/candview] gain_matrix \n" << gain_matrix.transpose() << std::endl;
-    std::cout << "[se/candview] depth_matrix \n" << depth_matrix.transpose() << std::endl;
-    std::cout << "[se/candview] for cand " << cand_view.format(InLine) << " best theta angle is "
-              << best_yaw << ", best ig is " << best_yaw_gain << std::endl;
+//    std::cout << "[se/candview] gain_matrix \n" << gain_matrix.transpose() << std::endl;
+//    std::cout << "[se/candview] depth_matrix \n" << depth_matrix.transpose() << std::endl;
+//    std::cout << "[se/candview] for cand " << cand_view.format(InLine) << " best theta angle is "
+//              << best_yaw << ", best ig is " << best_yaw_gain << std::endl;
 
+    saveMatrixToDepthImage(depth_matrix.block(0,1,n_row,n_col).transpose(), cand_num, true);
+    saveMatrixToDepthImage(gain_matrix.block(0,1,n_row,n_col).transpose(), cand_num, false);
     float yaw_rad = M_PI * best_yaw / 180.f;
     pose3D best_pose;
     best_pose.p = cand_view.cast<float>();
     best_pose.q = toQuaternion(yaw_rad, 0.0, 0.0); // [rad] as input
     cand_pose_w_gain.push_back(std::make_pair(best_pose, best_yaw_gain));
+    cand_num++;
   }
   return cand_pose_w_gain;
 }
