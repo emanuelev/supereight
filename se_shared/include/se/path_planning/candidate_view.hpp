@@ -345,7 +345,7 @@ std::pair<double, float> CandidateView<T>::getInformationGain(const Volume<T> &v
     }
   } else{
     // TODO 0.4 is set fix in ray_iterator
-    float num_it = (tfar-0.4)/step;
+    float num_it = (tfar-nearPlane)/step;
     ig_entropy = num_it * 1.f;
     t = tfar;
   }
@@ -393,30 +393,31 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
   // TODO parameterize the variables
   double gain = 0.0;
 
-  float r_max = 4.0f; // equal to far plane
-  float fov_hor = 120.f;
+  const float r_max = farPlane; // equal to far plane
+  const float r_min = 0.01; // depth camera r min [m]  gazebo model
+  const float fov_hor = 120.f;
 //  float fov_hor = static_cast<float>(planning_config_.fov_hor * 180.f / M_PI); // 2.0 = 114.59 deg
-  float fov_vert = fov_hor * 480.f / 640.f; // image size
-  float cyl_h = static_cast<float>(2 * r_max * sin(fov_vert * M_PI / 360.0f)); // from paper [2]
-  float dr = 0.1f; //[1]
+  const float fov_vert = fov_hor * 480.f / 640.f; // image size
+  const float cyl_h = static_cast<float>(2 * r_max * sin(fov_vert * M_PI / 360.0f)); // from paper
+  // [2]
 
   // temporary
-  int dtheta = 10;
-  int dphi = 5;
-  float r_min = 0.01; // depth camera r min [m]  gazebo model
-
-  float r = 0.5; // [m] random radius
-  int phi, theta;
-  float phi_rad, theta_rad;
+  const int dtheta = 10;
+  const int dphi = 5;
+  const float dr = 0.1f; //[1]
+  const float r = 0.5; // [m] random radius
   const int n_col = fov_vert / dphi;
   const int n_row = 360 / dtheta;
+
+  int phi, theta;
+  float phi_rad, theta_rad;
+  int cand_num = 1;
 
   // debug matrices
   Eigen::MatrixXd gain_matrix(n_row, n_col + 2);
   Eigen::MatrixXd depth_matrix(n_row, n_col + 1);
   std::map<int, double> gain_per_yaw;
   gain_per_yaw.empty();
-  int cand_num = 1;
 // cand view in voxel coord
   for (const auto &cand_view : cand_views_) {
     Eigen::Vector3f vec(0.0, 0.0, 0.0); //[m]

@@ -170,26 +170,26 @@ static inline bool saveMatrixToDepthImage(const Eigen::MatrixXd matrix,
 
   const int w = matrix.cols();
   const int h = matrix.rows();
-  double max_val = matrix.maxCoeff();
-  double min_val = matrix.minCoeff();
+  const double max_val = matrix.maxCoeff();
+  const double min_val = matrix.minCoeff();
   const float diff = (max_val - min_val);
   uint16_t *input_depth = (uint16_t *) malloc(matrix.size() * sizeof(uint16_t));
   for (int v = 0; v < h; ++v) {
     for (int u = 0; u < w; ++u) {
       input_depth[u + v * w] =
           static_cast<uint16_t >(65535 * (1 - ((matrix(v, u) - min_val) / diff)));
-
     }
   }
 
   char filename[80];
   if (is_depth) {
-    std::string s = "/home/anna/Data/cand_views/cand_" + std::to_string(cand_num) +
-        "_depth_img.png";
-    std::strcpy(filename , s.c_str());
+    const std::string
+        s = "/home/anna/Data/cand_views/cand_" + std::to_string(cand_num) + "_depth_img.png";
+    std::strcpy(filename, s.c_str());
   } else {
 
-    std::string s = "/home/anna/Data/cand_views/cand_" + std::to_string(cand_num) + "_IG_img.png";
+    const std::string s = "/home/anna/Data/cand_views/cand_" + std::to_string(cand_num) + "_IG_img"
+                                                                                          ".png";
     std::strcpy(filename, s.c_str());
   }
   lodepng_encode_file(filename, (unsigned char *) input_depth, w, h, LCT_GREY, 16);
