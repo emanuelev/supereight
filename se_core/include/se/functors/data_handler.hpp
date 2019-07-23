@@ -56,6 +56,8 @@ class DataHandlerBase {
   virtual key_t  get_mortoncode(){};
 
   virtual int get_childidx(){};
+
+  virtual NodeT * get_node(){};
 };
 
 template<typename FieldType>
@@ -141,6 +143,10 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
   int get_childidx(){
     return -1;
   };
+
+  se::VoxelBlock<FieldType> * get_node(){
+    return _block;
+  }
  private:
   se::VoxelBlock<FieldType> *_block;
   Eigen::Vector3i _voxel;
@@ -182,6 +188,11 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
   int get_childidx(){
     return _idx;
   }
+
+  se::Node<FieldType> * get_node(){
+    return  _node;
+  }
+
  private:
   se::Node<FieldType> *_node;
   int _idx;
