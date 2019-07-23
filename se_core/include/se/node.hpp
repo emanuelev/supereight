@@ -32,16 +32,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef NODE_H
 #define NODE_H
 
-#include <time.h>
 #include <atomic>
-#include <se/volume_traits.hpp>
+#include <ctime>
+#include <Eigen/Dense>
+
+#include "se/volume_traits.hpp"
 #include "voxel_traits.hpp"
 #include "octree_defines.h"
 #include "utils/math_utils.h"
 #include "utils/memory_pool.hpp"
+#include "utils/eigen_utils.h"
 #include "io/se_serialise.hpp"
 
-namespace se { 
+namespace se {
 template <typename T>
 class Node {
 
@@ -57,6 +60,10 @@ public:
   key_t code_;
   unsigned int side_;
   unsigned char children_mask_;
+
+  const Eigen::Vector3i child_offsets_[8] =
+      {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0},
+       {0, 0, 1}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1}};
 
   Node(){
     code_ = 0;
@@ -80,6 +87,16 @@ public:
   }
 
   virtual bool isLeaf(){ return false; }
+/**
+ *
+ * @param offset = idx
+ * @return bottom left corner coordinate of the node
+ */
+  Eigen::Vector3i childCoordinates(const int offset) const {
+    // Get the Node coordinates from the Morton code and add the child
+    // offset.
+    return keyops::decode(code_) + (side_ >> 1) * child_offsets_[offset];
+  }
 
   void occupancyUpdated(const bool o) { occupancyUpdated_ = o; }
   bool occupancyUpdated() { return occupancyUpdated_; }
