@@ -73,7 +73,8 @@ class Octree {
   typedef typename traits_type::value_type value_type;
   value_type empty() const { return traits_type::empty(); }
   value_type init_val() const { return traits_type::initValue(); }
-
+  inline int max_level() const { return max_level_; }
+  inline int leaf_level() const{ return leaf_level_; }
   // Compile-time constant expressions
   // # of voxels per side in a voxel block
   static constexpr unsigned int blockSide = BLOCK_SIDE;
@@ -253,6 +254,7 @@ class Octree {
   int size_;
   float dim_;
   int max_level_;
+  int leaf_level_;
   MemoryPool<VoxelBlock<T> > block_buffer_;
   MemoryPool<Node<T> > nodes_buffer_;
 
@@ -480,6 +482,7 @@ void Octree<T>::init(int size, float dim) {
   size_ = size;
   dim_ = dim;
   max_level_ = log2(size);
+  leaf_level_ = max_level_ - math::log2_const(blockSide);
   nodes_buffer_.reserve(1);
   root_ = nodes_buffer_.acquire_block();
   root_->side_ = size;
