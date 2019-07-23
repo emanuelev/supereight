@@ -138,15 +138,18 @@ class VoxelBlock: public Node<T> {
     int current_scale() { return current_scale_; }
     void current_scale(const int s) { current_scale_ = s; }
 
+    int min_scale() { return min_scale_; }
+    void min_scale(const int s) { min_scale_ = s; }
+
     value_type * getBlockRawPtr(){ return voxel_block_; }
     static constexpr int size(){ return sizeof(VoxelBlock<T>); }
     
-    int min_scale_;
   private:
     VoxelBlock(const VoxelBlock&) = delete;
     Eigen::Vector3i coordinates_;
     bool active_;
     int current_scale_;
+    int min_scale_;
 
     static constexpr size_t compute_buff_size() {
       size_t size = 0;

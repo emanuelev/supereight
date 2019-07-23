@@ -364,14 +364,14 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
   se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(), 
       [](auto block) { 
         if(std::is_same<FieldType, MultiresSDF>::value) {
-          block->current_scale(block->min_scale_);
+          block->current_scale(block->min_scale());
         } else {
           block->current_scale(0);
         }
       });
 
   auto interp_down = [this](auto block) { 
-    if(block->min_scale_ == 0) return;
+    if(block->min_scale() == 0) return;
     const Eigen::Vector3f& offset = this->volume_._map_index->_offset;
     const Eigen::Vector3i base = block->coordinates();
     const int side = block->side;
