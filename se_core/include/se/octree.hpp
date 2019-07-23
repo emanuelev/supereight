@@ -253,6 +253,17 @@ public:
   void save(const std::string& filename);
   void load(const std::string& filename);
 
+  /*! \brief Write the coordinates, side length and Morton codes of allocated
+   * Nodes to a text file.
+   *
+   * Each line in the file has the following format:
+   * node_x node_y node_z side_length morton_code
+   *
+   * \param filename The name of the file to write.
+   * \return 0 if the file was written successfuly, 1 on error.
+   */
+  int writeAllocatedNodes(const std::string& filename);
+
   /*! \brief Counts the number of blocks allocated
    * \return number of voxel blocks allocated
    */
@@ -1038,5 +1049,48 @@ void Octree<T>::load(const std::string& filename) {
     }
   }
 }
+
+template <typename T>
+int Octree<T>::writeAllocatedNodes(const std::string& filename) {
+  // Open file for writing.
+  std::ofstream ofs (filename, std::ios::out);
+  if (not ofs.is_open()) {
+    std::cout << "Error writing file: " << filename << std::endl;
+    return 1;
+  } else {
+    std::cout << "Writing allocated Nodes to: " << filename << std::endl;
+  }
+
+  // Write all the allocated Nodes.
+  const size_t num_nodes = nodes_buffer_.size();
+  for (size_t i = 0; i < num_nodes; ++i) {
+    const Node<T>* n = nodes_buffer_[i];
+    // Get the Node's coordinates.
+    const Eigen::Vector3i n_coordinates = se::keyops::decode(n->code_);
+    ofs << n_coordinates.x() << " "
+        << n_coordinates.y() << " "
+        << n_coordinates.z() << " "
+        << n->side_ << " "
+        << n->code_ << "\n";
+  }
+
+  // Write all the allocated VoxelBlocks.
+  const size_t num_blocks = block_buffer_.size();
+  for (size_t i = 0; i < num_blocks; ++i) {
+    const VoxelBlock<T>* n = block_buffer_[i];
+    // Get the Node's coordinates.
+    const Eigen::Vector3i n_coordinates = se::keyops::decode(n->code_);
+    ofs << n_coordinates.x() << " "
+        << n_coordinates.y() << " "
+        << n_coordinates.z() << " "
+        << n->side_ << " "
+        << n->code_ << "\n";
+  }
+
+
+  ofs.close();
+  return 0;
+}
+
 }
 #endif // OCTREE_H
