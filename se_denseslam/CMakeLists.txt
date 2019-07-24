@@ -52,7 +52,7 @@ foreach(field_type ${SUPEREIGHT_FIELD_TYPES})
 
   # Add the static library.
   add_library(${lib_name} STATIC
-    ./src/DenseSLAMSystem.cpp)
+    ./src/DenseSLAMSystem.cpp ./src/camera.cpp)
   target_include_directories(${lib_name} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
