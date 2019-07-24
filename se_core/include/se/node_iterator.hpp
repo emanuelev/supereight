@@ -183,6 +183,7 @@ class node_iterator {
     bool is_block = false;
     map_.fetch_octant(blockCoord(0), blockCoord(1), blockCoord(2), node, is_block);
     if (!is_block) {
+      std::cout << " node frontier " << blockCoord.format(InLine) << std::endl;
       frontierVoxels.push_back(blockCoord);
       frontierVoxels.push_back(Eigen::Vector3i(0, 0, 0));
     } else {
@@ -208,11 +209,11 @@ class node_iterator {
     return frontierVoxels;
   }
 
-  /**
-   * check if frontier voxels are in the voxel block
-   * @param blockCoord
-   * @return
-   */
+/**
+ * check if frontier voxels are in the voxel block
+ * @param blockCoord
+ * @return
+ */
   bool hasFrontierVoxelBlockviaMorton(const Eigen::Vector3i &blockCoord) {
 
 //    VoxelBlock<T>* block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
@@ -236,42 +237,77 @@ class node_iterator {
 
     return false;
   }
-  /**
-   * update all frontier voxels, targeting the frontier voxel just above floor
-   * @param blockCoord bottom left voxel block (node) voxel
-   * @return
-   */
-  bool deleteFrontierVoxelBlockviaMorton(const Eigen::Vector3i &blockCoord) {
+/**
+ * update all frontier voxels, targeting the frontier voxel just above floor
+ * @param blockCoord bottom left voxel block (node) voxel
+ * @return
+ */
+  bool deleteFrontierVoxelBlockviaMorton(const int64_t morton) {
 //    VoxelBlock<T>* block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
     bool has_frontier = false;
 
-    const int xlast = blockCoord(0) + BLOCK_SIDE;
-    const int ylast = blockCoord(1) + BLOCK_SIDE;
-    const int zlast = blockCoord(2) + BLOCK_SIDE;
-    se::VoxelBlock<T> *block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
-    for (int z = blockCoord(2); z < zlast; ++z) {
-      for (int y = blockCoord(1); y < ylast; ++y) {
-        for (int x = blockCoord(0); x < xlast; ++x) {
-          // make handler with the current voxel
-          VoxelBlockHandler<T> handler = {block, Eigen::Vector3i(x, y, z)};
-          auto data = handler.get();
-//          std::cout << "[se/node_it] state "<< map_.get(x,y,z).st << std::endl;
-          if (map_.get(x, y, z).st == voxel_state::kFrontier && !handler.isFrontier(map_)) {
-//            std::cout << " [supereight/node it] voxel is a frontier" << std::endl;
-            // check for the curr voxel if it a Frontier / has an unknown voxel next to it
-            if (data.x <= THRESH_FREE) {
-              data.st = voxel_state::kFree;
+    const Eigen::Vector3i blockCoord = keyops::decode(morton);
+    Node<T> *node = nullptr;
+    bool is_block = false;
+    map_.fetch_octant(blockCoord(0), blockCoord(1), blockCoord(2), node, is_block);
+
+    if (!is_block) {
+      // data handler set parent_node ->value[idx];
+      const int level = keyops::level(morton);
+      Node<T> *parent_node =
+          map_.fetch_octant(blockCoord.x(), blockCoord.y(), blockCoord.z(), level - 1);
+      const int edge = (map_.leaf_level()-level ) * BLOCK_SIDE;
+      const int idx = ((blockCoord.x() & edge) > 0) + 2 * ((blockCoord.y() & edge) > 0)
+          + 4 * ((blockCoord.z() & edge) > 0);
+      const int childid = child_id(morton, level, map_.max_level());
+
+      NodeHandler<T> handler = {parent_node, idx}; // pointer to parent node and idx of this node
+      std::cout << "[se/delete frontier] side length " << edge << "idx" << idx
+      << " childid" << childid << std::endl;
+      auto data = handler.get();
+
+      if (data.st == voxel_state::kFrontier && !handler.isFrontier(map_)) {
+        if (data.x <= THRESH_FREE) {
+          data.st = voxel_state::kFree;
 //              std::cout << "[superegiht/node_it] frontier=> free , voxel " << x << " " << y << " "
 //                        << z << std::endl;
-            } else if (data.x >= THRESH_OCC) {
-              data.st = voxel_state::kOccupied;
+        } else if (data.x >= THRESH_OCC) {
+          data.st = voxel_state::kOccupied;
+        }
+        handler.set(data);
+
+      } else if (handler.isFrontier(map_)) {
+        has_frontier = true;
+      }
+    } else {
+      VoxelBlock<T> *block = static_cast< VoxelBlock<T> *> (node);
+      const int xlast = blockCoord(0) + BLOCK_SIDE;
+      const int ylast = blockCoord(1) + BLOCK_SIDE;
+      const int zlast = blockCoord(2) + BLOCK_SIDE;
+      for (int z = blockCoord(2); z < zlast; ++z) {
+        for (int y = blockCoord(1); y < ylast; ++y) {
+          for (int x = blockCoord(0); x < xlast; ++x) {
+            // make handler with the current voxel
+            VoxelBlockHandler<T> handler = {block, Eigen::Vector3i(x, y, z)};
+            auto data = handler.get();
+//          std::cout << "[se/node_it] state "<< map_.get(x,y,z).st << std::endl;
+            if (data.st == voxel_state::kFrontier && !handler.isFrontier(map_)) {
+//            std::cout << " [supereight/node it] voxel is a frontier" << std::endl;
+              // check for the curr voxel if it a Frontier / has an unknown voxel next to it
+              if (data.x <= THRESH_FREE) {
+                data.st = voxel_state::kFree;
+//              std::cout << "[superegiht/node_it] frontier=> free , voxel " << x << " " << y << " "
+//                        << z << std::endl;
+              } else if (data.x >= THRESH_OCC) {
+                data.st = voxel_state::kOccupied;
+              }
+              handler.set(data);
+
+            } else if (handler.isFrontier(map_)) {
+              has_frontier = true;
             }
-            handler.set(data);
 
-          } else if (handler.isFrontier(map_)) {
-            has_frontier = true;
           }
-
         }
       }
     }

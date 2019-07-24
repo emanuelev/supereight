@@ -326,6 +326,7 @@ struct bfusion_update {
         if (std::is_same<FieldType, OFusion>::value) {
           // conservative estimate as the occupancy probability for a free voxel is set quite low
           if (handler.isFrontier(map) && data.st == voxel_state::kFree) {
+//            std::cout << "is frontier " << data.st << std::endl;
             frontier_blocks_->insert(morton_code_child);
             data.st = voxel_state::kFrontier;
           }
