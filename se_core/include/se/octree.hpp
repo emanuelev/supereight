@@ -155,8 +155,10 @@ public:
                                       const int y,
                                       const int z) const;
 
-  /*! \brief Retrieves voxel values for the neighbors of voxel at coordinates
-   * (x,y,z)
+  /*! \brief Retrieves voxel values for the face neighbors of voxel at
+   * coordinates (x,y,z).
+   *
+   * \warning DO NOT TRUST THIS FUNCTION.
    *
    * If the safe template variable is true, then proper checks will be used so
    * that neighboring voxels outside the map will have a value of empty at a
@@ -169,17 +171,18 @@ public:
    * \param x x coordinate in interval [0, size]
    * \param y y coordinate in interval [0, size]
    * \param z z coordinate in interval [0, size]
-   * \return An std::array with the values of the 6 neighboring voxels. The
-   * voxels are returned in the order: -z -y -x +x +y +z. Neighboring voxels
-   * that are not allocated have the initial value. Neighboring voxels that are
-   * outside the map have the empty value if safe is true, otherwise their
-   * value is undetermined.
+   * \return An std::array with the values of the 6 neighboring voxels as well
+   * as the value of the voxel whose neighbors were requested. The voxels are
+   * returned in the order: 0 -x +x -y +y -z +z, where 0 is the voxel whose
+   * neighbors were requested. Neighboring voxels that are not allocated have
+   * the initial value. Neighboring voxels that are outside the map have the
+   * empty value if safe is true, otherwise their value is undetermined.
    *
    * \todo The implementation is not yet efficient. A method similar to the one
    * used in interp_gather should be used.
    */
   template <bool safe>
-  std::array<value_type, 6> get_face_neighbor_values(const int x,
+  std::array<value_type, 7> get_face_neighbor_values(const int x,
                                                      const int y,
                                                      const int z) const;
 
@@ -491,14 +494,17 @@ inline VoxelAbstration<T> Octree<T>::getLowestAsVoxel(const int x,
 
 template <typename T>
 template <bool safe>
-inline std::array<typename Octree<T>::value_type, 6> Octree<T>::get_face_neighbor_values(
+inline std::array<typename Octree<T>::value_type, 7> Octree<T>::get_face_neighbor_values(
     const int x,
     const int y,
     const int z) const {
 
-  std::array<typename Octree<T>::value_type, 6> neighbor_values;
+  // The 6 face neighbors and the voxel with respect to which they are
+  // computed.
+  constexpr int num_neighbors = 6 + 1;
+  std::array<typename Octree<T>::value_type, num_neighbors> neighbor_values;
 
-  for (size_t i = 0; i < 6; ++i) {
+  for (size_t i = 0; i < num_neighbors; ++i) {
     // Compute the neighbor voxel coordinates.
     const int neighbor_x = x + face_neighbor_offsets[i].x();
     const int neighbor_y = y + face_neighbor_offsets[i].y();

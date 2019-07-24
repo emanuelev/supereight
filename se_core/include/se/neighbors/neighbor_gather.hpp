@@ -37,13 +37,16 @@
 #include <Eigen/Dense>
 
 namespace se {
-  /*!
-   * Voxel face neighbor gather offsets. The order is -z -y -x +x +y +z which
-   * is the order the voxels will have in memory if they belong to the same
-   * VoxelBlock.
+  /*! \brief Voxel face neighbor offsets.
+   *
+   * The order is 0 -x +x -y +y -z +z. 0 represents the voxel
+   * with respect to which the neighbors are computed.
    */
-  static const Eigen::Vector3i face_neighbor_offsets[6] =
-  {{0, 0, -1}, {0, -1, 0}, {-1, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+  static const Eigen::Vector3i face_neighbor_offsets[7] =
+      {{ 0,  0,  0},
+       {-1,  0,  0}, { 1,  0,  0},
+       { 0, -1,  0}, { 0,  1,  0},
+       { 0,  0, -1}, { 0,  0,  1}};
 
 }
 
