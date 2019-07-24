@@ -467,21 +467,21 @@ inline VoxelAbstration<T> Octree<T>::getLowestAsVoxel(const int x,
   }
 
   // Traverse the octree until a VoxelBlock (leaf) is reached.
-  unsigned edge = size_ >> 1;
-  for (; edge >= blockSide; edge = edge >> 1) {
-    const int childid = ((x & edge) > 0) +  2 * ((y & edge) > 0)
+  for (unsigned edge = size_ >> 1; edge >= blockSide; edge = edge >> 1) {
+    const int child_id = ((x & edge) > 0) +  2 * ((y & edge) > 0)
         + 4*((z & edge) > 0);
-    Node<T>* tmp = n->child(childid);
+    Node<T>* tmp = n->child(child_id);
     if (tmp == nullptr) {
       // The octree has not been allocated at the VoxelBlock (leaf) level at
       // this region. Return a child of the lowest level allocated Node as a
-      // VoxelAbstration.
-      va.pos_  = n->childCoordinates(childid);
-      va.side_ = edge >> 1;
-      va.data_ = n->value_[childid];
+      // VoxelAbstration. The edge is already the edge length of the child.
+      va.pos_  = n->childCoordinates(child_id);
+      va.side_ = edge;
+      va.data_ = n->value_[child_id];
       return va;
+    } else {
+      n = tmp;
     }
-    n = tmp;
   }
 
   // Reached the VoxelBlock (leaf) level. Return the single voxel as a

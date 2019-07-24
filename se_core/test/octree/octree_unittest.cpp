@@ -94,7 +94,7 @@ class OctreeTest : public ::testing::Test {
     const Eigen::Vector3i parent_nodes_[num_unallocated_voxels_] =
         {{16, 0, 0}, {0, 16, 0}, {0, 8, 0}, {0, 32, 0}, {32, 0, 32}};
     const int parent_node_side_[num_unallocated_voxels_] =
-        {8, 8, 4, 16, 16};
+        {16, 16, 8, 32, 32};
 };
 
 
@@ -154,9 +154,7 @@ TEST_F(OctreeTest, GetLowestAsVoxelAllocated) {
         allocated_voxels_[i].x(),
         allocated_voxels_[i].y(),
         allocated_voxels_[i].z());
-    EXPECT_EQ(va.pos_.x(),    allocated_voxels_[i].x());
-    EXPECT_EQ(va.pos_.y(),    allocated_voxels_[i].y());
-    EXPECT_EQ(va.pos_.z(),    allocated_voxels_[i].z());
+    EXPECT_EQ(va.pos_,        allocated_voxels_[i]);
     EXPECT_EQ(va.side_,       1);
     EXPECT_FLOAT_EQ(va.data_, value_increment_ * (i + 1));
   }
@@ -171,9 +169,7 @@ TEST_F(OctreeTest, GetLowestAsVoxelUnallocated) {
         unallocated_voxels_[i].x(),
         unallocated_voxels_[i].y(),
         unallocated_voxels_[i].z());
-    EXPECT_EQ(va.pos_.x(),    parent_nodes_[i].x());
-    EXPECT_EQ(va.pos_.y(),    parent_nodes_[i].y());
-    EXPECT_EQ(va.pos_.z(),    parent_nodes_[i].z());
+    EXPECT_EQ(va.pos_,        parent_nodes_[i]);
     EXPECT_EQ(va.side_,       parent_node_side_[i]);
     EXPECT_FLOAT_EQ(va.data_, voxel_traits<testT>::initValue());
   }
