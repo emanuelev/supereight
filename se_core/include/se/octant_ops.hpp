@@ -81,8 +81,8 @@ inline Eigen::Vector3i face_neighbour(const se::key_t    o,
   return {coords(0), coords(1), coords(2)};
 }
 
-/*
- * \brief Return true if octant is a descendant of ancestor
+/*! \brief Return true if octant is a descendant of ancestor
+ *
  * \param octant
  * \param ancestor
  * \param max_depth max depth of the tree on which the octant lives
@@ -97,8 +97,8 @@ inline bool descendant(se::key_t octant,
   return (ancestor ^ octant) == 0;
 }
 
-/*
- * \brief Computes the parent's morton code of a given octant
+/*! \brief Computes the parent's morton code of a given octant
+ *
  * \param octant
  * \param max_depth max depth of the tree on which the octant lives
  */
@@ -108,11 +108,14 @@ inline se::key_t parent(const se::key_t& octant, const int max_depth) {
   return (octant & MASK[idx]) | level;
 }
 
-/*
- * \brief Computes the octants's id in its local brotherhood
- * \param octant
- * \param level of octant
- * \param max_depth max depth of the tree on which the octant lives
+/*! \brief Computes the octant's ID in its local brotherhood
+ *
+ * This returns the child ID (0-7) used by the parent node.
+ *
+ * \param The octant.
+ * \param The level of the octant.
+ * \param max_depth Max depth of the tree in which the octant lives.
+ * \return The child ID.
  */
 inline int child_id(se::key_t octant,
                     const int level,
@@ -123,8 +126,8 @@ inline int child_id(se::key_t octant,
   return idx;
 }
 
-/*
- * \brief Computes the octants's corner which is not shared with its siblings
+/*! \brief Computes the octants's corner which is not shared with its siblings
+ *
  * \param octant
  * \param level of octant
  * \param max_depth max depth of the tree on which the octant lives
@@ -141,10 +144,11 @@ inline Eigen::Vector3i far_corner(const se::key_t octant,
       coordinates(2) + ((idx & 4) >> 2) * side);
 }
 
-/*
- * \brief Computes the non-sibling neighbourhood around an octants. In the
- * special case in which the octant lies on an edge, neighbour are duplicated
- * as movement outside the enclosing cube is forbidden.
+/*! \brief Computes the non-sibling neighbourhood around an octants.
+ *
+ * In the special case in which the octant lies on an edge, neighbour are
+ * duplicated as movement outside the enclosing cube is forbidden.
+ *
  * \param result 7-vector containing the neighbours
  * \param octant
  * \param level of octant
@@ -180,13 +184,14 @@ inline void exterior_neighbours(se::key_t       result[7],
       base(2) + dir(2), level, max_depth);
 }
 
-/*
- * \brief Computes the six face neighbours of an octant. These are stored in an
- * 4x6 matrix in which each column represents the homogeneous coordinates of a
- * neighbouring octant. The neighbours along the x axis come first, followed by
- * neighbours along the y axis and finally along the z axis. All coordinates are
- * clamped to be in the range between [0, max_size] where max size is given
- * by pow(2, max_depth).
+/*! \brief Computes the six face neighbours of an octant.
+ *
+ * These are stored in an 4x6 matrix in which each column represents the
+ * homogeneous coordinates of a neighbouring octant. The neighbours along the x
+ * axis come first, followed by neighbours along the y axis and finally along
+ * the z axis. All coordinates are clamped to be in the range between [0,
+ * max_size] where max size is given by pow(2, max_depth).
+ *
  * \param res 4x6 matrix containing the neighbours
  * \param octant octant coordinates
  * \param level level of the octant
@@ -213,13 +218,14 @@ static inline void one_neighbourhood(
       });
 }
 
-/*
- * \brief Computes the six face neighbours of an octant. These are stored in an
- * 4x6 matrix in which each column represents the homogeneous coordinates of a
- * neighbouring octant. The neighbours along the x axis come first, followed by
- * neighbours along the y axis and finally along the z axis. All coordinates are
- * clamped to be in the range between [0, max_size] where max size is given
- * by pow(2, max_depth).
+/*! \brief Computes the six face neighbours of an octant.
+ *
+ * These are stored in an 4x6 matrix in which each column represents the
+ * homogeneous coordinates of a neighbouring octant. The neighbours along the x
+ * axis come first, followed by neighbours along the y axis and finally along
+ * the z axis. All coordinates are clamped to be in the range between [0,
+ * max_size] where max size is given by pow(2, max_depth).
+ *
  * \param res 4x6 matrix containing the neighbours
  * \param octant octant key
  * \param max_depth max depth of the tree on which the octant lives
@@ -233,9 +239,9 @@ static inline void one_neighbourhood(
       max_depth);
 }
 
-/*
- * \brief Computes the morton number of all siblings around an octant,
+/*! \brief Computes the morton number of all siblings around an octant,
  * including itself.
+ *
  * \param result 8-vector containing the neighbours
  * \param octant
  * \param max_depth max depth of the tree on which the octant lives
