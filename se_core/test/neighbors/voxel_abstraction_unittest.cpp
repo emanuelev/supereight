@@ -29,6 +29,8 @@
  */
 
 
+#include <cmath>
+
 #include "octree.hpp"
 #include "utils/math_utils.h"
 #include "neighbors/voxel_abstraction.hpp"
@@ -155,6 +157,30 @@ TEST_F(VoxelAbstractionTest, Dim) {
   EXPECT_EQ(va_node_.dim(voxel_dim),         octree_.dim() / 2);
   EXPECT_EQ(va_voxel_block_.dim(voxel_dim),  octree_.dim() / 8);
   EXPECT_EQ(va_single_voxel_.dim(voxel_dim), voxel_dim);
+}
+
+
+
+// Get the volume of some VoxelAbstrations.
+TEST_F(VoxelAbstractionTest, Volume) {
+  // Volume in voxels^3.
+  EXPECT_EQ(va_whole_map_.volume(),
+      static_cast<int>(std::pow(octree_.size(), 3)));
+  EXPECT_EQ(va_node_.volume(),
+      static_cast<int>(std::pow(octree_.size() / 2, 3)));
+  EXPECT_EQ(va_voxel_block_.volume(),
+      static_cast<int>(std::pow(octree_.size() / 8, 3)));
+  EXPECT_EQ(va_single_voxel_.volume(), 1);
+
+  // Volume in map units^3.
+  const float voxel_dim = octree_.voxelDim();
+  EXPECT_FLOAT_EQ(va_whole_map_.volume(voxel_dim),
+      std::pow(octree_.dim(), 3));
+  EXPECT_FLOAT_EQ(va_node_.volume(voxel_dim),
+      std::pow(octree_.dim() / 2, 3));
+  EXPECT_FLOAT_EQ(va_voxel_block_.volume(voxel_dim),
+      std::pow(octree_.dim() / 8, 3));
+  EXPECT_FLOAT_EQ(va_single_voxel_.volume(voxel_dim), std::pow(voxel_dim, 3));
 }
 
 

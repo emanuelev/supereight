@@ -53,7 +53,7 @@ namespace se {
       typedef voxel_traits<T> traits_type;
       typedef typename traits_type::value_type value_type;
       value_type empty() const { return traits_type::empty(); }
-      value_type init_val() const { return traits_type::initValue(); }
+      value_type initValue() const { return traits_type::initValue(); }
 
       /*! \brief The position of the VoxelAbstration's vertex that is closest
        * to the origin.
@@ -78,7 +78,7 @@ namespace se {
       VoxelAbstration() {
         pos_  = Eigen::Vector3i::Zero();
         side_ = 0;
-        data_ = init_val();
+        data_ = initValue();
       }
 
       /*! \brief Return the VoxelAbstration's center in map coordinates.
@@ -118,6 +118,24 @@ namespace se {
        */
       inline float dim(const float voxel_dim) const {
         return side_ * voxel_dim;
+      }
+
+      /*! \brief Return the VoxelAbstration's volume in voxels^3.
+       *
+       * \return The VoxelAbstration's volume in voxels^3.
+       */
+      inline int volume() const {
+        return side_ * side_ * side_;
+      }
+
+      /*! \brief Return the VoxelAbstration's volume in map units^3.
+       *
+       * \param[in] voxel_dim Dimension of the voxel edge in map units.
+       * Can be obtained by calling Octree::voxelDim().
+       * \return The VoxelAbstration's volume in map units^3.
+       */
+      inline float volume(const float voxel_dim) const {
+        return voxel_dim * voxel_dim * voxel_dim * volume();
       }
   };
 
