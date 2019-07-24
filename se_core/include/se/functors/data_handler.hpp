@@ -31,6 +31,7 @@
 #include "../utils/math_utils.h"
 #include "../node.hpp"
 #include "../octree.hpp"
+#include "../neighbors/neighbor_gather.hpp"
 
 template<typename SpecialisedHandlerT, typename NodeT>
 class DataHandlerBase {
@@ -53,13 +54,13 @@ class DataHandlerBase {
   virtual bool isFrontier() {
   };
 
-  virtual key_t  get_morton_code(){};
+  virtual key_t get_morton_code() {};
 
-  virtual int get_child_idx(){};
+  virtual int get_child_idx() {};
 
-  virtual NodeT * get_node(){};
+  virtual NodeT *get_node() {};
 
-  virtual Eigen::Vector3i get_child_coord(){};
+  virtual Eigen::Vector3i get_child_coord() {};
 };
 
 template<typename FieldType>
@@ -104,17 +105,12 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
 
     for (const auto &face_voxel : face_neighbour_voxel) {
 
-//     if(map.get(face_voxel).st == voxel_state::kUnknown){
-//       return true;
-//     }
-      // TODO change to octree allocation . currently fix grid
-
       // check if face voxel is inside same voxel block
-      if (((_voxel.x() + 1) / BLOCK_SIDE) == ((face_voxel.x() + 1) / BLOCK_SIDE)
-          && ((_voxel.y() + 1) / BLOCK_SIDE) == ((face_voxel.y() + 1) / BLOCK_SIDE)
-          && ((_voxel.z() + 1) / BLOCK_SIDE) == ((face_voxel.z() + 1) / BLOCK_SIDE)) {
+      if ((_voxel.x() / BLOCK_SIDE) == (face_voxel.x() / BLOCK_SIDE)
+          && (_voxel.y() / BLOCK_SIDE) == (face_voxel.y() / BLOCK_SIDE)
+          && (_voxel.z() / BLOCK_SIDE) == (face_voxel.z() / BLOCK_SIDE)) {
         // same voxel block
-        if( map.get(face_voxel).st == voxel_state::kUnknown)
+        if (_block->data(face_voxel).st == voxel_state::kUnknown)
           return true;
       } else {
         // not same voxel block => check if neighbour is a voxel block
@@ -125,7 +121,7 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
         if (is_voxel_block) {
           // neighbour is a voxel block
           se::VoxelBlock<FieldType> *block = static_cast<se::VoxelBlock<FieldType> *> (node);
-          if( block->data(face_voxel).st == voxel_state::kUnknown)
+          if (block->data(face_voxel).st == voxel_state::kUnknown)
             return true;
 //          return block->data(face_voxel).st == voxel_state::kUnknown;
         } else {
@@ -138,19 +134,19 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
     return false;
   }
 
-  key_t  get_morton_code(){
+  key_t get_morton_code() {
     return _block->code_;
   }
 // only for nodes
-  int get_child_idx(){
+  int get_child_idx() {
     return -1;
   };
 
-  se::VoxelBlock<FieldType> * get_node(){
+  se::VoxelBlock<FieldType> *get_node() {
     return _block;
   }
 
-  Eigen::Vector3i get_child_coord(){
+  Eigen::Vector3i get_child_coord() {
     return _block->coordinates();
   };
  private:
@@ -183,24 +179,59 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
   bool occupancyUpdated() {
     return _node->occupancyUpdated();
   }
+  /*
+   * check if neighbour octant are unknown
+   */
   bool isFrontier(const se::Octree<FieldType> &map) {
+/*    // find out at which level the node is
+    key_t morton_parent = _node->code_;
+    Eigen::Vector3i coord = _node->childCoordinates(_idx);
+    int level_parent = se::keyops::level(morton_parent);
+    int side_parent = _node->side_;
+    int level_leaf = level_parent;
+    while (side_parent != BLOCK_SIDE) {
+      side_parent= side_parent >> 1;
+      level_leaf++;
+    }
+    int scale = level_leaf- level_parent;
+    // get face octants
+//    std::cout << "curr node status " << map.get(coord).st << " by val " << _node->value_[_idx].st
+//    <<"prob "<<   _node->value_[_idx].x <<
+//    std::endl;
+//    std::cout << " level leaf " << level_leaf << " side parent after " << side_parent << " scale "
+//              << scale << std::endl;
+    std::array<typename se::Octree<FieldType>::value_type, 6> neighbor_values;
+
+    for (size_t i = 0; i < 6; ++i) {
+      // Compute the neighbor octant coordinates.
+      const int neighbor_x = coord.x() + scale * BLOCK_SIDE * se::face_neighbor_offsets[i].x();
+      const int neighbor_y = coord.y() + scale * BLOCK_SIDE * se::face_neighbor_offsets[i].y();
+      const int neighbor_z = coord.z() + scale * BLOCK_SIDE * se::face_neighbor_offsets[i].z();
+      // neighbour node is allocated and is unknown
+      if (map.fetch_octant(neighbor_x, neighbor_y, neighbor_z, level_parent +1) != nullptr
+          && map.get(neighbor_x, neighbor_y, neighbor_z).st == voxel_state::kUnknown) {
+//        std::cout << "[se/datahandler] " << coord.format(InLine) << " is frontier " << neighbor_x
+//                  << " " << neighbor_y << " " << neighbor_z << std::endl;
+        return true;
+      }
+    }*/
     return false;
   }
 
-  key_t  get_morton_code(){
+  key_t get_morton_code() {
     return _node->code_;
   };
 
-  int get_child_idx(){
+  int get_child_idx() {
     return _idx;
   }
 
-  se::Node<FieldType> * get_node(){
-    return  _node;
+  se::Node<FieldType> *get_node() {
+    return _node;
   }
 
   Eigen::Vector3i get_child_coord() {
-   return _node->childCoordinates(_idx);
+    return _node->childCoordinates(_idx);
   }
 
  private:
