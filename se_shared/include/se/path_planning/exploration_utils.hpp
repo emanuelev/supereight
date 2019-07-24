@@ -18,6 +18,9 @@
 #include <type_traits>
 
 #include <Eigen/StdVector>
+
+#include "se/lodepng.h"
+
 namespace se {
 namespace exploration {
 struct pose3D {
@@ -161,6 +164,38 @@ static inline bool isSameBlock(Eigen::Vector3i voxel, Eigen::Vector3i face_voxel
       && (voxel.z() / BLOCK_SIDE) == (face_voxel.z() / BLOCK_SIDE);
 }
 
+static inline bool saveMatrixToDepthImage(const Eigen::MatrixXd matrix,
+                                          const int cand_num,
+                                          const bool is_depth) {
+
+  const int w = matrix.cols();
+  const int h = matrix.rows();
+  const double max_val = matrix.maxCoeff();
+  const double min_val = matrix.minCoeff();
+  const float diff = (max_val - min_val);
+  uint16_t *input_depth = (uint16_t *) malloc(matrix.size() * sizeof(uint16_t));
+  for (int v = 0; v < h; ++v) {
+    for (int u = 0; u < w; ++u) {
+      input_depth[u + v * w] =
+          static_cast<uint16_t >(65535 * (1 - ((matrix(v, u) - min_val) / diff)));
+    }
+  }
+
+  char filename[80];
+  if (is_depth) {
+    const std::string
+        s = "/home/anna/Data/cand_views/cand_" + std::to_string(cand_num) + "_depth_img.png";
+    std::strcpy(filename, s.c_str());
+  } else {
+
+    const std::string s = "/home/anna/Data/cand_views/cand_" + std::to_string(cand_num) + "_IG_img"
+                                                                                          ".png";
+    std::strcpy(filename, s.c_str());
+  }
+  lodepng_encode_file(filename, (unsigned char *) input_depth, w, h, LCT_GREY, 16);
+
+  return true;
+}
 } //exploration
 }//namespace se
 #endif //SUPEREIGHT_EXPLORATION_UTILS_HPP
