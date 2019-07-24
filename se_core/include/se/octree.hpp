@@ -522,7 +522,7 @@ const {
 
 template<typename T>
 inline VoxelBlock<T> *Octree<T>::fetch(const uint64_t morton) const {
- Eigen::Vector3i coord = unpack_morton(morton);
+ Eigen::Vector3i coord = se::keyops::decode(morton);
  return fetch(coord.x(), coord.y(), coord.z());
 }
 template<typename T>

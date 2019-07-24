@@ -24,14 +24,14 @@ void insertBlocksToMap(map3i &blocks_map, set3i *blocks) {
   }
 
   for (auto it = blocks->begin(); it != blocks->end(); ++it) {
-    Eigen::Vector3i voxel_coord = unpack_morton(*it);
+    Eigen::Vector3i voxel_coord = se::keyops::decode(*it);
     blocks_map.emplace(*it, voxel_coord);
   }
-  std::cout << "[supereight/boundary] frontier maps size " << blocks_map.size() << std::endl;
+//  std::cout << "[supereight/boundary] frontier maps size " << blocks_map.size() << std::endl;
 }
 /**
  * check if past frontier voxels have been updated and update the std::map
- * via voxel blocks / its morton code
+ * [uint64_t morton_code, Eigen::Vector3i coord]
  * TODO how to use OMP
  * Issue map wide function
  */
@@ -43,7 +43,7 @@ void updateFrontierMap(const Volume<T> &volume, map3i &frontier_blocks_map) {
   for (auto it = frontier_blocks_map.begin(); it != frontier_blocks_map.end(); ++it) {
     // check if the occupancy probability of the frontier voxels has been updated
     // changes voxel states from frontier to free or occupied
-    if (!node_it.deleteFrontierVoxelBlockviaMorton(it->second)) {
+    if (!node_it.deleteFrontierVoxelBlockviaMorton(it->first)) {
 //      std::cout << "[supereight/boundary] no frontier in voxel block => erase" << std::endl;
       frontier_blocks_map.erase(it->first);
     }
