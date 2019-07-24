@@ -60,7 +60,6 @@ class DataHandlerBase {
 
   virtual NodeT *get_node() {};
 
-  virtual Eigen::Vector3i get_child_coord() {};
 };
 
 template<typename FieldType>
@@ -146,9 +145,6 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
     return _block;
   }
 
-  Eigen::Vector3i get_child_coord() {
-    return _block->coordinates();
-  };
  private:
   se::VoxelBlock<FieldType> *_block;
   Eigen::Vector3i _voxel;
@@ -169,7 +165,7 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
   }
 
   Eigen::Vector3i getNodeCoordinates() {
-    return Eigen::Vector3i(0, 0, 0);
+    return  _node->childCoordinates(_idx);
   }
 
   void occupancyUpdated(const bool o) {
@@ -183,7 +179,7 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
    * check if neighbour octant are unknown
    */
   bool isFrontier(const se::Octree<FieldType> &map) {
-/*    // find out at which level the node is
+    // find out at which level the node is
     key_t morton_parent = _node->code_;
     Eigen::Vector3i coord = _node->childCoordinates(_idx);
     int level_parent = se::keyops::level(morton_parent);
@@ -194,13 +190,16 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
       level_leaf++;
     }
     int scale = level_leaf- level_parent;
+    // when this node is a leaf node , we only want to have frontiers at the higher resolution /
+    // voxel level
+    // how ot check if the node is a voxel block
+    // NILS: if node at leaf level : node = voxel block
     // get face octants
 //    std::cout << "curr node status " << map.get(coord).st << " by val " << _node->value_[_idx].st
 //    <<"prob "<<   _node->value_[_idx].x <<
 //    std::endl;
 //    std::cout << " level leaf " << level_leaf << " side parent after " << side_parent << " scale "
 //              << scale << std::endl;
-    std::array<typename se::Octree<FieldType>::value_type, 6> neighbor_values;
 
     for (size_t i = 0; i < 6; ++i) {
       // Compute the neighbor octant coordinates.
@@ -214,12 +213,23 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
 //                  << " " << neighbor_y << " " << neighbor_z << std::endl;
         return true;
       }
-    }*/
+    }
     return false;
   }
+  // returns the morton code of this node.
 
   key_t get_morton_code() {
-    return _node->code_;
+    const int level = se::keyops::level(_node->code_) + 1;
+    // TODO find a way to pass max_level around or make it constant
+    const int max_level = 7;
+    const Eigen::Vector3i octant_coord = getNodeCoordinates();
+    // compute morton code of current node / voxelblock
+    const key_t morton_code = se::keyops::encode(octant_coord.x(),
+                                                octant_coord.y(),
+                                                octant_coord.z(),
+                                                level,
+                                                max_level);
+    return morton_code;
   };
 
   int get_child_idx() {
@@ -230,13 +240,10 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
     return _node;
   }
 
-  Eigen::Vector3i get_child_coord() {
-    return _node->childCoordinates(_idx);
-  }
 
  private:
-  se::Node<FieldType> *_node;
-  int _idx;
+  se::Node<FieldType> *_node; // parent node
+  int _idx; //  index of this node
 };
 
 #endif
