@@ -155,6 +155,40 @@ public:
                                       const int y,
                                       const int z) const;
 
+  /*! \brief Retrieves the face neighbors of voxel at coordinates (x,y,z) as
+   * VoxelAbstrations.
+   *
+   * The returned VoxelAbstrations will be at the same or higher level in the
+   * Octree, depending on what level they are allocated at. Consequently, the
+   * neighbor of a Node will never be a VoxelBlock, even if that region is
+   * allocated at the VoxelBlock level.
+   *
+   * If the safe template variable is true, then proper checks will be used so
+   * that neighboring voxels outside the map will have a value of empty at a
+   * cost of performance. Otherwise if the safe template variable is false,
+   * neighboring voxels outside the map will not be detected and will have the
+   * value of some voxel inside the map. If you are certain your code will not
+   * ask for the neighbors of voxels at the edge of the map, then the non-safe
+   * version should be safe to use and will result in better performance.
+   *
+   * \param x x coordinate in interval [0, size]
+   * \param y y coordinate in interval [0, size]
+   * \param z z coordinate in interval [0, size]
+   * \return An std::array with the 6 neighboring voxels as VoxelAbstrations as
+   * well as the voxel whose neighbors were requested. The voxels are returned
+   * in the order: 0 -x +x -y +y -z +z, where 0 is the voxel whose neighbors
+   * were requested. Neighboring voxels that are not allocated have the initial
+   * value. Neighboring voxels that are outside the map have the empty value if
+   * safe is true, otherwise their value is undetermined.
+   *
+   * \todo The implementation is not yet efficient. A method similar to the one
+   * used in interp_gather should be used.
+   */
+  template <bool safe>
+  VoxelAbstrationArray<T, 7> getFaceNeighbors(const int x,
+                                              const int y,
+                                              const int z) const;
+
   /*! \brief Retrieves voxel values for the face neighbors of voxel at
    * coordinates (x,y,z).
    *
@@ -490,6 +524,63 @@ inline VoxelAbstration<T> Octree<T>::getLowestAsVoxel(const int x,
   va.side_ = 1;
   va.data_ = static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z));
   return va;
+}
+
+template <typename T>
+template <bool safe>
+inline VoxelAbstrationArray<T, 7> Octree<T>::getFaceNeighbors(
+    const int x,
+    const int y,
+    const int z) const {
+
+  // The 6 face neighbors and the voxel with respect to which they are
+  // computed.
+  constexpr int num_neighbors = 6 + 1;
+  VoxelAbstrationArray<T, num_neighbors> neighbors;
+
+  // Get the query voxel first to get the side length of the respective
+  // VoxelAbstration.
+  if (safe) {
+    if (    (x >= 0) and (x < size())
+        and (y >= 0) and (y < size())
+        and (z >= 0) and (z < size())) {
+      // The neighbor voxel is inside the volume, get its value.
+      neighbors[0] = getLowestAsVoxel(x, y, z);
+    } else {
+      // The neighbor voxel is outside the volume, set the value to empty.
+      neighbors[0].data_ = empty();
+    }
+  } else {
+    // Get the value of the neighbor voxel.
+    neighbors[0] = getLowestAsVoxel(x, y, z);
+  }
+
+  const int current_side = neighbors[0].side_;
+
+  // Get the 6 face neighbors.
+  for (size_t i = 1; i < num_neighbors; ++i) {
+    // Compute the neighbor voxel coordinates.
+    const int neighbor_x = x + current_side * face_neighbor_offsets[i].x();
+    const int neighbor_y = y + current_side * face_neighbor_offsets[i].y();
+    const int neighbor_z = z + current_side * face_neighbor_offsets[i].z();
+
+    if (safe) {
+      if (    (neighbor_x >= 0) and (neighbor_x < size())
+          and (neighbor_y >= 0) and (neighbor_y < size())
+          and (neighbor_z >= 0) and (neighbor_z < size())) {
+        // The neighbor voxel is inside the volume, get its value.
+        neighbors[i] = getLowestAsVoxel(neighbor_x, neighbor_y, neighbor_z);
+      } else {
+        // The neighbor voxel is outside the volume, set the value to empty.
+        neighbors[i].data_ = empty();
+      }
+    } else {
+      // Get the value of the neighbor voxel.
+      neighbors[i] = getLowestAsVoxel(neighbor_x, neighbor_y, neighbor_z);
+    }
+  }
+
+  return neighbors;
 }
 
 template <typename T>
