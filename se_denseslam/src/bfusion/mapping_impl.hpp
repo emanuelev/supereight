@@ -261,30 +261,14 @@ struct bfusion_update {
 
     const bool is_voxel = std::is_same<DataHandlerT, VoxelBlockHandler<FieldType>>::value;
 
-    // TODO addis voxel flag
 
-
-    const key_t morton_code_parent_node = handler.get_morton_code(); // parent node morton code
-
-    const int level_child = se::keyops::level(morton_code_parent_node) ;
-    // TODO find a way to pass max_level around or make it constant
-    const int max_level = 7;
-    const Eigen::Vector3i octant_coord = handler.getNodeCoordinates();
     // compute morton code of current node / voxelblock
-    const key_t morton_code_via_handler = se::keyops::encode(octant_coord.x(),
-                                                octant_coord.y(),
-                                                octant_coord.z(),
-                                                level_child,
-                                                max_level);
+//    const key_t morton_code_via_handler = se::keyops::encode(octant_coord.x(),
+//                                                octant_coord.y(),
+//                                                octant_coord.z(),
+//                                                level_child,
+//                                                max_level);
     const key_t morton_code_child = handler.get_morton_code();
-    if(morton_code_child!=morton_code_via_handler && !is_voxel){
-      std::cout << "handler and encode not equal encode " << morton_code_child <<
-      " handler " << morton_code_via_handler <<
-      std::endl;
-      std::cout << "octant coord " << octant_coord.format(InLine) << " decode encoded " <<
-      se::keyops::decode(morton_code_child).format(InLine) << ", decode handler  " <<
-      se::keyops::decode(morton_code_via_handler).format(InLine) << std::endl;
-    }
     // invalid depth measurement
     if (depthSample <= 0) {
       return;
@@ -340,30 +324,33 @@ struct bfusion_update {
           // conservative estimate as the occupancy probability for a free voxel is set quite low
           if (handler.isFrontier(map) && data.st == voxel_state::kFree) {
 //            std::cout << "is frontier " << data.st << std::endl;
-            if(is_voxel) {
+//          check if the voxel block was allocated
+
+//            if(is_voxel) {
               frontier_blocks_->insert(morton_code_child);
               data.st = voxel_state::kFrontier;
-            } else{
-              se::Node<FieldType> * node_tmp = handler.get_node();
-              bool is_leaf = node_tmp->child(handler.get_child_idx())->isLeaf();
-              std::cout << "[se/mapping] frontier block but not added, this node is a leaf " <<
-              is_leaf << " with the coord " << handler.getNodeCoordinates() << std::endl;
-               auto p = std::find(frontier_blocks_->begin(), frontier_blocks_->end(),
-                   morton_code_child);
-               if(p!= frontier_blocks_->end()){
-                 std::cout << "node morton code was in frontier set via voxelblock update" <<
-                 std::endl;
-
-               } else{
-                 std::cout << "node morton code was not in set" << std::endl;
-               }
+//            } else{
+//              se::Node<FieldType> * node_tmp = handler.get_node();
+//              bool is_leaf = node_tmp->child(handler.get_child_idx())->isLeaf();
+//              std::cout << "[se/mapping] frontier block but not added, this node is a leaf " <<
+//              is_leaf << " with the coord " << handler.getNodeCoordinates() << std::endl;
+//               auto p = std::find(frontier_blocks_->begin(), frontier_blocks_->end(),
+//                   morton_code_child);
+//               if(p!= frontier_blocks_->end()){
+//                 std::cout << "node morton code was in frontier set via voxelblock update" <<
+//                 std::endl;
+//
+//               } else{
+//                 std::cout << "node morton code was not in set" << std::endl;
+//               }
 
             }
           }
         }
         handler.set(data);
       }
-    }
+
+
 /*
       bool is_voxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
       if (prev_occ >= 0.5 && data.x < 0.5 && isVoxel) {

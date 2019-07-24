@@ -219,7 +219,8 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
   // returns the morton code of this node.
 
   key_t get_morton_code() {
-    const int level = se::keyops::level(_node->code_) + 1;
+    const int level = se::keyops::level(_node->code_) + 1; // level of the node which is being
+    // updated
     // TODO find a way to pass max_level around or make it constant
     const int max_level = 7;
     const Eigen::Vector3i octant_coord = getNodeCoordinates();
