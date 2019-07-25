@@ -95,37 +95,56 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
 
   bool isFrontier(const se::Octree<FieldType> &map) {
     vec3i face_neighbour_voxel(6);
+
     face_neighbour_voxel[0] << _voxel.x() - 1, _voxel.y(), _voxel.z();
     face_neighbour_voxel[1] << _voxel.x() + 1, _voxel.y(), _voxel.z();
     face_neighbour_voxel[2] << _voxel.x(), _voxel.y() - 1, _voxel.z();
     face_neighbour_voxel[3] << _voxel.x(), _voxel.y() + 1, _voxel.z();
     face_neighbour_voxel[4] << _voxel.x(), _voxel.y(), _voxel.z() - 1;
     face_neighbour_voxel[5] << _voxel.x(), _voxel.y(), _voxel.z() + 1;
-
+//    std::cout << "[se/datahandler] vb handler voxel " << _voxel.format(InLine);
     for (const auto &face_voxel : face_neighbour_voxel) {
+
+      // map boarder check, don't want the drone to fly there.
+      if(face_voxel.x() < 0|| face_voxel.y() < 0 || face_voxel.z() <0 ||
+      face_voxel.x()>map.size() || face_voxel.y() > map.size() || face_voxel.z() > map.size()){
+        return false;
+      }
 
       // check if face voxel is inside same voxel block
       if ((_voxel.x() / BLOCK_SIDE) == (face_voxel.x() / BLOCK_SIDE)
           && (_voxel.y() / BLOCK_SIDE) == (face_voxel.y() / BLOCK_SIDE)
           && (_voxel.z() / BLOCK_SIDE) == (face_voxel.z() / BLOCK_SIDE)) {
-        // same voxel block
+        // CASE 1: same voxel block
+//        std::cout << " same block block data "<< face_voxel.format(InLine)<<  std::endl;
         if (_block->data(face_voxel).st == voxel_state::kUnknown)
+
           return true;
       } else {
         // not same voxel block => check if neighbour is a voxel block
         se::Node<FieldType> *node = nullptr;
         bool is_voxel_block;
+//        std::cout << " not same vb fetch octant"<< std::endl;
         map.fetch_octant(face_voxel(0), face_voxel(1), face_voxel(2), node, is_voxel_block);
-
+       // CASE 2: not same voxelblock but is a voxel
         if (is_voxel_block) {
           // neighbour is a voxel block
           se::VoxelBlock<FieldType> *block = static_cast<se::VoxelBlock<FieldType> *> (node);
+//          std::cout<< " is block get face_voxel" << std::endl;
           if (block->data(face_voxel).st == voxel_state::kUnknown)
             return true;
-//          return block->data(face_voxel).st == voxel_state::kUnknown;
+
+        // CASE 3: not same voxelblock but belongs to a node
+        // TODO take value from node or say the curr voxel is unknown?
+
         } else {
-          // neighbour is a node
-          if (map.get(se::keyops::decode(node->code_)).st == voxel_state::kUnknown)
+          // get parent node and get idx of this node to get value
+          key_t octant = se::keyops::encode(face_voxel.x(), face_voxel.y(), face_voxel.z(),
+              map.leaf_level(), map.max_level());
+          int idx = se::child_id(octant, map.leaf_level(), map.max_level());
+//        std::cout << " is node, get value "<< node->data(idx).st << std::endl;
+          // in case the neighbour node is also not in the same parent
+          if (node->data(idx).st == voxel_state::kUnknown)
             return true;
         }
       }
@@ -165,7 +184,7 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
   }
 
   Eigen::Vector3i getNodeCoordinates() {
-    return  _node->childCoordinates(_idx);
+    return _node->childCoordinates(_idx);
   }
 
   void occupancyUpdated(const bool o) {
@@ -176,7 +195,8 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
     return _node->occupancyUpdated();
   }
   /*
-   * check if neighbour octant are unknown
+   * check if neighbour octants are unknown
+   * for leaf level nodes
    */
   bool isFrontier(const se::Octree<FieldType> &map) {
     // find out at which level the node is
@@ -186,10 +206,11 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
     int side_parent = _node->side_;
     int level_leaf = level_parent;
     while (side_parent != BLOCK_SIDE) {
-      side_parent= side_parent >> 1;
+      side_parent = side_parent >> 1;
       level_leaf++;
     }
-    int scale = level_leaf- level_parent;
+    int scale = level_leaf - level_parent;
+
     // when this node is a leaf node , we only want to have frontiers at the higher resolution /
     // voxel level
     // how ot check if the node is a voxel block
@@ -201,16 +222,24 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
 //    std::cout << " level leaf " << level_leaf << " side parent after " << side_parent << " scale "
 //              << scale << std::endl;
 
+// TODO handling frontier nodes at higher level than
+    if (scale > 1 && level_parent + 1 != level_leaf) {
+      return false;
+    }
     for (size_t i = 0; i < 6; ++i) {
       // Compute the neighbor octant coordinates.
       const int neighbor_x = coord.x() + scale * BLOCK_SIDE * se::face_neighbor_offsets[i].x();
       const int neighbor_y = coord.y() + scale * BLOCK_SIDE * se::face_neighbor_offsets[i].y();
       const int neighbor_z = coord.z() + scale * BLOCK_SIDE * se::face_neighbor_offsets[i].z();
-      // neighbour node is allocated and is unknown
-      if (map.fetch_octant(neighbor_x, neighbor_y, neighbor_z, level_parent +1) != nullptr
-          && map.get(neighbor_x, neighbor_y, neighbor_z).st == voxel_state::kUnknown) {
-//        std::cout << "[se/datahandler] " << coord.format(InLine) << " is frontier " << neighbor_x
-//                  << " " << neighbor_y << " " << neighbor_z << std::endl;
+      // map boarder check, don't want the drone to fly there.
+      if(neighbor_x < 0|| neighbor_y  < 0 || neighbor_z < 0||
+          neighbor_x>map.size() || neighbor_y > map.size() || neighbor_z > map.size()){
+        return false;
+      }
+      // neighbour voxelblock is not allocated
+      if (map.fetch_octant(neighbor_x, neighbor_y, neighbor_z, level_parent + 1) == nullptr) {
+        std::cout << "[se/datahandler] " << coord.format(InLine) << " is frontier " << neighbor_x
+                  << " " << neighbor_y << " " << neighbor_z << std::endl;
         return true;
       }
     }
@@ -225,11 +254,8 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
     const int max_level = 7;
     const Eigen::Vector3i octant_coord = getNodeCoordinates();
     // compute morton code of current node / voxelblock
-    const key_t morton_code = se::keyops::encode(octant_coord.x(),
-                                                octant_coord.y(),
-                                                octant_coord.z(),
-                                                level,
-                                                max_level);
+    const key_t morton_code =
+        se::keyops::encode(octant_coord.x(), octant_coord.y(), octant_coord.z(), level, max_level);
     return morton_code;
   };
 
@@ -240,7 +266,6 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
   se::Node<FieldType> *get_node() {
     return _node;
   }
-
 
  private:
   se::Node<FieldType> *_node; // parent node
