@@ -488,7 +488,7 @@ template <typename T>
 inline VoxelAbstration<T> Octree<T>::getLowestAsVoxel(const int x,
                                                       const int y,
                                                       const int z) const {
-  VoxelAbstration<T> va;
+  VoxelAbstration<T> va(size(), dim());
 
   Node<T> * n = root_;
   if (n == nullptr) {
@@ -548,6 +548,7 @@ inline VoxelAbstrationArray<T, 7> Octree<T>::getFaceNeighbors(
       neighbors[0] = getLowestAsVoxel(x, y, z);
     } else {
       // The neighbor voxel is outside the volume, set the value to empty.
+      neighbors[0] = VoxelAbstration<T>(size(), dim());
       neighbors[0].data_ = empty();
     }
   } else {

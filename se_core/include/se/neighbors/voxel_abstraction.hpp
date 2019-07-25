@@ -73,26 +73,56 @@ namespace se {
        */
       value_type data_;
 
+      /*! \brief The edge length in voxels of the Octree this VoxelAbstration
+       * is part of.
+       */
+      int octree_size_;
+
+      /*! \brief The single voxel edge length in map units of the Octree this
+       * VoxelAbstration is part of.
+       */
+      float voxel_dim_;
 
 
-      VoxelAbstration() {
-        pos_  = Eigen::Vector3i::Zero();
-        side_ = 0;
-        data_ = initValue();
+
+      /*! \brief Initialize a VoxelAbstration for an invalid Octree.
+       *
+       * \warning If you use this constructor, the variables octree_size_ and
+       * voxel_dim_ will have to be initialized manually for the
+       * VoxelAbstration instance to be valid. Otherwise some of the class
+       * methods will return invalid results.
+       */
+      VoxelAbstration()
+          : octree_size_(0),
+            voxel_dim_(0) {
+        pos_         = Eigen::Vector3i::Zero();
+        side_        = 0;
+        data_        = initValue();
+      }
+
+      /*! \brief Initialize a VoxelAbstration for a specific Octree.
+       *
+       * \param[in] octree_size Number of voxels per map edge. Can be obtained
+       * by calling Octree::size().
+       * \param[in] octree_dim Dimension of the Octree in map units. Can be
+       * obtained by calling Octree::dim().
+       */
+      VoxelAbstration(const int octree_size, const float octree_dim)
+          : octree_size_(octree_size),
+            voxel_dim_(octree_dim / octree_size) {
+        pos_         = Eigen::Vector3i::Zero();
+        side_        = 0;
+        data_        = initValue();
       }
 
       /*! \brief Return the VoxelAbstration's center in map coordinates.
-       *
-       * \param[in] voxel_dim Dimension of the voxel edge in map units.
-       * Can be obtained by calling Octree::voxelDim().
-       * \return The VoxelAbstration's center in map coordinates.
        */
-      inline Eigen::Vector3f center(const float voxel_dim) const {
+      inline Eigen::Vector3f center() const {
         // Compute the voxel position in map coordinates.
-        const Eigen::Vector3f pos_m = voxel_dim * pos_.cast<float>();
+        const Eigen::Vector3f pos_m = voxel_dim_ * pos_.cast<float>();
         // Compute the offset to the voxel center in map coordinates.
         const Eigen::Vector3f offset_m = Eigen::Vector3f::Constant(
-            voxel_dim * side_ / 2.f);
+            voxel_dim_ * side_ / 2.f);
         return pos_m + offset_m;
       }
 
@@ -100,42 +130,30 @@ namespace se {
        *
        * The root is at level zero and the individual voxels at level
        * log2(Octree::size()).
-       *
-       * \param[in] octree_size Number of voxels per map edge.
-       * Can be obtained by calling Octree::size().
-       * \return The VoxelAbstration's level in the map.
        */
-      inline int level(const int octree_size) const {
-        return log2(octree_size / side_);
+      inline int level() const {
+        return log2(octree_size_ / side_);
       }
 
       /*! \brief Return the VoxelAbstration's dimensions (edge length) in map
        * units.
-       *
-       * \param[in] voxel_dim Dimension of the voxel edge in map units.
-       * Can be obtained by calling Octree::voxelDim().
-       * \return The VoxelAbstration's dimension in map units.
        */
-      inline float dim(const float voxel_dim) const {
-        return side_ * voxel_dim;
+      inline float dim() const {
+        return side_ * voxel_dim_;
       }
 
       /*! \brief Return the VoxelAbstration's volume in voxels^3.
        *
        * \return The VoxelAbstration's volume in voxels^3.
        */
-      inline int volume() const {
+      inline int volumeInVoxels() const {
         return side_ * side_ * side_;
       }
 
       /*! \brief Return the VoxelAbstration's volume in map units^3.
-       *
-       * \param[in] voxel_dim Dimension of the voxel edge in map units.
-       * Can be obtained by calling Octree::voxelDim().
-       * \return The VoxelAbstration's volume in map units^3.
        */
-      inline float volume(const float voxel_dim) const {
-        return voxel_dim * voxel_dim * voxel_dim * volume();
+      inline float volume() const {
+        return std::pow(voxel_dim_, 3.f) * volumeInVoxels();
       }
   };
 

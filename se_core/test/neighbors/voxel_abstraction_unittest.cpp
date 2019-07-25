@@ -52,7 +52,7 @@ struct voxel_traits<testT> {
 class VoxelAbstractionTest : public ::testing::Test {
   protected:
     virtual void SetUp() {
-      octree_.init(64, 1);
+      octree_.init(octree_size_, octree_dim_);
 
       // Allocate some VoxelBlocks.
       constexpr size_t num_voxel_blocks = 2;
@@ -80,25 +80,32 @@ class VoxelAbstractionTest : public ::testing::Test {
 
 
       // Create some VoxelAbstrations.
+      va_whole_map_ = se::VoxelAbstration<testT>(octree_size_, octree_dim_);
       va_whole_map_.pos_ = Eigen::Vector3i(0, 0, 0);
       va_whole_map_.side_ = octree_.size();
 
+      va_node_ = se::VoxelAbstration<testT>(octree_size_, octree_dim_);
       va_node_.pos_ = Eigen::Vector3i(32, 32, 32);
       va_node_.side_ = octree_.size() / 2;
 
+      va_voxel_block_ = se::VoxelAbstration<testT>(octree_size_, octree_dim_);
       va_voxel_block_.pos_ = Eigen::Vector3i(0, 0, 0);
       va_voxel_block_.side_ = BLOCK_SIDE;
 
+      va_single_voxel_ = se::VoxelAbstration<testT>(octree_size_, octree_dim_);
       va_single_voxel_.pos_ = Eigen::Vector3i(2, 1, 3);
       va_single_voxel_.side_ = 1;
     }
+
+    static constexpr float value_increment_ = 0.05f;
+    static constexpr int octree_size_ = 64;
+    static constexpr float octree_dim_ = 1;
 
     se::Octree<testT> octree_;
     se::VoxelAbstration<testT> va_whole_map_;
     se::VoxelAbstration<testT> va_node_;
     se::VoxelAbstration<testT> va_voxel_block_;
     se::VoxelAbstration<testT> va_single_voxel_;
-    static constexpr float value_increment_ = 0.05f;
 };
 
 
@@ -107,28 +114,28 @@ class VoxelAbstractionTest : public ::testing::Test {
 TEST_F(VoxelAbstractionTest, Center) {
   // Compute the center of the whole map.
   const Eigen::Vector3f va_whole_map_center
-      = va_whole_map_.center(octree_.voxelDim());
+      = va_whole_map_.center();
   EXPECT_FLOAT_EQ(va_whole_map_center.x(), octree_.dim() / 2);
   EXPECT_FLOAT_EQ(va_whole_map_center.y(), octree_.dim() / 2);
   EXPECT_FLOAT_EQ(va_whole_map_center.z(), octree_.dim() / 2);
 
   // Compute the center of a Node.
   const Eigen::Vector3f va_node_center
-      = va_node_.center(octree_.voxelDim());
+      = va_node_.center();
   EXPECT_FLOAT_EQ(va_node_center.x(), octree_.dim() / 2 + octree_.dim() / 4);
   EXPECT_FLOAT_EQ(va_node_center.y(), octree_.dim() / 2 + octree_.dim() / 4);
   EXPECT_FLOAT_EQ(va_node_center.z(), octree_.dim() / 2 + octree_.dim() / 4);
 
   // Compute the center of a VoxelBlock.
   const Eigen::Vector3f va_voxel_block_center
-      = va_voxel_block_.center(octree_.voxelDim());
+      = va_voxel_block_.center();
   EXPECT_FLOAT_EQ(va_voxel_block_center.x(), octree_.dim() / 16);
   EXPECT_FLOAT_EQ(va_voxel_block_center.y(), octree_.dim() / 16);
   EXPECT_FLOAT_EQ(va_voxel_block_center.z(), octree_.dim() / 16);
 
   // Compute the center of a single voxel.
   const Eigen::Vector3f va_single_voxel_center
-      = va_single_voxel_.center(octree_.voxelDim());
+      = va_single_voxel_.center();
   EXPECT_FLOAT_EQ(va_single_voxel_center.x(), 2 * octree_.voxelDim()
       + octree_.voxelDim() / 2);
   EXPECT_FLOAT_EQ(va_single_voxel_center.y(), 1 * octree_.voxelDim()
@@ -142,10 +149,10 @@ TEST_F(VoxelAbstractionTest, Center) {
 // Get the level of some VoxelAbstrations.
 TEST_F(VoxelAbstractionTest, Level) {
   const int octree_size = octree_.size();
-  EXPECT_EQ(va_whole_map_.level(octree_size),    0);
-  EXPECT_EQ(va_node_.level(octree_size),         1);
-  EXPECT_EQ(va_voxel_block_.level(octree_size),  3);
-  EXPECT_EQ(va_single_voxel_.level(octree_size), 6);
+  EXPECT_EQ(va_whole_map_.level(),    0);
+  EXPECT_EQ(va_node_.level(),         1);
+  EXPECT_EQ(va_voxel_block_.level(),  3);
+  EXPECT_EQ(va_single_voxel_.level(), 6);
 }
 
 
@@ -153,10 +160,10 @@ TEST_F(VoxelAbstractionTest, Level) {
 // Get the dimensions of some VoxelAbstrations.
 TEST_F(VoxelAbstractionTest, Dim) {
   const float voxel_dim = octree_.voxelDim();
-  EXPECT_EQ(va_whole_map_.dim(voxel_dim),    octree_.dim());
-  EXPECT_EQ(va_node_.dim(voxel_dim),         octree_.dim() / 2);
-  EXPECT_EQ(va_voxel_block_.dim(voxel_dim),  octree_.dim() / 8);
-  EXPECT_EQ(va_single_voxel_.dim(voxel_dim), voxel_dim);
+  EXPECT_EQ(va_whole_map_.dim(),    octree_.dim());
+  EXPECT_EQ(va_node_.dim(),         octree_.dim() / 2);
+  EXPECT_EQ(va_voxel_block_.dim(),  octree_.dim() / 8);
+  EXPECT_EQ(va_single_voxel_.dim(), voxel_dim);
 }
 
 
@@ -164,23 +171,20 @@ TEST_F(VoxelAbstractionTest, Dim) {
 // Get the volume of some VoxelAbstrations.
 TEST_F(VoxelAbstractionTest, Volume) {
   // Volume in voxels^3.
-  EXPECT_EQ(va_whole_map_.volume(),
+  EXPECT_EQ(va_whole_map_.volumeInVoxels(),
       static_cast<int>(std::pow(octree_.size(), 3)));
-  EXPECT_EQ(va_node_.volume(),
+  EXPECT_EQ(va_node_.volumeInVoxels(),
       static_cast<int>(std::pow(octree_.size() / 2, 3)));
-  EXPECT_EQ(va_voxel_block_.volume(),
+  EXPECT_EQ(va_voxel_block_.volumeInVoxels(),
       static_cast<int>(std::pow(octree_.size() / 8, 3)));
-  EXPECT_EQ(va_single_voxel_.volume(), 1);
+  EXPECT_EQ(va_single_voxel_.volumeInVoxels(), 1);
 
   // Volume in map units^3.
   const float voxel_dim = octree_.voxelDim();
-  EXPECT_FLOAT_EQ(va_whole_map_.volume(voxel_dim),
-      std::pow(octree_.dim(), 3));
-  EXPECT_FLOAT_EQ(va_node_.volume(voxel_dim),
-      std::pow(octree_.dim() / 2, 3));
-  EXPECT_FLOAT_EQ(va_voxel_block_.volume(voxel_dim),
-      std::pow(octree_.dim() / 8, 3));
-  EXPECT_FLOAT_EQ(va_single_voxel_.volume(voxel_dim), std::pow(voxel_dim, 3));
+  EXPECT_FLOAT_EQ(va_whole_map_.volume(),    std::pow(octree_.dim(), 3));
+  EXPECT_FLOAT_EQ(va_node_.volume(),         std::pow(octree_.dim() / 2, 3));
+  EXPECT_FLOAT_EQ(va_voxel_block_.volume(),  std::pow(octree_.dim() / 8, 3));
+  EXPECT_FLOAT_EQ(va_single_voxel_.volume(), std::pow(voxel_dim, 3));
 }
 
 
