@@ -54,11 +54,13 @@ public:
   key_t code_;
   unsigned int side_;
   unsigned char children_mask_;
+  unsigned int timestamp_;
 
   Node(){
     code_ = 0;
     side_ = 0;
     children_mask_ = 0;
+    timestamp_ = 0;
     for (unsigned int i = 0; i < 8; i++){
       value_[i]     = init_val();
       parent_ptr_ = NULL;
@@ -81,8 +83,10 @@ public:
     return parent_ptr_;
   }
 
-  virtual bool isLeaf() { return false; }
+  unsigned int timestamp() { return timestamp_; }
+  unsigned int timestamp(unsigned int t) { return timestamp_ = t; }
 
+  virtual bool isLeaf() { return false; }
 
 protected:
     Node *parent_ptr_;

@@ -298,7 +298,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
       version = "ofusion";
     } else if(std::is_same<FieldType, MultiresSDF>::value) {
       se::multires::integrate(*volume_._map_index, Tcw, K, voxelsize,
-          volume_._map_index->_offset, float_depth_, mu, maxweight);
+          volume_._map_index->_offset, float_depth_, mu, maxweight, frame);
       version = "multires";
     }
 
