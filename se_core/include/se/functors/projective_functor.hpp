@@ -1,5 +1,5 @@
 /*
-    Copyright 2016 Emanuele Vespa, Imperial College London 
+    Copyright 2016 Emanuele Vespa, Imperial College London
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
 
@@ -23,7 +23,7 @@
     SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
     CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
     OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
@@ -47,14 +47,15 @@ namespace functor {
 
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
       projective_functor(MapT<FieldType>& map, UpdateF& f, const Sophus::SE3f& Tcw,
           const Eigen::Matrix4f& K, const Eigen::Vector2i &framesize) :
         _map(map), _function(f), _Tcw(Tcw), _K(K), _frame_size(framesize) {
       }
 
-  /**
-   * Populates a vector with all active voxel blocks that are within the frustum
-   */
+      /*! \brief Get all the blocks that are active or inside the camera
+       * frustum. The blocks are stored in projective_functor::_active_list.
+       */
       void build_active_list() {
         using namespace std::placeholders;
         /* Retrieve the active list */
@@ -85,6 +86,7 @@ namespace functor {
 
       void update_block(se::VoxelBlock<FieldType> * block,
                         const float voxel_size) {
+        /* Is this the VoxelBlock center? */
         const Eigen::Vector3i blockCoord = block->coordinates();
         /* Change of the voxel position in camera frame when x is increased by 1 in world frame */
         const Eigen::Vector3f delta = _Tcw.rotationMatrix() * Eigen::Vector3f(voxel_size, 0, 0);
@@ -131,7 +133,7 @@ namespace functor {
 
               // Set voxel to visible to later active the block
               is_visible = true;
-              // pix is curr 3D block coord
+              // Update the voxel. pix is curr 3D block coord
               VoxelBlockHandler<FieldType> handler = {block, pix};
               _function(handler, pix, pos, pixel, _map );
             }
@@ -140,7 +142,7 @@ namespace functor {
         block->active(is_visible); // TODO: Blocks are activate during allocation anyway
       }
 
-      void update_node(se::Node<FieldType> * node, const float voxel_size) { 
+      void update_node(se::Node<FieldType> * node, const float voxel_size) {
         // Extract the coordinates of the node (bottom, left, front corner) in [vox]
         const Eigen::Vector3i voxel = Eigen::Vector3i(unpack_morton(node->code_));
         /* Compute the change in position in [m] in x, y, z, when increasing the position
@@ -154,6 +156,7 @@ namespace functor {
         /* Compute starting "pixel" (depth * [u, v, 1]) for the iteration over all 8 corners*/
         Eigen::Vector3f basepix_hom = _K.topLeftCorner<3,3>() * base_cam;
 
+        /* Iterate over the Node children. */
 #pragma omp simd
         /* Iterate over all 8 corners */
         for(int i = 0; i < 8; ++i) {
@@ -188,7 +191,7 @@ namespace functor {
    * Update all active nodes/voxels
    */
       void apply() {
-        // Populates a list of all voxel blocks that are either in the frustum or active
+        /* Update the leaf Octree nodes (VoxelBlock). */
         build_active_list();
         const float voxel_size = _map.dim() / _map.size();
         size_t list_size = _active_list.size();
@@ -198,6 +201,7 @@ namespace functor {
         }
         _active_list.clear();
 
+        /* Update the intermediate Octree nodes (Node). */
         auto& nodes_list = _map.getNodesBuffer();
         list_size = nodes_list.size();
 #pragma omp parallel for
@@ -216,7 +220,8 @@ namespace functor {
       std::vector<se::VoxelBlock<FieldType>*> _active_list;
   };
 
-  /**
+  /*! \brief Create a projective_functor and call projective_functor::apply.
+   *
    * Update all active nodes/voxels using the provided function
    * @param[in] map         Octree
    * @param[in] Tcw         World to camera transformation
@@ -229,8 +234,9 @@ namespace functor {
   void projective_map(MapT<FieldType>& map, const Sophus::SE3f& Tcw,
           const Eigen::Matrix4f& K, const Eigen::Vector2i& framesize,
           UpdateF& funct) {
-    auto *it = new projective_functor<FieldType, MapT, UpdateF>(map, funct, Tcw, K, framesize);
-    it->apply();
+    projective_functor<FieldType, MapT, UpdateF>
+        it(map, funct, Tcw, K, framesize);
+    it.apply();
   }
 }
 }

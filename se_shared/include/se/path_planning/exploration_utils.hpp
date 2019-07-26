@@ -19,7 +19,7 @@
 
 #include <Eigen/StdVector>
 
-#include "se/lodepng.h"
+#include "lodepng.h"
 
 namespace se {
 namespace exploration {

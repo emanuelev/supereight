@@ -1,6 +1,6 @@
 /*
 
-Copyright 2016 Emanuele Vespa, Imperial College London 
+Copyright 2016 Emanuele Vespa, Imperial College London
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
@@ -36,7 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "functors/data_handler.hpp"
 namespace se {
 
-template<typename T>
+/*! \brief Iterate through all the nodes (first Node and then VoxelBlock nodes)
+ * of the Octree.
+ */
+template <typename T>
 class node_iterator {
 
  public:
@@ -47,8 +50,17 @@ class node_iterator {
     last = 0;
   };
 
-  Node<T> *next() {
-    switch (state_) {
+  /*! \brief Get a pointer to the next node in the Octree.
+   * Starting from the root node, each time this function is called will return
+   * a pointer to the next non-leaf (Node) node. Once all non-leaf nodes have
+   * been iterated through, it will start iterating through the leaf nodes
+   * (VoxelBlock).
+   *
+   * \return A pointer to the next node. Returns nullptr if all nodes have been
+   * iterated through.
+   */
+  Node<T> *  next() {
+    switch(state_) {
       case BRANCH_NODES:
         if (last < map_.nodes_buffer_.size()) {
           Node<T> *n = map_.nodes_buffer_[last++];
