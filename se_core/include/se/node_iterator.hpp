@@ -119,13 +119,12 @@ class node_iterator {
       freeVoxels.push_back(Eigen::Vector3i(0, 0, 0));
     } else {
       VoxelBlock<T> *block = static_cast< VoxelBlock<T> *> (node);
-      int x, y, z;
       const int xlast = blockCoord(0) + BLOCK_SIDE;
       const int ylast = blockCoord(1) + BLOCK_SIDE;
       const int zlast = blockCoord(2) + BLOCK_SIDE;
-      for (z = blockCoord(2); z < zlast; ++z) {
-        for (y = blockCoord(1); y < ylast; ++y) {
-          for (x = blockCoord(0); x < xlast; ++x) {
+      for (int z = blockCoord(2); z < zlast; ++z) {
+        for (int y = blockCoord(1); y < ylast; ++y) {
+          for (int x = blockCoord(0); x < xlast; ++x) {
             const Eigen::Vector3i vox{x, y, z};
             value = block->data(vox);
             if (value.x <= threshold) {
@@ -141,8 +140,8 @@ class node_iterator {
   vec3i getOccupiedVoxels(float threshold, const uint64_t morton) {
     vec3i occupiedVoxels;
     occupiedVoxels.clear();
-    Eigen::Vector3i blockCoord = keyops::decode(morton);
-    VoxelBlock<T> *block = map_.fetch(morton);
+    const Eigen::Vector3i blockCoord = keyops::decode(morton);
+    const VoxelBlock<T> *block = map_.fetch(morton);
 
     typename VoxelBlock<T>::value_type value;
     const int xlast = blockCoord(0) + BLOCK_SIDE;
@@ -182,11 +181,7 @@ class node_iterator {
     Node<T> *node = nullptr;
     bool is_block = false;
     map_.fetch_octant(blockCoord(0), blockCoord(1), blockCoord(2), node, is_block);
-    if (!is_block) {
-      std::cout << " node frontier " << blockCoord.format(InLine) << std::endl;
-      frontierVoxels.push_back(blockCoord);
-      frontierVoxels.push_back(Eigen::Vector3i(0, 0, 0));
-    } else {
+    if (is_block) {
       VoxelBlock<T> *block = static_cast< VoxelBlock<T> *> (node);
       const int xlast = blockCoord(0) + BLOCK_SIDE;
       const int ylast = blockCoord(1) + BLOCK_SIDE;
@@ -205,6 +200,10 @@ class node_iterator {
           }
         }
       }
+    } else {
+      std::cout << " node frontier " << blockCoord.format(InLine) << std::endl;
+      frontierVoxels.push_back(blockCoord);
+      frontierVoxels.push_back(Eigen::Vector3i(0, 0, 0));
     }
     return frontierVoxels;
   }
@@ -242,7 +241,7 @@ class node_iterator {
  * @param blockCoord bottom left voxel block (node) voxel
  * @return
  */
-  bool deleteFrontierVoxelBlockviaMorton(const int64_t morton) {
+  bool deleteFrontierVoxelBlockviaMorton(const key_t morton) {
 //    VoxelBlock<T>* block = map_.fetch(blockCoord(0), blockCoord(1), blockCoord(2));
     bool has_frontier = false;
 
@@ -252,35 +251,7 @@ class node_iterator {
     // returned node could be at any level, but currently only frontier node at leaf level
     map_.fetch_octant(blockCoord(0), blockCoord(1), blockCoord(2), node, is_block);
 
-    if (!is_block) {
-      // data handler set parent_node ->value[idx];
-      // TODO include when we consider frontier nodes at lower than leaf level
-      const int level = keyops::level(morton);
-//      Node<T> *parent_node =
-//          map_.fetch_octant(blockCoord.x(), blockCoord.y(), blockCoord.z(), level - 1);
-//      const int edge = (map_.leaf_level()-level ) * BLOCK_SIDE;
-//      const int idx = ((blockCoord.x() & edge) > 0) + 2 * ((blockCoord.y() & edge) > 0)
-//          + 4 * ((blockCoord.z() & edge) > 0);
-      const int childid = child_id(morton, level, map_.max_level());
-
-//      NodeHandler<T> handler = {parent_node, idx}; // pointer to parent node and idx of this node
-      NodeHandler<T> handler = {node, childid}; // pointer to parent node and idx of this node
-      auto data = handler.get();
-
-      if (data.st == voxel_state::kFrontier && !handler.isFrontier(map_)) {
-        if (data.x <= THRESH_FREE) {
-          data.st = voxel_state::kFree;
-//              std::cout << "[superegiht/node_it] frontier=> free , voxel " << x << " " << y << " "
-//                        << z << std::endl;
-        } else if (data.x >= THRESH_OCC) {
-          data.st = voxel_state::kOccupied;
-        }
-        handler.set(data);
-
-      } else if (handler.isFrontier(map_)) {
-        has_frontier = true;
-      }
-    } else {
+    if (is_block) {
       VoxelBlock<T> *block = static_cast< VoxelBlock<T> *> (node);
       const int xlast = blockCoord(0) + BLOCK_SIDE;
       const int ylast = blockCoord(1) + BLOCK_SIDE;
@@ -310,6 +281,34 @@ class node_iterator {
 
           }
         }
+      }
+    } else {
+      // data handler set parent_node ->value[idx];
+      // TODO include when we consider frontier nodes at lower than leaf level
+      const int level = keyops::level(morton);
+//      Node<T> *parent_node =
+//          map_.fetch_octant(blockCoord.x(), blockCoord.y(), blockCoord.z(), level - 1);
+//      const int edge = (map_.leaf_level()-level ) * BLOCK_SIDE;
+//      const int idx = ((blockCoord.x() & edge) > 0) + 2 * ((blockCoord.y() & edge) > 0)
+//          + 4 * ((blockCoord.z() & edge) > 0);
+      const int childid = child_id(morton, level, map_.max_level());
+
+//      NodeHandler<T> handler = {parent_node, idx}; // pointer to parent node and idx of this node
+      NodeHandler<T> handler = {node, childid}; // pointer to parent node and idx of this node
+      auto data = handler.get();
+
+      if (data.st == voxel_state::kFrontier && !handler.isFrontier(map_)) {
+        if (data.x <= THRESH_FREE) {
+          data.st = voxel_state::kFree;
+//              std::cout << "[superegiht/node_it] frontier=> free , voxel " << x << " " << y << " "
+//                        << z << std::endl;
+        } else if (data.x >= THRESH_OCC) {
+          data.st = voxel_state::kOccupied;
+        }
+        handler.set(data);
+
+      } else if (handler.isFrontier(map_)) {
+        has_frontier = true;
       }
     }
     return has_frontier;

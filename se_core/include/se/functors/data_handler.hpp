@@ -106,7 +106,7 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
 
       // map boarder check, don't want the drone to fly there.
       if(face_voxel.x() < 0|| face_voxel.y() < 0 || face_voxel.z() <0 ||
-      face_voxel.x()>map.size() || face_voxel.y() > map.size() || face_voxel.z() > map.size()){
+      face_voxel.x() >= map.size() || face_voxel.y() >= map.size() || face_voxel.z() >= map.size()){
         return false;
       }
 
@@ -137,9 +137,9 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
 
         } else {
           // get parent node and get idx of this node to get value
-          key_t octant = se::keyops::encode(face_voxel.x(), face_voxel.y(), face_voxel.z(),
+          const key_t octant = se::keyops::encode(face_voxel.x(), face_voxel.y(), face_voxel.z(),
               map.leaf_level(), map.max_level());
-          int idx = se::child_id(octant, map.leaf_level(), map.max_level());
+          const int idx = se::child_id(octant, map.leaf_level(), map.max_level());
           // in case the neighbour node is also not in the same parent
           if (node->data(idx).st == voxel_state::kUnknown)
             return true;
@@ -197,16 +197,16 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
    */
   bool isFrontier(const se::Octree<FieldType> &map) {
     // find out at which level the node is
-    key_t morton_parent = _node->code_;
-    Eigen::Vector3i coord = _node->childCoordinates(_idx);
-    int level_parent = se::keyops::level(morton_parent);
+    const key_t morton_parent = _node->code_;
+    const Eigen::Vector3i coord = _node->childCoordinates(_idx);
+    const int level_parent = se::keyops::level(morton_parent);
     int side_parent = _node->side_;
     int level_leaf = level_parent;
     while (side_parent != BLOCK_SIDE) {
       side_parent = side_parent >> 1;
       level_leaf++;
     }
-    int scale = level_leaf - level_parent;
+    const int scale = level_leaf - level_parent;
 
     // when this node is a leaf node , we only want to have frontiers at the higher resolution /
     // voxel level
@@ -230,7 +230,7 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
       const int neighbor_z = coord.z() + scale * BLOCK_SIDE * se::face_neighbor_offsets[i].z();
       // map boarder check, don't want the drone to fly there.
       if(neighbor_x < 0|| neighbor_y  < 0 || neighbor_z < 0||
-          neighbor_x>map.size() || neighbor_y > map.size() || neighbor_z > map.size()){
+          neighbor_x >= map.size() || neighbor_y >= map.size() || neighbor_z >= map.size()){
         return false;
       }
       // neighbour voxelblock is not allocated

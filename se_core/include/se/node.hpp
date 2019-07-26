@@ -103,10 +103,6 @@ public:
   void occupancyUpdated(const bool o) { occupancyUpdated_ = o; }
   bool occupancyUpdated() { return occupancyUpdated_; }
 
-  int get_node_idx(const int x, const int y, const int z, const int edge){
-   return ((x & edge) > 0) + 2 * ((y & edge) > 0) +
-       4 * ((z &edge) >0);
-  }
 
 protected:
     Node *child_ptr_[8];

@@ -19,12 +19,11 @@ template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 
 
 void insertBlocksToMap(map3i &blocks_map, set3i *blocks) {
-  if (blocks->size() == 0) {
-    return;
-  }
+  if (blocks->size() == 0) return;
+
 
   for (auto it = blocks->begin(); it != blocks->end(); ++it) {
-    Eigen::Vector3i voxel_coord = se::keyops::decode(*it);
+    const Eigen::Vector3i voxel_coord = se::keyops::decode(*it);
     blocks_map.emplace(*it, voxel_coord);
   }
 //  std::cout << "[supereight/boundary] frontier maps size " << blocks_map.size() << std::endl;
