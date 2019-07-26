@@ -38,6 +38,12 @@ struct Planning_Configuration{
   int dphi;
   int dtheta;
 
+  bool clear_sphere_for_planning;
+
+  /**
+   * [m] set all voxel inside the sphere to voxel state free
+   */
+  float clearance_radius;
 };
 
 inline Planning_Configuration getDefaultPlanningConfig(){
@@ -48,6 +54,8 @@ inline Planning_Configuration getDefaultPlanningConfig(){
   config.dr = 0.1;
   config.dphi = 10;
   config.dtheta = 10;
+  config.clear_sphere_for_planning = true;
+  config.clearance_radius = 1.0f;
   return config;
 }
 #endif //SUPEREIGHT_PLANNER_CONFIG_H

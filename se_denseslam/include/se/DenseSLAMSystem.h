@@ -56,7 +56,9 @@
 
 #include <se/utils/eigen_utils.h>
 #include "se/path_planning/candidate_view.hpp"
-#include <se/path_planning/exploration_utils.hpp>
+#include "se/path_planning/exploration_utils.hpp"
+#include "se/path_planning/init_new_position.hpp"
+
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
  */
@@ -244,8 +246,21 @@ class DenseSLAMSystem {
    * \return true if raycasting was performed and false if it wasn't.
    */
   bool raycasting(const Eigen::Vector4f &k, float mu, unsigned int frame);
-
+/**
+ * Planning interface for the pipeline
+ * currently only candidate view generation and best candidate evaluation based on information gain
+ * \param path
+ * \param cand_views
+ * \return true if planning was performed
+ */
   bool planning(se::exploration::posevector &path, se::exploration::posevector &cand_views);
+
+  /**
+   * Set all voxel in a sphere from unknown to free for planning initialization
+   * @param position [voxel coord] current position
+   * @return true if initialization was performed
+   */
+  bool initSphere(const Eigen::Vector3i position);
   /*
    * TODO Implement this.
    */

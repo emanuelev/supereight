@@ -196,6 +196,9 @@ static inline bool saveMatrixToDepthImage(const Eigen::MatrixXd matrix,
 
   return true;
 }
+
+
+
 } //exploration
 }//namespace se
 #endif //SUPEREIGHT_EXPLORATION_UTILS_HPP

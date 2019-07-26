@@ -46,7 +46,7 @@
 #include "kfusion/mapping_impl.hpp"
 #include "bfusion/alloc_impl.hpp"
 #include "kfusion/alloc_impl.hpp"
-#include <se/boundary_extraction.hpp>
+#include "se/boundary_extraction.hpp"
 
 PerfStats Stats;
 static bool print_kernel_timing = false;
@@ -133,6 +133,7 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i &inputSize,
   discrete_vol_ptr_->init(volume_resolution_.x(), volume_dimension_.x());
   volume_ =
       Volume<FieldType>(volume_resolution_.x(), volume_dimension_.x(), discrete_vol_ptr_.get());
+
 }
 
 bool DenseSLAMSystem::preprocessing(const unsigned short *inputDepth,
@@ -520,6 +521,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 
 bool DenseSLAMSystem::planning(se::exploration::posevector &path, se::exploration::posevector
 &cand_views) {
+
+
   std::cout << "[se/denseSLAM] planning num cand view "<< planning_config_.num_cand_views <<std::endl;
   float res_v = volume_dimension_.cast<float>().x()/volume_resolution_.cast<float>().x();
 
@@ -536,6 +539,11 @@ bool DenseSLAMSystem::planning(se::exploration::posevector &path, se::exploratio
 //  std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
 }
 
+bool DenseSLAMSystem::initSphere(const Eigen::Vector3i position) {
+
+  // planning initialization
+  se::exploration::initNewPosition(pose_*Tbc_, planning_config_, volume_);
+}
 void DenseSLAMSystem::dump_volume(std::string) {
 
 }
