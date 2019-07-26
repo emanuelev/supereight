@@ -88,8 +88,8 @@ int CollisionCheck<T>::isSphereCollisionFree(const Eigen::Vector3i center) {
             // if true keep old voxelblock pointer and fetch
             // else get new voxel block
             if ((point_v.x() / BLOCK_SIDE) == (prev_pos.x() / BLOCK_SIDE)
-                && ((point_v.y()) / BLOCK_SIDE) == (prev_pos.y() / BLOCK_SIDE)
-                && ((point_v.z()) / BLOCK_SIDE) == (prev_pos.z() / BLOCK_SIDE)) {
+                && (point_v.y() / BLOCK_SIDE) == (prev_pos.y() / BLOCK_SIDE)
+                && (point_v.z() / BLOCK_SIDE) == (prev_pos.z() / BLOCK_SIDE)) {
               if (block->data(point_v).x >= 0.f) {
 //                std::cout << " [secollision] collision at " << point_v.format(InLine) << " plog "
 //                          << block->data(point_v).x << std::endl;

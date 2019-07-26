@@ -34,14 +34,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <atomic>
 #include <ctime>
-
 #include <Eigen/Dense>
 
-#include <se/volume_traits.hpp>
+#include "se/volume_traits.hpp"
 #include "voxel_traits.hpp"
 #include "octree_defines.h"
 #include "utils/math_utils.h"
 #include "utils/memory_pool.hpp"
+#include "utils/eigen_utils.h"
 #include "io/se_serialise.hpp"
 
 namespace se {
@@ -85,9 +85,15 @@ public:
   Node *& child(const int offset ){
     return child_ptr_[offset];
   }
-
+  value_type data(const int offset)const{
+    return value_[offset];
+  }
   virtual bool isLeaf(){ return false; }
-
+/**
+ *
+ * @param offset = idx
+ * @return bottom left corner coordinate of the node
+ */
   Eigen::Vector3i childCoordinates(const int offset) const {
     // Get the Node coordinates from the Morton code and add the child
     // offset.

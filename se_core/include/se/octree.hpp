@@ -73,7 +73,8 @@ class Octree {
   typedef typename traits_type::value_type value_type;
   value_type empty() const { return traits_type::empty(); }
   value_type init_val() const { return traits_type::initValue(); }
-
+  inline int max_level() const { return max_level_; }
+  inline int leaf_level() const{ return leaf_level_; }
   // Compile-time constant expressions
   // # of voxels per side in a voxel block
   static constexpr unsigned int blockSide = BLOCK_SIDE;
@@ -253,6 +254,7 @@ class Octree {
   int size_;
   float dim_;
   int max_level_;
+  int leaf_level_;
   MemoryPool<VoxelBlock<T> > block_buffer_;
   MemoryPool<Node<T> > nodes_buffer_;
 
@@ -480,6 +482,7 @@ void Octree<T>::init(int size, float dim) {
   size_ = size;
   dim_ = dim;
   max_level_ = log2(size);
+  leaf_level_ = max_level_ - math::log2_const(blockSide);
   nodes_buffer_.reserve(1);
   root_ = nodes_buffer_.acquire_block();
   root_->side_ = size;
@@ -488,6 +491,7 @@ void Octree<T>::init(int size, float dim) {
   std::memset(keys_at_level_, 0, reserved_);
 }
 
+// returned node could be at any level
 template<typename T>
 inline void Octree<T>::fetch_octant(const int x, const int y, const int z, Node<T>* &pointer,
     bool &voxelblock)
@@ -506,7 +510,6 @@ const {
     Node<T> *tmp  = n->child((x & edge) > 0u, (y & edge) > 0u, (z & edge) > 0u);
     if (!tmp) {
       pointer = n;
-
       return ;
     }
     n= tmp;
@@ -519,7 +522,7 @@ const {
 
 template<typename T>
 inline VoxelBlock<T> *Octree<T>::fetch(const uint64_t morton) const {
- Eigen::Vector3i coord = unpack_morton(morton);
+ Eigen::Vector3i coord = se::keyops::decode(morton);
  return fetch(coord.x(), coord.y(), coord.z());
 }
 template<typename T>
@@ -540,6 +543,7 @@ inline VoxelBlock<T> *Octree<T>::fetch(const int x, const int y, const int z) co
   }
   return static_cast<VoxelBlock<T> * > (n);
 }
+// returns the octant at the given level
 
 template<typename T>
 inline Node<T> *Octree<T>::fetch_octant(const int x,
@@ -556,6 +560,7 @@ inline Node<T> *Octree<T>::fetch_octant(const int x,
   unsigned edge = size_ / 2;
   for (int d = 1; edge >= blockSide && d <= depth; edge /= 2, ++d) {
     n = n->child((x & edge) > 0u, (y & edge) > 0u, (z & edge) > 0u);
+    // node not allocated at the input level
     if (!n) {
       return NULL;
     }
