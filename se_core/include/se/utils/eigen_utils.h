@@ -20,14 +20,15 @@ typedef AlignedVector<std::pair<Eigen::Vector3i, double>> VectorPair3iDouble;
 
 
 
-typedef std::map<uint64_t,
+typedef std::map<key_t ,
                  Eigen::Vector3i,
-                 std::less<uint64_t>,
-                 Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector3i> > > map3i;
-typedef std::map<uint64_t,
+                 std::less<key_t>,
+                 Eigen::aligned_allocator<std::pair<const key_t, Eigen::Vector3i> > > map3i;
+typedef std::map<key_t,
                  VectorVec3i,
-                 std::less<uint64_t>,
-                 Eigen::aligned_allocator<std::pair<const uint64_t, VectorVec3i> > > mapvec3i;
+                 std::less<key_t>,
+                 Eigen::aligned_allocator<std::pair<const key_t, VectorVec3i> > > mapvec3i;
+
 static Eigen::IOFormat
     InLine(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", " ", ";");
 #endif //SUPEREIGHT_EIGEN_ALIGNED_ALLOCATION_H

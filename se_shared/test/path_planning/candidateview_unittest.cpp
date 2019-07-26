@@ -27,6 +27,7 @@
 */
 #include <random>
 #include "se/octree.hpp"
+#include "se/node_iterator.hpp"
 #include "se/node.hpp"
 #include "se/utils/math_utils.h"
 #include "se/utils/morton_utils.hpp"
@@ -36,6 +37,7 @@
 #include "gtest/gtest.h"
 
 #include "se/path_planning/candidate_view.hpp"
+#include "se/path_planning/init_new_position.hpp"
 
 typedef std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i> > vec3i;
 
@@ -55,7 +57,6 @@ class CandidateViewTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
 
-
     unsigned size = 128;
     float dim = 12.8f;
     oct_.init(size, dim); // 10 meters
@@ -64,7 +65,7 @@ class CandidateViewTest : public ::testing::Test {
 
     float voxelsize = oct_.dim() / oct_.size(); // 0.1m
     const float inverse_voxelsize = 1.f / voxelsize;
-    const int band = 1 * inverse_voxelsize;
+    const int band = 1 * inverse_voxelsize; // 10
     const Eigen::Vector3i offset = Eigen::Vector3i::Constant(oct_.size() / 2 - band / 2);
     unsigned leaf_level = log2(size) - log2(se::Octree<testT>::blockSide);
     for (int z = 0; z < band; ++z) {
@@ -76,7 +77,9 @@ class CandidateViewTest : public ::testing::Test {
       }
     }
     oct_.allocate(alloc_list.data(), alloc_list.size());
+
   }
+
   Volume<testT> volume_;
   typedef se::Octree<testT> OctreeF;
   OctreeF oct_;
@@ -155,10 +158,38 @@ TEST_F(CandidateViewTest, EntropyCalculation_occ) {
 
   //THEN
 }
-TEST_F(CandidateViewTest, EntropyCalculation) {
+TEST_F(CandidateViewTest, getSphereAroundPoint ) {
   //GIVEN:
-
+  // Allocated block: {56, 8, 248};
+  mapvec3i block_voxel_map;
+  const Eigen::Vector3i center = {60, 12, 252};
+  const float radius = 0.2f;// [m] 2 voxels
   //WHEN
+  /* Update bottom left corner as occupied */
+  se::VoxelBlock<testT> *block = oct_.fetch(56, 8, 248);
+  const Eigen::Vector3i blockCoord = block->coordinates();
+  int x, y, z, blockSide;
+  testT low;
+  low.x = 2.f;
+  testT high;
+  high.x = 10.f;
+  blockSide = (int) se::VoxelBlock<testT>::side;
+  int xlast = blockCoord(0) + blockSide;
+  int ylast = blockCoord(1) + blockSide;
+  int zlast = blockCoord(2) + blockSide;
+  for (z = blockCoord(2); z < zlast; ++z) {
+    for (y = blockCoord(1); y < ylast; ++y) {
+      for (x = blockCoord(0); x < xlast; ++x) {
+        if ((blockCoord(0)) < x && x < (xlast - 4) && (blockCoord(1)) < y && y < (ylast - 4)
+            && (blockCoord(2)) < z && z < (zlast - 4)) {
+          block->data(Eigen::Vector3i(x, y, z), low);
+        } else {
+          block->data(Eigen::Vector3i(x, y, z), high);
+        }
+      }
+    }
+  }
+  se::exploration::getSphereAroundPoint(center, radius, oct_, block_voxel_map);
 
   //THEN
 }

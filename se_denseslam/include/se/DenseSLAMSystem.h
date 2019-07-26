@@ -112,7 +112,7 @@ class DenseSLAMSystem {
 
   //exploration
   map3i frontier_map_;
-
+  bool first_clearance_ =false;
 
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -253,14 +253,9 @@ class DenseSLAMSystem {
  * \param cand_views
  * \return true if planning was performed
  */
-  bool planning(se::exploration::posevector &path, se::exploration::posevector &cand_views);
+  bool planning(se::exploration::posevector &path, se::exploration::posevector &cand_views,
+      mapvec3i *free_blocks);
 
-  /**
-   * Set all voxel in a sphere from unknown to free for planning initialization
-   * @param position [voxel coord] current position
-   * @return true if initialization was performed
-   */
-  bool initSphere(const Eigen::Vector3i position);
   /*
    * TODO Implement this.
    */

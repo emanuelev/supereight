@@ -27,10 +27,11 @@
 #include "se/utils/math_utils.h"
 #include "se/config.h"
 #include "se/utils/eigen_utils.h"
-#include "collision_checker.hpp"
+#include "candidate_view.hpp"
 #include "exploration_utils.hpp"
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 typedef SE_FIELD_TYPE FieldType;
+typedef std::set<uint64_t> set3i;
 namespace se {
 
 namespace exploration {
@@ -43,15 +44,15 @@ namespace exploration {
  * @param map
  * @param[out[ block_voxel_map [std::map]
  */
-void getSphereAroundPoint(const Eigen::Vector3i & center, const float
-clearance_radius, const Volume<FieldType> &map, mapvec3i *block_voxel_map){
-  const int res = map._map_index->dim() / map._map_index->size();
+template<typename FieldType>
+static void getSphereAroundPoint(const Eigen::Vector3i &center,
+                                 const float clearance_radius,
+                                 const Octree<FieldType> &map,
+                                 const float res,
+                                 mapvec3i *block_voxel_map
+                                 ) {
   const int radius_v = static_cast<int>(clearance_radius / res); // m/(m/voxel)
-  const int leaf_level = map._map_index->leaf_level();
-
-  se::Node<FieldType> *node = nullptr;
-  se::VoxelBlock<FieldType> *block = nullptr;
-  bool is_voxel_block;
+  const int leaf_level = map.leaf_level();
   for (int x = -radius_v; x <= radius_v; x++) {
     for (int y = -radius_v; y <= radius_v; y++) {
       for (int z = -radius_v; z <= radius_v; z++) {
@@ -60,16 +61,31 @@ clearance_radius, const Volume<FieldType> &map, mapvec3i *block_voxel_map){
         if (point_offset_v.norm() <= radius_v) {
           // check to wich voxelblock the voxel belongs
           const Eigen::Vector3i point_v = point_offset_v + center;
-          const key_t morton_code = map._map_index->hash(x,y,z, leaf_level);
-          (*block_voxel_map)[morton_code].push_back(Eigen::Vector3i(x,y,z));
-
-
+          const key_t morton_code = keyops::encode(point_v.x(), point_v.y(),
+              point_v.z(), leaf_level, map.max_level());
+          (*block_voxel_map)[morton_code].push_back(point_v);
         }
-
       }//z
     }//y
   }//x
 
+}
+
+template<typename FieldType>
+static void setStateToFree(Octree<FieldType> &map, mapvec3i *block_voxel_map) {
+
+  for (const auto &block : *block_voxel_map) {
+    VoxelBlock<FieldType> *block_ptr = map.fetch(block.first);
+    for (const auto &voxel : block.second) {
+      // make handler with the current voxel
+      VoxelBlockHandler<FieldType> handler = {block_ptr, voxel};
+      auto data = handler.get();
+      if (data.st == voxel_state::kUnknown) {
+        data.st = voxel_state::kFree;
+        handler.set(data);
+      }
+    }
+  }
 }
 /**
  * @brief At planning initialization, set all voxel's state  inside a sphere from
@@ -78,19 +94,31 @@ clearance_radius, const Volume<FieldType> &map, mapvec3i *block_voxel_map){
  * @param planning_config
  * @param volume
  */
-void initNewPosition(const Eigen::Vector3i & center, const Planning_Configuration
-&planning_config, const Volume<FieldType> & map){
 
+template<typename FieldType>
+static void initNewPosition(const Eigen::Matrix4f &pose,
+                            const Planning_Configuration &planning_config,
+                            mapvec3i *block_voxel_map,
+                            Octree<FieldType> &map) {
+
+  const float res = map.dim() / static_cast<float>(map.size());
   // create list with morton code (VB) and list of voxels belonging to the sphere
-
-  mapvec3i block_voxel_map;
-  getSphereAroundPoint(center, planning_config.clearance_radius, map,
-      &block_voxel_map );
-
-  // update all the voxels in side it via node iterator and set them to voxel_state kfree
+  pose3D curr_pose = getCurrPose(pose, res);
+  std::vector<se::key_t> alloc_list;
+  getSphereAroundPoint(curr_pose.p.cast<int>(),
+                       planning_config.clearance_radius,
+                       map,
+                       res,
+                       block_voxel_map);
+  // allocate the space
+  for(const auto & block : *block_voxel_map){
+    alloc_list.push_back(block.first); // insert morton
+  }
+  map.allocate(alloc_list.data(), alloc_list.size());
+  setStateToFree(map, block_voxel_map);
+  std::cout << "[se/setSphere] done." << std::endl;
 
 }
-
 
 }// namespace exploration
 }// namespace se
