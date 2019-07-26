@@ -491,6 +491,7 @@ void Octree<T>::init(int size, float dim) {
   std::memset(keys_at_level_, 0, reserved_);
 }
 
+// returned node could be at any level
 template<typename T>
 inline void Octree<T>::fetch_octant(const int x, const int y, const int z, Node<T>* &pointer,
     bool &voxelblock)
@@ -509,7 +510,6 @@ const {
     Node<T> *tmp  = n->child((x & edge) > 0u, (y & edge) > 0u, (z & edge) > 0u);
     if (!tmp) {
       pointer = n;
-
       return ;
     }
     n= tmp;
@@ -543,6 +543,7 @@ inline VoxelBlock<T> *Octree<T>::fetch(const int x, const int y, const int z) co
   }
   return static_cast<VoxelBlock<T> * > (n);
 }
+// returns the octant at the given level
 
 template<typename T>
 inline Node<T> *Octree<T>::fetch_octant(const int x,
@@ -559,6 +560,7 @@ inline Node<T> *Octree<T>::fetch_octant(const int x,
   unsigned edge = size_ / 2;
   for (int d = 1; edge >= blockSide && d <= depth; edge /= 2, ++d) {
     n = n->child((x & edge) > 0u, (y & edge) > 0u, (z & edge) > 0u);
+    // node not allocated at the input level
     if (!n) {
       return NULL;
     }

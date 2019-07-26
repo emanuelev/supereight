@@ -249,21 +249,22 @@ class node_iterator {
     const Eigen::Vector3i blockCoord = keyops::decode(morton);
     Node<T> *node = nullptr;
     bool is_block = false;
+    // returned node could be at any level, but currently only frontier node at leaf level
     map_.fetch_octant(blockCoord(0), blockCoord(1), blockCoord(2), node, is_block);
 
     if (!is_block) {
       // data handler set parent_node ->value[idx];
+      // TODO include when we consider frontier nodes at lower than leaf level
       const int level = keyops::level(morton);
-      Node<T> *parent_node =
-          map_.fetch_octant(blockCoord.x(), blockCoord.y(), blockCoord.z(), level - 1);
-      const int edge = (map_.leaf_level()-level ) * BLOCK_SIDE;
-      const int idx = ((blockCoord.x() & edge) > 0) + 2 * ((blockCoord.y() & edge) > 0)
-          + 4 * ((blockCoord.z() & edge) > 0);
+//      Node<T> *parent_node =
+//          map_.fetch_octant(blockCoord.x(), blockCoord.y(), blockCoord.z(), level - 1);
+//      const int edge = (map_.leaf_level()-level ) * BLOCK_SIDE;
+//      const int idx = ((blockCoord.x() & edge) > 0) + 2 * ((blockCoord.y() & edge) > 0)
+//          + 4 * ((blockCoord.z() & edge) > 0);
       const int childid = child_id(morton, level, map_.max_level());
 
-      NodeHandler<T> handler = {parent_node, idx}; // pointer to parent node and idx of this node
-      std::cout << "[se/delete frontier] side length " << edge << "idx" << idx
-      << " childid" << childid << std::endl;
+//      NodeHandler<T> handler = {parent_node, idx}; // pointer to parent node and idx of this node
+      NodeHandler<T> handler = {node, childid}; // pointer to parent node and idx of this node
       auto data = handler.get();
 
       if (data.st == voxel_state::kFrontier && !handler.isFrontier(map_)) {

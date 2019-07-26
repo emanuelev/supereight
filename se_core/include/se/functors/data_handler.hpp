@@ -102,7 +102,6 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
     face_neighbour_voxel[3] << _voxel.x(), _voxel.y() + 1, _voxel.z();
     face_neighbour_voxel[4] << _voxel.x(), _voxel.y(), _voxel.z() - 1;
     face_neighbour_voxel[5] << _voxel.x(), _voxel.y(), _voxel.z() + 1;
-//    std::cout << "[se/datahandler] vb handler voxel " << _voxel.format(InLine);
     for (const auto &face_voxel : face_neighbour_voxel) {
 
       // map boarder check, don't want the drone to fly there.
@@ -116,7 +115,6 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
           && (_voxel.y() / BLOCK_SIDE) == (face_voxel.y() / BLOCK_SIDE)
           && (_voxel.z() / BLOCK_SIDE) == (face_voxel.z() / BLOCK_SIDE)) {
         // CASE 1: same voxel block
-//        std::cout << " same block block data "<< face_voxel.format(InLine)<<  std::endl;
         if (_block->data(face_voxel).st == voxel_state::kUnknown)
 
           return true;
@@ -124,25 +122,24 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
         // not same voxel block => check if neighbour is a voxel block
         se::Node<FieldType> *node = nullptr;
         bool is_voxel_block;
-//        std::cout << " not same vb fetch octant"<< std::endl;
         map.fetch_octant(face_voxel(0), face_voxel(1), face_voxel(2), node, is_voxel_block);
        // CASE 2: not same voxelblock but is a voxel
         if (is_voxel_block) {
           // neighbour is a voxel block
           se::VoxelBlock<FieldType> *block = static_cast<se::VoxelBlock<FieldType> *> (node);
-//          std::cout<< " is block get face_voxel" << std::endl;
           if (block->data(face_voxel).st == voxel_state::kUnknown)
             return true;
 
         // CASE 3: not same voxelblock but belongs to a node
         // TODO take value from node or say the curr voxel is unknown?
+        // currently just take node state
+        // the node can be at a much higher level
 
         } else {
           // get parent node and get idx of this node to get value
           key_t octant = se::keyops::encode(face_voxel.x(), face_voxel.y(), face_voxel.z(),
               map.leaf_level(), map.max_level());
           int idx = se::child_id(octant, map.leaf_level(), map.max_level());
-//        std::cout << " is node, get value "<< node->data(idx).st << std::endl;
           // in case the neighbour node is also not in the same parent
           if (node->data(idx).st == voxel_state::kUnknown)
             return true;
@@ -222,7 +219,7 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
 //    std::cout << " level leaf " << level_leaf << " side parent after " << side_parent << " scale "
 //              << scale << std::endl;
 
-// TODO handling frontier nodes at higher level than
+// TODO handling frontier nodes at higher level than leaf level
     if (scale > 1 && level_parent + 1 != level_leaf) {
       return false;
     }
@@ -238,8 +235,8 @@ class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> 
       }
       // neighbour voxelblock is not allocated
       if (map.fetch_octant(neighbor_x, neighbor_y, neighbor_z, level_parent + 1) == nullptr) {
-        std::cout << "[se/datahandler] " << coord.format(InLine) << " is frontier " << neighbor_x
-                  << " " << neighbor_y << " " << neighbor_z << std::endl;
+//        std::cout << "[se/datahandler] " << coord.format(InLine) << " is frontier " << neighbor_x
+//                  << " " << neighbor_y << " " << neighbor_z << std::endl;
         return true;
       }
     }

@@ -262,12 +262,6 @@ struct bfusion_update {
     const bool is_voxel = std::is_same<DataHandlerT, VoxelBlockHandler<FieldType>>::value;
 
 
-    // compute morton code of current node / voxelblock
-//    const key_t morton_code_via_handler = se::keyops::encode(octant_coord.x(),
-//                                                octant_coord.y(),
-//                                                octant_coord.z(),
-//                                                level_child,
-//                                                max_level);
     const key_t morton_code_child = handler.get_morton_code();
     // invalid depth measurement
     if (depthSample <= 0) {
@@ -297,8 +291,10 @@ struct bfusion_update {
         data.st = voxel_state::kOccupied;
       } else if (prob <= THRESH_FREE) {
         data.st = voxel_state::kFree;
+        if(is_voxel || se::keyops::level(morton_code_child)==map.leaf_level()) {
 #pragma omp critical
-        free_blocks_->insert(morton_code_child);
+          free_blocks_->insert(morton_code_child);
+        }
       } else {
         // if the occupancy probability is not low or high enough => back to unknown
         data.st = voxel_state::kUnknown;
@@ -322,28 +318,12 @@ struct bfusion_update {
       {
         if (std::is_same<FieldType, OFusion>::value) {
           // conservative estimate as the occupancy probability for a free voxel is set quite low
-          if (handler.isFrontier(map) && data.st == voxel_state::kFree) {
-//            std::cout << "is frontier " << data.st << std::endl;
-//          check if the voxel block was allocated
-
-//            if(is_voxel) {
+          if (data.st == voxel_state::kFree) {
+            bool is_frontier = handler.isFrontier(map);
+            // TODO isFrontier only returns true for nodes at leaf level
+            if (is_frontier) {
               frontier_blocks_->insert(morton_code_child);
               data.st = voxel_state::kFrontier;
-//            } else{
-//              se::Node<FieldType> * node_tmp = handler.get_node();
-//              bool is_leaf = node_tmp->child(handler.get_child_idx())->isLeaf();
-//              std::cout << "[se/mapping] frontier block but not added, this node is a leaf " <<
-//              is_leaf << " with the coord " << handler.getNodeCoordinates() << std::endl;
-//               auto p = std::find(frontier_blocks_->begin(), frontier_blocks_->end(),
-//                   morton_code_child);
-//               if(p!= frontier_blocks_->end()){
-//                 std::cout << "node morton code was in frontier set via voxelblock update" <<
-//                 std::endl;
-//
-//               } else{
-//                 std::cout << "node morton code was not in set" << std::endl;
-//               }
-
             }
           }
         }
@@ -361,7 +341,7 @@ struct bfusion_update {
         occupiedVoxels_.push_back(pix);
       }
     */
+    }
   }
-
 };
 #endif

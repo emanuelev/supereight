@@ -85,7 +85,9 @@ public:
   Node *& child(const int offset ){
     return child_ptr_[offset];
   }
-
+  value_type data(const int offset)const{
+    return value_[offset];
+  }
   virtual bool isLeaf(){ return false; }
 /**
  *
