@@ -31,16 +31,16 @@
 #include "exploration_utils.hpp"
 
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
-typedef SE_FIELD_TYPE FieldType;
+//typedef SE_FIELD_TYPE FieldType;
 namespace se {
 
 namespace exploration {
 
-static se::geometry::collision_status test_voxel2(const Volume<FieldType>::value_type &val) {
-  if (val.st == voxel_state::kUnknown) return se::geometry::collision_status::unseen;
-  if (val.st == voxel_state::kFree) return se::geometry::collision_status::empty;
-  return se::geometry::collision_status::occupied;
-};
+//static se::geometry::collision_status test_voxel2(const Volume<FieldType>::value_type &val) {
+//  if (val.st == voxel_state::kUnknown) return se::geometry::collision_status::unseen;
+//  if (val.st == voxel_state::kFree) return se::geometry::collision_status::empty;
+//  return se::geometry::collision_status::occupied;
+//};
 /**
  * Candidate View
  */
@@ -75,7 +75,6 @@ class CandidateView {
 
   std::pair<pose3D, double> getBestCandidate(const VectorPairPoseDouble &cand_list);
 
-  pose3D getCurrPose();
   const float getIGWeight_tanh(const float tanh_range,
                                const float tanh_ratio,
                                const float t,
@@ -385,7 +384,7 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
   VectorPairPoseDouble cand_pose_w_gain;
 
   // add curr pose to be evaluated
-  pose3D curr_pose = getCurrPose();
+  pose3D curr_pose = getCurrPose(curr_pose_, res_);
 //  std::cout << "[se/candview] curr pose " << curr_pose.p.format(InLine) << " yaw "
 //            << toEulerAngles(curr_pose.q).yaw * 180 / M_PI << std::endl;
 //  std::cout << "[se/candview] cand view size " << cand_views_.size() << std::endl;
@@ -523,14 +522,6 @@ std::pair<pose3D,
   return std::make_pair(best_cand, max_gain);
 }
 
-// transforms current pose from matrix4f to position and orientation (quaternion)
-template<typename T>
-pose3D CandidateView<T>::getCurrPose() {
-  pose3D curr_pose;
-  curr_pose.q = se::math::rot_mat_2_quat(curr_pose_.block<3, 3>(0, 0));
-  curr_pose.p = curr_pose_.block<3, 1>(0, 3) / res_;
-  return curr_pose;
-}
 
 /**
  * calculates exploration path
