@@ -16,12 +16,14 @@ add_definitions(-DEIGEN_MAX_ALIGN_BYTES=16)
 option(WITH_OPENMP "Compile with OpenMP" ON)
 
 # Initialize the variables containing the built libraries and field types.
+set(SUPEREIGHT_OMPL_LIBS "")
 set(SUPEREIGHT_SHARED_LIBS "")
 set(SUPEREIGHT_CORE_LIBS "")
 set(SUPEREIGHT_DENSESLAM_LIBS "")
 set(SUPEREIGHT_FIELD_TYPES "")
 
 # Build each supereight module.
+add_subdirectory(se_ompl)
 add_subdirectory(se_shared)
 add_subdirectory(se_core)
 add_subdirectory(se_denseslam)

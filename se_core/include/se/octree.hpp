@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "neighbors/neighbor_gather.hpp"
 #include "neighbors/voxel_abstraction.hpp"
 
+//typedef SE_FIELD_TYPE FieldType;
 namespace se {
 
 template<typename T>

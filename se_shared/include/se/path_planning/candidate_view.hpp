@@ -31,6 +31,10 @@
 #include "collision_checker.hpp"
 #include "exploration_utils.hpp"
 
+
+#include "se/ompl/prob_collision_checker.hpp"
+#include <se/ompl/planning_parameter.hpp>
+
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 //typedef SE_FIELD_TYPE FieldType;
 namespace se {
@@ -613,7 +617,20 @@ void getExplorationPath(const Volume<T> &volume,
 
   VecPairPoseFloat pose_gain = candidate_view.getCandidateGain(step);
 
-  std::pair<pose3D, float> best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain);
+  // adding ompl
+  // setup collision checker
+  ProbCollisionChecker<T>(*volume._map_index, planning_params);
+  // setup rrt ompl object
+
+  // for all goals
+  for (const auto & cand_goal : pose_gain ){
+
+    // plan path from pose to cand goal
+
+  }
+
+
+  std::pair<pose3D, double> best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain);
 //  std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)
 //            << " yaw " << toEulerAngles(best_cand_pose_with_gain.first.q).yaw * 180.f / M_PI
 //            << " with gain " << best_cand_pose_with_gain.second << std::endl;
