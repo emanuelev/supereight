@@ -1,6 +1,6 @@
 /*
 
-Copyright 2016 Emanuele Vespa, Imperial College London 
+Copyright 2016 Emanuele Vespa, Imperial College London
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "geometry/aabb_collision.hpp"
 #include "interpolation/interp_gather.hpp"
 #include "neighbors/neighbor_gather.hpp"
-
+#include "neighbors/voxel_abstraction.hpp"
 
 namespace se {
 
@@ -64,11 +64,14 @@ class ray_iterator;
 template<typename T>
 class node_iterator;
 
-template<typename T>
+/*! \brief The main octree class. It's non-leaf nodes are of type Node and its
+ * leaf nodes of type VoxelBlock.
+ */
+template <typename T>
 class Octree {
-
  public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
   typedef voxel_traits<T> traits_type;
   typedef typename traits_type::value_type value_type;
   value_type empty() const { return traits_type::empty(); }
@@ -95,11 +98,21 @@ class Octree {
    */
   void init(int size, float dim);
 
+  /*! \brief Number of voxels per map edge.
+   */
   inline int size() const { return size_; }
-  inline float dim() const { return dim_; }
-  inline Node<T> *root() const { return root_; }
 
-  /*! \brief Retrieves voxel value at coordinates (x,y,z), if not present it 
+  /*! \brief Dimension of the map in map units.
+   */
+  inline float dim() const { return dim_; }
+
+  /*! \brief Dimension of the voxel edge in map units.
+   */
+  inline float voxelDim() const { return dim_ / size_; }
+
+  inline Node<T>* root() const { return root_; }
+
+  /*! \brief Sets voxel value at coordinates (x,y,z), if not present it
    * allocates it. This method is not thread safe.
    * \param x x coordinate in interval [0, size]
    * \param y y coordinate in interval [0, size]
@@ -108,18 +121,50 @@ class Octree {
   void set(const int x, const int y, const int z, const value_type val);
 
   /*! \brief Retrieves voxel value at coordinates (x,y,z)
+   *
    * \param x x coordinate in interval [0, size]
    * \param y y coordinate in interval [0, size]
    * \param z z coordinate in interval [0, size]
+   * \return The value of the voxel. If the voxel at coordinates (x,y,z) has
+   * not been allocated, the value of a child of the lowest level allocated
+   * Node is returned.
    */
 
   value_type get(const uint64_t& pos_morton) const;
   value_type get(const Eigen::Vector3i& pos) const;
   value_type get(const int x, const int y, const int z) const;
+
+  /*! \brief Retrieves voxel value at coordinates (x,y,z)
+   *
+   * \param x x coordinate in interval [0, size]
+   * \param y y coordinate in interval [0, size]
+   * \param z z coordinate in interval [0, size]
+   * \return The value of the voxel. If the voxel at coordinates (x,y,z) has
+   * not been allocated, the voxel initial value is returned.
+   */
   value_type get_fine(const int x, const int y, const int z) const;
 
-  /*! \brief Retrieves voxel values for the neighbors of voxel at coordinates
-   * (x,y,z)
+  /*! \brief Retrieves voxel value at coordinates (x,y,z) as a VoxelAbstration
+   *
+   * \param x x coordinate in interval [0, size]
+   * \param y y coordinate in interval [0, size]
+   * \param z z coordinate in interval [0, size]
+   * \return A VoxelAbstration with the value, coordinates and dimensions of
+   * the voxel. If the voxel at coordinates (x,y,z) has not been allocated, the
+   * lowest level allocated Node is returned.
+   */
+  VoxelAbstration<T> getLowestAsVoxel(const int x,
+                                      const int y,
+                                      const int z) const;
+
+  /*! \brief Retrieves the face neighbors of voxel at coordinates (x,y,z) as
+   * VoxelAbstrations.
+   *
+   * The returned VoxelAbstrations will be at the same or higher level in the
+   * Octree, depending on what level they are allocated at. Consequently, the
+   * neighbor of a Node will never be a VoxelBlock, even if that region is
+   * allocated at the VoxelBlock level.
+   *
    * If the safe template variable is true, then proper checks will be used so
    * that neighboring voxels outside the map will have a value of empty at a
    * cost of performance. Otherwise if the safe template variable is false,
@@ -128,6 +173,56 @@ class Octree {
    * ask for the neighbors of voxels at the edge of the map, then the non-safe
    * version should be safe to use and will result in better performance.
    *
+   * \param x x coordinate in interval [0, size]
+   * \param y y coordinate in interval [0, size]
+   * \param z z coordinate in interval [0, size]
+   * \return An std::array with the 6 neighboring voxels as VoxelAbstrations as
+   * well as the voxel whose neighbors were requested. The voxels are returned
+   * in the order: 0 -x +x -y +y -z +z, where 0 is the voxel whose neighbors
+   * were requested. Neighboring voxels that are not allocated have the initial
+   * value. Neighboring voxels that are outside the map have the empty value if
+   * safe is true, otherwise their value is undetermined.
+   *
+   * \todo The implementation is not yet efficient. A method similar to the one
+   * used in interp_gather should be used.
+   */
+  template <bool safe>
+  VoxelAbstrationArray<T, 7> getFaceNeighbors(const int x,
+                                              const int y,
+                                              const int z) const;
+
+  /*! \brief Retrieves voxel values for the face neighbors of voxel at
+   * coordinates (x,y,z).
+   *
+   * \warning DO NOT TRUST THIS FUNCTION.
+   *
+   * If the safe template variable is true, then proper checks will be used so
+   * that neighboring voxels outside the map will have a value of empty at a
+   * cost of performance. Otherwise if the safe template variable is false,
+   * neighboring voxels outside the map will not be detected and will have the
+   * value of some voxel inside the map. If you are certain your code will not
+   * ask for the neighbors of voxels at the edge of the map, then the non-safe
+   * version should be safe to use and will result in better performance.
+   *
+   * \param x x coordinate in interval [0, size]
+   * \param y y coordinate in interval [0, size]
+   * \param z z coordinate in interval [0, size]
+   * \return An std::array with the values of the 6 neighboring voxels as well
+   * as the value of the voxel whose neighbors were requested. The voxels are
+   * returned in the order: 0 -x +x -y +y -z +z, where 0 is the voxel whose
+   * neighbors were requested. Neighboring voxels that are not allocated have
+   * the initial value. Neighboring voxels that are outside the map have the
+   * empty value if safe is true, otherwise their value is undetermined.
+   *
+   * \todo The implementation is not yet efficient. A method similar to the one
+   * used in interp_gather should be used.
+   */
+  template <bool safe>
+  std::array<value_type, 7> get_face_neighbor_values(const int x,
+                                                     const int y,
+                                                     const int z) const;
+
+  /*! \brief Fetch the voxel block which contains voxel (x,y,z)
    * \param x x coordinate in interval [0, size]
    * \param y y coordinate in interval [0, size]
    * \param z z coordinate in interval [0, size]
@@ -157,7 +252,7 @@ class Octree {
    * \param x x coordinate in interval [0, size]
    * \param y y coordinate in interval [0, size]
    * \param z z coordinate in interval [0, size]
-   * \param depth maximum depth to be searched 
+   * \param depth maximum depth to be searched
    */
   Node<T> *fetch_octant(const int x, const int y, const int z, const int depth) const;
   void fetch_octant(const int x, const int y, const int z, Node<T> *&pointer, bool &voxelblock)
@@ -167,7 +262,7 @@ class Octree {
    * \param x x coordinate in interval [0, size]
    * \param y y coordinate in interval [0, size]
    * \param z z coordinate in interval [0, size]
-   * \param depth target insertion level 
+   * \param depth target insertion level
    */
   Node<T> *insert(const int x, const int y, const int z, const int depth);
 
@@ -179,16 +274,15 @@ class Octree {
   VoxelBlock<T> *insert(const int x, const int y, const int z);
 
   /*! \brief Interp voxel value at voxel position  (x,y,z)
-   * \param pos three-dimensional coordinates in which each component belongs 
+   * \param pos three-dimensional coordinates in which each component belongs
    * to the interval [0, size]
    * \return signed distance function value at voxel position (x, y, z)
    */
-
-  template<typename FieldSelect>
-  float interp(const Eigen::Vector3f &pos, FieldSelect f) const;
+  template <typename FieldSelect>
+  float interp(const Eigen::Vector3f& pos, FieldSelect f) const;
 
   /*! \brief Compute the gradient at voxel position  (x,y,z)
-   * \param pos three-dimensional coordinates in which each component belongs 
+   * \param pos three-dimensional coordinates in which each component belongs
    * to the interval [0, size]
    * \return gradient at voxel position pos
    */
@@ -200,13 +294,14 @@ class Octree {
   /*! \brief Get the list of allocated block. If the active switch is set to
    * true then only the visible blocks are retrieved.
    * \param blocklist output vector of allocated blocks
-   * \param active boolean switch. Set to true to retrieve visible, allocated 
+   * \param active boolean switch. Set to true to retrieve visible, allocated
    * blocks, false to retrieve all allocated blocks.
    */
   void getBlockList(std::vector<VoxelBlock<T> *> &blocklist, bool active);
   MemoryPool<VoxelBlock<T> > &getBlockBuffer() { return block_buffer_; };
   MemoryPool<Node<T> > &getNodesBuffer() { return nodes_buffer_; };
-  /*! \brief Computes the morton code of the block containing voxel 
+
+  /*! \brief Computes the morton code of the block containing voxel
    * at coordinates (x,y,z)
    * \param x x coordinate in interval [0, size]
    * \param y y coordinate in interval [0, size]
@@ -221,8 +316,8 @@ class Octree {
     return keyops::encode(x, y, z, scale, max_level_);
   }
 
-  /*! \brief allocate a set of voxel blocks via their positional key  
-   * \param keys collection of voxel block keys to be allocated (i.e. their 
+  /*! \brief allocate a set of voxel blocks via their positional key
+   * \param keys collection of voxel block keys to be allocated (i.e. their
    * morton number)
    * \param number of keys in the keys array
    */
@@ -232,6 +327,18 @@ class Octree {
   void saveMultilevel(const std::string &filename);
   void load(const std::string &filename);
   void loadMultilevel(const std::string &filename);
+
+  /*! \brief Write the coordinates, side length and Morton codes of allocated
+   * Nodes to a text file.
+   *
+   * Each line in the file has the following format:
+   * node_x node_y node_z side_length morton_code
+   *
+   * \param filename The name of the file to write.
+   * \return 0 if the file was written successfuly, 1 on error.
+   */
+  int writeAllocatedNodes(const std::string& filename);
+
   /*! \brief Counts the number of blocks allocated
    * \return number of voxel blocks allocated
    */
@@ -347,28 +454,38 @@ inline typename Octree<T>::value_type Octree<T>::get(const uint64_t &pos_morton)
   Eigen::Vector3i pos = unpack_morton(pos_morton);
   return get(pos);
 }
+
 template<typename T>
 inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3i &pos) const {
   return get(pos.x(), pos.y(), pos.z());
 }
+
 template<typename T>
-inline typename Octree<T>::value_type Octree<T>::get(const int x, const int y, const int z) const {
+inline typename Octree<T>::value_type Octree<T>::get(const int x,
+                                                     const int y,
+                                                     const int z) const {
 
   Node<T> *n = root_;
   if (!n) {
+    // The octree has not been properly initialized.
     return init_val();
   }
 
+  // Traverse the octree until a VoxelBlock (leaf) is reached.
   unsigned edge = size_ >> 1;
   for (; edge >= blockSide; edge = edge >> 1) {
     const int childid = ((x & edge) > 0) + 2 * ((y & edge) > 0) + 4 * ((z & edge) > 0);
     Node<T> *tmp = n->child(childid);
     if (!tmp) {
+      // The octree has not been allocated at the VoxelBlock (leaf) level at
+      // this region. Return the value stored at the lowest level allocated
+      // Node.
       return n->value_[childid];
     }
     n = tmp;
   }
 
+  // Reached the VoxelBlock (leaf) level.
   return static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z));
 }
 
@@ -379,32 +496,140 @@ inline typename Octree<T>::value_type Octree<T>::get_fine(const int x,
 
   Node<T> *n = root_;
   if (!n) {
+    // The octree has not been properly initialized.
     return init_val();
   }
 
+  // Traverse the octree until a VoxelBlock (leaf) is reached.
   unsigned edge = size_ >> 1;
   for (; edge >= blockSide; edge = edge >> 1) {
     const int childid = ((x & edge) > 0) + 2 * ((y & edge) > 0) + 4 * ((z & edge) > 0);
     Node<T> *tmp = n->child(childid);
     if (!tmp) {
+      // The octree has not been allocated at the VoxelBlock (leaf) level at
+      // this region. Return the initial voxel value.
       return init_val();
     }
     n = tmp;
   }
 
+  // Reached the VoxelBlock (leaf) level.
   return static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z));
 }
 
 template <typename T>
+inline VoxelAbstration<T> Octree<T>::getLowestAsVoxel(const int x,
+                                                      const int y,
+                                                      const int z) const {
+  VoxelAbstration<T> va(size(), dim());
+
+  Node<T> * n = root_;
+  if (n == nullptr) {
+    // The octree has not been properly initialized. Return the whole volume as
+    // a VoxelAbstration.
+    va.pos_  = Eigen::Vector3i::Constant(0);
+    va.side_ = size();
+    va.data_ = init_val();
+    return va;
+  }
+
+  // Traverse the octree until a VoxelBlock (leaf) is reached.
+  for (unsigned edge = size_ >> 1; edge >= blockSide; edge = edge >> 1) {
+    const int child_id = ((x & edge) > 0) +  2 * ((y & edge) > 0)
+        + 4*((z & edge) > 0);
+    Node<T>* tmp = n->child(child_id);
+    if (tmp == nullptr) {
+      // The octree has not been allocated at the VoxelBlock (leaf) level at
+      // this region. Return a child of the lowest level allocated Node as a
+      // VoxelAbstration. The edge is already the edge length of the child.
+      va.pos_  = n->childCoordinates(child_id);
+      va.side_ = edge;
+      va.data_ = n->value_[child_id];
+      return va;
+    } else {
+      n = tmp;
+    }
+  }
+
+  // Reached the VoxelBlock (leaf) level. Return the single voxel as a
+  // VoxelAbstration.
+  va.pos_  = Eigen::Vector3i(x, y, z);
+  va.side_ = 1;
+  va.data_ = static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z));
+  return va;
+}
+
+template <typename T>
 template <bool safe>
-inline std::array<typename Octree<T>::value_type, 6> Octree<T>::get_face_neighbors(
+inline VoxelAbstrationArray<T, 7> Octree<T>::getFaceNeighbors(
     const int x,
     const int y,
     const int z) const {
 
-  std::array<typename Octree<T>::value_type, 6> neighbor_values;
+  // The 6 face neighbors and the voxel with respect to which they are
+  // computed.
+  constexpr int num_neighbors = 6 + 1;
+  VoxelAbstrationArray<T, num_neighbors> neighbors;
 
-  for (size_t i = 0; i < 6; ++i) {
+  // Get the query voxel first to get the side length of the respective
+  // VoxelAbstration.
+  if (safe) {
+    if (    (x >= 0) and (x < size())
+        and (y >= 0) and (y < size())
+        and (z >= 0) and (z < size())) {
+      // The neighbor voxel is inside the volume, get its value.
+      neighbors[0] = getLowestAsVoxel(x, y, z);
+    } else {
+      // The neighbor voxel is outside the volume, set the value to empty.
+      neighbors[0] = VoxelAbstration<T>(size(), dim());
+      neighbors[0].data_ = empty();
+    }
+  } else {
+    // Get the value of the neighbor voxel.
+    neighbors[0] = getLowestAsVoxel(x, y, z);
+  }
+
+  const int current_side = neighbors[0].side_;
+
+  // Get the 6 face neighbors.
+  for (size_t i = 1; i < num_neighbors; ++i) {
+    // Compute the neighbor voxel coordinates.
+    const int neighbor_x = x + current_side * face_neighbor_offsets[i].x();
+    const int neighbor_y = y + current_side * face_neighbor_offsets[i].y();
+    const int neighbor_z = z + current_side * face_neighbor_offsets[i].z();
+
+    if (safe) {
+      if (    (neighbor_x >= 0) and (neighbor_x < size())
+          and (neighbor_y >= 0) and (neighbor_y < size())
+          and (neighbor_z >= 0) and (neighbor_z < size())) {
+        // The neighbor voxel is inside the volume, get its value.
+        neighbors[i] = getLowestAsVoxel(neighbor_x, neighbor_y, neighbor_z);
+      } else {
+        // The neighbor voxel is outside the volume, set the value to empty.
+        neighbors[i].data_ = empty();
+      }
+    } else {
+      // Get the value of the neighbor voxel.
+      neighbors[i] = getLowestAsVoxel(neighbor_x, neighbor_y, neighbor_z);
+    }
+  }
+
+  return neighbors;
+}
+
+template <typename T>
+template <bool safe>
+inline std::array<typename Octree<T>::value_type, 7> Octree<T>::get_face_neighbor_values(
+    const int x,
+    const int y,
+    const int z) const {
+
+  // The 6 face neighbors and the voxel with respect to which they are
+  // computed.
+  constexpr int num_neighbors = 6 + 1;
+  std::array<typename Octree<T>::value_type, num_neighbors> neighbor_values;
+
+  for (size_t i = 0; i < num_neighbors; ++i) {
     // Compute the neighbor voxel coordinates.
     const int neighbor_x = x + face_neighbor_offsets[i].x();
     const int neighbor_y = y + face_neighbor_offsets[i].y();
@@ -611,7 +836,7 @@ Node<T> *Octree<T>::insert(const int x, const int y, const int z, const int dept
         tmp->code_ = prefix | d;
         tmp->side_ = edge;
         n->children_mask_ = n->children_mask_ | (1 << childid);
-        // std::cout << "coords: " 
+        // std::cout << "coords: "
         //   << keyops::decode(keyops::code(tmp->code_)) << std::endl;
       }
       n->child(childid) = tmp;
@@ -633,21 +858,33 @@ VoxelBlock<T> *Octree<T>::insert(const int x, const int y, const int z) {
  * @param select
  * @return interpolated probability
  */
-template<typename T>
-template<typename FieldSelector>
-float Octree<T>::interp(const Eigen::Vector3f &pos, FieldSelector select) const {
+template <typename T>
+template <typename FieldSelector>
+float Octree<T>::interp(const Eigen::Vector3f& pos, FieldSelector select) const {
 
+  // The integer part of the interpolation point voxel coordinates.
   const Eigen::Vector3i base = math::floorf(pos).cast<int>();
+  // The fractional part of the interpolation point voxel coordinates.
   const Eigen::Vector3f factor = math::fracf(pos);
+  // Ensure the integer part is non-negative.
   const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
 
+  // Get the values stored in the 8 nearest voxels/octants.
   float points[8];
   gather_points(*this, lower, select, points);
 
-  return (((points[0] * (1 - factor(0)) + points[1] * factor(0)) * (1 - factor(1))
-      + (points[2] * (1 - factor(0)) + points[3] * factor(0)) * factor(1)) * (1 - factor(2))
-      + ((points[4] * (1 - factor(0)) + points[5] * factor(0)) * (1 - factor(1))
-          + (points[6] * (1 - factor(0)) + points[7] * factor(0)) * factor(1)) * factor(2));
+  // Interpolate the value based on the fractional part.
+  return (((points[0] * (1 - factor(0))
+          + points[1] * factor(0)) * (1 - factor(1))
+          + (points[2] * (1 - factor(0))
+          + points[3] * factor(0)) * factor(1))
+          * (1 - factor(2))
+          + ((points[4] * (1 - factor(0))
+          + points[5] * factor(0))
+          * (1 - factor(1))
+          + (points[6] * (1 - factor(0))
+          + points[7] * factor(0))
+          * factor(1)) * factor(2));
 }
 
 template<typename T>
@@ -722,7 +959,7 @@ Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f &pos) const {
               - get(upper(0), upper(1), lower_upper(2), n)(0)) * factor(0)) * factor(1))
       * factor(2);
 
-  return (0.5f * dim_ / size_) * gradient;
+  return (0.5f * voxelDim()) * gradient;
 }
 
 template<typename T>
@@ -798,7 +1035,7 @@ Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f &pos, FieldSelector select
               - select(get(upper(0), upper(1), lower_upper(2), n))) * factor(0)) * factor(1))
       * factor(2);
 
-  return (0.5f * dim_ / size_) * gradient;
+  return (0.5f * voxelDim()) * gradient;
 }
 
 template<typename T>
@@ -856,7 +1093,7 @@ void Octree<T>::reserveBuffers(const int n) {
 
 /**
  * Allocate the nodes for a given list of morten codes. The list contains the lowest level of
- * nodes to be allocated. There all missing parents will be allocated as well. Starting from 
+ * nodes to be allocated. There all missing parents will be allocated as well. Starting from
  * the root level the method allocates all nodes level by level that are neccessary to allocate
  * the morton codes in the list.
  * @param[in]  keys                List of morton codes describing the nodes to be allocated
@@ -1088,6 +1325,48 @@ void Octree<T>::loadMultilevel(const std::string &filename) {
     n->value_[0] = tmp.value_[0];
     std::memcpy(n->getBlockRawPtr(), tmp.getBlockRawPtr(), 512 * sizeof(*(tmp.getBlockRawPtr())));
   }
+}
+
+template <typename T>
+int Octree<T>::writeAllocatedNodes(const std::string& filename) {
+  // Open file for writing.
+  std::ofstream ofs (filename, std::ios::out);
+  if (not ofs.is_open()) {
+    std::cout << "Error writing file: " << filename << std::endl;
+    return 1;
+  } else {
+    std::cout << "Writing allocated Nodes to: " << filename << std::endl;
+  }
+
+  // Write all the allocated Nodes.
+  const size_t num_nodes = nodes_buffer_.size();
+  for (size_t i = 0; i < num_nodes; ++i) {
+    const Node<T>* n = nodes_buffer_[i];
+    // Get the Node's coordinates.
+    const Eigen::Vector3i n_coordinates = se::keyops::decode(n->code_);
+    ofs << n_coordinates.x() << " "
+        << n_coordinates.y() << " "
+        << n_coordinates.z() << " "
+        << n->side_ << " "
+        << n->code_ << "\n";
+  }
+
+  // Write all the allocated VoxelBlocks.
+  const size_t num_blocks = block_buffer_.size();
+  for (size_t i = 0; i < num_blocks; ++i) {
+    const VoxelBlock<T>* n = block_buffer_[i];
+    // Get the Node's coordinates.
+    const Eigen::Vector3i n_coordinates = se::keyops::decode(n->code_);
+    ofs << n_coordinates.x() << " "
+        << n_coordinates.y() << " "
+        << n_coordinates.z() << " "
+        << n->side_ << " "
+        << n->code_ << "\n";
+  }
+
+
+  ofs.close();
+  return 0;
 }
 
 }

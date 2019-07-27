@@ -1,5 +1,5 @@
 /*
-    Copyright 2016 Emanuele Vespa, Imperial College London 
+    Copyright 2016 Emanuele Vespa, Imperial College London
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
 
@@ -23,7 +23,7 @@
     SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
     CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
     OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #ifndef DATA_HANDLER_HPP
@@ -33,13 +33,17 @@
 #include "../octree.hpp"
 #include "../neighbors/neighbor_gather.hpp"
 
-template<typename SpecialisedHandlerT, typename NodeT>
+/*! \brief Provide a generic way to get and set the data of both intermediate
+ * (Node) and leaf (VoxelBlock) Octree nodes.
+ */
+template <typename SpecialisedHandlerT, typename NodeT>
 class DataHandlerBase {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   typename NodeT::value_type get() {
     return static_cast<SpecialisedHandlerT *>(this)->get();
   }
-  void set(const typename NodeT::value_type &val) {
+
+  void set(const typename NodeT::value_type& val) {
     static_cast<SpecialisedHandlerT *>(this)->set(val);
   }
 
@@ -62,16 +66,24 @@ class DataHandlerBase {
 
 };
 
+/*! \brief Get and set the data of a single voxel.
+ */
 template<typename FieldType>
-class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
-                                          se::VoxelBlock<FieldType> > {
-
- public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+class VoxelBlockHandler :
+  DataHandlerBase<VoxelBlockHandler<FieldType>, se::VoxelBlock<FieldType> > {
 
   typedef std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> vec3i;
 
-  VoxelBlockHandler(se::VoxelBlock<FieldType> *ptr, Eigen::Vector3i v) : _block(ptr), _voxel(v) {}
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+  /*!
+   * \param[in] ptr Pointer to the VoxelBlock.
+   * \param[in] v Coordinates of the voxel to get/set the data of. The elements
+   * of v must be in the in the interval [0, BLOCK_SIDE-1].
+   */
+  VoxelBlockHandler(se::VoxelBlock<FieldType>* ptr, Eigen::Vector3i v) :
+    _block(ptr), _voxel(v) {}
 
   typename se::VoxelBlock<FieldType>::value_type get() {
     return _block->data(_voxel);
@@ -166,11 +178,20 @@ class VoxelBlockHandler : DataHandlerBase<VoxelBlockHandler<FieldType>,
   Eigen::Vector3i _voxel;
 };
 
+/*! \brief Get and set the data of a child of an intermediate (Node) Octree
+ * node.
+ */
 template<typename FieldType>
-class NodeHandler : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> > {
- public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  NodeHandler(se::Node<FieldType> *ptr, int i) : _node(ptr), _idx(i) {}
+class NodeHandler: DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> > {
+  public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+    /*!
+     * \param[in] ptr Pointer to the Node.
+     * \param[in] i Index of the child node to get/set the data of. i must be
+     * in the in the interval [0, 7].
+     */
+    NodeHandler(se::Node<FieldType>* ptr, int i) : _node(ptr), _idx(i) {}
 
   typename se::Node<FieldType>::value_type get() {
     return _node->value_[_idx];

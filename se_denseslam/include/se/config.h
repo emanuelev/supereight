@@ -85,14 +85,27 @@ struct Configuration {
 
   int voxel_block_size;
 
-  /*
-   * TODO
+  /**
+   * The position of the first pose inside the volume. The coordinates are
+   * expressed as fractions [0, 1] of the volume's extent. The default value of
+   * (0.5, 0.5, 0) results in the first pose being placed halfway along the x
+   * and y axes and at the beginning of the z axis.
    * <br>\em Default: (0.5, 0.5, 0)
    */
   Eigen::Vector3f initial_pos_factor;
 
   /**
-   * TODO
+   * The number of pyramid levels and ICP iterations for the depth images. The
+   * number of elements in the vector is equal to the number of pramid levels.
+   * The values of the vector elements correspond to the number of ICP
+   * iterations run at this particular pyramid level. The first vector element
+   * corresponds to the first level etc. The first pyramid level contains the
+   * original depth image. Each subsequent pyramid level contains the image of
+   * the previous level downsampled to half the resolution. ICP starts from the
+   * highest (lowest resolution) pyramid level. The default value of (10, 5, 4)
+   * results in 10 ICP iterations for the initial depth frame, 5 iterations for
+   * the initial depth frame downsampled once and 4 iterations for the initial
+   * frame downsampled twice.
    * <br>\em Default: (10, 5, 4)
    */
   std::vector<int> pyramid;

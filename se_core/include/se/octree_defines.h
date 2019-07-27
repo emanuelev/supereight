@@ -1,6 +1,6 @@
 /*
 
-Copyright 2016 Emanuele Vespa, Imperial College London 
+Copyright 2016 Emanuele Vespa, Imperial College London
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
@@ -36,19 +36,34 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "utils/math_utils.h"
 
 
+/*! \brief The supereight namespace.
+ */
 namespace se {
-typedef uint64_t key_t; 
-//   typedef long long int morton_type; 
+  /*! \brief Type for storing Morton codes.
+   *
+   * The bits where SCALE_MASK is 0 store the coordinates of the Octree Node
+   * this Morton code corresponds to. The bits where SCALE_MASK is 1 store the
+   * Octree level the Node is located at.
+   */
+  typedef uint64_t key_t;
 }
 
+/*! \brief The lenght of the VoxelBlock side in voxels.
+ */
 #define BLOCK_SIDE 8
 #define MAX_BITS 21
 #define CAST_STACK_DEPTH 23
 #define NUM_DIM 3
-constexpr se::key_t SCALE_MASK = (1 << (NUM_DIM * se::math::log2_const(BLOCK_SIDE))) - 1;
+
+/*! \brief A binary mask defining the coordinate and level bits of se::key_t.
+ *
+ * The value of the mask is 0 for the coordinate bits and 1 for the level bits.
+ */
+constexpr se::key_t SCALE_MASK
+    = (1 << (NUM_DIM * se::math::log2_const(BLOCK_SIDE))) - 1;
 
 /*
- * Mask generated with:  
+ * Mask generated with:
    MASK[0] = 0x7000000000000000,
    for(int i = 1; i < 21; ++i) {
    MASK[i] = MASK[i-1] | (MASK[0] >> (i*3));
