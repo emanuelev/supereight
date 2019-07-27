@@ -103,7 +103,7 @@ static void initNewPosition(const Eigen::Matrix4f &pose,
 
   const float res = map.dim() / static_cast<float>(map.size());
   // create list with morton code (VB) and list of voxels belonging to the sphere
-  pose3D curr_pose = getCurrPose(pose, res);
+  const pose3D curr_pose = getCurrPose(pose, res);
   std::vector<se::key_t> alloc_list;
   getSphereAroundPoint(curr_pose.p.cast<int>(),
                        planning_config.clearance_radius,

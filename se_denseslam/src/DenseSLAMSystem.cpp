@@ -520,13 +520,13 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 bool DenseSLAMSystem::planning(se::exploration::posevector &path,
                                se::exploration::posevector &cand_views,
                                mapvec3i *free_blocks) {
-  if (!first_clearance_) {
+  if (!init_position_cleared_) {
   std::cout << "[se/denseSLAM] clear sphere around robot" << std::endl;
     se::exploration::initNewPosition(pose_ * Tbc_,
                                      planning_config_,
                                      free_blocks,
                                      *volume_._map_index);
-    first_clearance_ = true;
+    init_position_cleared_ = true;
   }
   float res_v = volume_dimension_.cast<float>().x() / volume_resolution_.cast<float>().x();
 

@@ -158,6 +158,7 @@ TEST_F(CandidateViewTest, EntropyCalculation_occ) {
 
   //THEN
 }
+// TODO fix this test!
 TEST_F(CandidateViewTest, getSphereAroundPoint ) {
   //GIVEN:
   // Allocated block: {56, 8, 248};

@@ -112,7 +112,7 @@ class DenseSLAMSystem {
 
   //exploration
   map3i frontier_map_;
-  bool first_clearance_ =false;
+  bool init_position_cleared_ = false;
 
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
