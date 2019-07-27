@@ -71,6 +71,12 @@ static void getSphereAroundPoint(const Eigen::Vector3i &center,
 
 }
 
+/**
+ * for all voxels in the block_voxel_map, set the voxel state from unknown to free
+ * @param[in] map
+ * @param[in] block_voxel_map <voxelblock morton code, vector with voxel coord of all voxels
+ * belonging to the sphere
+ */
 template<typename FieldType>
 static void setStateToFree(Octree<FieldType> &map, mapvec3i *block_voxel_map) {
 
@@ -89,7 +95,8 @@ static void setStateToFree(Octree<FieldType> &map, mapvec3i *block_voxel_map) {
 }
 /**
  * @brief At planning initialization, set all voxel's state  inside a sphere from
- * unknown to free
+ * unknown to free,
+ * NO UPDATE to probability, Frontiers not redetected
  * @param center
  * @param planning_config
  * @param volume
