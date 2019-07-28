@@ -8,7 +8,7 @@
 #include <string>
 
 #include "occupancy_world.hpp"
-#include "planning_parameter.hpp"
+#include "utils/planning_parameter.hpp"
 #include "path_planner_ompl.hpp"
 
 namespace se {

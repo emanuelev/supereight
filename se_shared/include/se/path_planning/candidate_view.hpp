@@ -30,10 +30,8 @@
 #include "se/utils/eigen_utils.h"
 #include "collision_checker.hpp"
 #include "exploration_utils.hpp"
-
-
 #include "se/ompl/prob_collision_checker.hpp"
-#include <se/ompl/planning_parameter.hpp>
+#include "se/utils/planning_parameter.hpp"
 
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 //typedef SE_FIELD_TYPE FieldType;
@@ -616,10 +614,12 @@ void getExplorationPath(const Volume<T> &volume,
   candidate_view.getCandidateViews(frontier_map);
 
   VecPairPoseFloat pose_gain = candidate_view.getCandidateGain(step);
+  PlanningParameter ompl_params;
+  ompl_params.ReadPlannerConfigFile(planning_config.ompl_config_path);
 
   // adding ompl
   // setup collision checker
-  ProbCollisionChecker<T>(*volume._map_index, planning_params);
+//  ProbCollisionChecker<T>((*volume._map_index), ompl_params);
   // setup rrt ompl object
 
   // for all goals

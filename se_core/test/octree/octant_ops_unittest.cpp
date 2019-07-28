@@ -33,6 +33,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "octant_ops.hpp"
 #include <bitset>
 
+
+TEST(Octree, Endcode){
+
+testing::internal::CaptureStdout();
+   se::key_t code = se::keyops::encode(0,0,0,4,7);
+  std::cout << "encode 0 0 0 at leaf level " << code << std::endl;
+  code = se::keyops::encode(8,0,0,4,7);
+  std::cout << "encode 8 0 0 at leaf level " << code << std::endl;
+  code = se::keyops::encode(16,0,0,4,7);
+  std::cout << "encode 16 0 0 at leaf level " << code << std::endl;
+  code = se::keyops::encode(8,8,0,4,7);
+  std::cout << "encode 8 8 0 at leaf level " << code << std::endl;
+code = se::keyops::encode(0,8,0,4,7);
+std::cout << "encode 0 8 0 at leaf level " << code << std::endl;
+code = se::keyops::encode(0,0,8,4,7);
+std::cout << "encode 0 0 8 at leaf level " << code << std::endl;
+  code = se::keyops::encode(8,8,8,4,7);
+  std::cout << "encode 8 8 8 at leaf level " << code << std::endl;
+std::string output = testing::internal::GetCapturedStdout();
+  EXPECT_TRUE(false) << output;
+}
+
 TEST(Octree, OctantFaceNeighbours) {
   const Eigen::Vector3i octant = {112, 80, 160};
   const unsigned int max_depth = 8;

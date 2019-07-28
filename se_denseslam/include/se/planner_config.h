@@ -44,6 +44,8 @@ struct Planning_Configuration{
    * [m] set all voxel inside the sphere to voxel state free
    */
   float clearance_radius;
+
+  std::string ompl_config_path;
 };
 
 inline Planning_Configuration getDefaultPlanningConfig(){
@@ -56,6 +58,7 @@ inline Planning_Configuration getDefaultPlanningConfig(){
   config.dtheta = 10;
   config.clear_sphere_for_planning = true;
   config.clearance_radius = 1.0f;
+  config.ompl_config_path = "";
   return config;
 }
 #endif //SUPEREIGHT_PLANNER_CONFIG_H
