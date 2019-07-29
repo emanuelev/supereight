@@ -30,8 +30,12 @@
 #include "se/utils/eigen_utils.h"
 #include "collision_checker.hpp"
 #include "exploration_utils.hpp"
+
+
 #include "se/ompl/prob_collision_checker.hpp"
 #include "se/utils/planning_parameter.hpp"
+#include "se/path_planner_ompl.hpp"
+
 
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 //typedef SE_FIELD_TYPE FieldType;
@@ -599,7 +603,7 @@ static VecPose interpolateYaw(const pose3D &start, const pose3D &goal, const flo
  * @param [out] cand_views
  */
 template<typename T>
-void getExplorationPath(const Volume<T> &volume,
+void getExplorationPath( Volume<T> *volume,
                         const map3i &frontier_map,
                         const double res,
                         const float step,
@@ -619,9 +623,11 @@ void getExplorationPath(const Volume<T> &volume,
 
   // adding ompl
   // setup collision checker
-//  ProbCollisionChecker<T>((*volume._map_index), ompl_params);
-  // setup rrt ompl object
-
+  ProbCollisionChecker<T> prob_collision_checker(volume, ompl_params);
+//   setup rrt ompl object
+//  std::shared_ptr<PathPlannerOmpl<T> > path_planner_ompl;
+//  path_planner_ompl = std::shared_ptr<PathPlannerOmpl<T> >(new
+PathPlannerOmpl<T>(volume, prob_collision_checker, ompl_params);
   // for all goals
   for (const auto & cand_goal : pose_gain ){
 

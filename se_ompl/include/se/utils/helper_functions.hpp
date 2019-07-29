@@ -15,10 +15,10 @@ namespace exploration {
 /**
  * @brief returns timestamped filename
  */
-std::string getTimeStampedFilename() {
+static std::string getTimeStampedFilename() {
 
   char timestamp[6];
-  time_t rawtime = time(NULL);
+  time_t rawtime = std::time(NULL);
   tm *now = localtime(&rawtime);
 
   strftime(timestamp, 6, "%H%M%S", now);

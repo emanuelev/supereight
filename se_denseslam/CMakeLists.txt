@@ -22,7 +22,9 @@ endif ()
 
 # Set the compiler flags and linked libraries.
 set(compile_flags -Wall -Wextra -Wno-unknown-pragmas)
-set(libraries ${SUPEREIGHT_CORE_LIBS} )
+
+set(libraries ${SUPEREIGHT_CORE_LIBS} ${SUPEREIGHT_OMPL_LIBS} )
+message(WARNING " libraries ${libraries}")
 if (APPLE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__APPLE__")
 endif (APPLE)
@@ -50,10 +52,11 @@ foreach (field_type ${SUPEREIGHT_FIELD_TYPES})
     # Prepare the library name.
     set(lib_name "${PROJECT_NAME}-${field_type_lc}")
 
-    # Add the static library.
+    # Add the static library.d
     add_library(${lib_name} STATIC
             ./src/DenseSLAMSystem.cpp ./src/camera.cpp)
     target_include_directories(${lib_name} PUBLIC
+#            ../se_ompl/include
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
             $<INSTALL_INTERFACE:include>
             ${EIGEN3_INCLUDE_DIR}
@@ -62,8 +65,10 @@ foreach (field_type ${SUPEREIGHT_FIELD_TYPES})
             ${YAML_CPP_INCLUDE_DIR}
             )
     target_compile_options(${lib_name} PUBLIC ${compile_flags})
-    target_link_libraries(${lib_name} ${libraries} ${OMPL_LIBRARIES}
-            ${GLOG_LIBRARIES} ${YAML_CPP_LIBRARIES})
+    target_link_libraries(${lib_name} ${libraries}
+            ${OMPL_LIBRARIES}
+            ${GLOG_LIBRARIES}
+            ${YAML_CPP_LIBRARIES} )
     target_compile_definitions(${lib_name} PUBLIC ${field_type_macro})
 
     # Install the library and headers.
@@ -79,7 +84,7 @@ foreach (field_type ${SUPEREIGHT_FIELD_TYPES})
             DESTINATION include)
 
     # Populate the list of libraries that are part of se-denseslam.
-    list(APPEND SUPEREIGHT_DENSESLAM_LIBS ${lib_name})
+    list(APPEND SUPEREIGHT_DENSESLAM_LIBS ${lib_name} )
 endforeach ()
 
 

@@ -25,18 +25,24 @@
 #include "volume_shifter.hpp"
 #include "se/planning_parameter.hpp"
 
+#include "se/continuous/volume_template.hpp"
 #include "se/octree.hpp"
 //#include "FoldedStatus.h"
 
 //#include "state_uncertanty.hpp"
 namespace se {
 namespace exploration {
+
+
+
+template<typename FieldType> using Volume = VolumeTemplate<FieldType, se::Octree>;
 template<typename FieldType>
 class ProbCollisionChecker {
  public:
   typedef std::shared_ptr<ProbCollisionChecker<FieldType> > Ptr;
 
-  ProbCollisionChecker(const Octree<FieldType> &octree, const PlanningParameter &ompl_params);
+  ProbCollisionChecker(
+      const Volume<FieldType> &volume, const PlanningParameter &ompl_params);
 
   bool checkSegmentFlightCorridor(const Eigen::Vector3d start,
                                   const Eigen::Vector3d end,
@@ -70,7 +76,7 @@ class ProbCollisionChecker {
   exploration::VolumeShifter::Ptr vs_ = NULL;
 //  std::shared_ptr<OccupancyWorld> ow_ = NULL;
 //  std::shared_ptr<se::Octree < FieldType>> octree_ = NULL;
-  Octree<FieldType> octree_;
+  std::shared_ptr<Volume<FieldType> > volume_;
   // from occupancy world
   std::string id_;
   std::vector<key_t> alloc_list_;
@@ -82,15 +88,16 @@ class ProbCollisionChecker {
 };
 
 template<typename FieldType>
-ProbCollisionChecker<FieldType>::ProbCollisionChecker(const Octree<FieldType> &octree,
+ProbCollisionChecker<FieldType>::ProbCollisionChecker(  Volume<FieldType> *volume,
                                                       const PlanningParameter &ompl_params)
-    :
-    octree_(octree),
-    treat_unknown_as_occupied_(ompl_params.treat_unknown_as_occupied_),
-    voxel_dim_(octree.voxelDim()),
-    ompl_params_(ompl_params) {
+                                                      :
+                                                      volume_(volume){
+//  octree_ = octree;
+  treat_unknown_as_occupied_ = ompl_params.treat_unknown_as_occupied_;
+  voxel_dim_ = volume._map_index->voxelDim();
+  ompl_params_ = ompl_params;
   vs_ = std::unique_ptr<VolumeShifter>(new VolumeShifter(voxel_dim_,
-                                                                      ompl_params.volume_precision_factor_));
+                                                         ompl_params.volume_precision_factor_));
 }
 
 template<typename FieldType>
@@ -102,7 +109,7 @@ bool ProbCollisionChecker<FieldType>::checkVoxel(const Eigen::Vector3d position_
   Eigen::Vector3i position_v = (position_m / voxel_dim_).cast<int>();
 
   se::VoxelBlock<FieldType>
-      *voxel_block = octree_.fetch(position_v.x(), position_v.y(), position_v.z());
+      *voxel_block = volume_._map_index->fetch(position_v.x(), position_v.y(), position_v.z());
 
   /**
    * Check if the voxel blocks containing the current voxel position is not allocated, i.e. unseen
@@ -180,7 +187,7 @@ bool ProbCollisionChecker<FieldType>::checkVolume(std::vector<Eigen::Vector3i> v
     /**
      * Check all voxels that are within the current voxel block
      */
-    se::VoxelBlock<FieldType> *voxel_block = octree_.fetch((*it_i).x(), (*it_i).y(), (*it_i).z());
+    se::VoxelBlock<FieldType> *voxel_block = volume_._map_index->fetch((*it_i).x(), (*it_i).y(), (*it_i).z());
 
     if (treat_unknown_as_occupied_ && voxel_block == nullptr) {
       return false;
@@ -605,7 +612,7 @@ bool ProbCollisionChecker<FieldType>::checkVoxelDistance(const Eigen::Vector3d p
 
   // Fetch voxel block that contains the voxel position
   se::VoxelBlock<FieldType>
-      *voxel_block = octree_.fetch(position_v.x(), position_v.y(), position_v.z());
+      *voxel_block = volume_._map_index->fetch(position_v.x(), position_v.y(), position_v.z());
 
   // Check if the voxel blocks containing the current voxel position is not allocated, i.e. unseen
   // Opposite does not imply that the start and end position are seen!
@@ -700,7 +707,7 @@ void ProbCollisionChecker<FieldType>::getVoxelDistance(const Eigen::Vector3d pos
 
   // Fetch voxel block that contains the voxel position
   se::VoxelBlock<FieldType>
-      *voxel_block = octree_.fetch(position_v.x(), position_v.y(), position_v.z());
+      *voxel_block = volume_._map_index->fetch(position_v.x(), position_v.y(), position_v.z());
 
   // Check if the voxel blocks containing the current voxel position is not allocated, i.e. unseen
   // Opposite does not imply that the start and end position are seen!
