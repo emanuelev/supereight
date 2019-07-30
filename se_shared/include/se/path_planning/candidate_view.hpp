@@ -633,7 +633,10 @@ void getExplorationPath(const std::shared_ptr<Octree<T> > &octree_ptr,
                                                                                       free_map));
   Eigen::Vector3d start_pos = pose.block<3,1> (0,3).cast<double>();
   Eigen::Vector3d end_pos = start_pos + Eigen::Vector3d(0.5, .5, 0.);
-  path_planner_ompl_ptr->planPath(start_pos, end_pos);
+  // [m] to voxel
+  Eigen::Vector3i start_pos_v = (pose.block<3,1> (0,3)/ static_cast<float>(res)).cast<int>();
+  Eigen::Vector3i end_pos_v = pose_gain[0].first.p.cast<int>();
+  path_planner_ompl_ptr->planPath(start_pos_v, end_pos_v);
   // for all goals
   for (const auto &cand_goal : pose_gain) {
 

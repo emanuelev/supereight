@@ -67,6 +67,25 @@ class OmplToEigen {
     }
   };
 
+  static void convertPath(ompl::geometric::PathGeometric &ompl_path,
+                          Path_v::Ptr eigen_path,
+                          int radius_v) {
+    std::vector<ompl::base::State *> &states = ompl_path.getStates();
+
+    for (ompl::base::State *state : states) {
+      State_v state_v;
+      Eigen::Vector3i position_v
+          (static_cast<int>(state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0]),
+           static_cast<int>(state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1]),
+           static_cast<int>(state->as<ompl::base::RealVectorStateSpace::StateType>()->values[2]));
+
+      state_v.segment_end = position_v;
+      state_v.segment_radius = radius_v;
+
+      // Save the 3D path in output Eigen format
+      eigen_path->states.push_back(state_v);
+    }
+  };
   /**
    * Convert Ompl state to Eigen Vector.
    * @param [in] state Position (state) in ompl::base::State type.
@@ -82,7 +101,14 @@ class OmplToEigen {
 
     return eigen_point;
   };
+  static Eigen::Vector3i convertState_v(const ompl::base::State &state) {
 
+    Eigen::Vector3i eigen_point(state.as<ompl::base::RealVectorStateSpace::StateType>()->values[0],
+                                state.as<ompl::base::RealVectorStateSpace::StateType>()->values[1],
+                                state.as<ompl::base::RealVectorStateSpace::StateType>()->values[2]);
+
+    return eigen_point;
+  };
   /**
    * Convert Eigen Vector to ompl scoped state.
    * @param [in] state Position (state) as Eigen::Vector type.
@@ -94,6 +120,13 @@ class OmplToEigen {
     (*scoped_state)->values[0] = state.x();
     (*scoped_state)->values[1] = state.y();
     (*scoped_state)->values[2] = state.z();
+  };
+  static void convertState(const Eigen::Vector3i &state_v,
+                           ompl::base::ScopedState<ompl::base::RealVectorStateSpace> *scoped_state) {
+
+    (*scoped_state)->values[0] = state_v.x();
+    (*scoped_state)->values[1] = state_v.y();
+    (*scoped_state)->values[2] = state_v.z();
   };
 };
 

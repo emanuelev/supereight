@@ -44,6 +44,11 @@ struct State {
   double segment_radius = -1;
 };
 
+struct State_v {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  VoxelCoord segment_end;
+  int segment_radius = -1;
+};
 
 
 
@@ -64,6 +69,15 @@ struct Path {
   StateVector states;  ///> States of the path
 };
 
+struct Path_v {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  /** Type definition for smart pointer. */
+  typedef std::shared_ptr<Path_v > Ptr;
+  typedef AlignedVector < State_v > StateVector;
+  Header header;                     ///> Header holding timestamp and frame_id
+  StateVector states;  ///> States of the path
+};
+
 /** Struct defining a Segment with a Header and a vector of states. */
 template<int TSize>
 struct Segment {
@@ -75,6 +89,17 @@ struct Segment {
   StateVector states;  ///> States of the segment
   std::chrono::nanoseconds duration; ///> Duration of the segment
 };
+
+struct Segment_v {
+
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  typedef AlignedVector < State_v > StateVector;
+  Header header;                     ///> Header holding timestamp and frame_id
+  unsigned int num_points;           ///> Number of points in the segment
+  StateVector states;  ///> States of the segment
+  std::chrono::nanoseconds duration; ///> Duration of the segment
+};
+
 
 /** Struct defining a Trajectory with a Header and a vector of segments. */
 template<int TSize>
