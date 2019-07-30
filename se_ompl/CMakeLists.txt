@@ -14,22 +14,17 @@ cmake_minimum_required(VERSION 3.10)
 ## Populate the list of libraries that are part of se-shared.
 #list(APPEND SUPEREIGHT_OMPL_LIBS se-ompl)
 
-find_package(glog REQUIRED)
-find_package(ompl REQUIRED)
-find_package(yaml-cpp REQUIRED)
 
 
 add_library(se-vs STATIC
         src/volume_shifter.cpp
         src/utils/timing.cpp)
 
-target_link_libraries(se-vs  PUBLIC ${OMPL_LIBRARIES}
-        ${GLOG_LIBRARIES}  ${YAML_CPP_LIBRARIES}  ${SUPEREIGHT_CORE_LIBS})
+target_link_libraries(se-vs  PUBLIC
+        ${SUPEREIGHT_CORE_LIBS}
+        )
 
 target_include_directories(se-vs PUBLIC
-        ${OMPL_INCLUDE_DIRS}
-        ${GLOG_INCLUDE_DIRS}
-        ${YAML_CPP_INCLUDE_DIR}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
 

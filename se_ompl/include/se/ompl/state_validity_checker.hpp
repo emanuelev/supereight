@@ -22,7 +22,7 @@ template<typename FieldType>
 class StateValidityChecker : public ompl::base::StateValidityChecker {
  public:
   StateValidityChecker(const ompl::base::SpaceInformationPtr &si,
-                       const ProbCollisionChecker<FieldType> &pcc,
+                       const std::shared_ptr<ProbCollisionChecker<FieldType> > &pcc,
                        const double min_flight_corridor_radius)
       :
       ompl::base::StateValidityChecker(si),
@@ -42,11 +42,11 @@ class StateValidityChecker : public ompl::base::StateValidityChecker {
   // boundary of the circular obstacle.
   double clearance(const ob::State *state) const {
     Eigen::Vector3d position_m = OmplToEigen::convertState(*state);
-    return pcc_.getVoxelDistance(position_m);
+    return pcc_->getVoxelDistance(position_m);
   }
 
  private:
-  ProbCollisionChecker<FieldType> pcc_;
+  std::shared_ptr<ProbCollisionChecker<FieldType> > pcc_ = nullptr;
   double min_flight_corridor_radius_;
   ob::StateSpace *stateSpace_;
 };

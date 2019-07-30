@@ -31,11 +31,9 @@
 #include "collision_checker.hpp"
 #include "exploration_utils.hpp"
 
-
 #include "se/ompl/prob_collision_checker.hpp"
 #include "se/utils/planning_parameter.hpp"
 #include "se/path_planner_ompl.hpp"
-
 
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 //typedef SE_FIELD_TYPE FieldType;
@@ -59,7 +57,7 @@ class CandidateView {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   typedef std::shared_ptr<CandidateView> Ptr;
-  CandidateView(const Volume<T> &volume,
+  CandidateView(const std::shared_ptr<Octree<T> > &octree_ptr,
                 const Planning_Configuration &planning_config,
                 const float res,
                 const Configuration &config,
@@ -100,7 +98,7 @@ class CandidateView {
 };
 
 template<typename T>
-CandidateView<T>::CandidateView(const Volume<T> &volume,
+CandidateView<T>::CandidateView(const std::shared_ptr<Octree<T> > &octree_ptr,
                                 const Planning_Configuration &planning_config,
                                 const float res,
                                 const Configuration &config,
@@ -126,7 +124,7 @@ void CandidateView<T>::printFaceVoxels(const Eigen::Vector3i &_voxel) {
   face_neighbour_voxel[5] << _voxel.x(), _voxel.y(), _voxel.z() + 1;
   std::cout << "[se/cand view] face voxel states ";
   for (const auto &face_voxel : face_neighbour_voxel) {
-    std::cout << volume_._map_index->get(face_voxel).st << " ";
+    std::cout << octree_ptr_->get(face_voxel).st << " ";
   }
   std::cout << std::endl;
 
@@ -143,7 +141,7 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
                                                      const VecVec3i &frontier_voxels) {
   Eigen::Vector3i offset_cand_v(0, 0, 0);
   bool is_valid = false;
-  CollisionCheck<T> collision_check(volume_, planning_config_, res_);
+  CollisionCheck<T> collision_check(octree_ptr_, planning_config_, res_);
   // curr res 24m/128 vox = 0.1875 m/vx
 
   int offset_v = static_cast<int>(planning_config_.cand_view_safety_radius / res_);
@@ -333,15 +331,15 @@ std::pair<float, float> CandidateView<T>::getInformationGain(const Volume<T> &vo
   if (tnear < tfar) {
     float stepsize = step;
     // occupancy prob in log2
-    float prob_log = volume.interp(origin + direction * t, select_occupancy);
+    float prob_log = octree_ptr_->interp(origin + direction * t, select_occupancy);
     float weight = 1.0f;
     // check if current pos is free
     if (prob_log <= SURF_BOUNDARY + occ_thresh_) {
       ig_entropy = weight * getEntropy(prob_log);
       for (; t < tfar; t += stepsize) {
         const Eigen::Vector3f pos = origin + direction * t;
-        typename Volume<T>::value_type data = volume.get(pos);
-        prob_log = volume.interp(origin + direction * t, select_occupancy);
+        typename Volume<T>::value_type data = octree_ptr_->get(pos.cast<int>());
+        prob_log = octree_ptr_->interp(origin + direction * t, select_occupancy);
 //        weight = getIGWeight_tanh(tanh_range, tanh_ratio, t, prob_log, t_hit, hit_unknown);
         ig_entropy += getEntropy(prob_log);
 /*        if (prob_log == 0.f) {
@@ -453,7 +451,7 @@ VecPairPoseFloat CandidateView<T>::getCandidateGain(const float step) {
         vec[2] = cand_view_m[2] + r_max * cos(phi_rad);
         dir = (vec - cand_view_m).normalized();
         // initialize ray
-        se::ray_iterator<T> ray(*volume_._map_index, cand_view_m, dir, nearPlane, farPlane);
+        se::ray_iterator<T> ray(*octree_ptr_.get(), cand_view_m, dir, nearPlane, farPlane);
         ray.next();
         // lower bound dist from camera
         const float t_min = ray.tcmin(); /* Get distance to the first intersected block */
@@ -603,7 +601,8 @@ static VecPose interpolateYaw(const pose3D &start, const pose3D &goal, const flo
  * @param [out] cand_views
  */
 template<typename T>
-void getExplorationPath( Volume<T> *volume,
+void getExplorationPath(const std::shared_ptr<Octree<T> > &octree_ptr,
+                        map3i &free_map,
                         const map3i &frontier_map,
                         const double res,
                         const float step,
@@ -622,19 +621,25 @@ void getExplorationPath( Volume<T> *volume,
   ompl_params.ReadPlannerConfigFile(planning_config.ompl_config_path);
 
   // adding ompl
-  // setup collision checker
-  ProbCollisionChecker<T> prob_collision_checker(volume, ompl_params);
-//   setup rrt ompl object
-//  std::shared_ptr<PathPlannerOmpl<T> > path_planner_ompl;
-//  path_planner_ompl = std::shared_ptr<PathPlannerOmpl<T> >(new
-PathPlannerOmpl<T>(volume, prob_collision_checker, ompl_params);
+//  // setup collision checker
+  std::shared_ptr<ProbCollisionChecker<T> > prob_collision_checker =
+      std::shared_ptr<ProbCollisionChecker<T> >(new ProbCollisionChecker<T>(octree_ptr,
+                                                                            ompl_params));
+////   setup rrt ompl object
+  std::shared_ptr<PathPlannerOmpl<T> > path_planner_ompl_ptr;
+  path_planner_ompl_ptr = std::shared_ptr<PathPlannerOmpl<T> >(new PathPlannerOmpl<T>(octree_ptr,
+                                                                                      prob_collision_checker,
+                                                                                      ompl_params,
+                                                                                      free_map));
+  Eigen::Vector3d start_pos = pose.block<3,1> (0,3).cast<double>();
+  Eigen::Vector3d end_pos = start_pos + Eigen::Vector3d(0.5, .5, 0.);
+  path_planner_ompl_ptr->planPath(start_pos, end_pos);
   // for all goals
-  for (const auto & cand_goal : pose_gain ){
+  for (const auto &cand_goal : pose_gain) {
 
     // plan path from pose to cand goal
 
   }
-
 
   std::pair<pose3D, double> best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain);
 //  std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)

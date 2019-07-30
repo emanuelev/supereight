@@ -49,8 +49,7 @@ static void getSphereAroundPoint(const Eigen::Vector3i &center,
                                  const float clearance_radius,
                                  const Octree<FieldType> &map,
                                  const float res,
-                                 mapvec3i *block_voxel_map
-                                 ) {
+                                 mapvec3i *block_voxel_map) {
   const int radius_v = static_cast<int>(clearance_radius / res); // m/(m/voxel)
   const int leaf_level = map.leaf_level();
   for (int x = -radius_v; x <= radius_v; x++) {
@@ -59,14 +58,15 @@ static void getSphereAroundPoint(const Eigen::Vector3i &center,
         Eigen::Vector3i point_offset_v(x, y, z);
         //check if point is inside the sphere radius
         if (point_offset_v.norm() <= radius_v) {
+
           // check to wich voxelblock the voxel belongs
           const Eigen::Vector3i point_v = point_offset_v + center;
           if (point_v.x() < 0 || point_v.y() < 0 || point_v.z() < 0 || point_v.x() >= map.size()
               || point_v.y() >= map.size() || point_v.z() >= map.size()) {
             continue;
           }
-          const key_t morton_code = keyops::encode(point_v.x(), point_v.y(),
-              point_v.z(), leaf_level, map.max_level());
+          const key_t morton_code =
+              keyops::encode(point_v.x(), point_v.y(), point_v.z(), leaf_level, map.max_level());
           (*block_voxel_map)[morton_code].push_back(point_v);
         }
       }//z
@@ -122,7 +122,7 @@ static void initNewPosition(const Eigen::Matrix4f &pose,
                        res,
                        block_voxel_map);
   // allocate the space
-  for(const auto & block : *block_voxel_map){
+  for (const auto &block : *block_voxel_map) {
     alloc_list.push_back(block.first); // insert morton
   }
   map.allocate(alloc_list.data(), alloc_list.size());

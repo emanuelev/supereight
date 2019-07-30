@@ -36,13 +36,14 @@
 #include "se/octree.hpp"
 #include "se/utils/helper_functions.hpp"
 
+#include "se/boundary_extraction.hpp"
+
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 
 namespace se {
 namespace exploration {
 
-template<typename FieldType> using Volume = VolumeTemplate<FieldType, se::Octree>;
 template<typename FieldType>
 class PathPlannerOmpl {
  public:
@@ -54,9 +55,10 @@ class PathPlannerOmpl {
    *              StateSpacePtr:  Representation of a space in which planning can be performed. Topology specific sampling, interpolation and distance are defined.
    *              RealVectorStateSpace: A state space representing R^n. The distance function is the L2 norm.
    */
-  PathPlannerOmpl(const Volume<FieldType> &volume,
-                  const ProbCollisionChecker<FieldType> &pcc,
-                  const PlanningParameter &ompl_params);
+  PathPlannerOmpl(const std::shared_ptr<Octree<FieldType> > &octree_ptr,
+                  const std::shared_ptr<ProbCollisionChecker<FieldType> > &pcc,
+                  const PlanningParameter &ompl_params,
+                  map3i &free_map);
 
   ~PathPlannerOmpl() {};
 
@@ -94,8 +96,8 @@ class PathPlannerOmpl {
    * @param [out] space The ompl space to set the boundaries.
    */
 
-  void setSpaceBoundaries(const Eigen::Vector3d &min_boundary,
-                          const Eigen::Vector3d &max_boundary,
+  void setSpaceBoundaries(const Eigen::Vector3i &min_boundary,
+                          const Eigen::Vector3i &max_boundary,
                           ompl::base::StateSpacePtr space);
 
   void reduceToControlPointCorridorRadius(Path<kDim>::Ptr path_m);
@@ -129,11 +131,11 @@ class PathPlannerOmpl {
   Path<kDim>::Ptr path_not_simplified_ = NULL;
 
 //  OccupancyWorld::Ptr ow_ = nullptr;
-  Volume<FieldType> volume_;
-  Octree<FieldType> octree_;
-  ProbCollisionChecker<FieldType> pcc_;
+  std::shared_ptr<ProbCollisionChecker<FieldType> > pcc_ = nullptr;
 
+  std::shared_ptr<Octree<FieldType> > octree_ptr_ = nullptr;
   PlanningParameter planning_params_;
+  map3i free_map_;
 
   og::SimpleSetup ss_; /// Create the set of classes typically needed to solve a geometric problem
   double min_flight_corridor_radius_;
@@ -145,22 +147,22 @@ class PathPlannerOmpl {
 };
 
 template<typename FieldType>
-PathPlannerOmpl<FieldType>::PathPlannerOmpl(const Volume<FieldType> &volume,
-                                            const ProbCollisionChecker<FieldType> &pcc,
-                                            const PlanningParameter &ompl_params)
+PathPlannerOmpl<FieldType>::PathPlannerOmpl(const std::shared_ptr<Octree<FieldType> > &octree_ptr,
+                                            const std::shared_ptr<ProbCollisionChecker<FieldType> > &pcc,
+                                            const PlanningParameter &ompl_params,
+                                            map3i &free_map)
     :
-    volume_(volume),
+    octree_ptr_(octree_ptr),
     pcc_(pcc),
-    ss_ (ob::StateSpacePtr(std::make_shared<ob::RealVectorStateSpace>(kDim)))
-    {
+    ss_(ob::StateSpacePtr(std::make_shared<ob::RealVectorStateSpace>(kDim))),
+    free_map_(free_map) {
   planning_params_ = ompl_params;
   solving_time_ = ompl_params.solving_time_;
   min_flight_corridor_radius_ = ompl_params.robot_radius_ + ompl_params.safety_radius_
       + ompl_params.min_control_point_radius_;
   DLOG(INFO) << "min flight corridor radius: " << min_flight_corridor_radius_;
   robot_radius_ = ompl_params.robot_radius_;
-  flight_corridor_radius_reduction_ =
-      ompl_params.robot_radius_ + ompl_params.safety_radius_;
+  flight_corridor_radius_reduction_ = ompl_params.robot_radius_ + ompl_params.safety_radius_;
   // Contstruct optimizing planner using RRT algorithm
 
 //    planner_ = std::shared_ptr<og::RRT>(new og::RRT(ss_.getSpaceInformation()));
@@ -183,13 +185,16 @@ bool PathPlannerOmpl<FieldType>::setupPlanner(const Eigen::Vector3d &start_m,
   // ow_->checkSanity();
   DLOG(INFO) << "start setting up planner";
   // Get map boundaries and set space boundaries TODO: Changed this to int [voxel] rather than double [m]
-  Eigen::Vector3d min_boundary(0, 0, 0), max_boundary(100, 100, 100);
+  Eigen::Vector3i min_boundary(0, 0, 0), max_boundary(100, 100, 100);
   // TODO fix this function first
 //  ow_->GetMapBoundsMeter(min_boundary, max_boundary);
+  getFreeMapBounds(free_map_, min_boundary, max_boundary);
+  DLOG(INFO)<< "map boundaries: " << min_boundary << ", " << max_boundary;
   setSpaceBoundaries(min_boundary, max_boundary, ss_.getStateSpace());
 
   // set the object used to check which states in the space are valid
-  std::shared_ptr<StateValidityChecker<FieldType> > state_validity_checker
+  std::shared_ptr<StateValidityChecker<FieldType> > state_validity_checker;
+  state_validity_checker = std::shared_ptr<StateValidityChecker <FieldType> >
       (new StateValidityChecker<FieldType>(ss_.getSpaceInformation(),
                                            pcc_,
                                            min_flight_corridor_radius_));
@@ -199,16 +204,15 @@ bool PathPlannerOmpl<FieldType>::setupPlanner(const Eigen::Vector3d &start_m,
   DLOG(INFO) << "use skeletoncheck: " << planning_params_.use_skeleton_check_;
   if (planning_params_.use_skeleton_check_) {
     // Set motion validity checking for this space (collision checking)
-    auto motion_validator
-        (std::make_shared<MotionValidatorOccupancySkeleton>(ss_.getSpaceInformation(),
-                                                            pcc_,
-                                                            min_flight_corridor_radius_));
+    auto motion_validator =
+        std::shared_ptr<MotionValidatorOccupancySkeleton<FieldType>>(new MotionValidatorOccupancySkeleton<
+            FieldType>(ss_.getSpaceInformation(), pcc_, min_flight_corridor_radius_));
     ss_.getSpaceInformation()->setMotionValidator(motion_validator);
   } else {
     // Set motion validity checking for this space (collision checking)
-    auto motion_validator(std::make_shared<MotionValidatorOccupancyDense>(ss_.getSpaceInformation(),
-                                                                          pcc_,
-                                                                          min_flight_corridor_radius_));
+    auto motion_validator =
+        std::shared_ptr<MotionValidatorOccupancyDense<FieldType> >(new MotionValidatorOccupancyDense<
+            FieldType>(ss_.getSpaceInformation(), pcc_, min_flight_corridor_radius_));
     ss_.getSpaceInformation()->setMotionValidator(motion_validator);
   }
 
@@ -226,14 +230,14 @@ bool PathPlannerOmpl<FieldType>::setupPlanner(const Eigen::Vector3d &start_m,
 //    return false;
 //  }
 
-  if (!pcc_.checkSphere(start_m, min_flight_corridor_radius_)) {
+  if (!pcc_->isSphereCollisionFree(start_m, min_flight_corridor_radius_)) {
     std::cout << "\033[1;31mStart is occupied\033[0m\n";
     //LOG(ERROR) << "Start is occupied";
     start_end_occupied_ = true;
     return false;
   }
 
-  if (!pcc_.checkSphere(goal_m, min_flight_corridor_radius_)) {
+  if (!pcc_->isSphereCollisionFree(goal_m, min_flight_corridor_radius_)) {
     std::cout << "\033[1;31mGoal is occupied\033[0m\n";
     //LOG(ERROR) << "Goal is occupied";
     start_end_occupied_ = true;
@@ -273,7 +277,7 @@ bool PathPlannerOmpl<FieldType>::setupPlanner(const Eigen::Vector3d &start_m,
 template<typename FieldType>
 bool PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3d &start_m,
                                           const Eigen::Vector3d &goal_m) {
-  DLOG(INFO) << "start path planner part";
+  DLOG(INFO) << "start path planner";
   // Setup the ompl planner
   if (!setupPlanner(start_m, goal_m)) {
     LOG(ERROR) << "Could not set up straight-line planner";
@@ -355,8 +359,7 @@ bool PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3d &start_m,
 
 template<typename FieldType>
 void PathPlannerOmpl<FieldType>::reduceToControlPointCorridorRadius(Path<kDim>::Ptr path_m) {
-  for (std::vector<State<kDim>>::iterator it_i = path_m->states.begin();
-       it_i != path_m->states.end(); ++it_i) {
+  for (auto it_i = path_m->states.begin(); it_i != path_m->states.end(); ++it_i) {
     (*it_i).segment_radius = (*it_i).segment_radius - flight_corridor_radius_reduction_;
   }
 }
@@ -415,8 +418,8 @@ void PathPlannerOmpl<FieldType>::simplifyPath(ompl::geometric::PathGeometric &pa
 }
 
 template<typename FieldType>
-void PathPlannerOmpl<FieldType>::setSpaceBoundaries(const Eigen::Vector3d &min_boundary,
-                                                    const Eigen::Vector3d &max_boundary,
+void PathPlannerOmpl<FieldType>::setSpaceBoundaries(const Eigen::Vector3i &min_boundary,
+                                                    const Eigen::Vector3i &max_boundary,
                                                     ob::StateSpacePtr space) {
   ob::RealVectorBounds bounds(kDim);
 

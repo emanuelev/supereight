@@ -62,13 +62,16 @@ foreach (field_type ${SUPEREIGHT_FIELD_TYPES})
             ${EIGEN3_INCLUDE_DIR}
             ${OMPL_INCLUDE_DIRS}
             ${GLOG_INCLUDE_DIRS}
-            ${YAML_CPP_INCLUDE_DIR}
             )
+#        IMPORTANT DON'T INCLUDE YAML_CPP_INCLUDE_DIRS, it crashes stdlib.h
+
     target_compile_options(${lib_name} PUBLIC ${compile_flags})
     target_link_libraries(${lib_name} ${libraries}
             ${OMPL_LIBRARIES}
             ${GLOG_LIBRARIES}
-            ${YAML_CPP_LIBRARIES} )
+            ${YAML_CPP_LIBRARIES}
+            )
+
     target_compile_definitions(${lib_name} PUBLIC ${field_type_macro})
 
     # Install the library and headers.

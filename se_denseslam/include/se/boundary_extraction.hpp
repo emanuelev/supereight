@@ -17,13 +17,12 @@
 
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 
-void insertBlocksToMap(map3i &blocks_map, set3i *blocks) {
+static inline void insertBlocksToMap(map3i &blocks_map, set3i *blocks) {
   if (blocks->size() == 0) return;
 
   for (auto it = blocks->begin(); it != blocks->end(); ++it) {
     const Eigen::Vector3i voxel_coord = se::keyops::decode(*it);
     blocks_map.emplace(*it, voxel_coord);
-    std::cout << "it " << *it << std::endl;
   }
 
 //  std::cout << "[supereight/boundary] frontier maps size " << blocks_map.size() << std::endl;
@@ -65,19 +64,11 @@ void updateBlockMap(const Volume<T> &volume,
   // insert new frontier blocks to map
   insertBlocksToMap(blocks_map, blocks);
 //TODO remove it from here
-  if(blocks_map.size() > 10){
-
-    getFreeMapBounds(volume, blocks_map, lowerbound, upperbound);
-  }
 }
-
 // level at leaf level
-template<typename T>
-void getFreeMapBounds(const Volume<T> &volume,
-                      const map3i &blocks_map,
+ static inline void getFreeMapBounds(const map3i &blocks_map,
                       Eigen::Vector3i &lower_bound,
                       Eigen::Vector3i &upper_bound) {
-  int map_block_size = blocks_map.size();
 
 
   auto it_beg = blocks_map.begin();

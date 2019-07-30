@@ -49,7 +49,7 @@ template<typename FieldType>
 class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
  public:
   MotionValidatorOccupancySkeleton(const ompl::base::SpaceInformationPtr &si,
-                                   const ProbCollisionChecker<FieldType> &pcc,
+                                   const std::shared_ptr<ProbCollisionChecker<FieldType> > &pcc,
                                    const double min_flight_corridor_radius)
       :
       ompl::base::MotionValidator(si),
@@ -76,7 +76,7 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
     Eigen::Vector3d start = OmplToEigen::convertState(*s1);
     Eigen::Vector3d ending = OmplToEigen::convertState(*s2);
 
-    if (pcc_.checkSegmentFlightCorridorSkeleton(start, ending, 0, min_flight_corridor_radius_)) {
+    if (pcc_->checkSegmentFlightCorridorSkeleton(start, ending, 0, min_flight_corridor_radius_)) {
       return true;
     }
 
@@ -106,7 +106,7 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
       Eigen::Vector3d start = OmplToEigen::convertState(*test_prev);
       Eigen::Vector3d ending = OmplToEigen::convertState(*test);
 
-      if (!pcc_.checkSegmentFlightCorridorSkeleton(start,
+      if (!pcc_->checkSegmentFlightCorridorSkeleton(start,
                                                     ending,
                                                     0,
                                                     min_flight_corridor_radius_)) {
@@ -127,7 +127,7 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
   }
 
  private:
-  ProbCollisionChecker<FieldType> pcc_;
+  std::shared_ptr<ProbCollisionChecker<FieldType> > pcc_ = nullptr;
   double min_flight_corridor_radius_;
   ob::StateSpace *stateSpace_;
 };

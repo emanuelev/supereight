@@ -17,6 +17,7 @@
 template <typename Type>
 using AlignedVector = std::vector<Type, Eigen::aligned_allocator<Type> > ;
 
+typedef std::set<uint64_t > set3i;
 typedef AlignedVector<Eigen::Vector3i> VecVec3i;
 typedef AlignedVector<std::pair<Eigen::Vector3i, float>> VectorPair3iFloat;
 

@@ -65,8 +65,6 @@
 typedef SE_FIELD_TYPE FieldType;
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 
-typedef std::set<uint64_t > set3i;
-
 
 
 extern PerfStats Stats;

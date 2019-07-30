@@ -51,7 +51,7 @@ template<typename FieldType>
 class MotionValidatorOccupancyDense : public ompl::base::MotionValidator {
  public:
   MotionValidatorOccupancyDense(const ompl::base::SpaceInformationPtr &si,
-                                const ProbCollisionChecker<FieldType> &pcc,
+                                const std::shared_ptr<ProbCollisionChecker<FieldType> > &pcc,
                                 const double min_flight_corridor_radius)
       :
       ompl::base::MotionValidator(si),
@@ -78,7 +78,7 @@ class MotionValidatorOccupancyDense : public ompl::base::MotionValidator {
     Eigen::Vector3d start = OmplToEigen::convertState(*s1);
     Eigen::Vector3d ending = OmplToEigen::convertState(*s2);
 
-    if (pcc_.checkSegmentFlightCorridor(start, ending, 0, min_flight_corridor_radius_)) {
+    if (pcc_->checkSegmentFlightCorridor(start, ending, 0, min_flight_corridor_radius_)) {
       return true;
     }
 
@@ -108,7 +108,7 @@ class MotionValidatorOccupancyDense : public ompl::base::MotionValidator {
       Eigen::Vector3d start = OmplToEigen::convertState(*test_prev);
       Eigen::Vector3d ending = OmplToEigen::convertState(*test);
 
-      if (!pcc_.checkSegmentFlightCorridor(start, ending, 0, min_flight_corridor_radius_)) {
+      if (!pcc_->checkSegmentFlightCorridor(start, ending, 0, min_flight_corridor_radius_)) {
         lastValid.second = (double) (j - 1) / (double) nd;
         if (lastValid.first != nullptr)
           stateSpace_->interpolate(s1, s2, lastValid.second, lastValid.first);
@@ -126,7 +126,7 @@ class MotionValidatorOccupancyDense : public ompl::base::MotionValidator {
   }
 
  private:
-  ProbCollisionChecker<FieldType> pcc_;
+  std::shared_ptr<ProbCollisionChecker<FieldType> > pcc_ = nullptr;
   double min_flight_corridor_radius_;
   ob::StateSpace *stateSpace_;
 };

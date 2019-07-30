@@ -41,7 +41,7 @@ template<typename FieldType>
 class MotionValidator : public ompl::base::MotionValidator {
  public:
   MotionValidator(const ompl::base::SpaceInformationPtr &si,
-                 ProbCollisionChecker<FieldType> pcc_,
+                  const ProbCollisionChecker<FieldType> &pcc,
                   const double min_flight_corridor_radius)
       :
       ompl::base::MotionValidator(si),
@@ -79,15 +79,15 @@ class MotionValidator : public ompl::base::MotionValidator {
 
     corridor_factor = 1;
 
-    if (!pcc_.checkVoxelDistance(start,
+    if (!pcc_->checkVoxelDistance(start,
                                   corridor_factor * (0.75 * 0.1 + min_flight_corridor_radius_)))
       return false;
 
-    if (!pcc_.checkVoxelDistance(ending,
+    if (!pcc_->checkVoxelDistance(ending,
                                   corridor_factor * (0.75 * 0.1 + min_flight_corridor_radius_)))
       return false;
 
-    if (pcc_.checkLineDistance(start, ending, corridor_factor * min_flight_corridor_radius_)) {
+    if (pcc_->checkLineDistance(start, ending, corridor_factor * min_flight_corridor_radius_)) {
       return true;
     }
 /*
@@ -141,7 +141,7 @@ class MotionValidator : public ompl::base::MotionValidator {
       //LOG(INFO) << "Extended check of the segment from: x = " << start.x() << " ; y = " << start.y() << " ; z = " << start.z();
       //LOG(INFO) << "to x = " << ending.x() << " ; y = " << ending.y() << " ; z = " << ending.z();
 
-      if (!pcc_.checkLineDistance(start, ending, 0)) {
+      if (!pcc_->checkLineDistance(start, ending, 0)) {
         lastValid.second = (double) (j - 1) / (double) nd;
         if (lastValid.first != nullptr)
           stateSpace_->interpolate(s1, s2, lastValid.second, lastValid.first);
@@ -151,7 +151,7 @@ class MotionValidator : public ompl::base::MotionValidator {
         return false;
       }
 
-      if (!pcc_.checkLineDistance(start, ending, min_flight_corridor_radius_)) {
+      if (!pcc_->checkLineDistance(start, ending, min_flight_corridor_radius_)) {
         lastValid.second = (double) (j - 1) / (double) nd;
         if (lastValid.first != nullptr)
           stateSpace_->interpolate(s1, s2, lastValid.second, lastValid.first);
@@ -169,7 +169,7 @@ class MotionValidator : public ompl::base::MotionValidator {
   }
 
  private:
-  ProbCollisionChecker<FieldType> pcc_ ;
+  std::shared_ptr<ProbCollisionChecker<FieldType> > pcc_ = nullptr;
   double min_flight_corridor_radius_;
   ob::StateSpace *stateSpace_;
 };

@@ -20,6 +20,7 @@
 #include <math.h>
 #include <vector>
 
+#include "se/utils/eigen_utils.h"
 #include "se/utils/support_structs.hpp"
 #include "se/occupancy_world.hpp"
 #include "volume_shifter.hpp"
@@ -33,50 +34,47 @@
 namespace se {
 namespace exploration {
 
-
-
 template<typename FieldType> using Volume = VolumeTemplate<FieldType, se::Octree>;
 template<typename FieldType>
 class ProbCollisionChecker {
  public:
   typedef std::shared_ptr<ProbCollisionChecker<FieldType> > Ptr;
 
-  ProbCollisionChecker(
-      const Volume<FieldType> &volume, const PlanningParameter &ompl_params);
+  ProbCollisionChecker(const std::shared_ptr<Octree<FieldType> > &octree_ptr,
+                       const PlanningParameter &ompl_params);
 
-  bool checkSegmentFlightCorridor(const Eigen::Vector3d start,
-                                  const Eigen::Vector3d end,
-                                  const double r_min,
-                                  const double r_max);
-  bool checkSegmentFlightCorridorSkeleton(const Eigen::Vector3d start_m,
-                                          const Eigen::Vector3d end_m,
-                                          const double r_min_m,
-                                          const double r_max_m);
-  bool checkSphere(const Eigen::Vector3d position_m, const double radius_m);
-  bool checkSphereSkeleton(const Eigen::Vector3d position_m, const double radius_m);
+  bool checkSegmentFlightCorridor(const Eigen::Vector3d &start,
+                                  const Eigen::Vector3d &end,
+                                  const float r_min,
+                                  const float r_max);
+  bool checkSegmentFlightCorridorSkeleton(const Eigen::Vector3d &start_m,
+                                          const Eigen::Vector3d &end_m,
+                                          const float r_min_m,
+                                          const float r_max_m);
+  bool isSphereCollisionFree(const Eigen::Vector3d &position_m, const float radius_m);
+  bool checkSphereSkeleton(const Eigen::Vector3d &position_m, const float radius_m);
   bool checkVolume(std::vector<Eigen::Vector3i> volume);
-  bool checkLine(const Eigen::Vector3d start_m,
-                 const Eigen::Vector3d connection_m,
+  bool checkLine(const Eigen::Vector3d &start_m,
+                 const Eigen::Vector3d &connection_m,
                  const int num_subpos);
-  bool checkVoxel(const Eigen::Vector3d position_m);
-  bool checkLineDistance(const Eigen::Vector3d start_m,
-                         const Eigen::Vector3d end_m,
-                         double radius_m);
-  bool checkVoxelDistance(const Eigen::Vector3d position_m, double radius_m);
+  bool checkVoxel(const Eigen::Vector3d &position_m);
+  bool checkLineDistance(const Eigen::Vector3d &start_m,
+                         const Eigen::Vector3d &end_m,
+                         float radius_m);
+  bool checkVoxelDistance(const Eigen::Vector3d &position_m, float radius_m);
   bool expandFlightCorridorDistance(Path<kDim>::Ptr path_m);
   bool expandFlightCorridorSkeleton(Path<kDim>::Ptr path_m);
   bool expandFlightCorridor(Path<kDim>::Ptr path_m);
-  void findMinLineDistance(const Eigen::Vector3d start_m,
-                           const Eigen::Vector3d end_m,
+  void findMinLineDistance(const Eigen::Vector3d &start_m,
+                           const Eigen::Vector3d &end_m,
                            double &min_distance_m);
-  void getVoxelDistance(const Eigen::Vector3d position_m, double &distance);
-  double getVoxelDistance(const Eigen::Vector3d position_m);
+  void getVoxelDistance(const Eigen::Vector3d &position_m, double &distance);
+  double getVoxelDistance(const Eigen::Vector3d &position_m);
 
  private:
   exploration::VolumeShifter::Ptr vs_ = NULL;
 //  std::shared_ptr<OccupancyWorld> ow_ = NULL;
-//  std::shared_ptr<se::Octree < FieldType>> octree_ = NULL;
-  std::shared_ptr<Volume<FieldType> > volume_;
+  std::shared_ptr<Octree<FieldType> > octree_ptr_ = nullptr;
   // from occupancy world
   std::string id_;
   std::vector<key_t> alloc_list_;
@@ -88,20 +86,19 @@ class ProbCollisionChecker {
 };
 
 template<typename FieldType>
-ProbCollisionChecker<FieldType>::ProbCollisionChecker(  Volume<FieldType> *volume,
+ProbCollisionChecker<FieldType>::ProbCollisionChecker(const std::shared_ptr<Octree<FieldType> > &octree_ptr,
                                                       const PlanningParameter &ompl_params)
-                                                      :
-                                                      volume_(volume){
-//  octree_ = octree;
+    :
+    octree_ptr_(octree_ptr) {
   treat_unknown_as_occupied_ = ompl_params.treat_unknown_as_occupied_;
-  voxel_dim_ = volume._map_index->voxelDim();
+  voxel_dim_ = octree_ptr->voxelDim();
   ompl_params_ = ompl_params;
   vs_ = std::unique_ptr<VolumeShifter>(new VolumeShifter(voxel_dim_,
                                                          ompl_params.volume_precision_factor_));
 }
 
 template<typename FieldType>
-bool ProbCollisionChecker<FieldType>::checkVoxel(const Eigen::Vector3d position_m) {
+bool ProbCollisionChecker<FieldType>::checkVoxel(const Eigen::Vector3d &position_m) {
 
   /**
    * Convert position from [m] to [voxel]
@@ -109,7 +106,7 @@ bool ProbCollisionChecker<FieldType>::checkVoxel(const Eigen::Vector3d position_
   Eigen::Vector3i position_v = (position_m / voxel_dim_).cast<int>();
 
   se::VoxelBlock<FieldType>
-      *voxel_block = volume_._map_index->fetch(position_v.x(), position_v.y(), position_v.z());
+      *voxel_block = octree_ptr_->fetch(position_v.x(), position_v.y(), position_v.z());
 
   /**
    * Check if the voxel blocks containing the current voxel position is not allocated, i.e. unseen
@@ -135,8 +132,8 @@ bool ProbCollisionChecker<FieldType>::checkVoxel(const Eigen::Vector3d position_
 }
 
 template<typename FieldType>
-bool ProbCollisionChecker<FieldType>::checkLine(const Eigen::Vector3d start_m,
-                                                const Eigen::Vector3d connection_m,
+bool ProbCollisionChecker<FieldType>::checkLine(const Eigen::Vector3d &start_m,
+                                                const Eigen::Vector3d &connection_m,
                                                 const int num_subpos) {
 
   std::queue<std::pair<int, int>> line_pos;
@@ -187,7 +184,8 @@ bool ProbCollisionChecker<FieldType>::checkVolume(std::vector<Eigen::Vector3i> v
     /**
      * Check all voxels that are within the current voxel block
      */
-    se::VoxelBlock<FieldType> *voxel_block = volume_._map_index->fetch((*it_i).x(), (*it_i).y(), (*it_i).z());
+    se::VoxelBlock<FieldType>
+        *voxel_block = octree_ptr_->fetch((*it_i).x(), (*it_i).y(), (*it_i).z());
 
     if (treat_unknown_as_occupied_ && voxel_block == nullptr) {
       return false;
@@ -234,32 +232,90 @@ bool ProbCollisionChecker<FieldType>::checkVolume(std::vector<Eigen::Vector3i> v
 }
 
 template<typename FieldType>
-bool ProbCollisionChecker<FieldType>::checkSphere(const Eigen::Vector3d position_m,
-                                                  const double radius_m) {
+bool ProbCollisionChecker<FieldType>::isSphereCollisionFree(const Eigen::Vector3d &position_m,
+                                                           const float radius_m) {
 
-  /**
-   * Sample sphere with volume shifter
-   */
-  std::vector<Eigen::Vector3i> sphere_volume;
-  if (!vs_->generateSphereVolume(sphere_volume, position_m, radius_m)) {
-    return false;
+  const Eigen::Vector3i center = (position_m / static_cast<double>(voxel_dim_)).cast<int>();
+  int radius_v = static_cast<int>(radius_m / voxel_dim_); // m/(m/voxel)
+  std::cout << "[ompl/pcc] voxel_dim " << voxel_dim_ << " center " << center.format(InLine)
+            << std::endl;
+  se::Node<FieldType> *node = nullptr;
+  se::VoxelBlock<FieldType> *block = nullptr;
+  bool is_voxel_block;
+  Eigen::Vector3i prev_pos(0, 0, 0);
+  for (int x = -radius_v; x <= radius_v; x++) {
+    for (int y = -radius_v; y <= radius_v; y++) {
+      for (int z = -radius_v; z <= radius_v; z++) {
+        Eigen::Vector3i point_offset_v(x, y, z);
+        //check if point is inside the sphere radius
+//        std::cout << "sphere norm " << point_offset_v.norm() <<std::endl;
+        if (point_offset_v.norm() <= radius_v) {
+          // check if voxelblock is allocated or only node
+          Eigen::Vector3i point_v = point_offset_v + center;
+          // first round
+          if (node == nullptr || block == nullptr) {
+            octree_ptr_->fetch_octant(point_v.x(), point_v.y(), point_v.z(), node, is_voxel_block);
+            prev_pos = point_v;
+            if (is_voxel_block) {
+              block = static_cast<se::VoxelBlock<FieldType> *> (node);
+            } else {
+              if (octree_ptr_->get(se::keyops::decode(node->code_)).x >= 0.f) {
+//                std::cout << " [secollision] collision at node "
+//                          << se::keyops::decode(node->code_).format(InLine) << std::endl;
+                return false;
+              }
+            }
+          } else {
+            // if true keep old voxelblock pointer and fetch
+            // else get new voxel block
+            if ((point_v.x() / BLOCK_SIDE) == (prev_pos.x() / BLOCK_SIDE)
+                && (point_v.y() / BLOCK_SIDE) == (prev_pos.y() / BLOCK_SIDE)
+                && (point_v.z() / BLOCK_SIDE) == (prev_pos.z() / BLOCK_SIDE)) {
+              if (block->data(point_v).x >= 0.f) {
+//                std::cout << " [secollision] collision at " << point_v.format(InLine) << " plog "
+//                          << block->data(point_v).x << std::endl;
+                return false;
+              }
+            } else {
+              octree_ptr_->fetch_octant(point_v.x(),
+                                        point_v.y(),
+                                        point_v.z(),
+                                        node,
+                                        is_voxel_block);
+              if (is_voxel_block) {
+                block = static_cast<se::VoxelBlock<FieldType> *> (node);
+                if (block->data(point_v).x >= 0.f) {
+//                  std::cout << " [secollision] collision at " << point_v.format(InLine) << " plog "
+//                            << block->data(point_v).x << std::endl;
+                  return false;
+                }
+              } else {
+                block = nullptr;
+                if (octree_ptr_->get(se::keyops::decode(node->code_)).x >= 0.f) {
+//                  std::cout << " [secollision] collision at node "
+//                            << se::keyops::decode(node->code_).format(InLine) << std::endl;
+                  return false;
+                }
+              }
+
+            }
+          }
+          prev_pos = point_v;
+        }
+
+      }
+    }
   }
-
-  /**
-   * Check sphere volume for collision
-   */
-  if (!checkVolume(sphere_volume)) {
-    return false;
-  }
-
+//  std::cout << "[se/collision_checker] sphere radius " << planning_config_.cand_view_safety_radius
+//            << " [m] =  " << radius_v << " voxels around center " << pos_v.format(InLine) << std::endl;
   return true;
 }
 
 template<typename FieldType>
-bool ProbCollisionChecker<FieldType>::checkSegmentFlightCorridor(const Eigen::Vector3d start_m,
-                                                                 const Eigen::Vector3d end_m,
-                                                                 const double r_min,
-                                                                 const double r_max) {
+bool ProbCollisionChecker<FieldType>::checkSegmentFlightCorridor(const Eigen::Vector3d &start_m,
+                                                                 const Eigen::Vector3d &end_m,
+                                                                 const float r_min,
+                                                                 const float r_max) {
 
   /**
    * Check if the start and end position are in the allocated map
@@ -296,11 +352,11 @@ bool ProbCollisionChecker<FieldType>::checkSegmentFlightCorridor(const Eigen::Ve
    * Check if the start and end position fullfill the requirements of the given flight corridor radius
    * TODO: Check if checkSphere works for radius 0
    */
-  if (!checkSphere(start_m, r_max)) {
+  if (!isSphereCollisionFree(start_m, r_max)) {
     return false;
   }
 
-  if (!checkSphere(end_m, r_max)) {
+  if (!isSphereCollisionFree(end_m, r_max)) {
     return false;
   }
 
@@ -312,8 +368,8 @@ bool ProbCollisionChecker<FieldType>::checkSegmentFlightCorridor(const Eigen::Ve
   Eigen::Vector3d start_corridor_m = start_m - r_max * corridor_axis_u;
   Eigen::Vector3d end_corridor_m = end_m + r_max * corridor_axis_u;
   if (!vs_->generateSegmentFlightCorridor(segment_flight_corridor,
-                                          start_corridor_m,
-                                          end_corridor_m,
+                                          start_corridor_m.cast<float>(),
+                                          end_corridor_m.cast<float>(),
                                           r_min,
                                           r_max)) {
     return false;
@@ -335,7 +391,7 @@ bool ProbCollisionChecker<FieldType>::expandFlightCorridor(Path<kDim>::Ptr path_
   Eigen::Vector3d end_m = Eigen::Vector3d(-1, -1, -1);
   double step_size = 0.05;
 
-  for (std::vector<State<kDim>>::iterator it_i = path_m->states.begin();
+  for (auto it_i = path_m->states.begin();
        it_i != path_m->states.end(); ++it_i) {
     bool corridor_safe = true;
     int iteration = 0;
@@ -361,8 +417,8 @@ bool ProbCollisionChecker<FieldType>::expandFlightCorridor(Path<kDim>::Ptr path_
 //========================================================//
 
 template<typename FieldType>
-bool ProbCollisionChecker<FieldType>::checkSphereSkeleton(const Eigen::Vector3d position_m,
-                                                          const double radius_m) {
+bool ProbCollisionChecker<FieldType>::checkSphereSkeleton(const Eigen::Vector3d &position_m,
+                                                          const float radius_m) {
 
   checkVoxel(position_m);
 
@@ -408,10 +464,10 @@ bool ProbCollisionChecker<FieldType>::checkSphereSkeleton(const Eigen::Vector3d 
 
 //   !!! took code snippets from DubinsSateSpace MotionValidator
 template<typename FieldType>
-bool ProbCollisionChecker<FieldType>::checkSegmentFlightCorridorSkeleton(const Eigen::Vector3d start_m,
-                                                                         const Eigen::Vector3d end_m,
-                                                                         const double r_min_m,
-                                                                         const double r_max_m) {
+bool ProbCollisionChecker<FieldType>::checkSegmentFlightCorridorSkeleton(const Eigen::Vector3d &start_m,
+                                                                         const Eigen::Vector3d &end_m,
+                                                                         const float r_min_m,
+                                                                         const float r_max_m) {
 
   /**
    * Set up the line-of-sight connection
@@ -577,7 +633,7 @@ bool ProbCollisionChecker<FieldType>::expandFlightCorridorSkeleton(Path<kDim>::P
   Eigen::Vector3d end_m = Eigen::Vector3d(-1, -1, -1);
   double step_size = 0.05;
 
-  for (std::vector<State<kDim>>::iterator it_i = path_m->states.begin();
+  for (auto it_i = path_m->states.begin();
        it_i != path_m->states.end(); ++it_i) {
     bool corridor_safe = true;
     int iteration = 0;
@@ -604,15 +660,15 @@ bool ProbCollisionChecker<FieldType>::expandFlightCorridorSkeleton(Path<kDim>::P
 //                DISTANCE SAMPLING INTERFACE             //
 //========================================================//
 template<typename FieldType>
-bool ProbCollisionChecker<FieldType>::checkVoxelDistance(const Eigen::Vector3d position_m,
-                                                         double radius_m) {
+bool ProbCollisionChecker<FieldType>::checkVoxelDistance(const Eigen::Vector3d &position_m,
+                                                         float radius_m) {
 
   // Convert start and direction from [m] to [voxel]
   Eigen::Vector3i position_v = (position_m / voxel_dim_).cast<int>();
 
   // Fetch voxel block that contains the voxel position
   se::VoxelBlock<FieldType>
-      *voxel_block = volume_._map_index->fetch(position_v.x(), position_v.y(), position_v.z());
+      *voxel_block = octree_ptr_->fetch(position_v.x(), position_v.y(), position_v.z());
 
   // Check if the voxel blocks containing the current voxel position is not allocated, i.e. unseen
   // Opposite does not imply that the start and end position are seen!
@@ -637,9 +693,9 @@ bool ProbCollisionChecker<FieldType>::checkVoxelDistance(const Eigen::Vector3d p
 }
 
 template<typename FieldType>
-bool ProbCollisionChecker<FieldType>::checkLineDistance(const Eigen::Vector3d start_m,
-                                                        const Eigen::Vector3d end_m,
-                                                        double radius_m) {
+bool ProbCollisionChecker<FieldType>::checkLineDistance(const Eigen::Vector3d &start_m,
+                                                        const Eigen::Vector3d &end_m,
+                                                        float radius_m) {
 
   // Set up the line-of-sight connection
   double seg_prec = voxel_dim_; // Precision at which to sample the connection [m/voxel]
@@ -678,8 +734,8 @@ bool ProbCollisionChecker<FieldType>::checkLineDistance(const Eigen::Vector3d st
 }
 
 template<typename FieldType>
-void ProbCollisionChecker<FieldType>::findMinLineDistance(const Eigen::Vector3d start_m,
-                                                          const Eigen::Vector3d end_m,
+void ProbCollisionChecker<FieldType>::findMinLineDistance(const Eigen::Vector3d &start_m,
+                                                          const Eigen::Vector3d &end_m,
                                                           double &min_distance_m) {
 
   // Set up the line-of-sight connection
@@ -699,7 +755,7 @@ void ProbCollisionChecker<FieldType>::findMinLineDistance(const Eigen::Vector3d 
 }
 
 template<typename FieldType>
-void ProbCollisionChecker<FieldType>::getVoxelDistance(const Eigen::Vector3d position_m,
+void ProbCollisionChecker<FieldType>::getVoxelDistance(const Eigen::Vector3d &position_m,
                                                        double &distance) {
 
   // Convert start and direction from [m] to [voxel]
@@ -707,7 +763,7 @@ void ProbCollisionChecker<FieldType>::getVoxelDistance(const Eigen::Vector3d pos
 
   // Fetch voxel block that contains the voxel position
   se::VoxelBlock<FieldType>
-      *voxel_block = volume_._map_index->fetch(position_v.x(), position_v.y(), position_v.z());
+      *voxel_block = octree_ptr_->fetch(position_v.x(), position_v.y(), position_v.z());
 
   // Check if the voxel blocks containing the current voxel position is not allocated, i.e. unseen
   // Opposite does not imply that the start and end position are seen!
@@ -719,7 +775,7 @@ void ProbCollisionChecker<FieldType>::getVoxelDistance(const Eigen::Vector3d pos
 }
 
 template<typename FieldType>
-double ProbCollisionChecker<FieldType>::getVoxelDistance(const Eigen::Vector3d position_m) {
+double ProbCollisionChecker<FieldType>::getVoxelDistance(const Eigen::Vector3d &position_m) {
 
   double distance;
   getVoxelDistance(position_m, distance);
@@ -733,7 +789,7 @@ bool ProbCollisionChecker<FieldType>::expandFlightCorridorDistance(Path<kDim>::P
   Eigen::Vector3d start_m = Eigen::Vector3d(-1, -1, -1);
   Eigen::Vector3d end_m = Eigen::Vector3d(-1, -1, -1);
 
-  for (std::vector<State<kDim>>::iterator it_i = path_m->states.begin();
+  for (auto it_i = path_m->states.begin();
        it_i != path_m->states.end(); ++it_i) {
     start_m = end_m;
     end_m = (*it_i).segment_end;

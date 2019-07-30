@@ -533,7 +533,8 @@ bool DenseSLAMSystem::planning(VecPose &path,
   float res_v = volume_dimension_.cast<float>().x() / volume_resolution_.cast<float>().x();
 
   float step = volume_dimension_.x() / volume_resolution_.x();
-  se::exploration::getExplorationPath(volume_,
+  se::exploration::getExplorationPath(discrete_vol_ptr_,
+                                      free_map_,
                                       frontier_map_,
                                       res_v,
                                       step,
