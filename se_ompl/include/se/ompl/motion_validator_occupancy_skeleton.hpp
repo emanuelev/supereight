@@ -75,7 +75,7 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
 
     Eigen::Vector3d start = OmplToEigen::convertState(*s1);
     Eigen::Vector3d ending = OmplToEigen::convertState(*s2);
-
+    DLOG(INFO) << "start " << start.format(InLine) << "ending" << ending.format(InLine);
     if (pcc_->checkSegmentFlightCorridorSkeleton(start, ending, 0, min_flight_corridor_radius_)) {
       return true;
     }

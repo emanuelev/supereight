@@ -40,7 +40,7 @@ class ProbCollisionChecker {
  public:
   typedef std::shared_ptr<ProbCollisionChecker<FieldType> > Ptr;
 
-  ProbCollisionChecker(const std::shared_ptr<Octree<FieldType> > &octree_ptr,
+  ProbCollisionChecker( std::shared_ptr<Octree<FieldType> > octree_ptr,
                        const PlanningParameter &ompl_params);
 
   bool checkSegmentFlightCorridor(const Eigen::Vector3d &start,
@@ -54,7 +54,7 @@ class ProbCollisionChecker {
   bool isSphereCollisionFree(const Eigen::Vector3d &position_m, const float radius_m);
   bool isSphereCollisionFree(const Eigen::Vector3i &position_v, const int radius_v);
   bool checkSphereSkeleton(const Eigen::Vector3d &position_m, const float radius_m);
-  bool checkVolume(std::vector<Eigen::Vector3i> volume);
+  bool checkVolume(std::vector<Eigen::Vector3i> volume); // check flight segment corridor
   bool checkLine(const Eigen::Vector3d &start_m,
                  const Eigen::Vector3d &connection_m,
                  const int num_subpos);
@@ -68,9 +68,9 @@ class ProbCollisionChecker {
   bool expandFlightCorridor(Path<kDim>::Ptr path_m);
   void findMinLineDistance(const Eigen::Vector3d &start_m,
                            const Eigen::Vector3d &end_m,
-                           double &min_distance_m);
+                           double &min_distance_m); // expand flight corridor (not used)
   void getVoxelDistance(const Eigen::Vector3d &position_m, double &distance);
-  double getVoxelDistance(const Eigen::Vector3d &position_m);
+  double getVoxelDistance(const Eigen::Vector3d &position_m); // motion validator
 
  private:
   exploration::VolumeShifter::Ptr vs_ = NULL;
@@ -87,7 +87,7 @@ class ProbCollisionChecker {
 };
 
 template<typename FieldType>
-ProbCollisionChecker<FieldType>::ProbCollisionChecker(const std::shared_ptr<Octree<FieldType> > &octree_ptr,
+ProbCollisionChecker<FieldType>::ProbCollisionChecker(std::shared_ptr<Octree<FieldType> > octree_ptr,
                                                       const PlanningParameter &ompl_params)
     :
     octree_ptr_(octree_ptr) {
@@ -315,7 +315,7 @@ template<typename FieldType>
 bool ProbCollisionChecker<FieldType>::isSphereCollisionFree(const Eigen::Vector3i &center,
                                                             const int radius_v) {
 
-  DLOG(INFO) << "voxel_dim " << voxel_dim_ << " center " << center.format(InLine);
+  DLOG(INFO) << "radius " << radius_v << " center " << center.format(InLine);
   se::Node<FieldType> *node = nullptr;
   se::VoxelBlock<FieldType> *block = nullptr;
   bool is_voxel_block;
@@ -336,7 +336,7 @@ bool ProbCollisionChecker<FieldType>::isSphereCollisionFree(const Eigen::Vector3
             if (is_voxel_block) {
               block = static_cast<se::VoxelBlock<FieldType> *> (node);
             } else {
-              if (octree_ptr_->get(se::keyops::decode(node->code_)).x >= 0.f) {
+              if (octree_ptr_->get(se::keyops::decode(node->code_)).st != voxel_state::kFree) {
                 Eigen::Vector3i pos = se::keyops::decode(node->code_);
                 std::cout << " [secollision] collision at node "
                           << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;
@@ -349,10 +349,10 @@ bool ProbCollisionChecker<FieldType>::isSphereCollisionFree(const Eigen::Vector3
             if ((point_v.x() / BLOCK_SIDE) == (prev_pos.x() / BLOCK_SIDE)
                 && (point_v.y() / BLOCK_SIDE) == (prev_pos.y() / BLOCK_SIDE)
                 && (point_v.z() / BLOCK_SIDE) == (prev_pos.z() / BLOCK_SIDE)) {
-              if (block->data(point_v).x >= 0.f) {
+              if (block->data(point_v).st != voxel_state::kFree) {
                 std::cout << " [secollision] collision at "
-                          << (point_v.cast<float>() * voxel_dim_).format(InLine) << " plog "
-                          << block->data(point_v).x << std::endl;
+                          << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
+                          << block->data(point_v).st << std::endl;
                 return false;
               }
             } else {
@@ -363,15 +363,15 @@ bool ProbCollisionChecker<FieldType>::isSphereCollisionFree(const Eigen::Vector3
                                         is_voxel_block);
               if (is_voxel_block) {
                 block = static_cast<se::VoxelBlock<FieldType> *> (node);
-                if (block->data(point_v).x >= 0.f) {
+                if (block->data(point_v).st != voxel_state::kFree) {
                   std::cout << " [secollision] collision at "
-                            << (point_v.cast<float>() * voxel_dim_).format(InLine) << " plog "
-                            << block->data(point_v).x << std::endl;
+                            << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
+                            << block->data(point_v).st << std::endl;
                   return false;
                 }
               } else {
                 block = nullptr;
-                if (octree_ptr_->get(se::keyops::decode(node->code_)).x >= 0.f) {
+                if (octree_ptr_->get(se::keyops::decode(node->code_)).st != voxel_state::kFree) {
                   Eigen::Vector3i pos = se::keyops::decode(node->code_);
                   std::cout << " [secollision] collision at node "
                             << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;

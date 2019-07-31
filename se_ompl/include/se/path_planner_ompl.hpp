@@ -128,7 +128,8 @@ class PathPlannerOmpl {
 
   */
   ompl::base::PlannerPtr planner_;  /// Shared pointer wrapper for base class for a planner
-
+  std::shared_ptr<ob::RealVectorStateSpace> rvss_ =nullptr;
+  og::SimpleSetupPtr ss_; /// Create the set of classes typically needed to solve a
   Path<kDim>::Ptr path_ = nullptr;
   Path<kDim>::Ptr path_not_simplified_ = nullptr;
 
@@ -141,7 +142,8 @@ class PathPlannerOmpl {
 
   map3i free_map_;
 
-  og::SimpleSetup ss_; /// Create the set of classes typically needed to solve a geometric problem
+  // geometric
+  // problem
   double min_flight_corridor_radius_;
   double robot_radius_;
   double flight_corridor_radius_reduction_;
@@ -156,9 +158,8 @@ PathPlannerOmpl<FieldType>::PathPlannerOmpl(const std::shared_ptr<Octree<FieldTy
                                             const PlanningParameter &ompl_params,
                                             map3i &free_map)
     :
-    octree_ptr_(octree_ptr),
-    pcc_(pcc),
-    ss_(ob::StateSpacePtr(std::make_shared<ob::RealVectorStateSpace>(kDim))),
+    octree_ptr_(octree_ptr), pcc_(pcc),
+//    ss_(ob::StateSpacePtr(std::make_shared<ob::RealVectorStateSpace>(kDim))),
     free_map_(free_map) {
   planning_params_ = ompl_params;
   solving_time_ = ompl_params.solving_time_;
@@ -167,10 +168,11 @@ PathPlannerOmpl<FieldType>::PathPlannerOmpl(const std::shared_ptr<Octree<FieldTy
   DLOG(INFO) << "min flight corridor radius: " << min_flight_corridor_radius_;
   robot_radius_ = ompl_params.robot_radius_;
   flight_corridor_radius_reduction_ = ompl_params.robot_radius_ + ompl_params.safety_radius_;
+  ss_ = std::make_shared<og::SimpleSetup>(ob::StateSpacePtr(new ob::RealVectorStateSpace(3)));
   // Contstruct optimizing planner using RRT algorithm
-
+  // set Planner
 //    planner_ = std::shared_ptr<og::RRT>(new og::RRT(ss_.getSpaceInformation()));
-  planner_ = std::shared_ptr<og::RRTstar>(new og::RRTstar(ss_.getSpaceInformation()));
+  planner_ = std::make_shared<og::RRTstar>(ss_->getSpaceInformation());
 
   path_ = std::make_shared<Path<kDim>>();
   path_not_simplified_ = std::make_shared<Path<kDim>>();
@@ -184,6 +186,7 @@ PathPlannerOmpl<FieldType>::PathPlannerOmpl(const std::shared_ptr<Octree<FieldTy
  */
 
 
+/*
 template<typename FieldType>
 bool PathPlannerOmpl<FieldType>::setupPlanner(const Eigen::Vector3d &start_m,
                                               const Eigen::Vector3d &goal_m) {
@@ -192,35 +195,36 @@ bool PathPlannerOmpl<FieldType>::setupPlanner(const Eigen::Vector3d &start_m,
   // ow_->checkSanity();
   DLOG(INFO) << "start setting up planner";
   // Get map boundaries and set space boundaries TODO: Changed this to int [voxel] rather than double [m]
-  Eigen::Vector3i min_boundary(0, 0, 0), max_boundary(100, 100, 100);
+  Eigen::Vector3i min_boundary(0, 0, 0), max_boundary(0, 0, 0);
   // TODO fix this function first
 //  ow_->GetMapBoundsMeter(min_boundary, max_boundary);
   getFreeMapBounds(free_map_, min_boundary, max_boundary);
   DLOG(INFO) << "map boundaries: " << min_boundary << ", " << max_boundary;
-  setSpaceBoundaries(min_boundary, max_boundary, ss_.getStateSpace());
+  setSpaceBoundaries(min_boundary, max_boundary, ss_->getStateSpace());
 
   // set the object used to check which states in the space are valid
   std::shared_ptr<StateValidityChecker<FieldType> > state_validity_checker;
   state_validity_checker =
-      std::shared_ptr<StateValidityChecker<FieldType> >(new StateValidityChecker<FieldType>(ss_.getSpaceInformation(),
+      std::shared_ptr<StateValidityChecker<FieldType> >(new StateValidityChecker<FieldType>
+          (ss_->getSpaceInformation(),
                                                                                             pcc_,
                                                                                             min_flight_corridor_radius_));
-  ss_.setStateValidityChecker(state_validity_checker);
-  ss_.getSpaceInformation()->setStateValidityCheckingResolution(0.001);
+  ss_->setStateValidityChecker(ob::StateValidityCheckerPtr(state_validity_checker));
+  ss_->getSpaceInformation()->setStateValidityCheckingResolution(0.001);
 
   DLOG(INFO) << "use skeletoncheck: " << planning_params_.use_skeleton_check_;
   if (planning_params_.use_skeleton_check_) {
     // Set motion validity checking for this space (collision checking)
     auto motion_validator =
         std::shared_ptr<MotionValidatorOccupancySkeleton<FieldType>>(new MotionValidatorOccupancySkeleton<
-            FieldType>(ss_.getSpaceInformation(), pcc_, min_flight_corridor_radius_));
-    ss_.getSpaceInformation()->setMotionValidator(motion_validator);
+            FieldType>(ss_->getSpaceInformation(), pcc_, min_flight_corridor_radius_));
+    ss_->getSpaceInformation()->setMotionValidator(motion_validator);
   } else {
     // Set motion validity checking for this space (collision checking)
     auto motion_validator =
         std::shared_ptr<MotionValidatorOccupancyDense<FieldType> >(new MotionValidatorOccupancyDense<
-            FieldType>(ss_.getSpaceInformation(), pcc_, min_flight_corridor_radius_));
-    ss_.getSpaceInformation()->setMotionValidator(motion_validator);
+            FieldType>(ss_->getSpaceInformation(), pcc_, min_flight_corridor_radius_));
+    ss_->getSpaceInformation()->setMotionValidator(motion_validator);
   }
 
   // TODO check if it's necessary
@@ -252,72 +256,111 @@ bool PathPlannerOmpl<FieldType>::setupPlanner(const Eigen::Vector3d &start_m,
   }
 
   // Set the start and goal states
-  ob::ScopedState<ob::RealVectorStateSpace> ompl_start(ss_.getSpaceInformation()),
-      ompl_goal(ss_.getSpaceInformation());
+  ob::ScopedState<ob::RealVectorStateSpace> ompl_start(ss_->getSpaceInformation()),
+      ompl_goal(ss_->getSpaceInformation());
 
   OmplToEigen::convertState(start_m, &ompl_start);
   OmplToEigen::convertState(goal_m, &ompl_goal);
 
-  ss_.setStartAndGoalStates(ompl_start, ompl_goal);
+  ss_->setStartAndGoalStates(ompl_start, ompl_goal);
   DLOG(INFO) << "start and goal positions set";
   // Set objective
   // TODO ENTROPY stuff
 //  ob::OptimizationObjectivePtr information_gain_obj
 //      (std::shared_ptr<InformationGainObjective>(new InformationGainObjective(ss_.getSpaceInformation())));
   ob::OptimizationObjectivePtr
-      objective(std::make_shared<ob::PathLengthOptimizationObjective>(ss_.getSpaceInformation()));
-//    ss_.getProblemDefinition()->setOptimizationObjective(information_gain_obj);
-//    ss_.getOptimizationObjective()->print(std::cout);
+      objective(std::make_shared<ob::PathLengthOptimizationObjective>(ss_->getSpaceInformation()));
+  ss_->getProblemDefinition()->setOptimizationObjective(objective);
+  ss_->getOptimizationObjective()->print(std::cout);
   // Set planner // TODO: Currently fixed to Informend RRT*
 
-  ss_.setPlanner(planner_);
+  ss_->setPlanner(planner_);
 //    ss_.getPlanner()->getProblemDefinition()->getOptimizationObjective()
 //    ->print(std::cout);
   // Get more output information
-  ss_.setup();
+  ss_->setup();
 
 //    ss_.print();
 
   return true;
 }
+*/
 
+
+/**
+ * [voxel coord]
+ * @tparam FieldType
+ * @param start_v
+ * @param goal_v
+ * @return
+ */
 template<typename FieldType>
 bool PathPlannerOmpl<FieldType>::setupPlanner(const Eigen::Vector3i &start_v,
                                               const Eigen::Vector3i &goal_v) {
   DLOG(INFO) << "start setting up planner voxel based";
-  // Get map boundaries and set space boundaries TODO: Changed this to int [voxel] rather than double [m]
+  // Get map boundaries and set space boundaries
   Eigen::Vector3i min_boundary(0, 0, 0), max_boundary(0, 0, 0);
   getFreeMapBounds(free_map_, min_boundary, max_boundary);
-  DLOG(INFO) << "map boundaries: " << min_boundary.format(InLine) << ", " << max_boundary.format
-  (InLine);
-  setSpaceBoundaries(min_boundary, max_boundary, ss_.getStateSpace());
+  DLOG(INFO) << "map boundaries: " << min_boundary.format(InLine) << ", "
+             << max_boundary.format(InLine);
+  setSpaceBoundaries(min_boundary, max_boundary, ss_->getStateSpace());
 
   const int min_flight_corridor_radius_v =
       static_cast<int>(min_flight_corridor_radius_ / octree_ptr_->voxelDim());
-  // set the object used to check which states in the space are valid
-  std::shared_ptr<StateValidityChecker<FieldType> > state_validity_checker;
-  state_validity_checker =
-      std::shared_ptr<StateValidityChecker<FieldType> >(new StateValidityChecker<FieldType>(ss_.getSpaceInformation(),
-                                                                                            pcc_,
-                                                                                            min_flight_corridor_radius_v));
-  ss_.setStateValidityChecker(state_validity_checker);
-  ss_.getSpaceInformation()->setStateValidityCheckingResolution(0.1);
 
-  DLOG(INFO) << "use skeletoncheck: " << planning_params_.use_skeleton_check_;
+  // set the object used to check which states in the space are valid only for SDF
+/*  std::shared_ptr<StateValidityChecker<FieldType> > state_validity_checker
+      (std::make_shared<StateValidityChecker<FieldType> >(ss_.getSpaceInformation(),
+                                                          pcc_,
+                                                          min_flight_corridor_radius_v));
+  ss_.setStateValidityChecker(state_validity_checker);*/
+
+
+  // This is a fraction of the space extent! Not actual metric units. For
+  // mysterious reasons. Thanks OMPL!
+//  float validity_checking_resolution = 0.01;
+//  if ((max_boundary - min_boundary).norm() > 1e-3) {
+//    // If bounds are set, set this to approximately one voxel.
+//    validity_checking_resolution =
+//        octree_ptr_->voxelDim() / (max_boundary - min_boundary).norm() / 2.0;
+//  }
+//  ss_.getSpaceInformation()->setStateValidityCheckingResolution(validity_checking_resolution);
+
+
+
+/*  DLOG(INFO) << "use skeletoncheck: " << planning_params_.use_skeleton_check_;
   if (planning_params_.use_skeleton_check_) {
     // Set motion validity checking for this space (collision checking)
-    auto motion_validator =
-        std::shared_ptr<MotionValidatorOccupancySkeleton<FieldType>>(new MotionValidatorOccupancySkeleton<
-            FieldType>(ss_.getSpaceInformation(), pcc_, min_flight_corridor_radius_v));
+    auto motion_validator
+        (std::make_shared<MotionValidatorOccupancySkeleton<FieldType> >(ss_.getSpaceInformation(),
+                                                                        pcc_,
+                                                                        min_flight_corridor_radius_v));
     ss_.getSpaceInformation()->setMotionValidator(motion_validator);
   } else {
     // Set motion validity checking for this space (collision checking)
-    auto motion_validator =
-        std::shared_ptr<MotionValidatorOccupancyDense<FieldType> >(new MotionValidatorOccupancyDense<
-            FieldType>(ss_.getSpaceInformation(), pcc_, min_flight_corridor_radius_v));
+    auto motion_validator
+        (std::make_shared<MotionValidatorOccupancyDense<FieldType> >(ss_.getSpaceInformation(),
+                                                                     pcc_,
+                                                                     min_flight_corridor_radius_v));
     ss_.getSpaceInformation()->setMotionValidator(motion_validator);
-  }
+  }*/
 
+  // Set objective
+//  ob::OptimizationObjectivePtr information_gain_obj
+//      (std::shared_ptr<InformationGainObjective>(new InformationGainObjective(ss_.getSpaceInformation())));
+  // TODO ??
+  ob::OptimizationObjectivePtr
+      objective(std::make_shared<ob::PathLengthOptimizationObjective>(ss_->getSpaceInformation()));
+  ss_->getProblemDefinition()->setOptimizationObjective(objective);
+  ss_->getProblemDefinition()->getOptimizationObjective()->print(std::cout);
+
+  // Set planner // TODO: Currently fixed to Informend RRT*
+  ss_->setPlanner(planner_);
+  ss_->getPlanner()->printSettings(std::cout);
+  ss_->getPlanner()->printProperties(std::cout);
+
+  // TODO voxelblock / node check
+  ss_->clear();
   if (!pcc_->isSphereCollisionFree(start_v, min_flight_corridor_radius_v)) {
     std::cout << "\033[1;31mStart is occupied\033[0m\n";
     //LOG(ERROR) << "Start is occupied";
@@ -333,36 +376,24 @@ bool PathPlannerOmpl<FieldType>::setupPlanner(const Eigen::Vector3i &start_v,
   }
 
   // Set the start and goal states
-  ob::ScopedState<ob::RealVectorStateSpace> ompl_start(ss_.getSpaceInformation()),
-      ompl_goal(ss_.getSpaceInformation());
+  ob::ScopedState<ob::RealVectorStateSpace> ompl_start(ss_->getSpaceInformation());
+  ob::ScopedState<ob::RealVectorStateSpace> ompl_goal(ss_->getSpaceInformation());
 
   OmplToEigen::convertState(start_v, &ompl_start);
   OmplToEigen::convertState(goal_v, &ompl_goal);
-
-  ss_.setStartAndGoalStates(ompl_start, ompl_goal);
+  ss_->setStartAndGoalStates(ompl_start, ompl_goal);
   DLOG(INFO) << "start and goal positions set";
-  // Set objective
-  // TODO ENTROPY stuff
-//  ob::OptimizationObjectivePtr information_gain_obj
-//      (std::shared_ptr<InformationGainObjective>(new InformationGainObjective(ss_.getSpaceInformation())));
-  ob::OptimizationObjectivePtr
-      objective(std::make_shared<ob::PathLengthOptimizationObjective>(ss_.getSpaceInformation()));
-//    ss_.getProblemDefinition()->setOptimizationObjective(information_gain_obj);
-//    ss_.getOptimizationObjective()->print(std::cout);
-  // Set planner // TODO: Currently fixed to Informend RRT*
 
-  ss_.setPlanner(planner_);
-//    ss_.getPlanner()->getProblemDefinition()->getOptimizationObjective()
-//    ->print(std::cout);
+
   // Get more output information
-  ss_.setup();
-
-//    ss_.print();
+  ss_->getSpaceInformation()->setup();
+  DLOG(INFO) << "ss_.print";
+  ss_->print();
 
   return true;
 }
 
-template<typename FieldType>
+/*template<typename FieldType>
 bool PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3d &start_m,
                                           const Eigen::Vector3d &goal_m) {
   DLOG(INFO) << "start path planner ";
@@ -387,11 +418,11 @@ bool PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3d &start_m,
       og::PathGeometric path = ss_.getSolutionPath();
 
       // TODO: UNCOMMENTED FOR EVALUATION
-      /*
+      *//*
       OmplToEigen::convertPath(path, path_not_simplified_, min_flight_corridor_radius_);
       pcc_->expandFlightCorridorDistance(path_not_simplified_);
       reduceToControlPointCorridorRadius(path_not_simplified_);
-      */
+      *//*
 
 
       // Simplify path
@@ -443,7 +474,7 @@ bool PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3d &start_m,
   }
 
   return true;
-}
+}*/
 
 template<typename FieldType>
 bool PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
@@ -458,18 +489,18 @@ bool PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
   path_not_simplified_v_->states.clear();
 
   // Attempt to solve the problem within x seconds of planning time
-  ob::PlannerStatus solved = ss_.solve(solving_time_);
-  DLOG(INFO) << ss_.getPlanner()->getName() << " found path : " << solved;
+  ob::PlannerStatus solved = ss_->solve(solving_time_);
+  DLOG(INFO) << ss_->getPlanner()->getName() << " found path : " << solved;
   std::string filename = getTimeStampedFilename();
   std::ofstream myfile(filename);
 
   const int min_flight_corridor_radius_v =
       static_cast<int>(min_flight_corridor_radius_ / octree_ptr_->voxelDim());
   if (solved) {
-    if (ss_.haveExactSolutionPath()) {
+    if (ss_->haveExactSolutionPath()) {
 
       // Get non-simplified path and convert to Eigen
-      og::PathGeometric path = ss_.getSolutionPath();
+      og::PathGeometric path = ss_->getSolutionPath();
 
       // TODO: UNCOMMENTED FOR EVALUATION
       /*
@@ -497,17 +528,18 @@ bool PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
     } else {
       DLOG(WARNING) << "\033[1;31mONLY APPROXIMATE SOLUTION FOUND. OMPL FAILED"
                        ".\033[0m\n";
-      og::PathGeometric path = ss_.getSolutionPath();
+      og::PathGeometric path = ss_->getSolutionPath();
       path.printAsMatrix(std::cout);
 
       path.printAsMatrix(myfile);
 
       myfile.close();
       DLOG(INFO) << "with an optimization objective value of "
-                 << ss_.getProblemDefinition()->getSolutionPath()->cost(ss_.getProblemDefinition()->getOptimizationObjective());
+                 << ss_->getProblemDefinition()->getSolutionPath()->cost(ss_->getProblemDefinition
+                 ()->getOptimizationObjective());
       // evaluate the other possibilities
-      ob::PlannerData planner_data(ss_.getSpaceInformation());
-      ss_.getPlannerData(planner_data);
+      ob::PlannerData planner_data(ss_->getSpaceInformation());
+      ss_->getPlannerData(planner_data);
       // Start traversing the graph and find the node that gets the closest to the
       // actual goal point.
       if (planner_data.numStartVertices() < 1) {
@@ -540,7 +572,7 @@ void PathPlannerOmpl<FieldType>::reduceToControlPointCorridorRadius(Path<kDim>::
 template<typename FieldType>
 void PathPlannerOmpl<FieldType>::prunePath(og::PathGeometric &path) {
 
-  ob::ProblemDefinitionPtr pdef = ss_.getProblemDefinition();
+  ob::ProblemDefinitionPtr pdef = ss_->getProblemDefinition();
   if (pdef) {
     const ob::PathPtr &p = pdef->getSolutionPath();
     if (p) {
@@ -562,7 +594,7 @@ void PathPlannerOmpl<FieldType>::prunePath(og::PathGeometric &path) {
 template<typename FieldType>
 void PathPlannerOmpl<FieldType>::simplifyPath(ompl::geometric::PathGeometric &path) {
 
-  og::PathSimplifier simplifier(ss_.getSpaceInformation());
+  og::PathSimplifier simplifier(ss_->getSpaceInformation());
 
   // Termination condition
   const double max_time = 0.5; // TODO: parameterize
@@ -594,7 +626,7 @@ template<typename FieldType>
 void PathPlannerOmpl<FieldType>::setSpaceBoundaries(const Eigen::Vector3i &min_boundary,
                                                     const Eigen::Vector3i &max_boundary,
                                                     ob::StateSpacePtr space) {
-  ob::RealVectorBounds bounds(kDim);
+  ob::RealVectorBounds bounds(3);
 
   bounds.setLow(0, min_boundary.x());
   bounds.setLow(1, min_boundary.y());
@@ -602,7 +634,7 @@ void PathPlannerOmpl<FieldType>::setSpaceBoundaries(const Eigen::Vector3i &min_b
   bounds.setHigh(0, max_boundary.x());
   bounds.setHigh(1, max_boundary.y());
   bounds.setHigh(2, max_boundary.z());
-  space->as<ob::RealVectorStateSpace>()->setBounds(bounds);
+  ss_->getStateSpace()->as<ob::RealVectorStateSpace>()->setBounds(bounds);
 }
 }
 }

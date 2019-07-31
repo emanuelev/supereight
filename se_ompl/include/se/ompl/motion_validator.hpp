@@ -41,7 +41,7 @@ template<typename FieldType>
 class MotionValidator : public ompl::base::MotionValidator {
  public:
   MotionValidator(const ompl::base::SpaceInformationPtr &si,
-                  const ProbCollisionChecker<FieldType> &pcc,
+                   const std::shared_ptr<ProbCollisionChecker<FieldType> > &pcc,
                   const double min_flight_corridor_radius)
       :
       ompl::base::MotionValidator(si),
@@ -65,9 +65,9 @@ class MotionValidator : public ompl::base::MotionValidator {
       return false;
     }
 
-    Eigen::Vector3d start = OmplToEigen::convertState(*s1);
-    Eigen::Vector3d ending = OmplToEigen::convertState(*s2);
-
+    Eigen::Vector3i start = OmplToEigen::convertState_v(*s1);
+    Eigen::Vector3i ending = OmplToEigen::convertState_v(*s2);
+    DLOG(INFO) << "start "<< start << " ending " << ending;
     //double sqrt3 = 1.75;
     //double segment_length = (ending - start).norm();
     double corridor_factor;

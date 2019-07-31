@@ -16,9 +16,9 @@
 #include <iterator>
 #include <type_traits>
 #include <cmath>
-#include <queue>
-
+#include <glog/logging.h>
 #include <Eigen/StdVector>
+
 #include "se/geometry/octree_collision.hpp"
 #include "se/continuous/volume_template.hpp"
 #include "se/octree.hpp"
@@ -622,20 +622,19 @@ void getExplorationPath(const std::shared_ptr<Octree<T> > &octree_ptr,
 
   // adding ompl
 //  // setup collision checker
-  std::shared_ptr<ProbCollisionChecker<T> > prob_collision_checker =
-      std::shared_ptr<ProbCollisionChecker<T> >(new ProbCollisionChecker<T>(octree_ptr,
-                                                                            ompl_params));
+  std::shared_ptr<ProbCollisionChecker<T> >
+      prob_collision_checker = std::make_shared<ProbCollisionChecker<T>>(octree_ptr, ompl_params);
 ////   setup rrt ompl object
-  std::shared_ptr<PathPlannerOmpl<T> > path_planner_ompl_ptr;
-  path_planner_ompl_ptr = std::shared_ptr<PathPlannerOmpl<T> >(new PathPlannerOmpl<T>(octree_ptr,
-                                                                                      prob_collision_checker,
-                                                                                      ompl_params,
-                                                                                      free_map));
-  Eigen::Vector3d start_pos = pose.block<3,1> (0,3).cast<double>();
+  std::shared_ptr<PathPlannerOmpl<T> > path_planner_ompl_ptr =
+      std::make_shared<PathPlannerOmpl<T> >(octree_ptr,
+                                            prob_collision_checker,
+                                            ompl_params,
+                                            free_map);
+  Eigen::Vector3d start_pos = pose.block<3, 1>(0, 3).cast<double>();
   Eigen::Vector3d end_pos = start_pos + Eigen::Vector3d(0.5, .5, 0.);
   // [m] to voxel
-  Eigen::Vector3i start_pos_v = (pose.block<3,1> (0,3)/ static_cast<float>(res)).cast<int>();
-  Eigen::Vector3i end_pos_v = pose_gain[0].first.p.cast<int>();
+  Eigen::Vector3i start_pos_v = (pose.block<3, 1>(0, 3) / static_cast<float>(res)).cast<int>();
+  Eigen::Vector3i end_pos_v = start_pos_v + Eigen::Vector3i(2, 3, 0);
   path_planner_ompl_ptr->planPath(start_pos_v, end_pos_v);
   // for all goals
   for (const auto &cand_goal : pose_gain) {
