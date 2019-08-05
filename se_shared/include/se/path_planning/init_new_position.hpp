@@ -61,6 +61,10 @@ static void getSphereAroundPoint(const Eigen::Vector3i &center,
         if (point_offset_v.norm() <= radius_v) {
           // check to wich voxelblock the voxel belongs
           const Eigen::Vector3i point_v = point_offset_v + center;
+          if (point_v.x() < 0 || point_v.y() < 0 || point_v.z() < 0 || point_v.x() >= map.size()
+              || point_v.y() >= map.size() || point_v.z() >= map.size()) {
+            continue;
+          }
           const key_t morton_code = keyops::encode(point_v.x(), point_v.y(),
               point_v.z(), leaf_level, map.max_level());
           (*block_voxel_map)[morton_code].push_back(point_v);
@@ -86,7 +90,7 @@ static void setStateToFree(Octree<FieldType> &map, mapvec3i *block_voxel_map) {
       // make handler with the current voxel
       VoxelBlockHandler<FieldType> handler = {block_ptr, voxel};
       auto data = handler.get();
-      if (data.st == voxel_state::kUnknown) {
+      if (data.st == voxel_state::kUnknown || data.st == voxel_state::kFrontier) {
         data.st = voxel_state::kFree;
         handler.set(data);
       }

@@ -64,7 +64,7 @@ class CandidateView {
 
   void printFaceVoxels(const Eigen::Vector3i &voxel);
 
-  std::pair<double, float> getInformationGain(const Volume<T> &volume,
+  std::pair<float, float> getInformationGain(const Volume<T> &volume,
                                               const Eigen::Vector3f &direction,
                                               const float tnear,
                                               const float tfar,
@@ -73,7 +73,7 @@ class CandidateView {
 
   VectorPairPoseDouble getCandidateGain(const float step);
 
-  std::pair<pose3D, double> getBestCandidate(const VectorPairPoseDouble &cand_list);
+  std::pair<pose3D, float> getBestCandidate(const VectorPairPoseDouble &cand_list);
 
   const float getIGWeight_tanh(const float tanh_range,
                                const float tanh_ratio,
@@ -303,7 +303,7 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
  * @return
  */
 template<typename T>
-std::pair<double, float> CandidateView<T>::getInformationGain(const Volume<T> &volume,
+std::pair<float, float> CandidateView<T>::getInformationGain(const Volume<T> &volume,
                                                               const Eigen::Vector3f &direction,
                                                               const float tnear,
                                                               const float tfar,
@@ -311,7 +311,7 @@ std::pair<double, float> CandidateView<T>::getInformationGain(const Volume<T> &v
                                                               const Eigen::Vector3f &origin) {
   auto select_occupancy = [](typename Volume<T>::value_type val) { return val.x; };
   // march from camera away
-  double ig_entropy = 0.0f;
+  float ig_entropy = 0.0f;
   float tanh_range = 4.f;
   const float tanh_ratio = tanh_range / tfar;
   float t = tnear; // closer bound to camera
@@ -401,8 +401,8 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
   // [2]
 
   // temporary
-  const int dtheta = 10;
-  const int dphi = 5;
+  const int dtheta = 5;
+  const int dphi = 2.5;
   const float dr = 0.1f; //[1]
   const float r = 0.5; // [m] random radius
   const int n_col = fov_vert / dphi;
@@ -413,8 +413,8 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
   int cand_num = 1;
 
   // debug matrices
-  Eigen::MatrixXd gain_matrix(n_row, n_col + 2);
-  Eigen::MatrixXd depth_matrix(n_row, n_col + 1);
+  Eigen::MatrixXf gain_matrix(n_row, n_col + 2);
+  Eigen::MatrixXf depth_matrix(n_row, n_col + 1);
   std::map<int, double> gain_per_yaw;
   gain_per_yaw.empty();
 // cand view in voxel coord
@@ -445,10 +445,10 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
         // lower bound dist from camera
         const float t_min = ray.tcmin(); /* Get distance to the first intersected block */
         //get IG along ray
-        std::pair<double, float> gain_tmp =
+        std::pair<float, float> gain_tmp =
             t_min > 0.f ? getInformationGain(volume_, dir, t_min, r_max, step,
                 cand_view_m)
-                        : std::make_pair(0., 0.f);
+                        : std::make_pair(0.f, 0.f);
         gain_matrix(row, col) = gain_tmp.first;
         depth_matrix(row, col) = gain_tmp.second;
         gain += gain_tmp.first;
@@ -463,10 +463,10 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
     // TODO optimize the best yaw summation
     // FIFO
     int best_yaw = 0;
-    double best_yaw_gain = 0.0;
+    float best_yaw_gain = 0.0;
     // best yaw evaluation
     for (int yaw = -180; yaw < 180; yaw++) {
-      double yaw_score = 0.0;
+      float yaw_score = 0.0;
       // gain FoV horizontal
       for (int fov = -fov_hor / 2; fov < fov_hor / 2; fov++) {
         int theta = yaw + fov;
@@ -490,8 +490,12 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
 //    std::cout << "[se/candview] for cand " << cand_view.format(InLine) << " best theta angle is "
 //              << best_yaw << ", best ig is " << best_yaw_gain << std::endl;
 
-    saveMatrixToDepthImage(depth_matrix.block(0,1,n_row,n_col).transpose(), cand_num, true);
-    saveMatrixToDepthImage(gain_matrix.block(0,1,n_row,n_col).transpose(), cand_num, false);
+    saveMatrixToDepthImage(depth_matrix.block(0,1,n_row,n_col).transpose().rowwise().reverse(),
+        cand_num,
+        true);
+    saveMatrixToDepthImage(gain_matrix.block(0,1,n_row,n_col).transpose().rowwise().reverse(),
+        cand_num,
+        false);
     float yaw_rad = M_PI * best_yaw / 180.f;
     pose3D best_pose;
     best_pose.p = cand_view.cast<float>();
@@ -509,8 +513,8 @@ VectorPairPoseDouble CandidateView<T>::getCandidateGain(const float step) {
  */
 template<typename T>
 std::pair<pose3D,
-          double> CandidateView<T>::getBestCandidate(const VectorPairPoseDouble &cand_list) {
-  double max_gain = 0.0f;
+          float> CandidateView<T>::getBestCandidate(const VectorPairPoseDouble &cand_list) {
+  float max_gain = 0.0f;
   pose3D best_cand;
   for (const auto &cand : cand_list) {
     if (max_gain < cand.second) {
@@ -553,7 +557,7 @@ void getExplorationPath(const Volume<T> &volume,
 
   VectorPairPoseDouble pose_gain = candidate_view.getCandidateGain(step);
 
-  std::pair<pose3D, double> best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain);
+  std::pair<pose3D, float> best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain);
 //  std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)
 //            << " yaw " << toEulerAngles(best_cand_pose_with_gain.first.q).yaw * 180.f / M_PI
 //            << " with gain " << best_cand_pose_with_gain.second << std::endl;
