@@ -173,26 +173,33 @@ static inline bool saveMatrixToDepthImage(const Eigen::MatrixXf matrix,
   const float max_val = matrix.maxCoeff();
   const float min_val = matrix.minCoeff();
   const float diff = (max_val - min_val);
-  uint16_t *input_depth = (uint16_t *) malloc(matrix.size() * sizeof(uint16_t));
-  for (int v = 0; v < h; ++v) {
-    for (int u = 0; u < w; ++u) {
-      input_depth[u + v * w] =
-          static_cast<uint16_t >(65535.f * (1.f - ((matrix(v, u) - min_val) / diff)));
-    }
-  }
+  uint8_t *input_depth = (uint8_t *) malloc(matrix.size() * sizeof(uint8_t));
 
+  std::ofstream myfile;
   char filename[80];
   if (is_depth) {
     const std::string
-        s = "/home/anna/Data/cand_views/cand_" + std::to_string(cand_num) + "_depth_img.png";
+        s = "/home/anna/Data/cand_views/cand_" + std::to_string(cand_num) + "_depth_img.pgm";
     std::strcpy(filename, s.c_str());
   } else {
 
     const std::string s = "/home/anna/Data/cand_views/cand_" + std::to_string(cand_num) + "_IG_img"
-                                                                                          ".png";
+                                                                                          ".pgm";
     std::strcpy(filename, s.c_str());
   }
-  lodepng_encode_file(filename, (unsigned char *) input_depth, w, h, LCT_GREY, 16);
+  myfile.open(filename, std::ofstream::app);
+  myfile << "P2" <<std::endl;
+  myfile << w << " " << h  << std::endl;
+  myfile << "255"<<std::endl;
+  for (int v = 0; v < h; ++v) {
+    for (int u = 0; u < w; ++u) {
+      input_depth[u + v * w] =
+          static_cast<uint8_t >(255.f * (1.f - ((matrix(v, u) - min_val) / diff)));
+      myfile <<std::to_string( input_depth[u + v*w]) << " ";
+    }
+    myfile << std::endl;
+  }
+  myfile.close();
 
   return true;
 }
