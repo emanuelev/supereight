@@ -57,7 +57,7 @@ class CandidateView {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   typedef std::shared_ptr<CandidateView> Ptr;
-  CandidateView(const std::shared_ptr<Octree<T> > &octree_ptr,
+  CandidateView(const std::shared_ptr<Octree<T> > octree_ptr,
                 const Planning_Configuration &planning_config,
                 const float res,
                 const Configuration &config,
@@ -98,7 +98,7 @@ class CandidateView {
 };
 
 template<typename T>
-CandidateView<T>::CandidateView(const std::shared_ptr<Octree<T> > &octree_ptr,
+CandidateView<T>::CandidateView(const std::shared_ptr<Octree<T> > octree_ptr,
                                 const Planning_Configuration &planning_config,
                                 const float res,
                                 const Configuration &config,
@@ -590,7 +590,8 @@ static VecPose interpolateYaw(const pose3D &start, const pose3D &goal, const flo
  * calculates exploration path
  * for developing and visualization purposes also return candidate views
  * @tparam T Ofusion or SDF
- * @param volume octree
+ * @param shared_ptr octree_ptr : increments reference count and makes the function an owner, the
+ * octree will stay alive as long as the function is sing it
  * @param frontier_map
  * @param res [m/voxel]
  * @param step interval to stride along a ray
@@ -601,8 +602,8 @@ static VecPose interpolateYaw(const pose3D &start, const pose3D &goal, const flo
  * @param [out] cand_views
  */
 template<typename T>
-void getExplorationPath(const std::shared_ptr<Octree<T> > &octree_ptr,
-                        map3i &free_map,
+void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
+                        const map3i &free_map,
                         const map3i &frontier_map,
                         const double res,
                         const float step,
@@ -619,23 +620,27 @@ void getExplorationPath(const std::shared_ptr<Octree<T> > &octree_ptr,
   VecPairPoseFloat pose_gain = candidate_view.getCandidateGain(step);
   PlanningParameter ompl_params;
   ompl_params.ReadPlannerConfigFile(planning_config.ompl_config_path);
-
+  std::cout << "[se/candview] free map size " << free_map.size() << std::endl;
   // adding ompl
 //  // setup collision checker
-  std::shared_ptr<ProbCollisionChecker<T> >
-      prob_collision_checker = std::make_shared<ProbCollisionChecker<T>>(octree_ptr, ompl_params);
+
+// CPP: make_shared - memory resource is created for the first time, exception safe
+  auto prob_collision_checker = std::make_shared<ProbCollisionChecker<T>>(octree_ptr, ompl_params);
 ////   setup rrt ompl object
-  std::shared_ptr<PathPlannerOmpl<T> > path_planner_ompl_ptr =
+  auto path_planner_ompl_ptr =
       std::make_shared<PathPlannerOmpl<T> >(octree_ptr,
                                             prob_collision_checker,
-                                            ompl_params,
-                                            free_map);
+                                            ompl_params);
   Eigen::Vector3d start_pos = pose.block<3, 1>(0, 3).cast<double>();
   Eigen::Vector3d end_pos = start_pos + Eigen::Vector3d(0.5, .5, 0.);
   // [m] to voxel
   Eigen::Vector3i start_pos_v = (pose.block<3, 1>(0, 3) / static_cast<float>(res)).cast<int>();
   Eigen::Vector3i end_pos_v = start_pos_v + Eigen::Vector3i(2, 3, 0);
-  path_planner_ompl_ptr->planPath(start_pos_v, end_pos_v);
+  bool setup_planner = path_planner_ompl_ptr->setupPlanner(start_pos_v, end_pos_v, free_map);
+  std::cout << "[se/candview] setup planner successful " << setup_planner << std::endl;
+
+
+//  path_planner_ompl_ptr->planPath(start_pos_v, end_pos_v);
   // for all goals
   for (const auto &cand_goal : pose_gain) {
 

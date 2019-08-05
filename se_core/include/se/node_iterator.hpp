@@ -149,6 +149,43 @@ class node_iterator {
     return freeVoxels;
   }
 
+  Eigen::Vector3i getFreeVoxel(const key_t morton) {
+    Eigen::Vector3i free_voxel(-1,-1,-1);
+
+    typename VoxelBlock<T>::value_type value;
+    const Eigen::Vector3i blockCoord = keyops::decode(morton);
+    const int level = keyops::level(morton);
+
+    Node<T> *node = nullptr;
+    bool is_block = false;
+    map_.fetch_octant(blockCoord(0), blockCoord(1), blockCoord(2), node, is_block);
+    if (!is_block) {
+//      freeVoxel= blockCoord;
+      std::cout << "[se/nodeit] node " << free_voxel.format(InLine) << std::endl;
+      return free_voxel;
+    } else {
+      VoxelBlock<T> *block = static_cast< VoxelBlock<T> *> (node);
+      const int xlast = blockCoord(0) + BLOCK_SIDE;
+      const int ylast = blockCoord(1) + BLOCK_SIDE;
+      const int zlast = blockCoord(2) + BLOCK_SIDE;
+      for (int z = blockCoord(2); z < zlast; ++z) {
+        for (int y = blockCoord(1); y < ylast; ++y) {
+          for (int x = blockCoord(0); x < xlast; ++x) {
+            const Eigen::Vector3i vox{x, y, z};
+            value = block->data(vox);
+            if (value.st == voxel_state::kFree) {
+              free_voxel=vox;
+              std::cout << "[se/nodeit] block " << free_voxel.format(InLine) << std::endl;
+              return free_voxel;
+            }
+          }
+        }
+      }
+    }
+    std::cout <<"[se/nodeit] vb with no free voxel " << std::endl;
+    return free_voxel;
+  }
+
   vec3i getOccupiedVoxels(float threshold, const uint64_t morton) {
     vec3i occupiedVoxels;
     occupiedVoxels.clear();

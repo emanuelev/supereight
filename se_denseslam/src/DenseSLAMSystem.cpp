@@ -528,6 +528,8 @@ bool DenseSLAMSystem::planning(VecPose &path,
                                      planning_config_,
                                      free_blocks,
                                      *volume_._map_index);
+
+    insertBlocksToMap(free_map_,free_blocks);
     init_position_cleared_ = true;
   }
   float res_v = volume_dimension_.cast<float>().x() / volume_resolution_.cast<float>().x();

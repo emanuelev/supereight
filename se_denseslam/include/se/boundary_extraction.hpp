@@ -27,6 +27,19 @@ static inline void insertBlocksToMap(map3i &blocks_map, set3i *blocks) {
 
 //  std::cout << "[supereight/boundary] frontier maps size " << blocks_map.size() << std::endl;
 }
+static inline void insertBlocksToMap(map3i &blocks_map, mapvec3i *blocks) {
+  if (blocks->size() == 0) return;
+
+  for (auto it = blocks->begin(); it != blocks->end(); ++it) {
+    const Eigen::Vector3i voxel_coord = se::keyops::decode(it->first);
+    std::cout << "[se/boundary] morton code " << it->first << " voxel_coord "<< voxel_coord <<
+    std::endl;
+    blocks_map.emplace(it->first, voxel_coord);
+  }
+
+  std::cout << "[supereight/boundary] free maps size " << blocks_map.size() << std::endl;
+}
+
 /**
  * check if past frontier voxels have been updated and update the std::map
  * [uint64_t morton_code, Eigen::Vector3i coord]
@@ -65,19 +78,39 @@ void updateBlockMap(const Volume<T> &volume,
   insertBlocksToMap(blocks_map, blocks);
 //TODO remove it from here
 }
+
+
 // level at leaf level
- static inline void getFreeMapBounds(const map3i &blocks_map,
+template<typename T>
+void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree_ptr_,
+                      const map3i &blocks_map,
                       Eigen::Vector3i &lower_bound,
                       Eigen::Vector3i &upper_bound) {
 
-
+  se::node_iterator<T> node_it(*octree_ptr_);
   auto it_beg = blocks_map.begin();
   auto it_end = blocks_map.end();
-  const key_t lower_bound_morton = it_beg->first;
-  lower_bound = it_beg->second;
 
-  --it_end;
-  const key_t upper_bound_morton = it_end->first;
-  upper_bound = it_end->second + Eigen::Vector3i(BLOCK_SIDE, BLOCK_SIDE, BLOCK_SIDE);
+
+  lower_bound = Eigen::Vector3i(-1,-1,-1);
+
+  while(lower_bound == Eigen::Vector3i(-1,-1,-1)) {
+    const key_t lower_bound_morton = it_beg->first;
+    std::cout << "[se/boundary] " << lower_bound_morton << "coord "
+              << se::keyops::decode(lower_bound_morton).format(InLine) << std::endl;
+    lower_bound = node_it.getFreeVoxel(lower_bound_morton);
+    std::cout << "[se/boundary] " << lower_bound.format(InLine) << std::endl;
+    ++it_beg;
+  }
+  std::cout << "[se/boundary] " << lower_bound.format(InLine) << std::endl;
+  upper_bound = Eigen::Vector3i(-1,-1,-1);
+  while(upper_bound == Eigen::Vector3i(-1,-1,-1)) {
+    --it_end;
+    const key_t upper_bound_morton = it_end->first;
+    std::cout << "[se/boundary] " << upper_bound_morton << "coord "
+              << se::keyops::decode(upper_bound_morton).format(InLine) << std::endl;
+    upper_bound = node_it.getFreeVoxel(upper_bound_morton);
+    std::cout << "[se/boundary] " << upper_bound.format(InLine) << std::endl;
+  }
 }
 #endif //SUPEREIGHT_BOUNDARY_EXTRACTION_HPP

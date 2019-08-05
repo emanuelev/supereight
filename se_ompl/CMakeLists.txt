@@ -26,7 +26,9 @@ target_link_libraries(se-vs  PUBLIC
 
 target_include_directories(se-vs PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>)
+        $<INSTALL_INTERFACE:include>
+        ${EIGEN3_INCLUDE_DIR}
+        )
 
 install(
         TARGETS se-vs
