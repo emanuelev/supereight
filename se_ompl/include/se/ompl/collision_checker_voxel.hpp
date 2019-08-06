@@ -29,6 +29,7 @@ class CollisionCheckerV {
  public:
   typedef std::shared_ptr<CollisionCheckerV<FieldType> > Ptr;
 
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   CollisionCheckerV(const std::shared_ptr<Octree<FieldType> > &octree_ptr,
                        const PlanningParameter &ompl_params);
 

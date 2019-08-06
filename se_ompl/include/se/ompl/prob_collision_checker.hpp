@@ -38,6 +38,7 @@ template<typename FieldType> using Volume = VolumeTemplate<FieldType, se::Octree
 template<typename FieldType>
 class ProbCollisionChecker {
  public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   typedef std::shared_ptr<ProbCollisionChecker<FieldType> > Ptr;
 /**
  *

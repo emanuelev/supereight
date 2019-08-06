@@ -100,9 +100,9 @@ class DenseSLAMSystem {
 
   // intra-frame
   std::vector<float> reduction_output_;
-  std::vector<se::Image<float> > scaled_depth_;
-  std::vector<se::Image<Eigen::Vector3f> > input_vertex_;
-  std::vector<se::Image<Eigen::Vector3f> > input_normal_;
+  AlignedImagef  scaled_depth_;
+  AlignedImage3f input_vertex_;
+  AlignedImage3f   input_normal_;
   se::Image<float> float_depth_;
   std::vector<TrackData> tracking_result_;
   Eigen::Matrix4f old_pose_;

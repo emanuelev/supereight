@@ -16,16 +16,16 @@ all :
 
 debug:
 	mkdir -p build/
-	mkdir -p build/logs/
-	cd build/ && cmake -DCMAKE_BUILD_TYPE=Debug \
-		$(CMAKE_ARGUMENTS) ..
+	mkdir -p build/Debug/
+	cd build/Debug/ && cmake -DCMAKE_BUILD_TYPE=Debug \
+		$(CMAKE_ARGUMENTS) ../..
 	$(MAKE) -C build $(MFLAGS)
 
 debug2:
 	mkdir -p build/
-	mkdir -p build/logs/
-	cd build/ && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-		$(CMAKE_ARGUMENTS) ..
+	mkdir -p build/Debug2
+	cd build/Debug2 && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		$(CMAKE_ARGUMENTS) ../..
 	$(MAKE) -C build $(MFLAGS)
 
 stats: 

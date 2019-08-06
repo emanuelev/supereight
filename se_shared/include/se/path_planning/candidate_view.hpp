@@ -621,14 +621,12 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   PlanningParameter ompl_params;
   ompl_params.ReadPlannerConfigFile(planning_config.ompl_config_path);
   std::cout << "[se/candview] free map size " << free_map.size() << std::endl;
-  // adding ompl
-//  // setup collision checker
+ // setup collision checker
 
 // CPP: make_shared - memory resource is created for the first time, exception safe
-  auto prob_collision_checker = std::make_shared<ProbCollisionChecker<T>>(octree_ptr, ompl_params);
+  auto prob_collision_checker = aligned_shared<ProbCollisionChecker<T>>(octree_ptr, ompl_params);
 ////   setup rrt ompl object
-  auto path_planner_ompl_ptr =
-      std::make_shared<PathPlannerOmpl<T> >(octree_ptr,
+  auto path_planner_ompl_ptr = aligned_shared<PathPlannerOmpl<T> >(octree_ptr,
                                             prob_collision_checker,
                                             ompl_params);
   Eigen::Vector3d start_pos = pose.block<3, 1>(0, 3).cast<double>();

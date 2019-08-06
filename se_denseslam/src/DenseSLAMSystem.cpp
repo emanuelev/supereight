@@ -48,6 +48,9 @@
 #include "kfusion/alloc_impl.hpp"
 #include "se/boundary_extraction.hpp"
 
+#include "se/ompl/prob_collision_checker.hpp"
+#include "se/utils/planning_parameter.hpp"
+#include "se/path_planner_ompl.hpp"
 PerfStats Stats;
 static bool print_kernel_timing = false;
 
@@ -126,7 +129,7 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i &inputSize,
 
   // ********* END : Generate the gaussian *************
 
-  discrete_vol_ptr_ = std::make_shared<se::Octree<FieldType> >();
+  discrete_vol_ptr_ = aligned_shared<se::Octree<FieldType> >();
   discrete_vol_ptr_->init(volume_resolution_.x(), volume_dimension_.x());
   volume_ =
       Volume<FieldType>(volume_resolution_.x(), volume_dimension_.x(), discrete_vol_ptr_.get());
@@ -529,7 +532,7 @@ bool DenseSLAMSystem::planning(VecPose &path,
                                      free_blocks,
                                      *volume_._map_index);
 
-    insertBlocksToMap(free_map_,free_blocks);
+    insertBlocksToMap(free_map_, free_blocks);
     init_position_cleared_ = true;
   }
   float res_v = volume_dimension_.cast<float>().x() / volume_resolution_.cast<float>().x();
