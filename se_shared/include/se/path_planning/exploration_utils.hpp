@@ -147,13 +147,13 @@ static inline eulerAngles toEulerAngles2(Eigen::Quaternionf q) {
  * @param prob_log logarithmic occupancy probability
  * @return entropy
  */
-static inline double getEntropy(float prob_log) {
+static inline float getEntropy(float prob_log) {
   float prob = se::math::getProbFromLog(prob_log);
-  double temp_entropy = 0.0f;
+  float temp_entropy = 0.0f;
   if (prob == 0.0 || (1 - prob) == 0.0) {
     return 0.0;
   }
-  temp_entropy = -prob * log2(prob) - (1 - prob) * log2(1 - prob);
+  temp_entropy = -prob * log2f(prob) - (1 - prob) * log2f(1 - prob);
   return temp_entropy;
 
 }
@@ -164,35 +164,42 @@ static inline bool isSameBlock(Eigen::Vector3i voxel, Eigen::Vector3i face_voxel
       && (voxel.z() / BLOCK_SIDE) == (face_voxel.z() / BLOCK_SIDE);
 }
 
-static inline bool saveMatrixToDepthImage(const Eigen::MatrixXd matrix,
+static inline bool saveMatrixToDepthImage(const Eigen::MatrixXf matrix,
                                           const int cand_num,
                                           const bool is_depth) {
 
   const int w = matrix.cols();
   const int h = matrix.rows();
-  const double max_val = matrix.maxCoeff();
-  const double min_val = matrix.minCoeff();
+  const float max_val = matrix.maxCoeff();
+  const float min_val = matrix.minCoeff();
   const float diff = (max_val - min_val);
-  uint16_t *input_depth = (uint16_t *) malloc(matrix.size() * sizeof(uint16_t));
-  for (int v = 0; v < h; ++v) {
-    for (int u = 0; u < w; ++u) {
-      input_depth[u + v * w] =
-          static_cast<uint16_t >(65535 * (1 - ((matrix(v, u) - min_val) / diff)));
-    }
-  }
+  uint8_t *input_depth = (uint8_t *) malloc(matrix.size() * sizeof(uint8_t));
 
+  std::ofstream myfile;
   char filename[80];
   if (is_depth) {
     const std::string
-        s = "/home/anna/Data/cand_views/cand_" + std::to_string(cand_num) + "_depth_img.png";
+        s = "/home/anna/Data/cand_views/cand_" + std::to_string(cand_num) + "_depth_img.pgm";
     std::strcpy(filename, s.c_str());
   } else {
 
     const std::string s = "/home/anna/Data/cand_views/cand_" + std::to_string(cand_num) + "_IG_img"
-                                                                                          ".png";
+                                                                                          ".pgm";
     std::strcpy(filename, s.c_str());
   }
-  lodepng_encode_file(filename, (unsigned char *) input_depth, w, h, LCT_GREY, 16);
+  myfile.open(filename, std::ofstream::app);
+  myfile << "P2" <<std::endl;
+  myfile << w << " " << h  << std::endl;
+  myfile << "255"<<std::endl;
+  for (int v = 0; v < h; ++v) {
+    for (int u = 0; u < w; ++u) {
+      input_depth[u + v * w] =
+          static_cast<uint8_t >(255.f * (1.f - ((matrix(v, u) - min_val) / diff)));
+      myfile <<std::to_string( input_depth[u + v*w]) << " ";
+    }
+    myfile << std::endl;
+  }
+  myfile.close();
 
   return true;
 }
