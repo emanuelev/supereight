@@ -31,6 +31,7 @@
 #include <ompl/base/SpaceInformation.h>
 
 #include "prob_collision_checker.hpp"
+#include "collision_checker_voxel.hpp"
 #include "se/occupancy_world.hpp"
 #include "se/utils/ompl_to_eigen.hpp"
 namespace ob = ompl::base;
@@ -48,9 +49,9 @@ namespace exploration {
 template<typename FieldType>
 class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
  public:
-  MotionValidatorOccupancySkeleton(const ompl::base::SpaceInformationPtr &si,
-                                   const std::shared_ptr<ProbCollisionChecker<FieldType> > &pcc,
-                                   const double min_flight_corridor_radius)
+  MotionValidatorOccupancySkeleton(const ompl::base::SpaceInformationPtr si,
+                                   const std::shared_ptr<CollisionCheckerV<FieldType> > pcc,
+                                   const int min_flight_corridor_radius)
       :
       ompl::base::MotionValidator(si),
       pcc_(pcc),
@@ -73,10 +74,10 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
       return false;
     }
 
-    Eigen::Vector3d start = OmplToEigen::convertState(*s1);
-    Eigen::Vector3d ending = OmplToEigen::convertState(*s2);
+    Eigen::Vector3i start = OmplToEigen::convertState_v(*s1);
+    Eigen::Vector3i ending = OmplToEigen::convertState_v(*s2);
     DLOG(INFO) << "start " << start.format(InLine) << "ending" << ending.format(InLine);
-    if (pcc_->checkSegmentFlightCorridorSkeleton(start, ending, 0, min_flight_corridor_radius_)) {
+    if (pcc_->isSegmentFlightCorridorSkeletonFree(start, ending, 0, min_flight_corridor_radius_)) {
       return true;
     }
 
@@ -91,7 +92,7 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
       invalid_++;
       return false;
     }
-
+   DLOG(INFO) << "check Motion";
     /* assume motion starts in a valid configuration so s1 is valid */
     int nd = stateSpace_->validSegmentCount(s1, s2);
 
@@ -103,10 +104,10 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
       stateSpace_->interpolate(s1, s2, (double) j / (double) nd, test);
       stateSpace_->interpolate(s1, s2, (double) (j - 1) / (double) nd, test_prev);
 
-      Eigen::Vector3d start = OmplToEigen::convertState(*test_prev);
-      Eigen::Vector3d ending = OmplToEigen::convertState(*test);
+      Eigen::Vector3i start = OmplToEigen::convertState_v(*test_prev);
+      Eigen::Vector3i ending = OmplToEigen::convertState_v(*test);
 
-      if (!pcc_->checkSegmentFlightCorridorSkeleton(start,
+      if (!pcc_->isSegmentFlightCorridorSkeletonFree(start,
                                                     ending,
                                                     0,
                                                     min_flight_corridor_radius_)) {
@@ -127,8 +128,8 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
   }
 
  private:
-  std::shared_ptr<ProbCollisionChecker<FieldType> > pcc_ = nullptr;
-  double min_flight_corridor_radius_;
+  std::shared_ptr<CollisionCheckerV<FieldType> > pcc_ = nullptr;
+  int min_flight_corridor_radius_;
   ob::StateSpace *stateSpace_;
 };
 

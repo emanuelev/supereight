@@ -13,12 +13,19 @@
 #include <Eigen/Core>
 #include <Eigen/StdVector>
 
+#include <queue>
+#include <deque>
 #include "se/image/image.hpp"
 
 #include "se/path_planning/exploration_utils.hpp"
 
 template <typename Type>
 using AlignedVector = std::vector<Type, Eigen::aligned_allocator<Type> > ;
+
+template <typename Type>
+using AlignedDeque = std::deque<Type, Eigen::aligned_allocator<Type>>;
+template <typename Type>
+using AlignedQueue = std::queue<Type, AlignedDeque<Type>>;
 
 typedef std::set<uint64_t > set3i;
 typedef AlignedVector<Eigen::Vector3i> VecVec3i;
@@ -30,6 +37,10 @@ typedef AlignedVector <se::exploration::pose3D>  VecPose;
 typedef AlignedVector<se::Image<Eigen::Vector3f> > AlignedImage3f;
 typedef AlignedVector<se::Image<float> > AlignedImagef;
 typedef AlignedVector<std::pair<se::exploration::pose3D, float>> VecPairPoseFloat;
+
+// std::tuple doesn't need alignment, generalized version of pair
+typedef AlignedQueue<std::tuple<Eigen::Vector3i, Eigen::Vector3i, int, int>> AlignedQueueTupleVec3i;
+
 
 typedef std::map<key_t ,
                  Eigen::Vector3i,

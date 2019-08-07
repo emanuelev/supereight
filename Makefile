@@ -8,10 +8,11 @@ run_command = $(icl_run_command)
 run_arguments = $(icl_run_arguments)
 
 all :
-	mkdir -p build/
-	cd build/ && cmake -DCMAKE_BUILD_TYPE=Release \
-		$(CMAKE_ARGUMENTS) ..
-	$(MAKE) -C build  $(MFLAGS) $(SPECIFIC_TARGET)
+	mkdir -p build
+	mkdir -p build/Release/
+	cd build/Release/ && cmake -DCMAKE_BUILD_TYPE=Release \
+		$(CMAKE_ARGUMENTS) ../..
+	$(MAKE) -C build/Release/  $(MFLAGS) $(SPECIFIC_TARGET)
 
 
 debug:
@@ -19,20 +20,20 @@ debug:
 	mkdir -p build/Debug/
 	cd build/Debug/ && cmake -DCMAKE_BUILD_TYPE=Debug \
 		$(CMAKE_ARGUMENTS) ../..
-	$(MAKE) -C build $(MFLAGS)
+	$(MAKE) -C build/Debug/ $(MFLAGS)
 
 debug2:
 	mkdir -p build/
-	mkdir -p build/Debug2
-	cd build/Debug2 && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	mkdir -p build/Debug2/
+	cd build/Debug2/ && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 		$(CMAKE_ARGUMENTS) ../..
-	$(MAKE) -C build $(MFLAGS)
+	$(MAKE) -C build/Debug2/ $(MFLAGS)
 
 stats: 
 	mkdir -p build/
 	mkdir -p build/logs/
 	cd build/ && cmake -DSTATS=ON ..
-	$(MAKE) -C build $(MFLAGS)
+	$(MAKE) -C build $(MFLAG
 
 install:
 	cd build && make install

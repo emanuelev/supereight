@@ -46,7 +46,7 @@
 #include "kfusion/mapping_impl.hpp"
 #include "bfusion/alloc_impl.hpp"
 #include "kfusion/alloc_impl.hpp"
-#include "se/boundary_extraction.hpp"
+//#include "se/boundary_extraction.hpp"
 
 #include "se/ompl/prob_collision_checker.hpp"
 #include "se/utils/planning_parameter.hpp"
@@ -539,6 +539,7 @@ bool DenseSLAMSystem::planning(VecPose &path,
 
   float step = volume_dimension_.x() / volume_resolution_.x();
   se::exploration::getExplorationPath(discrete_vol_ptr_,
+                                      volume_,
                                       free_map_,
                                       frontier_map_,
                                       res_v,

@@ -31,7 +31,6 @@
 #include "collision_checker.hpp"
 #include "exploration_utils.hpp"
 
-#include "se/ompl/prob_collision_checker.hpp"
 #include "se/utils/planning_parameter.hpp"
 #include "se/path_planner_ompl.hpp"
 
@@ -57,7 +56,7 @@ class CandidateView {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   typedef std::shared_ptr<CandidateView> Ptr;
-  CandidateView(const std::shared_ptr<Octree<T> > octree_ptr,
+  CandidateView(const Volume<T> &volume,
                 const Planning_Configuration &planning_config,
                 const float res,
                 const Configuration &config,
@@ -69,8 +68,7 @@ class CandidateView {
 
   void printFaceVoxels(const Eigen::Vector3i &voxel);
 
-  std::pair<float, float> getInformationGain(const Volume<T> &volume,
-                                             const Eigen::Vector3f &direction,
+  std::pair<float, float> getInformationGain(const Eigen::Vector3f &direction,
                                              const float tnear,
                                              const float tfar,
                                              const float step,
@@ -98,7 +96,7 @@ class CandidateView {
 };
 
 template<typename T>
-CandidateView<T>::CandidateView(const std::shared_ptr<Octree<T> > octree_ptr,
+CandidateView<T>::CandidateView(const Volume<T> &volume,
                                 const Planning_Configuration &planning_config,
                                 const float res,
                                 const Configuration &config,
@@ -124,7 +122,7 @@ void CandidateView<T>::printFaceVoxels(const Eigen::Vector3i &_voxel) {
   face_neighbour_voxel[5] << _voxel.x(), _voxel.y(), _voxel.z() + 1;
   std::cout << "[se/cand view] face voxel states ";
   for (const auto &face_voxel : face_neighbour_voxel) {
-    std::cout << octree_ptr_->get(face_voxel).st << " ";
+    std::cout << volume_._map_get->get(face_voxel).st << " ";
   }
   std::cout << std::endl;
 
@@ -141,7 +139,7 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
                                                      const VecVec3i &frontier_voxels) {
   Eigen::Vector3i offset_cand_v(0, 0, 0);
   bool is_valid = false;
-  CollisionCheck<T> collision_check(octree_ptr_, planning_config_, res_);
+  CollisionCheck<T> collision_check(volume_, planning_config_, res_);
   // curr res 24m/128 vox = 0.1875 m/vx
 
   int offset_v = static_cast<int>(planning_config_.cand_view_safety_radius / res_);
@@ -314,8 +312,7 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
  * @return
  */
 template<typename T>
-std::pair<float, float> CandidateView<T>::getInformationGain(const Volume<T> &volume,
-                                                             const Eigen::Vector3f &direction,
+std::pair<float, float> CandidateView<T>::getInformationGain(const Eigen::Vector3f &direction,
                                                              const float tnear,
                                                              const float tfar,
                                                              const float step,
@@ -331,15 +328,15 @@ std::pair<float, float> CandidateView<T>::getInformationGain(const Volume<T> &vo
   if (tnear < tfar) {
     float stepsize = step;
     // occupancy prob in log2
-    float prob_log = octree_ptr_->interp(origin + direction * t, select_occupancy);
+    float prob_log = volume_.interp(origin + direction * t, select_occupancy);
     float weight = 1.0f;
     // check if current pos is free
     if (prob_log <= SURF_BOUNDARY + occ_thresh_) {
       ig_entropy = weight * getEntropy(prob_log);
       for (; t < tfar; t += stepsize) {
         const Eigen::Vector3f pos = origin + direction * t;
-        typename Volume<T>::value_type data = octree_ptr_->get(pos.cast<int>());
-        prob_log = octree_ptr_->interp(origin + direction * t, select_occupancy);
+        typename Volume<T>::value_type data = volume_.get(pos);
+        prob_log = volume_.interp(origin + direction * t, select_occupancy);
 //        weight = getIGWeight_tanh(tanh_range, tanh_ratio, t, prob_log, t_hit, hit_unknown);
         ig_entropy += getEntropy(prob_log);
 /*        if (prob_log == 0.f) {
@@ -451,14 +448,15 @@ VecPairPoseFloat CandidateView<T>::getCandidateGain(const float step) {
         vec[2] = cand_view_m[2] + r_max * cos(phi_rad);
         dir = (vec - cand_view_m).normalized();
         // initialize ray
-        se::ray_iterator<T> ray(*octree_ptr_.get(), cand_view_m, dir, nearPlane, farPlane);
+        se::ray_iterator<T> ray(*volume_._map_index, cand_view_m, dir, nearPlane, farPlane);
         ray.next();
         // lower bound dist from camera
         const float t_min = ray.tcmin(); /* Get distance to the first intersected block */
         //get IG along ray
         std::pair<float, float> gain_tmp =
-            t_min > 0.f ? getInformationGain(volume_, dir, t_min, r_max, step, cand_view_m)
-                        : std::make_pair(0.f, 0.f);
+            t_min > 0.f ? getInformationGain(dir, t_min, r_max, step, cand_view_m) : std::make_pair(
+                0.f,
+                0.f);
         gain_matrix(row, col) = gain_tmp.first;
         depth_matrix(row, col) = gain_tmp.second;
         gain += gain_tmp.first;
@@ -603,9 +601,10 @@ static VecPose interpolateYaw(const pose3D &start, const pose3D &goal, const flo
  */
 template<typename T>
 void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
+                        const Volume<T> &volume,
                         const map3i &free_map,
                         const map3i &frontier_map,
-                        const double res,
+                        const float res,
                         const float step,
                         const Planning_Configuration &planning_config,
                         const Configuration &config,
@@ -620,47 +619,47 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   VecPairPoseFloat pose_gain = candidate_view.getCandidateGain(step);
   PlanningParameter ompl_params;
   ompl_params.ReadPlannerConfigFile(planning_config.ompl_config_path);
-  std::cout << "[se/candview] free map size " << free_map.size() << std::endl;
- // setup collision checker
+  LOG(INFO) << "[se/candview] free map size " << free_map.size();
+  // setup collision checker
 
 // CPP: make_shared - memory resource is created for the first time, exception safe
-  auto prob_collision_checker = aligned_shared<ProbCollisionChecker<T>>(octree_ptr, ompl_params);
+  auto prob_collision_checker = aligned_shared<ProbCollisionChecker<T> >(octree_ptr, ompl_params);
+  auto collision_checker = aligned_shared<CollisionCheckerV<T> >(octree_ptr, ompl_params);
 ////   setup rrt ompl object
-  auto path_planner_ompl_ptr = aligned_shared<PathPlannerOmpl<T> >(octree_ptr,
-                                            prob_collision_checker,
-                                            ompl_params);
-  Eigen::Vector3d start_pos = pose.block<3, 1>(0, 3).cast<double>();
-  Eigen::Vector3d end_pos = start_pos + Eigen::Vector3d(0.5, .5, 0.);
-  // [m] to voxel
-  Eigen::Vector3i start_pos_v = (pose.block<3, 1>(0, 3) / static_cast<float>(res)).cast<int>();
-  Eigen::Vector3i end_pos_v = start_pos_v + Eigen::Vector3i(2, 3, 0);
-  bool setup_planner = path_planner_ompl_ptr->setupPlanner(start_pos_v, end_pos_v, free_map);
-  std::cout << "[se/candview] setup planner successful " << setup_planner << std::endl;
+  auto path_planner_ompl_ptr =
+      aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker, ompl_params);
+//  Eigen::Vector3d start_pos = pose.block<3, 1>(0, 3).cast<double>();
+//  Eigen::Vector3d end_pos = start_pos + Eigen::Vector3d(0.5, .5, 0.);
+//  // [m] to voxel
+//  Eigen::Vector3i start_pos_v = (pose.block<3, 1>(0, 3) / res).cast<int>();
+//  Eigen::Vector3i end_pos_v = start_pos_v + Eigen::Vector3i(2, 3, 0);
+//
+//  bool setup_planner = path_planner_ompl_ptr->setupPlanner(start_pos_v, end_pos_v, free_map);
+//  std::cout << "[se/candview] setup planner successful " << setup_planner << std::endl;
+//  bool path_planned = path_planner_ompl_ptr->planPath();
+//  std::cout << "[se/candview] path planned " << path_planned << std::endl;
+//
 
-
-//  path_planner_ompl_ptr->planPath(start_pos_v, end_pos_v);
-  // for all goals
-  for (const auto &cand_goal : pose_gain) {
-
-    // plan path from pose to cand goal
-
-  }
-
-  std::pair<pose3D, double> best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain);
-//  std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)
-//            << " yaw " << toEulerAngles(best_cand_pose_with_gain.first.q).yaw * 180.f / M_PI
-//            << " with gain " << best_cand_pose_with_gain.second << std::endl;
-
-  pose3D start = getCurrPose(pose, res);
-
-  VecPose path_tmp = interpolateYaw(start, best_cand_pose_with_gain.first, 0.52);
-  for (const auto &pose : path_tmp)
-    path.push_back(pose);
+  std::pair<pose3D, float> best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain);
+  std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)
+            << " yaw " << toEulerAngles(best_cand_pose_with_gain.first.q).yaw * 180.f / M_PI
+            << " with gain " << best_cand_pose_with_gain.second << std::endl;
+  path.push_back(best_cand_pose_with_gain.first);
   for (const auto &pose : pose_gain) {
     cand_views.push_back(pose.first);
 //    std::cout << "[canview] cands " << pose.first.p.format(InLine) << std::endl;
   }
-
+  const int size = cand_views.size();
+//  if (size > 1) {
+//    for (int i = 0; i < size - 1; i++) {
+//      bool setup_planner = path_planner_ompl_ptr->setupPlanner(cand_views[size - 1].p.cast<int>(),
+//                                                               cand_views[i].p.cast<int>(),
+//                                                               free_map);
+//      LOG(INFO) << "setup planner successful " << setup_planner;
+//      bool path_planned = path_planner_ompl_ptr->planPath();
+//      LOG(INFO) << "path planned " << path_planned;
+//    }
+//  }
 }
 
 } // namespace exploration

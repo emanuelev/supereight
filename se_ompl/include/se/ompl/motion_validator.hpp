@@ -20,9 +20,9 @@
 #include <ompl/base/MotionValidator.h>
 #include <ompl/base/SpaceInformation.h>
 
-#include <exploration/ompl/prob_collision_checker.hpp>
-#include <exploration/occupancy_world.hpp>
-#include <exploration/ompl/OmplToEigen.hpp>
+#include "exploration/ompl/prob_collision_checker.hpp"
+#include "exploration/occupancy_world.hpp"
+#include "exploration/ompl/ompl_to_eigen.hpp"
 
 
 namespace ob = ompl::base;
@@ -40,9 +40,9 @@ namespace exploration {
 template<typename FieldType>
 class MotionValidator : public ompl::base::MotionValidator {
  public:
-  MotionValidator(const ompl::base::SpaceInformationPtr &si,
-                   const std::shared_ptr<ProbCollisionChecker<FieldType> > &pcc,
-                  const double min_flight_corridor_radius)
+  MotionValidator(const ompl::base::SpaceInformationPtr si,
+                   const std::shared_ptr<CollisionCheckerV<FieldType> > pcc,
+                  const int min_flight_corridor_radius)
       :
       ompl::base::MotionValidator(si),
       pcc_(pcc),
@@ -169,8 +169,8 @@ class MotionValidator : public ompl::base::MotionValidator {
   }
 
  private:
-  std::shared_ptr<ProbCollisionChecker<FieldType> > pcc_ = nullptr;
-  double min_flight_corridor_radius_;
+  std::shared_ptr<CollisionCheckerV<FieldType> > pcc_ = nullptr;
+  int min_flight_corridor_radius_;
   ob::StateSpace *stateSpace_;
 };
 

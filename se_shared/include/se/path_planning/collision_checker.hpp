@@ -26,24 +26,23 @@ class CollisionCheck {
  public:
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  CollisionCheck(const std::shared_ptr<Octree<T> > octree_ptr, Planning_Configuration planning_config, double res);
+  CollisionCheck(const Volume<T> &volume, Planning_Configuration planning_config, double res);
 
   int isSphereCollisionFree(const Eigen::Vector3i center);
 
  private:
-
-  std::shared_ptr<Octree<T> > octree_ptr_;
+ Volume<T> volume_;
   double res_;
   Planning_Configuration planning_config_;
 };
 
 template<typename T>
-CollisionCheck<T>::CollisionCheck(const std::shared_ptr<Octree<T> > octree_ptr,
+CollisionCheck<T>::CollisionCheck(const Volume <T> &volume,
                                   Planning_Configuration planning_config,
                                   double res)
     :
 
-    octree_ptr_(octree_ptr), planning_config_(planning_config), res_(res) {
+    volume_(volume), planning_config_(planning_config), res_(res) {
 
 }
 
@@ -70,7 +69,7 @@ int CollisionCheck<T>::isSphereCollisionFree(const Eigen::Vector3i center) {
           Eigen::Vector3i point_v = point_offset_v + center;
           // first round
           if (node == nullptr || block == nullptr) {
-            octree_ptr_->fetch_octant(point_v.x(),
+            volume_._map_index->fetch_octant(point_v.x(),
                                              point_v.y(),
                                              point_v.z(),
                                              node,
@@ -99,7 +98,7 @@ int CollisionCheck<T>::isSphereCollisionFree(const Eigen::Vector3i center) {
                 return 0;
               }
             } else {
-              octree_ptr_->fetch_octant(point_v.x(),
+              volume_._map_index->fetch_octant(point_v.x(),
                                                point_v.y(),
                                                point_v.z(),
                                                node,

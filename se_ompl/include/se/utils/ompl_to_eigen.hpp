@@ -122,11 +122,11 @@ class OmplToEigen {
     (*scoped_state)->values[2] = state.z();
   };
   static void convertState(const Eigen::Vector3i &state_v,
-                           ompl::base::ScopedState<ompl::base::RealVectorStateSpace> *scoped_state) {
+                           ompl::base::ScopedState<> *scoped_state) {
 
-    (*scoped_state)->values[0] = state_v.x();
-    (*scoped_state)->values[1] = state_v.y();
-    (*scoped_state)->values[2] = state_v.z();
+    (*scoped_state)[0] = state_v.x();
+    (*scoped_state)[1] = state_v.y();
+    (*scoped_state)[2] = state_v.z();
   };
 };
 
