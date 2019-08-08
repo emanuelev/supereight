@@ -22,6 +22,11 @@
 namespace se {
 namespace exploration {
 
+
+// TODO state or log prob for collision check
+
+
+
 template<typename FieldType>
 class CollisionCheckerV {
  public:
@@ -151,14 +156,14 @@ bool CollisionCheckerV<FieldType>::isVoxelFree(const Eigen::Vector3i &point_v) c
   octree_ptr_->fetch_octant(point_v.x(), point_v.y(), point_v.z(), node, is_voxel_block);
   if (is_voxel_block) {
     block = static_cast<se::VoxelBlock<FieldType> *> (node);
-    if (block->data(point_v).st != voxel_state::kFree) {
+    if (block->data(point_v).x >= 0.f) {
       DLOG(INFO) << "collision at "
                 << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
                 << block->data(point_v).st << std::endl;
       return false;
     }
   } else {
-    if (octree_ptr_->get(se::keyops::decode(node->code_)).st != voxel_state::kFree) {
+    if (octree_ptr_->get(se::keyops::decode(node->code_)).x >= 0.f) {
       const Eigen::Vector3i pos = se::keyops::decode(node->code_);
       DLOG(INFO) << "collision at node "
                 << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;
@@ -194,7 +199,7 @@ bool CollisionCheckerV<FieldType>::isSphereCollisionFree(const Eigen::Vector3i &
             if (is_voxel_block) {
               block = static_cast<se::VoxelBlock<FieldType> *> (node);
             } else {
-              if (octree_ptr_->get(se::keyops::decode(node->code_)).st != voxel_state::kFree) {
+              if (octree_ptr_->get(se::keyops::decode(node->code_)).x >= 0.f) {
                 Eigen::Vector3i pos = se::keyops::decode(node->code_);
                 std::cout << " [secollision] collision at node "
                           << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;
@@ -207,7 +212,7 @@ bool CollisionCheckerV<FieldType>::isSphereCollisionFree(const Eigen::Vector3i &
             if ((point_v.x() / BLOCK_SIDE) == (prev_pos.x() / BLOCK_SIDE)
                 && (point_v.y() / BLOCK_SIDE) == (prev_pos.y() / BLOCK_SIDE)
                 && (point_v.z() / BLOCK_SIDE) == (prev_pos.z() / BLOCK_SIDE)) {
-              if (block->data(point_v).st != voxel_state::kFree) {
+              if (block->data(point_v).x >= 0.f) {
                 std::cout << " [secollision] collision at "
                           << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
                           << block->data(point_v).st << std::endl;
@@ -221,7 +226,7 @@ bool CollisionCheckerV<FieldType>::isSphereCollisionFree(const Eigen::Vector3i &
                                         is_voxel_block);
               if (is_voxel_block) {
                 block = static_cast<se::VoxelBlock<FieldType> *> (node);
-                if (block->data(point_v).st != voxel_state::kFree) {
+                if (block->data(point_v).x >=0.f) {
                   std::cout << " [secollision] collision at "
                             << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
                             << block->data(point_v).st << std::endl;
@@ -229,7 +234,7 @@ bool CollisionCheckerV<FieldType>::isSphereCollisionFree(const Eigen::Vector3i &
                 }
               } else {
                 block = nullptr;
-                if (octree_ptr_->get(se::keyops::decode(node->code_)).st != voxel_state::kFree) {
+                if (octree_ptr_->get(se::keyops::decode(node->code_)).x >= 0.f) {
                   Eigen::Vector3i pos = se::keyops::decode(node->code_);
                   std::cout << " [secollision] collision at node "
                             << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;

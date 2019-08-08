@@ -192,15 +192,38 @@ PathPlannerOmpl<FieldType>::PathPlannerOmpl(const std::shared_ptr<Octree<FieldTy
 template<typename FieldType>
 bool PathPlannerOmpl<FieldType>::setStartGoal(const Eigen::Vector3i &start_v,
                                               const Eigen::Vector3i &goal_v) {
-  if (!pcc_->isSphereSkeletonFree(start_v, min_flight_corridor_radius_v_)) {
+
+
+  std::chrono::time_point<std::chrono::steady_clock> timings[3];
+  timings[0] = std::chrono::steady_clock::now();
+  bool skeleton = pcc_->isSphereSkeletonFree(start_v, min_flight_corridor_radius_v_);
+
+  timings[1] = std::chrono::steady_clock::now();
+  bool normal = pcc_->isSphereCollisionFree(start_v, min_flight_corridor_radius_v_);
+  timings[2] = std::chrono::steady_clock::now();
+
+  double skeleton_time = std::chrono::duration_cast<std::chrono::duration<double> >(timings[1]
+                                                                                      -timings[0]).count();
+  double normal_time = std::chrono::duration_cast<std::chrono::duration<double> >(timings[2]
+                                                                                      -timings[1]).count();
+  if(skeleton != normal){
+    std::cout << "sphere check resulst not equal\n ";
+  }
+  std::cout << "skeleton time: " << skeleton_time<< std::endl;
+  std::cout << "normal time: " << normal_time << std::endl;
+
+  if (!pcc_->isSphereCollisionFree(start_v, min_flight_corridor_radius_v_)) {
     std::cout << "\033[1;31mStart is occupied\033[0m\n";
     //LOG(ERROR) << "Start is occupied";
     start_end_occupied_ = true;
     return false;
   }
 
-  if (!pcc_->isSphereSkeletonFree(goal_v, min_flight_corridor_radius_v_)) {
-    std::cout << "\033[1;31mGoal is occupied\033[0m\n";
+
+
+  if (!pcc_->isSphereCollisionFree(goal_v, min_flight_corridor_radius_v_)) {
+    std::cout << "\033[1;31mGoal at " << goal_v.format(InLine)<< " is occupied " << octree_ptr_->get
+    (goal_v).st << "\033[0m\n";
     //LOG(ERROR) << "Goal is occupied";
     start_end_occupied_ = true;
     return false;

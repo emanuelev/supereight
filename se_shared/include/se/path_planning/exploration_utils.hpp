@@ -207,6 +207,9 @@ static pose3D getCurrPose(const Eigen::Matrix4f &pose, const float res){
   pose3D curr_pose;
   curr_pose.q = se::math::rot_mat_2_quat(pose.block<3, 3>(0, 0));
   curr_pose.p = pose.block<3, 1>(0, 3) / res;
+  curr_pose.p.x() = round(curr_pose.p.x());
+  curr_pose.p.y() = round(curr_pose.p.y());
+  curr_pose.p.z() = round(curr_pose.p.z());
   return curr_pose;
 }
 
