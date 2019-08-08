@@ -78,9 +78,11 @@ int CollisionCheck<T>::isSphereCollisionFree(const Eigen::Vector3i center) {
             if (is_voxel_block) {
               block = static_cast<se::VoxelBlock<T> *> (node);
             } else {
-              if (volume_._map_index->get(se::keyops::decode(node->code_)).x >= 0.f) {
+              if (volume_._map_index->get(se::keyops::decode(node->code_)).x > 0.f) {
 //                std::cout << " [secollision] collision at node "
-//                          << se::keyops::decode(node->code_).format(InLine) << std::endl;
+//                          << se::keyops::decode(node->code_).format(InLine) << "plog "
+//                          << volume_._map_index->get(se::keyops::decode(node->code_)).x
+//                          << std::endl;
                 return 0;
               }
             }
@@ -110,9 +112,11 @@ int CollisionCheck<T>::isSphereCollisionFree(const Eigen::Vector3i center) {
                 }
               } else {
                 block = nullptr;
-                if (volume_._map_index->get(se::keyops::decode(node->code_)).x >= 0.f) {
+                if (volume_._map_index->get(se::keyops::decode(node->code_)).x > 0.f) {
 //                  std::cout << " [secollision] collision at node "
-//                            << se::keyops::decode(node->code_).format(InLine) << std::endl;
+//                            << se::keyops::decode(node->code_).format(InLine) << "plog "
+//                            << volume_._map_index->get(se::keyops::decode(node->code_)).x
+//                            << std::endl;
                   return 0;
                 }
               }

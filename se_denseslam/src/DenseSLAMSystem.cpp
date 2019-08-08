@@ -500,8 +500,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
       bool update_frontier_map = (frame % frontier_map_update_rate) == 0;
       updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
       insertBlocksToMap(free_map_, free_blocks);
-      std::cout << "[se/denseslam] free_map_  size  " << free_map_.size() << std::endl;
-      std::cout <<  "[se/denseslam] frontier_map_ size " << frontier_map_.size() << std::endl;
+//      std::cout << "[se/denseslam] free_map_  size  " << free_map_.size() << std::endl;
+//      std::cout <<  "[se/denseslam] frontier_map_ size " << frontier_map_.size() << std::endl;
     }
 
     // if(frame % 15 == 0) {
@@ -523,7 +523,7 @@ bool DenseSLAMSystem::planning(VecPose &path,
                                VecPose &cand_views,
                                mapvec3i *free_blocks) {
   if (!init_position_cleared_) {
-  std::cout << "[se/denseSLAM] clear sphere around robot" << std::endl;
+//  std::cout << "[se/denseSLAM] clear sphere around robot" << std::endl;
     se::exploration::initNewPosition(pose_ * Tbc_,
                                      planning_config_,
                                      free_blocks,
