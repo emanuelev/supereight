@@ -12,22 +12,27 @@
 #include <Eigen/Core>
 #include <Eigen/StdVector>
 
+#include "se/path_planning/exploration_utils.hpp"
+
 template <typename Type>
 using AlignedVector = std::vector<Type, Eigen::aligned_allocator<Type> > ;
 
-typedef AlignedVector<Eigen::Vector3i> VectorVec3i;
-typedef AlignedVector<std::pair<Eigen::Vector3i, double>> VectorPair3iDouble;
+typedef AlignedVector<Eigen::Vector3i> VecVec3i;
+typedef AlignedVector<std::pair<Eigen::Vector3i, float>> VectorPair3iFloat;
 
 
+typedef AlignedVector <se::exploration::pose3D>  VecPose;
+
+typedef AlignedVector<std::pair<se::exploration::pose3D, float>> VecPairPoseFloat;
 
 typedef std::map<key_t ,
                  Eigen::Vector3i,
                  std::less<key_t>,
                  Eigen::aligned_allocator<std::pair<const key_t, Eigen::Vector3i> > > map3i;
 typedef std::map<key_t,
-                 VectorVec3i,
+                 VecVec3i,
                  std::less<key_t>,
-                 Eigen::aligned_allocator<std::pair<const key_t, VectorVec3i> > > mapvec3i;
+                 Eigen::aligned_allocator<std::pair<const key_t, VecVec3i> > > mapvec3i;
 
 static Eigen::IOFormat
     InLine(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", " ", ";");

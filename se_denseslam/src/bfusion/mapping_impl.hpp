@@ -150,7 +150,7 @@ static inline float applyWindow(const float occupancy,
  */
 template<typename DataHandlerT>
 bool updateFrontierMapIntegration(DataHandlerT &data,
-                                  VectorVec3i *frontier_blocks,
+                                  VecVec3i *frontier_blocks,
                                   const Eigen::Vector3i &coord,
                                   const bool &is_frustum_boarder) {
 
@@ -318,9 +318,8 @@ struct bfusion_update {
       {
         if (std::is_same<FieldType, OFusion>::value) {
           // conservative estimate as the occupancy probability for a free voxel is set quite low
-          if (data.st == voxel_state::kFree) {
+          if (data.st == voxel_state::kFree && is_voxel) {
             bool is_frontier = handler.isFrontier(map);
-            // TODO isFrontier only returns true for nodes at leaf level
             if (is_frontier) {
               frontier_blocks_->insert(morton_code_child);
               data.st = voxel_state::kFrontier;

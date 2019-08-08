@@ -47,7 +47,6 @@ void updateFrontierMap(const Volume<T> &volume, map3i &frontier_blocks_map) {
       frontier_blocks_map.erase(it->first);
     }
   }
-//  std::cout << ", updated " << frontier_blocks_map.size() << std::endl;
 }
 
 template<typename T>

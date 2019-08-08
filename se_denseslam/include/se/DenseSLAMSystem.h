@@ -112,6 +112,7 @@ class DenseSLAMSystem {
 
   //exploration
   map3i frontier_map_;
+  map3i free_map_;
   bool init_position_cleared_ = false;
 
  public:
@@ -253,7 +254,7 @@ class DenseSLAMSystem {
  * \param cand_views
  * \return true if planning was performed
  */
-  bool planning(se::exploration::posevector &path, se::exploration::posevector &cand_views,
+  bool planning(VecPose &path, VecPose &cand_views,
       mapvec3i *free_blocks);
 
   /*

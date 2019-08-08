@@ -19,6 +19,7 @@
 
 #include <Eigen/StdVector>
 
+#include "se/utils/eigen_utils.h"
 #include "lodepng.h"
 
 namespace se {
@@ -48,9 +49,6 @@ static inline std::istream &operator>>(std::istream &input, pose3D &pose) {
   return input;
 }
 
-typedef std::vector<pose3D, Eigen::aligned_allocator<pose3D> > posevector;
-
-typedef AlignedVector<std::pair<pose3D, double>> VectorPairPoseDouble;
 
 struct eulerAngles {
   float yaw, pitch, roll;
