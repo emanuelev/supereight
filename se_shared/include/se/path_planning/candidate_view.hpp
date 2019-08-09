@@ -279,6 +279,8 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
     uint64_t rand_morton = it->first;
     if (frontier_voxels_map[rand_morton].size() < min_frontier_voxels) {
       // happens when voxel status is updated but the morton code was not removed from map
+      std::cout <<"[se/candview] frontier vector size" <<  frontier_voxels_map[rand_morton].size()
+      << std::endl;
       continue;
     }
     std::uniform_int_distribution<int>
@@ -619,7 +621,8 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   VecPairPoseFloat pose_gain = candidate_view.getCandidateGain(step);
   PlanningParameter ompl_params;
   ompl_params.ReadPlannerConfigFile(planning_config.ompl_config_path);
-  LOG(INFO) << "[se/candview] free map size " << free_map.size();
+  LOG(INFO) << "[se/candview] free map size " << free_map.size() <<
+  " frontier " << frontier_map.size();
   // setup collision checker
 
 // CPP: make_shared - memory resource is created for the first time, exception safe

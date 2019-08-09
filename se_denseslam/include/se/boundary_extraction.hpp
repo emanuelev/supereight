@@ -35,7 +35,7 @@ static inline void insertBlocksToMap(map3i &blocks_map, mapvec3i *blocks) {
     blocks_map.emplace(it->first, voxel_coord);
   }
 
-  std::cout << "[supereight/boundary] free maps size " << blocks_map.size() << std::endl;
+//  std::cout << "[supereight/boundary] free maps size " << blocks_map.size() << std::endl;
 }
 
 /**
@@ -60,7 +60,7 @@ void updateFrontierMap(const Volume<T> &volume, map3i &blocks_map) {
 }
 
 template<typename T>
-void updateBlockMap(const Volume<T> &volume,
+void updateFrontierMap(const Volume<T> &volume,
                     map3i &blocks_map,
                     set3i *blocks,
                     const bool update_frontier_map) {
@@ -74,7 +74,6 @@ void updateBlockMap(const Volume<T> &volume,
 
   // insert new frontier blocks to map
   insertBlocksToMap(blocks_map, blocks);
-//TODO remove it from here
 }
 
 

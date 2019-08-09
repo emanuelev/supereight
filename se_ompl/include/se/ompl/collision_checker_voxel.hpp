@@ -51,7 +51,7 @@ class CollisionCheckerV {
   bool isSphereSkeletonFree(const Eigen::Vector3i &position_v, const int radius_v) const;
 
   // goal
-//  bool checkVolume(VectorVec3i volume); // checkou flight segment corridor
+//  bool checkVolume(VecVec3i volume); // checkou flight segment corridor
   bool isLineFree(const Eigen::Vector3i &start,
                  const Eigen::Vector3i &connection,
                  const int num_subpos) const; // check segment fligh corridor skeleton
@@ -108,7 +108,7 @@ bool CollisionCheckerV<FieldType>::isSphereSkeletonFree(const Eigen::Vector3i &p
   if (!isVoxelFree(position_v))
     return false;
 
-  VectorVec3i shell_main_pos;
+  VecVec3i shell_main_pos;
   shell_main_pos = {position_v + Eigen::Vector3i(1, 0, 0) * radius_v,
                     position_v - Eigen::Vector3i(1, 0, 0) * radius_v,
                     position_v + Eigen::Vector3i(0, 1, 0) * radius_v,
@@ -133,12 +133,12 @@ bool CollisionCheckerV<FieldType>::isSphereSkeletonFree(const Eigen::Vector3i &p
       vec4_u = Eigen::Vector3i(-1, 0, 0) + Eigen::Vector3i(0, -1, 0) + Eigen::Vector3i(0, 0, 1);
   vec4_u.normalize();
 
-  VectorVec3i shell_sub_pos;
+  VecVec3i shell_sub_pos;
   shell_sub_pos = {position_v + vec1_u * radius_v, position_v - vec1_u * radius_v,
                    position_v + vec2_u * radius_v, position_v - vec2_u * radius_v,
                    position_v + vec3_u * radius_v, position_v - vec3_u * radius_v,
                    position_v + vec4_u * radius_v, position_v - vec4_u * radius_v};
-  for (VectorVec3i::iterator it = shell_sub_pos.begin(); it != shell_sub_pos.end(); ++it) {
+  for (VecVec3i::iterator it = shell_sub_pos.begin(); it != shell_sub_pos.end(); ++it) {
     if (!isVoxelFree(*it))
       return false;
   }
@@ -272,7 +272,7 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
   // Precision at which
   // to sample the connection [m/voxel]
 
-  VectorVec3i segment_flight_corridor;
+  VecVec3i segment_flight_corridor;
   const Eigen::Vector3i corridor_axis_u = (end - start) / (end - start).norm();
   const Eigen::Vector3i start_corridor_v = start - r_max_v * corridor_axis_u;
   const Eigen::Vector3i end_corridor_v = end + r_max_v * corridor_axis_u;
@@ -309,11 +309,11 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
     vec_horizontal_u.normalize();
   }
 
-  VectorVec3i shell_main_pos;
+  VecVec3i shell_main_pos;
   shell_main_pos =
       {start_corridor_v + vec_horizontal_u * r_max_v, start_corridor_v - vec_horizontal_u * r_max_v,
        start_corridor_v + vec_vertical_u * r_max_v, start_corridor_v - vec_vertical_u * r_max_v};
-  for (VectorVec3i::iterator it = shell_main_pos.begin();
+  for (VecVec3i::iterator it = shell_main_pos.begin();
        it != shell_main_pos.end(); ++it) {
     // TODO
     if (!isLineFree(*it, vec_seg_connection_v, num_axial_subpos))
@@ -339,11 +339,11 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
       Eigen::Vector3i vec2_u = (std::get<0>(x) - std::get<1>(x)) / 2;
       vec2_u.normalize();
 
-      VectorVec3i circ_shell_sub_pos;
+      VecVec3i circ_shell_sub_pos;
       circ_shell_sub_pos =
           {start_corridor_v + vec1_u * r_max_v, start_corridor_v - vec1_u * r_max_v,
            start_corridor_v + vec2_u * r_max_v, start_corridor_v - vec2_u * r_max_v};
-      for (VectorVec3i::iterator it = circ_shell_sub_pos.begin();
+      for (VecVec3i::iterator it = circ_shell_sub_pos.begin();
            it != circ_shell_sub_pos.end(); ++it) {
         if (!isLineFree(*it, vec_seg_connection_v, num_axial_subpos))
           return false;
@@ -370,11 +370,11 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
       const int mid = (y.first + y.second) / 2;
       const int r_v =  mid /  num_radial_subpos * r_max_v;
 
-      VectorVec3i circ_main_pos;
+      VecVec3i circ_main_pos;
       circ_main_pos =
           {start_corridor_v + vec_horizontal_u * r_v, start_corridor_v - vec_horizontal_u * r_v,
            start_corridor_v + vec_vertical_u * r_v, start_corridor_v - vec_vertical_u * r_v};
-      for (VectorVec3i::iterator it = circ_main_pos.begin();
+      for (VecVec3i::iterator it = circ_main_pos.begin();
            it != circ_main_pos.end(); ++it) {
 
         if (!isLineFree(*it, vec_seg_connection_v, num_axial_subpos))
@@ -400,10 +400,10 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
           Eigen::Vector3i vec2_u = (std::get<0>(x) - std::get<1>(x)) / 2;
           vec2_u.normalize();
 
-          VectorVec3i sub_starts;
+          VecVec3i sub_starts;
           sub_starts = {start_corridor_v + vec1_u * r_max_v, start_corridor_v - vec1_u * r_max_v,
                         start_corridor_v + vec2_u * r_max_v, start_corridor_v - vec2_u * r_max_v};
-          for (VectorVec3i::iterator it = sub_starts.begin();
+          for (VecVec3i::iterator it = sub_starts.begin();
                it != sub_starts.end(); ++it) {
 
             if (!isLineFree(*it, vec_seg_connection_v, num_axial_subpos))

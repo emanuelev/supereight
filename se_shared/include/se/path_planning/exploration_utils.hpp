@@ -12,6 +12,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <random>
 #include <iterator>
@@ -20,6 +21,8 @@
 #include <Eigen/StdVector>
 
 #include "se/utils/eigen_utils.h"
+#include "se/utils/math_utils.h"
+#include "se/octree_defines.h"
 #include "lodepng.h"
 
 namespace se {
