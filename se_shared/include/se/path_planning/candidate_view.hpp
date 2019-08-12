@@ -58,6 +58,7 @@ class CandidateView {
   typedef std::shared_ptr<CandidateView> Ptr;
   CandidateView(const Volume<T> &volume,
                 const Planning_Configuration &planning_config,
+                const std::shared_ptr<CollisionCheckerV<T> > pcc,
                 const float res,
                 const Configuration &config,
                 const Eigen::Matrix4f &curr_pose);
@@ -76,7 +77,7 @@ class CandidateView {
 
   VecPairPoseFloat getCandidateGain(const float step);
 
-  std::pair<pose3D, float> getBestCandidate(const VecPairPoseFloat &cand_list);
+  std::pair<pose3D, int> getBestCandidate(const VecPairPoseFloat &cand_list, float *path_cost);
 
   const float getIGWeight_tanh(const float tanh_range,
                                const float tanh_ratio,
@@ -88,21 +89,25 @@ class CandidateView {
   pose3D curr_pose_;
   VecVec3i cand_views_;
   Volume<T> volume_;
+
   float res_; // [m/vx]
   Planning_Configuration planning_config_;
   Configuration config_;
   float occ_thresh_ = 0.f;
   float max_ig_;
+
+  std::shared_ptr<CollisionCheckerV<T> > pcc_ = nullptr;
 };
 
 template<typename T>
 CandidateView<T>::CandidateView(const Volume<T> &volume,
                                 const Planning_Configuration &planning_config,
+                                const std::shared_ptr<CollisionCheckerV<T> > pcc,
                                 const float res,
                                 const Configuration &config,
                                 const Eigen::Matrix4f &curr_pose)
     :
-    volume_(volume), planning_config_(planning_config), res_(res), config_(config) {
+    volume_(volume), planning_config_(planning_config), res_(res), config_(config), pcc_(pcc) {
 
   curr_pose_ = getCurrPose(curr_pose, res_);
 }
@@ -229,8 +234,10 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
 
 
   if (is_valid) {
-    int free_sphere = collision_check.isSphereCollisionFree(offset_cand_v);
-    if (free_sphere == 1) {
+    bool is_free = pcc_->isSphereSkeletonFree(offset_cand_v,
+                                              static_cast<int>(
+                                                  planning_config_.cand_view_safety_radius / res_));
+    if (is_free == 1) {
       return offset_cand_v;
     } else {
       return Eigen::Vector3i(0, 0, 0);
@@ -254,7 +261,7 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
 
   mapvec3i frontier_voxels_map;
   node_iterator<T> node_it(*(volume_._map_index));
-  auto min_frontier_voxels = 10;
+  auto min_frontier_voxels = 15;
   // get all frontier voxels inside a voxel block
 
 //  std::cout << "[getcandview] frontier map size " << frontier_blocks_map.size() << std::endl;
@@ -279,8 +286,6 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
     uint64_t rand_morton = it->first;
     if (frontier_voxels_map[rand_morton].size() < min_frontier_voxels) {
       // happens when voxel status is updated but the morton code was not removed from map
-      std::cout <<"[se/candview] frontier vector size" <<  frontier_voxels_map[rand_morton].size()
-      << std::endl;
       continue;
     }
     std::uniform_int_distribution<int>
@@ -416,7 +421,7 @@ VecPairPoseFloat CandidateView<T>::getCandidateGain(const float step) {
   const float r = 0.5; // [m] random radius
   const int n_col = fov_vert / dphi;
   const int n_row = 360 / dtheta;
-  max_ig_ = n_col * n_row * step * 1;
+  max_ig_ = n_col * n_row * (r_max / step) * 1;
 
   int phi, theta;
   float phi_rad, theta_rad;
@@ -500,12 +505,12 @@ VecPairPoseFloat CandidateView<T>::getCandidateGain(const float step) {
 //    std::cout << "[se/candview] for cand " << cand_view.format(InLine) << " best theta angle is "
 //              << best_yaw << ", best ig is " << best_yaw_gain << std::endl;
 
-    saveMatrixToDepthImage(depth_matrix.block(0, 1, n_row, n_col).transpose().rowwise().reverse(),
-                           cand_num,
-                           true);
-    saveMatrixToDepthImage(gain_matrix.block(0, 1, n_row, n_col).transpose().rowwise().reverse(),
-                           cand_num,
-                           false);
+//    saveMatrixToDepthImage(depth_matrix.block(0, 1, n_row, n_col).transpose().rowwise().reverse(),
+//                           cand_num,
+//                           true);
+//    saveMatrixToDepthImage(gain_matrix.block(0, 1, n_row, n_col).transpose().rowwise().reverse(),
+//                           cand_num,
+//                           false);
     float yaw_rad = M_PI * best_yaw / 180.f;
     pose3D best_pose;
     best_pose.p = cand_view.cast<float>();
@@ -522,21 +527,35 @@ VecPairPoseFloat CandidateView<T>::getCandidateGain(const float step) {
  * @return
  */
 template<typename T>
-std::pair<pose3D, float> CandidateView<T>::getBestCandidate(const VecPairPoseFloat &cand_list) {
+std::pair<pose3D, int> CandidateView<T>::getBestCandidate(const VecPairPoseFloat &cand_list,
+                                                          float *path_cost) {
   float max_gain = 0.0f;
   pose3D best_cand;
   float max_utility = 0.0f;
+  int cand_num = 0;
+  int cand_counter = 0;
+
   // TODO parametrize
-  const float max_yaw_rate = 0.52; // [rad/s] lee position controller rotors control
-  const float yaw_cost = 0.2;
-//  const float dist_cost = 0.3;
-  const float ig_cost = 0.4;
+  const float max_yaw_rate = 0.85; // [rad/s] lee position controller rotors control
+  const float path_discount_factor = 0.3;
+  const float ig_cost = 0.2;
+
+
+  // path cost = voxel *res[m/vox] / (v =1m/s) = time
+  bool discount_path_cost = cand_list.back().second < max_ig_ * ig_cost;
   for (const auto &cand : cand_list) {
 //    std::cout << "[bestcand] position " << (cand.first.p.cast<float>() * res_).format(InLine) <<
 //    std::endl;
+    if (discount_path_cost && cand.first.p == cand_list.back().first.p && cand_list.size() > 1) {
+      std::cout << "skip last " << std::endl;
+      // t_path = t_path * path_discount_factor;
+      break;
+
+    }
     float yaw_diff = toEulerAngles(cand.first.q).yaw - toEulerAngles(curr_pose_.q).yaw;
 //    std::cout << "[bestcand] curr yaw " << toEulerAngles(curr_pose_.q).yaw << " to yaw "
 //              << toEulerAngles(cand.first.q).yaw << std::endl;
+    float t_path = *path_cost * res_;
     //wrap yaw
     if (yaw_diff < M_PI)
       yaw_diff += 2 * M_PI;
@@ -544,20 +563,31 @@ std::pair<pose3D, float> CandidateView<T>::getBestCandidate(const VecPairPoseFlo
       yaw_diff -= 2 * M_PI;
     float t_yaw = fabs(yaw_diff / max_yaw_rate);
 //    std::cout << "[bestcand] yaw diff " << yaw_diff << " time needed " << t_yaw << std::endl;
-    float utility = cand.second / (t_yaw);
-//    std::cout << "[bestcond] utility " << utility << std::endl;
+
+    float utility = cand.second / (t_yaw + t_path);
+
+    std::cout << "[bestcond] ig " << cand.second << " t_yaw " << t_yaw << " t_path " << t_path
+              << " utility " << utility << std::endl;
     if (max_utility < utility) {
       best_cand = cand.first;
       max_utility = utility;
+      cand_num = cand_counter;
     }
+    path_cost++;
+    cand_counter++;
   }
 
-  return std::make_pair(best_cand, max_utility);
+  return std::make_pair(best_cand, cand_num);
 }
 
-static VecPose interpolateYaw(const pose3D &start, const pose3D &goal, const float max_yaw_rate) {
+static VecPose interpolateYaw(const pose3D &start,
+                              const pose3D &goal,
+                              const float max_yaw_rate,
+                              const VecPose &path_in) {
   VecPose path;
   pose3D pose_tmp;
+  int path_size = path_in.size();
+
 //  path.push_back(start);
   float yaw_diff = toEulerAngles(goal.q).yaw - toEulerAngles(start.q).yaw;
   if (yaw_diff < M_PI)
@@ -568,7 +598,7 @@ static VecPose interpolateYaw(const pose3D &start, const pose3D &goal, const flo
   // interpolate yaw
   if (yaw_diff >= 0) {
     for (float dyaw = 0.0f; dyaw < yaw_diff; dyaw += max_yaw_rate * 0.8) {
-      pose_tmp = start;
+      pose_tmp = goal;
       pose_tmp.q = toQuaternion(toEulerAngles(start.q).yaw + dyaw, 0.f, 0.f);
 //      std::cout << "[IY] yaw " << toEulerAngles(start.q).yaw + dyaw << std::endl;
       path.push_back(pose_tmp);
@@ -576,13 +606,29 @@ static VecPose interpolateYaw(const pose3D &start, const pose3D &goal, const flo
   } else {
 
     for (float dyaw = 0.0f; dyaw > yaw_diff; dyaw -= max_yaw_rate * 0.8) {
-      pose_tmp = start;
+      pose_tmp = goal;
       pose_tmp.q = toQuaternion(toEulerAngles(start.q).yaw + dyaw, 0.f, 0.f);
 //      std::cout << "[IY] yaw " << toEulerAngles(start.q).yaw + dyaw << std::endl;
       path.push_back(pose_tmp);
     }
   }
   path.push_back(goal);
+
+  int yaw_size = path.size();
+  if (yaw_size < path_size) {
+    // std::cout << "cand view " << path_size << " yaw_size " << yaw_size << std::endl;
+    path_size = yaw_size;
+  }
+  std::cout << "path in size " << path_size << std::endl;
+  for (int i = 0; i < path_size; i++) {
+    path[i].p = path_in[i].p;
+  }
+
+  for (const auto &seg : path) {
+    std::cout << "cand view " << seg.p.format(InLine) << " " << seg.q.w() << " "
+              << seg.q.vec().format(InLine) << std::endl;
+  }
+
 //  std::cout << "[interpolateYaw] path size" << path.size() << std::endl;
   return path;
 }
@@ -613,56 +659,73 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
                         const Eigen::Matrix4f &pose,
                         VecPose &path,
                         VecPose &cand_views) {
+  // Planning Setup
+  PlanningParameter ompl_params;
+  ompl_params.ReadPlannerConfigFile(planning_config.ompl_config_path);
+  auto collision_checker = aligned_shared<CollisionCheckerV<T> >(octree_ptr, ompl_params);
+  //   setup rrt ompl object
+  auto path_planner_ompl_ptr =
+      aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker, ompl_params);
+
+  // wavefront / Astar
+
 
 //  std::cout << "[se/candview] frontier map size " << frontier_map.size() << std::endl;
-  CandidateView<T> candidate_view(volume, planning_config, static_cast<float>(res), config, pose);
+
+  // Candidate view generation
+  CandidateView<T> candidate_view(volume, planning_config, collision_checker, res, config, pose);
   candidate_view.getCandidateViews(frontier_map);
 
   VecPairPoseFloat pose_gain = candidate_view.getCandidateGain(step);
-  PlanningParameter ompl_params;
-  ompl_params.ReadPlannerConfigFile(planning_config.ompl_config_path);
-  LOG(INFO) << "[se/candview] free map size " << free_map.size() <<
-  " frontier " << frontier_map.size();
-  // setup collision checker
-
-// CPP: make_shared - memory resource is created for the first time, exception safe
-  auto prob_collision_checker = aligned_shared<ProbCollisionChecker<T> >(octree_ptr, ompl_params);
-  auto collision_checker = aligned_shared<CollisionCheckerV<T> >(octree_ptr, ompl_params);
-////   setup rrt ompl object
-  auto path_planner_ompl_ptr =
-      aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker, ompl_params);
-//  Eigen::Vector3d start_pos = pose.block<3, 1>(0, 3).cast<double>();
-//  Eigen::Vector3d end_pos = start_pos + Eigen::Vector3d(0.5, .5, 0.);
-//  // [m] to voxel
-//  Eigen::Vector3i start_pos_v = (pose.block<3, 1>(0, 3) / res).cast<int>();
-//  Eigen::Vector3i end_pos_v = start_pos_v + Eigen::Vector3i(2, 3, 0);
-//
-//  bool setup_planner = path_planner_ompl_ptr->setupPlanner(start_pos_v, end_pos_v, free_map);
-//  std::cout << "[se/candview] setup planner successful " << setup_planner << std::endl;
-//  bool path_planned = path_planner_ompl_ptr->planPath();
-//  std::cout << "[se/candview] path planned " << path_planned << std::endl;
-//
-
-  std::pair<pose3D, float> best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain);
-  std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)
-            << " yaw " << toEulerAngles(best_cand_pose_with_gain.first.q).yaw * 180.f / M_PI
-            << " with gain " << best_cand_pose_with_gain.second << std::endl;
-  path.push_back(best_cand_pose_with_gain.first);
   for (const auto &pose : pose_gain) {
     cand_views.push_back(pose.first);
 //    std::cout << "[canview] cands " << pose.first.p.format(InLine) << std::endl;
   }
+
   const int size = cand_views.size();
-//  if (size > 1) {
-//    for (int i = 0; i < size - 1; i++) {
-//      bool setup_planner = path_planner_ompl_ptr->setupPlanner(cand_views[size - 1].p.cast<int>(),
-//                                                               cand_views[i].p.cast<int>(),
-//                                                               free_map);
-//      LOG(INFO) << "setup planner successful " << setup_planner;
-//      bool path_planned = path_planner_ompl_ptr->planPath();
-//      LOG(INFO) << "path planned " << path_planned;
-//    }
-//  }
+
+  float path_length[size];
+  VecPose all_path[size];
+  VecPose last;
+  last.push_back(cand_views.back());
+  all_path[size - 1] = last;
+  path_length[size - 1] = 0.f;
+  std::pair<pose3D, int> best_cand_pose_with_gain = std::make_pair(cand_views.back(), 0);
+  if (size > 1) {
+    for (int i = 0; i < size - 1; i++) {
+      // for (int i = 0; i < 1; i++) {
+      LOG(INFO) << "start " << cand_views[size - 1].p.format(InLine) << " goal "
+                << cand_views[i].p.format(InLine);
+      bool setup_planner = path_planner_ompl_ptr->setupPlanner(cand_views[size - 1].p.cast<int>(),
+                                                               cand_views[i].p.cast<int>(),
+                                                               free_map);
+      DLOG(INFO) << "setup planner successful " << setup_planner;
+      bool path_planned = path_planner_ompl_ptr->planPath();
+      LOG(INFO) << "path planned " << path_planned;
+      if (!path_planned) {
+        continue;
+      }
+      path_length[i] = path_planner_ompl_ptr->getPathLength();
+      VecPose vec = path_planner_ompl_ptr->getPathSegments();
+      all_path[i] = vec;
+      DLOG(INFO) << "seg length " << all_path[i].size() << std::endl;
+
+    }
+// only plan path if the cand view list has more than one candidate, as the only candidate is the current position
+    best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain, path_length);
+  }
+
+  // std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)
+  //           << " yaw " << toEulerAngles(best_cand_pose_with_gain.first.q).yaw * 180.f / M_PI
+  //           << " cand num " << best_cand_pose_with_gain.second << std::endl;
+  pose3D start = getCurrPose(pose, res);
+  VecPose path_tmp = interpolateYaw(start,
+                                    best_cand_pose_with_gain.first,
+                                    0.52,
+                                    all_path[best_cand_pose_with_gain.second]);
+  for (const auto &pose : path_tmp)
+    path.push_back(pose);
+
 }
 
 } // namespace exploration

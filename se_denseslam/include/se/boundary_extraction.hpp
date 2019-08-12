@@ -107,7 +107,9 @@ static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree
 //    std::cout << "[se/boundary] " << upper_bound_morton << "coord "
 //              << se::keyops::decode(upper_bound_morton).format(InLine) << std::endl;
     upper_bound = node_it.getFreeVoxel(upper_bound_morton);
-//    std::cout << "[se/boundary] " << upper_bound.format(InLine) << std::endl;
+
   }
+     // std::cout << "[se/boundary] lower " << lower_bound.format(InLine) <<
+     // " upper "<< upper_bound.format(InLine) << std::endl;
 }
 #endif //SUPEREIGHT_BOUNDARY_EXTRACTION_HPP

@@ -30,7 +30,7 @@
 #include <ompl/base/MotionValidator.h>
 #include <ompl/base/SpaceInformation.h>
 
-#include "prob_collision_checker.hpp"
+// #include "prob_collision_checker.hpp"
 #include "collision_checker_voxel.hpp"
 #include "se/occupancy_world.hpp"
 #include "se/utils/ompl_to_eigen.hpp"
@@ -92,7 +92,7 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
       invalid_++;
       return false;
     }
-   DLOG(INFO) << "check Motion";
+    DLOG(INFO) << "check Motion";
     /* assume motion starts in a valid configuration so s1 is valid */
     int nd = stateSpace_->validSegmentCount(s1, s2);
 
@@ -108,9 +108,9 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
       Eigen::Vector3i ending = OmplToEigen::convertState_v(*test);
 
       if (!pcc_->isSegmentFlightCorridorSkeletonFree(start,
-                                                    ending,
-                                                    0,
-                                                    min_flight_corridor_radius_)) {
+                                                     ending,
+                                                     0,
+                                                     min_flight_corridor_radius_)) {
         lastValid.second = (double) (j - 1) / (double) nd;
         if (lastValid.first != nullptr)
           stateSpace_->interpolate(s1, s2, lastValid.second, lastValid.first);

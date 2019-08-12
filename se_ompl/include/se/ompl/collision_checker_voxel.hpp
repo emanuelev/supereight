@@ -14,7 +14,7 @@
 #include "se/utils/support_structs.hpp"
 #include "se/occupancy_world.hpp"
 #include "volume_shifter.hpp"
-#include "se/planning_parameter.hpp"
+#include "se/utils/planning_parameter.hpp"
 
 #include "se/continuous/volume_template.hpp"
 #include "se/octree.hpp"
@@ -38,11 +38,10 @@ class CollisionCheckerV {
   const PlanningParameter &ompl_params
   );
 
-
   bool isSegmentFlightCorridorSkeletonFree(const Eigen::Vector3i &start,
-                                          const Eigen::Vector3i &end,
-                                          const int r_min,
-                                          const int r_max) const;
+                                           const Eigen::Vector3i &end,
+                                           const int r_min,
+                                           const int r_max) const;
 
   bool isVoxelFree(const Eigen::Vector3i &point_v) const;
 
@@ -53,8 +52,8 @@ class CollisionCheckerV {
   // goal
 //  bool checkVolume(VecVec3i volume); // checkou flight segment corridor
   bool isLineFree(const Eigen::Vector3i &start,
-                 const Eigen::Vector3i &connection,
-                 const int num_subpos) const; // check segment fligh corridor skeleton
+                  const Eigen::Vector3i &connection,
+                  const int num_subpos) const; // check segment fligh corridor skeleton
 //
 //  bool checkLineDistance(const Eigen::Vector3i &start,
 //                         const Eigen::Vector3i &end,
@@ -76,14 +75,10 @@ class CollisionCheckerV {
   exploration::VolumeShifter::Ptr vs_ = nullptr;
   std::shared_ptr<Octree < FieldType> >
   octree_ptr_ = nullptr;
-  // from occupancy world
-  std::string id_;
-  std::vector<key_t> alloc_list_;
 
   PlanningParameter ompl_params_;
 
   float voxel_dim_;
-  bool treat_unknown_as_occupied_;
 };
 
 template<typename FieldType>
@@ -93,7 +88,6 @@ const PlanningParameter &ompl_params
 )
 :
 octree_ptr_ (octree_ptr), ompl_params_(ompl_params) {
-  treat_unknown_as_occupied_ = ompl_params.treat_unknown_as_occupied_;
   voxel_dim_ = octree_ptr->voxelDim();
   vs_ = std::unique_ptr<VolumeShifter>(new VolumeShifter(voxel_dim_,
                                                          ompl_params.volume_precision_factor_));
@@ -104,7 +98,7 @@ template<typename FieldType>
 bool CollisionCheckerV<FieldType>::isSphereSkeletonFree(const Eigen::Vector3i &position_v,
                                                         const int radius_v) const {
 
-  DLOG(INFO) << "center "<< position_v.format(InLine) << " radius " << radius_v;
+  // DLOG(INFO) << "center "<< position_v.format(InLine) << " radius " << radius_v;
   if (!isVoxelFree(position_v))
     return false;
 
@@ -156,114 +150,33 @@ bool CollisionCheckerV<FieldType>::isVoxelFree(const Eigen::Vector3i &point_v) c
   octree_ptr_->fetch_octant(point_v.x(), point_v.y(), point_v.z(), node, is_voxel_block);
   if (is_voxel_block) {
     block = static_cast<se::VoxelBlock<FieldType> *> (node);
-    if (block->data(point_v).x >= 0.f) {
-      DLOG(INFO) << "collision at "
-                << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
-                << block->data(point_v).st << std::endl;
+    if (block->data(point_v).x >= 0.f && block->data(point_v).st != voxel_state::kFree) {
+      // LOG(INFO) << "collision at "
+      // << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
+      // << block->data(point_v).st << std::endl;
       return false;
     }
   } else {
-    if (octree_ptr_->get(se::keyops::decode(node->code_)).x >= 0.f) {
+    // TODO without up propagation, ignore unknown nodes
+    if (octree_ptr_->get(se::keyops::decode(node->code_)).x > 0.f) {
       const Eigen::Vector3i pos = se::keyops::decode(node->code_);
-      DLOG(INFO) << "collision at node "
-                << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;
+      // LOG(INFO) << "collision at node "
+      // << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;
       return false;
     }
   }
   return true;
 
-}
-
-template<typename FieldType>
-bool CollisionCheckerV<FieldType>::isSphereCollisionFree(const Eigen::Vector3i &center,
-                                                         const int radius_v) const {
-
-  DLOG(INFO) << "radius " << radius_v << " center " << center.format(InLine);
-  se::Node<FieldType> *node = nullptr;
-  se::VoxelBlock<FieldType> *block = nullptr;
-  bool is_voxel_block;
-  Eigen::Vector3i prev_pos(0, 0, 0);
-  for (int x = -radius_v; x <= radius_v; x++) {
-    for (int y = -radius_v; y <= radius_v; y++) {
-      for (int z = -radius_v; z <= radius_v; z++) {
-        Eigen::Vector3i point_offset_v(x, y, z);
-        //check if point is inside the sphere radius
-//        std::cout << "sphere norm " << point_offset_v.norm() <<std::endl;
-        if (point_offset_v.norm() <= radius_v) {
-          // check if voxelblock is allocated or only node
-          Eigen::Vector3i point_v = point_offset_v + center;
-          // first round
-          if (node == nullptr || block == nullptr) {
-            octree_ptr_->fetch_octant(point_v.x(), point_v.y(), point_v.z(), node, is_voxel_block);
-            prev_pos = point_v;
-            if (is_voxel_block) {
-              block = static_cast<se::VoxelBlock<FieldType> *> (node);
-            } else {
-              if (octree_ptr_->get(se::keyops::decode(node->code_)).x >= 0.f) {
-                Eigen::Vector3i pos = se::keyops::decode(node->code_);
-                std::cout << " [secollision] collision at node "
-                          << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;
-                return false;
-              }
-            }
-          } else {
-            // if true keep old voxelblock pointer and fetch
-            // else get new voxel block
-            if ((point_v.x() / BLOCK_SIDE) == (prev_pos.x() / BLOCK_SIDE)
-                && (point_v.y() / BLOCK_SIDE) == (prev_pos.y() / BLOCK_SIDE)
-                && (point_v.z() / BLOCK_SIDE) == (prev_pos.z() / BLOCK_SIDE)) {
-              if (block->data(point_v).x >= 0.f) {
-                std::cout << " [secollision] collision at "
-                          << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
-                          << block->data(point_v).st << std::endl;
-                return false;
-              }
-            } else {
-              octree_ptr_->fetch_octant(point_v.x(),
-                                        point_v.y(),
-                                        point_v.z(),
-                                        node,
-                                        is_voxel_block);
-              if (is_voxel_block) {
-                block = static_cast<se::VoxelBlock<FieldType> *> (node);
-                if (block->data(point_v).x >=0.f) {
-                  std::cout << " [secollision] collision at "
-                            << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
-                            << block->data(point_v).st << std::endl;
-                  return false;
-                }
-              } else {
-                block = nullptr;
-                if (octree_ptr_->get(se::keyops::decode(node->code_)).x >= 0.f) {
-                  Eigen::Vector3i pos = se::keyops::decode(node->code_);
-                  std::cout << " [secollision] collision at node "
-                            << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;
-                  return false;
-                }
-              }
-
-            }
-          }
-          prev_pos = point_v;
-        }
-
-      }
-    }
-  }
-//  std::cout << "[se/collision_checker] sphere radius " << planning_config_.cand_view_safety_radius
-//            << " [m] =  " << radius_v << " voxels around center " << pos_v.format(InLine) << std::endl;
-  return true;
 }
 
 //   !!! took code snippets from DubinsSateSpace MotionValidator
 template<typename FieldType>
 bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eigen::Vector3i &start,
-                                                                      const Eigen::Vector3i &end,
-                                                                      const int r_min_v,
-                                                                      const int r_max_v) const {
+                                                                       const Eigen::Vector3i &end,
+                                                                       const int r_min_v,
+                                                                       const int r_max_v) const {
 
-
-  if(start == end)
+  if (start == end)
     return true;
   /**
    * Set up the line-of-sight connection
@@ -277,9 +190,9 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
   const Eigen::Vector3i start_corridor_v = start - r_max_v * corridor_axis_u;
   const Eigen::Vector3i end_corridor_v = end + r_max_v * corridor_axis_u;
 
-  const  Eigen::Vector3i vec_seg_connection_v =
+  const Eigen::Vector3i vec_seg_connection_v =
       end_corridor_v - start_corridor_v; // The vector in [voxel] connecting the start and end
-      // position
+  // position
   const Eigen::Vector3i vec_seg_direction_u = vec_seg_connection_v
       / vec_seg_connection_v.norm(); // The vector in [voxel] connecting the start and end position
   const int num_axial_subpos =
@@ -288,12 +201,13 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
   if (!isSphereSkeletonFree(end, r_max_v)) {
     return false;
   }
- // TODO implement checkLine
+  // TODO implement checkLine
   if (!isLineFree(start_corridor_v,
-                 vec_seg_connection_v,
-                 num_axial_subpos)) // Check if the line-of-sight connection is collision free
+                  vec_seg_connection_v,
+                  num_axial_subpos)) { // Check if the line-of-sight connection is collision free
+    DLOG(INFO) << "line not free at " << (start_corridor_v).format(InLine);
     return false;
-
+  }
   /**
    * Get cylinder extrema in horizontal and vertical direction
    */
@@ -313,11 +227,12 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
   shell_main_pos =
       {start_corridor_v + vec_horizontal_u * r_max_v, start_corridor_v - vec_horizontal_u * r_max_v,
        start_corridor_v + vec_vertical_u * r_max_v, start_corridor_v - vec_vertical_u * r_max_v};
-  for (VecVec3i::iterator it = shell_main_pos.begin();
-       it != shell_main_pos.end(); ++it) {
+  for (VecVec3i::iterator it = shell_main_pos.begin(); it != shell_main_pos.end(); ++it) {
     // TODO
-    if (!isLineFree(*it, vec_seg_connection_v, num_axial_subpos))
+    if (!isLineFree(*it, vec_seg_connection_v, num_axial_subpos)) {
+      DLOG(INFO) << "line not free at " << (*it).format(InLine);
       return false;
+    }
   }
 
   int num_circ_shell_subpos = r_max_v * M_PI / (2 * seg_prec);
@@ -343,10 +258,11 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
       circ_shell_sub_pos =
           {start_corridor_v + vec1_u * r_max_v, start_corridor_v - vec1_u * r_max_v,
            start_corridor_v + vec2_u * r_max_v, start_corridor_v - vec2_u * r_max_v};
-      for (VecVec3i::iterator it = circ_shell_sub_pos.begin();
-           it != circ_shell_sub_pos.end(); ++it) {
-        if (!isLineFree(*it, vec_seg_connection_v, num_axial_subpos))
+      for (VecVec3i::iterator it = circ_shell_sub_pos.begin(); it != circ_shell_sub_pos.end();
+           ++it) {
+        if (!isLineFree(*it, vec_seg_connection_v, num_axial_subpos)) {
           return false;
+        }
       }
 
       circ_shell_pos.pop();
@@ -358,7 +274,7 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
     }
   }
 
-  const  int num_radial_subpos = r_max_v / seg_prec;
+  const int num_radial_subpos = r_max_v / seg_prec;
 
   if (num_radial_subpos > 1) {
 
@@ -368,17 +284,17 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
     while (!radial_pos.empty()) {
       std::pair<int, int> y = radial_pos.front();
       const int mid = (y.first + y.second) / 2;
-      const int r_v =  mid /  num_radial_subpos * r_max_v;
+      const int r_v = mid / num_radial_subpos * r_max_v;
 
       VecVec3i circ_main_pos;
       circ_main_pos =
           {start_corridor_v + vec_horizontal_u * r_v, start_corridor_v - vec_horizontal_u * r_v,
            start_corridor_v + vec_vertical_u * r_v, start_corridor_v - vec_vertical_u * r_v};
-      for (VecVec3i::iterator it = circ_main_pos.begin();
-           it != circ_main_pos.end(); ++it) {
+      for (VecVec3i::iterator it = circ_main_pos.begin(); it != circ_main_pos.end(); ++it) {
 
-        if (!isLineFree(*it, vec_seg_connection_v, num_axial_subpos))
+        if (!isLineFree(*it, vec_seg_connection_v, num_axial_subpos)) {
           return false;
+        }
       }
 
       const int num_circ_subpos = r_v * M_PI / (2 * seg_prec);
@@ -403,12 +319,12 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
           VecVec3i sub_starts;
           sub_starts = {start_corridor_v + vec1_u * r_max_v, start_corridor_v - vec1_u * r_max_v,
                         start_corridor_v + vec2_u * r_max_v, start_corridor_v - vec2_u * r_max_v};
-          for (VecVec3i::iterator it = sub_starts.begin();
-               it != sub_starts.end(); ++it) {
+          for (VecVec3i::iterator it = sub_starts.begin(); it != sub_starts.end(); ++it) {
 
-            if (!isLineFree(*it, vec_seg_connection_v, num_axial_subpos))
+            if (!isLineFree(*it, vec_seg_connection_v, num_axial_subpos)) {
               DLOG(INFO) << "line not free at " << (*it).format(InLine);
               return false;
+            }
           }
 
           circ_sub_pos.pop();
@@ -434,8 +350,8 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
 
 template<typename FieldType>
 bool CollisionCheckerV<FieldType>::isLineFree(const Eigen::Vector3i &start_v,
-                                                const Eigen::Vector3i &connection_v,
-                                                const int num_subpos) const {
+                                              const Eigen::Vector3i &connection_v,
+                                              const int num_subpos) const {
 
   std::queue<std::pair<int, int>> line_pos;
   line_pos.push(std::make_pair(1, num_subpos - 1));
@@ -447,7 +363,7 @@ bool CollisionCheckerV<FieldType>::isLineFree(const Eigen::Vector3i &start_v,
     int mid = (x.first + x.second) / 2;
 
     // Compute midpoint
-    Eigen::Vector3i position_v = ( mid /  num_subpos * connection_v + start_v);
+    Eigen::Vector3i position_v = (mid / num_subpos * connection_v + start_v);
 
     if (!isVoxelFree(position_v))
       return false;

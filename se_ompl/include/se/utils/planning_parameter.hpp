@@ -9,7 +9,7 @@
 #include <glog/logging.h>
 
 #include "../occupancy_world.hpp"
-#include "se/ompl/ompl_setup.hpp"
+
 #include "se/utils/support_structs.hpp"
 
 namespace se {

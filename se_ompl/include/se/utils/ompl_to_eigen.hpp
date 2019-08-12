@@ -75,11 +75,11 @@ class OmplToEigen {
     for (ompl::base::State *state : states) {
       State_v state_v;
       Eigen::Vector3i position_v
-          (static_cast<int>(state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0]),
-           static_cast<int>(state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1]),
-           static_cast<int>(state->as<ompl::base::RealVectorStateSpace::StateType>()->values[2]));
+          (static_cast<int>(round(state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0])),
+           static_cast<int>(round(state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1])),
+           static_cast<int>(round(state->as<ompl::base::RealVectorStateSpace::StateType>()->values[2])));
 
-      state_v.segment_end = position_v;
+      state_v.segment = position_v;
       state_v.segment_radius = radius_v;
 
       // Save the 3D path in output Eigen format

@@ -1,4 +1,3 @@
-
 /**
  * Originally from Motion Planning, Header.
  *
@@ -31,11 +30,10 @@ static constexpr size_t kDim = 3;      /// Dimension for straight line planning
 static constexpr size_t kDimTraj = 3;  /// Dimension for trajectory optimization
 
 
-typedef Eigen::Matrix<float, 3 , 1> Point;
-typedef Eigen::Matrix<int , 3, 1> AnyIndex;
+typedef Eigen::Matrix<float, 3, 1> Point;
+typedef Eigen::Matrix<int, 3, 1> AnyIndex;
 
 typedef AnyIndex VoxelCoord;
-
 
 template<int TSize>
 struct State {
@@ -46,11 +44,9 @@ struct State {
 
 struct State_v {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  VoxelCoord segment_end;
+  VoxelCoord segment;
   int segment_radius = -1;
 };
-
-
 
 /** Struct defining a Header with a timestamp and frame id. */
 struct Header {
@@ -64,7 +60,7 @@ struct Path {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   /** Type definition for smart pointer. */
   typedef std::shared_ptr<Path<TSize> > Ptr;
-  typedef AlignedVector < State <TSize> > StateVector;
+  typedef AlignedVector<State<TSize> > StateVector;
   Header header;                     ///> Header holding timestamp and frame_id
   StateVector states;  ///> States of the path
 };
@@ -72,18 +68,20 @@ struct Path {
 struct Path_v {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   /** Type definition for smart pointer. */
-  typedef std::shared_ptr<Path_v > Ptr;
-  typedef AlignedVector < State_v > StateVector;
+  typedef std::shared_ptr<Path_v> Ptr;
+  typedef AlignedVector<State_v> StateVector;
   Header header;                     ///> Header holding timestamp and frame_id
   StateVector states;  ///> States of the path
 };
+
+typedef AlignedVector<Path_v> VecPathPtr;
 
 /** Struct defining a Segment with a Header and a vector of states. */
 template<int TSize>
 struct Segment {
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  typedef AlignedVector < State <TSize> > StateVector;
+  typedef AlignedVector<State<TSize> > StateVector;
   Header header;                     ///> Header holding timestamp and frame_id
   unsigned int num_points;           ///> Number of points in the segment
   StateVector states;  ///> States of the segment
@@ -93,13 +91,12 @@ struct Segment {
 struct Segment_v {
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  typedef AlignedVector < State_v > StateVector;
+  typedef AlignedVector<State_v> StateVector;
   Header header;                     ///> Header holding timestamp and frame_id
   unsigned int num_points;           ///> Number of points in the segment
   StateVector states;  ///> States of the segment
   std::chrono::nanoseconds duration; ///> Duration of the segment
 };
-
 
 /** Struct defining a Trajectory with a Header and a vector of segments. */
 template<int TSize>
@@ -108,7 +105,7 @@ struct Trajectory {
   /** Type definition for smart pointer. */
   typedef std::shared_ptr<Trajectory<TSize>> Ptr;
 
-  typedef AlignedVector < Segment <TSize> > SegmentVector;
+  typedef AlignedVector<Segment<TSize> > SegmentVector;
   Header header; ///> Header holding timestamp and frame_id
   SegmentVector segments; ///> Segments of the trajectory
 };

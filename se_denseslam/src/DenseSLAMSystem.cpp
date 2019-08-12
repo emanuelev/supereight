@@ -522,19 +522,14 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
   return true;
 }
 
-bool DenseSLAMSystem::planning(VecPose &path,
-                               VecPose &cand_views,
-                               mapvec3i *free_blocks) {
-  if (!init_position_cleared_) {
-//  std::cout << "[se/denseSLAM] clear sphere around robot" << std::endl;
-    se::exploration::initNewPosition(pose_ * Tbc_,
-                                     planning_config_,
-                                     free_blocks,
-                                     *volume_._map_index);
+bool DenseSLAMSystem::planning(VecPose &path, VecPose &cand_views, mapvec3i *free_blocks) {
+  se::exploration::initNewPosition(pose_ * Tbc_,
+                                   planning_config_,
+                                   free_blocks,
+                                   *volume_._map_index);
 
-    insertBlocksToMap(free_map_, free_blocks);
-    init_position_cleared_ = true;
-  }
+  insertBlocksToMap(free_map_, free_blocks);
+  init_position_cleared_ = true;
   float res_v = volume_dimension_.cast<float>().x() / volume_resolution_.cast<float>().x();
 
   float step = volume_dimension_.x() / volume_resolution_.x();
