@@ -161,7 +161,7 @@ class node_iterator {
     map_.fetch_octant(blockCoord(0), blockCoord(1), blockCoord(2), node, is_block);
     if (!is_block) {
 //      freeVoxel= blockCoord;
-      std::cout << "[se/nodeit] node " << free_voxel.format(InLine) << std::endl;
+      // std::cout << "[se/nodeit] node " << free_voxel.format(InLine) << std::endl;
       return free_voxel;
     } else {
       VoxelBlock<T> *block = static_cast< VoxelBlock<T> *> (node);
@@ -175,14 +175,14 @@ class node_iterator {
             value = block->data(vox);
             if (value.st == voxel_state::kFree) {
               free_voxel=vox;
-              std::cout << "[se/nodeit] block " << free_voxel.format(InLine) << std::endl;
+              // std::cout << "[se/nodeit] block " << free_voxel.format(InLine) << std::endl;
               return free_voxel;
             }
           }
         }
       }
     }
-    std::cout <<"[se/nodeit] vb with no free voxel " << std::endl;
+    // std::cout <<"[se/nodeit] vb with no free voxel " << std::endl;
     return free_voxel;
   }
 
@@ -250,7 +250,7 @@ class node_iterator {
         }
       }
     } else {
-      std::cout << " node frontier " << blockCoord.format(InLine) << std::endl;
+      // std::cout << " node frontier " << blockCoord.format(InLine) << std::endl;
       frontierVoxels.push_back(blockCoord);
       frontierVoxels.push_back(Eigen::Vector3i(0, 0, 0));
     }

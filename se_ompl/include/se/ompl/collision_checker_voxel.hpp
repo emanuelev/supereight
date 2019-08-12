@@ -12,9 +12,6 @@
 
 #include "se/utils/eigen_utils.h"
 #include "se/utils/support_structs.hpp"
-#include "se/occupancy_world.hpp"
-#include "volume_shifter.hpp"
-#include "se/utils/planning_parameter.hpp"
 
 #include "se/continuous/volume_template.hpp"
 #include "se/octree.hpp"
@@ -35,7 +32,7 @@ class CollisionCheckerV {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   CollisionCheckerV(const std::shared_ptr<Octree < FieldType>
   > octree_ptr,
-  const PlanningParameter &ompl_params
+  const Planning_Configuration &planning_config
   );
 
   bool isSegmentFlightCorridorSkeletonFree(const Eigen::Vector3i &start,
@@ -45,8 +42,6 @@ class CollisionCheckerV {
 
   bool isVoxelFree(const Eigen::Vector3i &point_v) const;
 
-  bool isSphereCollisionFree(const Eigen::Vector3i &position_v, const int radius_v) const; // start
-  // end
   bool isSphereSkeletonFree(const Eigen::Vector3i &position_v, const int radius_v) const;
 
   // goal
@@ -54,29 +49,14 @@ class CollisionCheckerV {
   bool isLineFree(const Eigen::Vector3i &start,
                   const Eigen::Vector3i &connection,
                   const int num_subpos) const; // check segment fligh corridor skeleton
-//
-//  bool checkLineDistance(const Eigen::Vector3i &start,
-//                         const Eigen::Vector3i &end,
-//                         int radius); // motion validator
-//  bool checkVoxelDistance(const Eigen::Vector3i &position, int radius); //motion validator
-//
-//
-//  bool expandFlightCorridorDistance(Path<kDim>::Ptr path_m);
-//  bool expandFlightCorridorSkeleton(Path<kDim>::Ptr path_m);
-//  bool expandFlightCorridor(Path<kDim>::Ptr path_m); for evaluation
-//
-//  void findMinLineDistance(const Eigen::Vector3d &start,
-//                           const Eigen::Vector3d &end,
-//                           double &min_distance_m); // expand flight segment corridor
-//  void getVoxelDistance(const Eigen::Vector3d &position_m, double &distance);
-//  double getVoxelDistance(const Eigen::Vector3d &position_m); // state validty checker (NOT used)
+
 
  private:
-  exploration::VolumeShifter::Ptr vs_ = nullptr;
+
   std::shared_ptr<Octree < FieldType> >
   octree_ptr_ = nullptr;
 
-  PlanningParameter ompl_params_;
+   Planning_Configuration planning_params_;
 
   float voxel_dim_;
 };
@@ -84,21 +64,19 @@ class CollisionCheckerV {
 template<typename FieldType>
 CollisionCheckerV<FieldType>::CollisionCheckerV(const std::shared_ptr<Octree < FieldType>
 > octree_ptr,
-const PlanningParameter &ompl_params
-)
+const Planning_Configuration &planning_config)
 :
-octree_ptr_ (octree_ptr), ompl_params_(ompl_params) {
+octree_ptr_ (octree_ptr), planning_params_(planning_config){
   voxel_dim_ = octree_ptr->voxelDim();
-  vs_ = std::unique_ptr<VolumeShifter>(new VolumeShifter(voxel_dim_,
-                                                         ompl_params.volume_precision_factor_));
-  LOG(INFO) << "Collision Checker  setup";
+
+  LOG(INFO) << "Collision Checker V setup";
 }
 
 template<typename FieldType>
 bool CollisionCheckerV<FieldType>::isSphereSkeletonFree(const Eigen::Vector3i &position_v,
                                                         const int radius_v) const {
 
-  // DLOG(INFO) << "center "<< position_v.format(InLine) << " radius " << radius_v;
+  // LOG(INFO) << "voxel center "<< position_v.format(InLine) << " radius " << radius_v;
   if (!isVoxelFree(position_v))
     return false;
 
@@ -109,8 +87,8 @@ bool CollisionCheckerV<FieldType>::isSphereSkeletonFree(const Eigen::Vector3i &p
                     position_v - Eigen::Vector3i(0, 1, 0) * radius_v,
                     position_v + Eigen::Vector3i(0, 0, 1) * radius_v,
                     position_v - Eigen::Vector3i(0, 0, 1) * radius_v};
-  for (const auto &it : shell_main_pos) {
-    if (!isVoxelFree(it))
+  for (VecVec3i::iterator it = shell_main_pos.begin(); it!= shell_main_pos.end(); it++) {
+    if (!isVoxelFree(*it))
       return false;
   }
 
@@ -181,7 +159,7 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
   /**
    * Set up the line-of-sight connection
    */
-  const double seg_prec = ompl_params_.skeleton_sample_precision_; //
+  const float seg_prec = planning_params_.skeleton_sample_precision; //
   // Precision at which
   // to sample the connection [m/voxel]
 
@@ -235,7 +213,7 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
     }
   }
 
-  int num_circ_shell_subpos = r_max_v * M_PI / (2 * seg_prec);
+  const int num_circ_shell_subpos = r_max_v * M_PI / (2 * seg_prec);
 
   if (num_circ_shell_subpos > 1) {
 

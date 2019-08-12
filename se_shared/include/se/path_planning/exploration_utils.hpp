@@ -216,6 +216,10 @@ static pose3D getCurrPose(const Eigen::Matrix4f &pose, const float res){
   return curr_pose;
 }
 
+static inline Eigen::Vector3i toVoxelCoord(const Eigen::Vector3f coord_m, const float dim) {
+  Eigen::Vector3i coord_v = (coord_m/ dim).cast<int>();
+  return coord_v;
+}
 
 } //exploration
 }//namespace se

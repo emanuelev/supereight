@@ -31,7 +31,7 @@
 #include "collision_checker.hpp"
 #include "exploration_utils.hpp"
 
-#include "se/utils/planning_parameter.hpp"
+
 #include "se/path_planner_ompl.hpp"
 
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
@@ -40,16 +40,13 @@ namespace se {
 
 namespace exploration {
 
-//static se::geometry::collision_status test_voxel2(const Volume<FieldType>::value_type &val) {
-//  if (val.st == voxel_state::kUnknown) return se::geometry::collision_status::unseen;
-//  if (val.st == voxel_state::kFree) return se::geometry::collision_status::empty;
-//  return se::geometry::collision_status::occupied;
-//};
+
 /**
  * Candidate View
+ * all in voxel coord
  */
 
-// TODO make candviews to poses => less memory
+
 
 template<typename T>
 class CandidateView {
@@ -147,7 +144,7 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
   CollisionCheck<T> collision_check(volume_, planning_config_, res_);
   // curr res 24m/128 vox = 0.1875 m/vx
 
-  int offset_v = static_cast<int>(planning_config_.cand_view_safety_radius / res_);
+  int offset_v = static_cast<int>(planning_config_.robot_safety_radius / res_);
   // fit plane through frontier voxels in the block
 // source https://www.ilikebigbits.com/2017_09_25_plane_from_points_2.html
 // https://www.ilikebigbits.com/2015_03_04_plane_from_points.html
@@ -236,7 +233,7 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
   if (is_valid) {
     bool is_free = pcc_->isSphereSkeletonFree(offset_cand_v,
                                               static_cast<int>(
-                                                  planning_config_.cand_view_safety_radius / res_));
+                                                  planning_config_.robot_safety_radius / res_));
     if (is_free == 1) {
       return offset_cand_v;
     } else {
@@ -411,19 +408,20 @@ VecPairPoseFloat CandidateView<T>::getCandidateGain(const float step) {
   const float fov_hor = 120.f;
 //  float fov_hor = static_cast<float>(planning_config_.fov_hor * 180.f / M_PI); // 2.0 = 114.59 deg
   const float fov_vert = fov_hor * 480.f / 640.f; // image size
-  const float cyl_h = static_cast<float>(2 * r_max * sin(fov_vert * M_PI / 360.0f)); // from paper
   // [2]
 
   // temporary
   const int dtheta = 10;
   const int dphi = 5;
   const float dr = 0.1f; //[1]
+
+
   const float r = 0.5; // [m] random radius
   const int n_col = fov_vert / dphi;
   const int n_row = 360 / dtheta;
   max_ig_ = n_col * n_row * (r_max / step) * 1;
 
-  int phi, theta;
+
   float phi_rad, theta_rad;
   int cand_num = 1;
 
@@ -440,13 +438,13 @@ VecPairPoseFloat CandidateView<T>::getCandidateGain(const float step) {
 
     // sparse ray cast every x0 deg
     int row = 0;
-    for (theta = -180; theta < 180; theta += dtheta) {
+    for (int theta = -180; theta < 180; theta += dtheta) {
       theta_rad = static_cast<float>(M_PI * theta / 180.0); // deg to rad
       gain = 0.0;
       int col = 0;
       gain_matrix(row, col) = theta;
       depth_matrix(row, col) = theta;
-      for (phi = static_cast<int>(90 - fov_vert / 2); phi < 90 + fov_vert / 2; phi += dphi) {
+      for (int phi = static_cast<int>(90 - fov_vert / 2); phi < 90 + fov_vert / 2; phi += dphi) {
         col++;
         // calculate ray cast direction
         phi_rad = static_cast<float>(M_PI * phi / 180.0f);
@@ -660,12 +658,12 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
                         VecPose &path,
                         VecPose &cand_views) {
   // Planning Setup
-  PlanningParameter ompl_params;
-  ompl_params.ReadPlannerConfigFile(planning_config.ompl_config_path);
-  auto collision_checker = aligned_shared<CollisionCheckerV<T> >(octree_ptr, ompl_params);
+
+  auto collision_checker_v = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
+  auto collision_checker = aligned_shared<CollisionCheckerM<T> >(octree_ptr, planning_config);
   //   setup rrt ompl object
   auto path_planner_ompl_ptr =
-      aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker, ompl_params);
+      aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker, planning_config);
 
   // wavefront / Astar
 
@@ -673,7 +671,7 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
 //  std::cout << "[se/candview] frontier map size " << frontier_map.size() << std::endl;
 
   // Candidate view generation
-  CandidateView<T> candidate_view(volume, planning_config, collision_checker, res, config, pose);
+  CandidateView<T> candidate_view(volume, planning_config, collision_checker_v, res, config, pose);
   candidate_view.getCandidateViews(frontier_map);
 
   VecPairPoseFloat pose_gain = candidate_view.getCandidateGain(step);
@@ -703,10 +701,14 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
       bool path_planned = path_planner_ompl_ptr->planPath();
       LOG(INFO) << "path planned " << path_planned;
       if (!path_planned) {
+        path_length[i] = 0;
+        VecPose vec ;
+        vec.push_back(cand_views[i]);
+        all_path[i] = vec;
         continue;
       }
       path_length[i] = path_planner_ompl_ptr->getPathLength();
-      VecPose vec = path_planner_ompl_ptr->getPathSegments();
+      VecPose vec = path_planner_ompl_ptr->getPathSegments_m();
       all_path[i] = vec;
       DLOG(INFO) << "seg length " << all_path[i].size() << std::endl;
 

@@ -38,8 +38,8 @@ typedef AnyIndex VoxelCoord;
 template<int TSize>
 struct State {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  Eigen::Matrix<double, TSize, 1> segment_end;
-  double segment_radius = -1;
+  Eigen::Matrix<float, TSize, 1> segment_end;
+  float segment_radius = -1;
 };
 
 struct State_v {

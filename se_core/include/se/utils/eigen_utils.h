@@ -30,6 +30,7 @@ using AlignedQueue = std::queue<Type, AlignedDeque<Type>>;
 
 typedef std::set<uint64_t > set3i;
 typedef AlignedVector<Eigen::Vector3i> VecVec3i;
+typedef AlignedVector<Eigen::Vector3f> VecVec3f;
 typedef AlignedVector<std::pair<Eigen::Vector3i, float>> VectorPair3iFloat;
 
 
@@ -43,7 +44,7 @@ typedef AlignedVector<se::Image<float> > AlignedImagef;
 
 // std::tuple doesn't need alignment, generalized version of pair
 typedef AlignedQueue<std::tuple<Eigen::Vector3i, Eigen::Vector3i, int, int>> AlignedQueueTupleVec3i;
-
+typedef AlignedQueue<std::tuple<Eigen::Vector3f, Eigen::Vector3f, int, int>> AlignedQueueTupleVec3f;
 
 typedef std::map<key_t ,
                  Eigen::Vector3i,

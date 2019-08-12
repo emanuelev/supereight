@@ -21,7 +21,7 @@ struct Planning_Configuration{
   /**
    * distance [m] from frontier wall away. will be converted to voxel distance
    */
-  float cand_view_safety_radius;
+  float robot_safety_radius;
 
   /**
    * horizontal field of view from gazebo model for depth sensor
@@ -45,20 +45,37 @@ struct Planning_Configuration{
    */
   float clearance_radius;
 
-  std::string ompl_config_path;
+  /**
+  * [m] height boundaries
+  */
+  float height_max;
+  float height_min;
+
+  /**
+  * [m]
+  */
+  float skeleton_sample_precision;
+
+  /**
+  * [s] ompl solving time
+  */
+  float ompl_solving_time;
 };
 
 inline Planning_Configuration getDefaultPlanningConfig(){
   Planning_Configuration config;
   config.num_cand_views = 20;
-  config.cand_view_safety_radius = 0.5;
+  config.robot_safety_radius = 0.5;
   config.fov_hor = 2.0;
   config.dr = 0.1;
   config.dphi = 10;
   config.dtheta = 10;
   config.clear_sphere_for_planning = true;
   config.clearance_radius = 1.0f;
-  config.ompl_config_path = "";
+  config.height_max = 2.5f;
+  config.height_min = 1.5f;
+  config.skeleton_sample_precision = 0.05;
+  config.ompl_solving_time = 2.5;
   return config;
 }
 #endif //SUPEREIGHT_PLANNER_CONFIG_H

@@ -32,8 +32,8 @@ class CollisionCheck {
 
  private:
  Volume<T> volume_;
-  double res_;
   Planning_Configuration planning_config_;
+  double res_;
 };
 
 template<typename T>
@@ -53,7 +53,7 @@ CollisionCheck<T>::CollisionCheck(const Volume <T> &volume,
 template<typename T>
 int CollisionCheck<T>::isSphereCollisionFree(const Eigen::Vector3i center) {
 
-  int radius_v = static_cast<int>(planning_config_.cand_view_safety_radius / res_); // m/(m/voxel)
+  int radius_v = static_cast<int>(planning_config_.robot_safety_radius / res_); // m/(m/voxel)
   se::Node<T> *node = nullptr;
   se::VoxelBlock<T> *block = nullptr;
   bool is_voxel_block;
