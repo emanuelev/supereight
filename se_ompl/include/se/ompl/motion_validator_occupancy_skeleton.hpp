@@ -51,9 +51,21 @@ namespace exploration {
 template<typename FieldType>
 class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
  public:
-  // MotionValidatorOccupancySkeleton(const ompl::base::SpaceInformationPtr si,
-  //                                  const std::shared_ptr<CollisionCheckerV<FieldType> > pcc,
-  //                                  const int min_flight_corridor_radius)
+  MotionValidatorOccupancySkeleton(const ompl::base::SpaceInformationPtr si,
+                                   const std::shared_ptr<CollisionCheckerV<FieldType> > pcc,
+                                   const int robot_safety_radius)
+      :
+      ompl::base::MotionValidator(si),
+      pcc_(pcc),
+      robot_safety_radius_(robot_safety_radius){
+
+    stateSpace_ = si_->getStateSpace().get();
+    if (stateSpace_ == nullptr)
+      throw std::runtime_error("No state space for motion validator");
+  }
+  //   MotionValidatorOccupancySkeleton(const ompl::base::SpaceInformationPtr si,
+  //                                  const std::shared_ptr<CollisionCheckerM<FieldType> > pcc,
+  //                                  const float min_flight_corridor_radius)
   //     :
   //     ompl::base::MotionValidator(si),
   //     pcc_(pcc),
@@ -63,23 +75,11 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
   //   if (stateSpace_ == nullptr)
   //     throw std::runtime_error("No state space for motion validator");
   // }
-    MotionValidatorOccupancySkeleton(const ompl::base::SpaceInformationPtr si,
-                                   const std::shared_ptr<CollisionCheckerM<FieldType> > pcc,
-                                   const float min_flight_corridor_radius)
-      :
-      ompl::base::MotionValidator(si),
-      pcc_(pcc),
-      min_flight_corridor_radius_(min_flight_corridor_radius) {
-
-    stateSpace_ = si_->getStateSpace().get();
-    if (stateSpace_ == nullptr)
-      throw std::runtime_error("No state space for motion validator");
-  }
 
 
   /**
    * Checks if the current robot state is valid.
-   * @param [in] state The current robot state.
+   * @param [in] state The current robot state. [m]
    * @return True if valid, false otherwise.
    */
   virtual bool checkMotion(const ompl::base::State *s1,
@@ -88,12 +88,13 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
       invalid_++;
       return false;
     }
-    Eigen::Vector3f start = OmplToEigen::convertState(*s1);
-    Eigen::Vector3f ending = OmplToEigen::convertState(*s2);
-    // Eigen::Vector3i start = OmplToEigen::convertState_v(*s1);
-    // Eigen::Vector3i ending = OmplToEigen::convertState_v(*s2);
+    // Eigen::Vector3f start = OmplToEigen::convertState(*s1);
+    // Eigen::Vector3f ending = OmplToEigen::convertState(*s2);
+    // [m] to voxel
+    Eigen::Vector3i start = OmplToEigen::convertState_v(*s1, dim_);
+    Eigen::Vector3i ending = OmplToEigen::convertState_v(*s2, dim_);
     DLOG(INFO) << "start " << start.format(InLine) << "ending" << ending.format(InLine);
-    if (pcc_->isSegmentFlightCorridorSkeletonFree(start, ending, 0, min_flight_corridor_radius_)) {
+    if (pcc_->isSegmentFlightCorridorSkeletonFree(start, ending, 0, robot_safety_radius_)) {
       return true;
     }
 
@@ -119,15 +120,15 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
     for (int j = 1; j <= nd; ++j) {
       stateSpace_->interpolate(s1, s2, (double) j / (double) nd, test);
       stateSpace_->interpolate(s1, s2, (double) (j - 1) / (double) nd, test_prev);
-      Eigen::Vector3f start = OmplToEigen::convertState(*test_prev);
-      Eigen::Vector3f ending = OmplToEigen::convertState(*test);
-      // Eigen::Vector3i start = OmplToEigen::convertState_v(*test_prev);
-      // Eigen::Vector3i ending = OmplToEigen::convertState_v(*test);
+      // Eigen::Vector3f start = OmplToEigen::convertState(*test_prev);
+      // Eigen::Vector3f ending = OmplToEigen::convertState(*test);
+      Eigen::Vector3i start = OmplToEigen::convertState_v(*test_prev, dim_);
+      Eigen::Vector3i ending = OmplToEigen::convertState_v(*test, dim_);
 
       if (!pcc_->isSegmentFlightCorridorSkeletonFree(start,
                                                      ending,
                                                      0,
-                                                     min_flight_corridor_radius_)) {
+                                                     robot_safety_radius_)) {
         lastValid.second = (double) (j - 1) / (double) nd;
         if (lastValid.first != nullptr)
           stateSpace_->interpolate(s1, s2, lastValid.second, lastValid.first);
@@ -145,11 +146,12 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
   }
 
  private:
-  // std::shared_ptr<CollisionCheckerV<FieldType> > pcc_ = nullptr;
-  // int min_flight_corridor_radius_;
-    std::shared_ptr<CollisionCheckerM<FieldType> > pcc_ = nullptr;
-  float min_flight_corridor_radius_;
+  std::shared_ptr<CollisionCheckerV<FieldType> > pcc_ = nullptr;
+  int robot_safety_radius_;
+  //   std::shared_ptr<CollisionCheckerM<FieldType> > pcc_ = nullptr;
+  // float min_flight_corridor_radius_;
   ob::StateSpace *stateSpace_;
+  float dim_;
 };
 
 } // namespace exploration

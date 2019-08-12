@@ -27,11 +27,9 @@ struct Planning_Configuration{
    * horizontal field of view from gazebo model for depth sensor
    * https://github.com/ethz-asl/rotors_simulator/blob/master/rotors_description/urdf/component_snippets.xacro
    */
-  float fov_hor ;
-  /**
-   * [m]
-   */
-  float dr;
+  int fov_hor ;
+
+
   /**
    * deg
    */
@@ -66,8 +64,7 @@ inline Planning_Configuration getDefaultPlanningConfig(){
   Planning_Configuration config;
   config.num_cand_views = 20;
   config.robot_safety_radius = 0.5;
-  config.fov_hor = 2.0;
-  config.dr = 0.1;
+  config.fov_hor = 120;
   config.dphi = 10;
   config.dtheta = 10;
   config.clear_sphere_for_planning = true;

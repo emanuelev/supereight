@@ -216,10 +216,27 @@ static pose3D getCurrPose(const Eigen::Matrix4f &pose, const float res){
   return curr_pose;
 }
 
-static inline Eigen::Vector3i toVoxelCoord(const Eigen::Vector3f coord_m, const float dim) {
+static inline Eigen::Vector3i toVoxelCoord(const Eigen::Vector3f &coord_m, const float dim) {
   Eigen::Vector3i coord_v = (coord_m/ dim).cast<int>();
   return coord_v;
 }
+
+
+static inline bool boundHeight( int *h, const float h_max,
+const float h_min , const float res){
+
+  if(*h > h_max/res){
+    *h= static_cast<int>(h_max/res);
+    return true;
+  }else if (*h< h_min/res)
+  {
+    *h= static_cast<int>(h_min/res);
+    return true;
+  }
+  return false;
+
+}
+
 
 } //exploration
 }//namespace se

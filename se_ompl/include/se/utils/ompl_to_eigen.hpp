@@ -101,11 +101,12 @@ class OmplToEigen {
 
     return eigen_point;
   };
-  static Eigen::Vector3i convertState_v(const ompl::base::State &state) {
 
-    Eigen::Vector3i eigen_point(state.as<ompl::base::RealVectorStateSpace::StateType>()->values[0],
-                                state.as<ompl::base::RealVectorStateSpace::StateType>()->values[1],
-                                state.as<ompl::base::RealVectorStateSpace::StateType>()->values[2]);
+  // state [meter] to voxel
+  static Eigen::Vector3i convertState_v(const ompl::base::State &state, const float dim) {
+    Eigen::Vector3i eigen_point(static_cast<int>(state.as<ompl::base::RealVectorStateSpace::StateType>()->values[0]/dim),
+                                static_cast<int>(state.as<ompl::base::RealVectorStateSpace::StateType>()->values[1]/dim),
+                                static_cast<int>(state.as<ompl::base::RealVectorStateSpace::StateType>()->values[2]/dim));
 
     return eigen_point;
   };

@@ -116,8 +116,8 @@ bool CollisionCheckerM<FieldType>::isVoxelFree(const Eigen::Vector3f &position_m
     block = static_cast<se::VoxelBlock<FieldType> *> (node);
     if ( block->data(point_v).st != voxel_state::kFree
       && block->data(point_v).st != voxel_state::kFrontier) {
-      // LOG(INFO) << "collision at "
-      // << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
+      // LOG(INFO) << "collision at m "<< position_m.format(InLine) << " voxel "
+      // << point_v.format(InLine) << " state "
       // << block->data(point_v).st << std::endl;
       return false;
     }
@@ -125,8 +125,10 @@ bool CollisionCheckerM<FieldType>::isVoxelFree(const Eigen::Vector3f &position_m
     // TODO without up propagation, ignore unknown nodes
     if (octree_ptr_->get(se::keyops::decode(node->code_)).x > 0.f) {
       const Eigen::Vector3i pos = se::keyops::decode(node->code_);
+
       // LOG(INFO) << "collision at node "
-      // << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;
+      // << (pos.cast<float>() * voxel_dim_).format(InLine) << " prob "
+      // << octree_ptr_->get(se::keyops::decode(node->code_)).x << std::endl;
       return false;
     }
   }

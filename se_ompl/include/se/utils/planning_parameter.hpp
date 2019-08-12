@@ -51,6 +51,8 @@ struct PlanningParameter {
   float v_max;
   float a_max;
   bool print_trajectory_info_;
+  float height_max;
+  float height_min;
 
   /**
  * Read the configuration and parameters from file.
@@ -85,6 +87,8 @@ struct PlanningParameter {
       // Parameter for trajectory optimization
       v_max = parameter["v_max"].as<float>();
       a_max = parameter["a_max"].as<float>();
+      height_max = parameter["height_max"].as<float>();
+      height_min = parameter["height_min"].as<float>();
       DLOG(INFO) << "planning parameter read.";
     } catch (const std::exception &ex) {
       LOG(ERROR) << "Failed to read parameter!", ex.what();
