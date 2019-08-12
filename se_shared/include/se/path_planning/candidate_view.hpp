@@ -76,12 +76,14 @@ class CandidateView {
 
   std::pair<pose3D, int> getBestCandidate(const VecPairPoseFloat &cand_list, float *path_cost);
 
-  const float getIGWeight_tanh(const float tanh_range,
+    float getIGWeight_tanh(const float tanh_range,
                                const float tanh_ratio,
                                const float t,
                                const float prob_log,
                                float &t_hit,
                                bool &hit_unknown) const;
+
+  int getExplorationStatus()const {return exploration_status_;}
  private:
   pose3D curr_pose_;
   VecVec3i cand_views_;
@@ -96,6 +98,7 @@ class CandidateView {
   int dtheta_ ;
    int dphi_ ;
    float step_ ;
+  int exploration_status_;
 
   std::shared_ptr<CollisionCheckerV<T> > pcc_ = nullptr;
 };
@@ -112,13 +115,14 @@ CandidateView<T>::CandidateView(const Volume<T> &volume,
     volume_(volume), planning_config_(planning_config), res_(res), config_(config), pcc_(pcc),
     dtheta_(planning_config.dtheta),
     dphi_(planning_config.dphi),
-    step_(step) {
+    step_(step) ,
+    exploration_status_(0){
 
   curr_pose_ = getCurrPose(curr_pose, res_);
   int n_col = planning_config.fov_hor  * 0.75 / planning_config.dphi;
   int n_row = 360 / planning_config.dtheta;
   ig_total_ = n_col * n_row * (farPlane / step) * getEntropy(0);
-  ig_target_ = n_col * n_row * (farPlane / step) * getEntropy(log2(0.05 / (1.f - 0.05)));
+  ig_target_ = n_col * n_row * (farPlane / step) * getEntropy(log2(0.02 / (1.f - 0.02)));
 
 
 }
@@ -385,7 +389,7 @@ std::pair<float, float> CandidateView<T>::getInformationGain(const Eigen::Vector
 }
 
 template<typename T>
-const float CandidateView<T>::getIGWeight_tanh(const float tanh_range,
+ float CandidateView<T>::getIGWeight_tanh(const float tanh_range,
                                                const float tanh_ratio,
                                                const float t,
                                                const float prob_log,
@@ -588,7 +592,11 @@ std::pair<pose3D, int> CandidateView<T>::getBestCandidate(const VecPairPoseFloat
     path_cost++;
     cand_counter++;
   }
-  bool terminate_exploration = ig_sum/cand_list.size() < ig_target_;
+  if( ig_sum/cand_list.size() < ig_target_){
+    exploration_status_ = 1;
+    std::cout << "low information gain" << std::endl;
+
+  }
   return std::make_pair(best_cand, cand_num);
 }
 
@@ -670,7 +678,8 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
                         const Configuration &config,
                         const Eigen::Matrix4f &pose,
                         VecPose &path,
-                        VecPose &cand_views) {
+                        VecPose &cand_views,
+                        int* exploration_done) {
   // Planning Setup
 
   auto collision_checker_v = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
@@ -730,7 +739,14 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
 // only plan path if the cand view list has more than one candidate, as the only candidate is the current position
     best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain, path_length);
   }
-
+  // TODO make this nicer
+  if (candidate_view.getExplorationStatus()==1){
+    *exploration_done =1;
+    std::cout << "out of here "<< std::endl;
+  }
+  else {
+    *exploration_done =0;
+  }
   // std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)
   //           << " yaw " << toEulerAngles(best_cand_pose_with_gain.first.q).yaw * 180.f / M_PI
   //           << " cand num " << best_cand_pose_with_gain.second << std::endl;

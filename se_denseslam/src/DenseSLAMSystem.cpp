@@ -522,7 +522,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
   return true;
 }
 
-bool DenseSLAMSystem::planning(VecPose &path, VecPose &cand_views, mapvec3i *free_blocks) {
+bool DenseSLAMSystem::planning(VecPose &path, VecPose &cand_views, mapvec3i *free_blocks, int * exploration_done) {
   se::exploration::initNewPosition(pose_ * Tbc_,
                                    planning_config_,
                                    free_blocks,
@@ -543,7 +543,8 @@ bool DenseSLAMSystem::planning(VecPose &path, VecPose &cand_views, mapvec3i *fre
                                       config_,
                                       pose_ * Tbc_,
                                       path,
-                                      cand_views);
+                                      cand_views,
+                                      exploration_done);
 //  std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
 }
 
