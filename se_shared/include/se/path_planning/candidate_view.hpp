@@ -31,7 +31,6 @@
 #include "collision_checker.hpp"
 #include "exploration_utils.hpp"
 
-
 #include "se/path_planner_ompl.hpp"
 
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
@@ -39,7 +38,6 @@ template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 namespace se {
 
 namespace exploration {
-
 
 /**
  * Candidate View
@@ -76,14 +74,14 @@ class CandidateView {
 
   std::pair<pose3D, int> getBestCandidate(const VecPairPoseFloat &cand_list, float *path_cost);
 
-    float getIGWeight_tanh(const float tanh_range,
-                               const float tanh_ratio,
-                               const float t,
-                               const float prob_log,
-                               float &t_hit,
-                               bool &hit_unknown) const;
+  float getIGWeight_tanh(const float tanh_range,
+                         const float tanh_ratio,
+                         const float t,
+                         const float prob_log,
+                         float &t_hit,
+                         bool &hit_unknown) const;
 
-  int getExplorationStatus()const {return exploration_status_;}
+  int getExplorationStatus() const { return exploration_status_; }
  private:
   pose3D curr_pose_;
   VecVec3i cand_views_;
@@ -95,9 +93,9 @@ class CandidateView {
   float occ_thresh_ = 0.f;
   float ig_total_;
   float ig_target_;
-  int dtheta_ ;
-   int dphi_ ;
-   float step_ ;
+  int dtheta_;
+  int dphi_;
+  float step_;
   int exploration_status_;
 
   std::shared_ptr<CollisionCheckerV<T> > pcc_ = nullptr;
@@ -112,18 +110,21 @@ CandidateView<T>::CandidateView(const Volume<T> &volume,
                                 const Eigen::Matrix4f &curr_pose,
                                 const float step)
     :
-    volume_(volume), planning_config_(planning_config), res_(res), config_(config), pcc_(pcc),
+    volume_(volume),
+    planning_config_(planning_config),
+    res_(res),
+    config_(config),
+    pcc_(pcc),
     dtheta_(planning_config.dtheta),
     dphi_(planning_config.dphi),
-    step_(step) ,
-    exploration_status_(0){
+    step_(step),
+    exploration_status_(0) {
 
   curr_pose_ = getCurrPose(curr_pose, res_);
-  int n_col = planning_config.fov_hor  * 0.75 / planning_config.dphi;
+  int n_col = planning_config.fov_hor * 0.75 / planning_config.dphi;
   int n_row = 360 / planning_config.dtheta;
   ig_total_ = n_col * n_row * (farPlane / step) * getEntropy(0);
   ig_target_ = n_col * n_row * (farPlane / step) * getEntropy(log2(0.02 / (1.f - 0.02)));
-
 
 }
 /**
@@ -230,7 +231,6 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
 
   if (volume_._map_index->get(offset_cand_v).x > 0.0f) {
 
-//    std::cout << "[offset] log prog " << volume_._map_index->get(offset_cand_v).x << std::endl;
     offset_cand_v.x() = ceil(-normal.x() * offset_v);
     offset_cand_v.y() = ceil(-normal.y() * offset_v);
     offset_cand_v.z() = ceil(-normal.z() * offset_v);
@@ -242,16 +242,10 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
   } else {
     is_valid = true;
   }
-/*  std::cout << " [se/cand view] candidate " << cand_v.x() << " " << cand_v.y() << " " << cand_v.z()
-            << " offset by " << offset_v << " results in " << offset_cand_v.x() << " "
-            << offset_cand_v.y() << " " << offset_cand_v.z() << " voxel state "
-            << volume_._map_index->get(offset_cand_v).st;*/
-
 
   if (is_valid) {
-    bool is_free = pcc_->isSphereSkeletonFree(offset_cand_v,
-                                              static_cast<int>(
-                                                  planning_config_.robot_safety_radius / res_));
+    bool is_free = pcc_->isSphereSkeletonFree(offset_cand_v, static_cast<int>(
+        planning_config_.robot_safety_radius / res_));
     if (is_free == 1) {
       return offset_cand_v;
     } else {
@@ -259,7 +253,6 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
     }
   } else {
 // not a valid view or sphere is not collision free
-//    std::cout << "[offset] not free view" << std::endl;
     return Eigen::Vector3i(0, 0, 0);
   }
 
@@ -276,31 +269,29 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
 
   mapvec3i frontier_voxels_map;
   node_iterator<T> node_it(*(volume_._map_index));
-  auto min_frontier_voxels = 15;
+
   // get all frontier voxels inside a voxel block
 
-//  std::cout << "[getcandview] frontier map size " << frontier_blocks_map.size() << std::endl;
   for (const auto &frontier_block : frontier_blocks_map) {
     VecVec3i frontier_voxels = node_it.getFrontierVoxels(frontier_block.first);
     frontier_voxels_map[frontier_block.first] = frontier_voxels;
   }
-  //check if block and voxel map size are equal
+
   if (frontier_voxels_map.size() != frontier_blocks_map.size()) {
     return;
   }
   // random candidate view generator
   std::random_device rd;
-  std::default_random_engine generator(rd()); // fixed seed
+  std::default_random_engine generator(rd());
   std::uniform_int_distribution<int> distribution_block(0, frontier_blocks_map.size() - 1);
 
   for (int i = 0; i <= planning_config_.num_cand_views; i++) {
     auto it = frontier_voxels_map.begin();
-    // go to random voxel block inside the frontier blocks map
+
     const int rand_num = distribution_block(generator);
     std::advance(it, rand_num);
     uint64_t rand_morton = it->first;
-    if (frontier_voxels_map[rand_morton].size() < min_frontier_voxels) {
-      // happens when voxel status is updated but the morton code was not removed from map
+    if (frontier_voxels_map[rand_morton].size() < planning_config_.frontier_cluster_size) {
       continue;
     }
     std::uniform_int_distribution<int>
@@ -309,17 +300,19 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
     int rand_voxel = distribution_voxel(generator);
     VecVec3i frontier_voxelblock = frontier_voxels_map[rand_morton];
     Eigen::Vector3i candidate_frontier_voxel = frontier_voxels_map[rand_morton].at(rand_voxel);
-    if(boundHeight(&candidate_frontier_voxel.z(), planning_config_.height_max,
-      planning_config_.height_min, res_)){
+    if (boundHeight(&candidate_frontier_voxel.z(),
+                    planning_config_.height_max,
+                    planning_config_.height_min,
+                    res_)) {
 
-      frontier_voxelblock = frontier_voxels_map[se::keyops::encode(candidate_frontier_voxel.x(), candidate_frontier_voxel.y(),
-        candidate_frontier_voxel.z(),volume_._map_index->leaf_level(), volume_._map_index->max_level())];
+      frontier_voxelblock = frontier_voxels_map[se::keyops::encode(candidate_frontier_voxel.x(),
+                                                                   candidate_frontier_voxel.y(),
+                                                                   candidate_frontier_voxel.z(),
+                                                                   volume_._map_index->leaf_level(),
+                                                                   volume_._map_index->max_level())];
 
     }
 
-//    std::cout << "[getcandview] rand morton block "
-//              << se::keyops::decode(rand_morton).format(InLine) << " voxel "
-//              << (candidate_frontier_voxel.cast<float>() * res_).format(InLine) << std::endl;
     // offset the candidate frontier voxel
     Eigen::Vector3i cand_view_v = getOffsetCandidate(candidate_frontier_voxel, frontier_voxelblock);
 
@@ -389,12 +382,12 @@ std::pair<float, float> CandidateView<T>::getInformationGain(const Eigen::Vector
 }
 
 template<typename T>
- float CandidateView<T>::getIGWeight_tanh(const float tanh_range,
-                                               const float tanh_ratio,
-                                               const float t,
-                                               const float prob_log,
-                                               float &t_hit,
-                                               bool &hit_unknown) const {
+float CandidateView<T>::getIGWeight_tanh(const float tanh_range,
+                                         const float tanh_ratio,
+                                         const float t,
+                                         const float prob_log,
+                                         float &t_hit,
+                                         bool &hit_unknown) const {
   float weight;
   if (prob_log == 0.f) {
     if (!hit_unknown) {
@@ -431,13 +424,12 @@ VecPairPoseFloat CandidateView<T>::getCandidateGain() {
   const float r_min = 0.01; // depth camera r min [m]  gazebo model
   const float fov_hor = planning_config_.fov_hor;
 //  float fov_hor = static_cast<float>(planning_config_.fov_hor * 180.f / M_PI); // 2.0 = 114.59 deg
-  const float fov_vert =  fov_hor* 480.f / 640.f; // image size
+  const float fov_vert = fov_hor * 480.f / 640.f; // image size
 
   // temporary
   const float r = 0.5; // [m] random radius
   const int n_col = fov_vert / dphi_;
   const int n_row = 360 / dtheta_;
-
 
   float phi_rad, theta_rad;
   int cand_num = 1;
@@ -476,9 +468,8 @@ VecPairPoseFloat CandidateView<T>::getCandidateGain() {
         const float t_min = ray.tcmin(); /* Get distance to the first intersected block */
         //get IG along ray
         std::pair<float, float> gain_tmp =
-            t_min > 0.f ? getInformationGain(dir, t_min, r_max, cand_view_m) : std::make_pair(
-                0.f,
-                0.f);
+            t_min > 0.f ? getInformationGain(dir, t_min, r_max, cand_view_m) : std::make_pair(0.f,
+                                                                                              0.f);
         gain_matrix(row, col) = gain_tmp.first;
         depth_matrix(row, col) = gain_tmp.second;
         gain += gain_tmp.first;
@@ -554,14 +545,14 @@ std::pair<pose3D, int> CandidateView<T>::getBestCandidate(const VecPairPoseFloat
   const float max_yaw_rate = 0.85; // [rad/s] lee position controller rotors control
   const float path_discount_factor = 0.3;
   const float ig_cost = 0.2;
-  float ig_sum =0.f;
+  float ig_sum = 0.f;
 
   // path cost = voxel *res[m/vox] / (v =1m/s) = time
   bool discount_path_cost = cand_list.back().second < ig_total_ * ig_cost;
   for (const auto &cand : cand_list) {
 //    std::cout << "[bestcand] position " << (cand.first.p.cast<float>() * res_).format(InLine) <<
 //    std::endl;
-    ig_sum+=cand.second;
+    ig_sum += cand.second;
     if (discount_path_cost && cand.first.p == cand_list.back().first.p && cand_list.size() > 1) {
       std::cout << "skip last " << std::endl;
       // t_path = t_path * path_discount_factor;
@@ -582,7 +573,7 @@ std::pair<pose3D, int> CandidateView<T>::getBestCandidate(const VecPairPoseFloat
 
     float utility = cand.second / (t_yaw + t_path);
 
-    std::cout << "[bestcond] ig " << cand.second << " t_yaw " << t_yaw << " t_path " << t_path
+    std::cout << "[bestcond] cand "<< cand_counter << " ig " << cand.second << " t_yaw " << t_yaw << " t_path " << t_path
               << " utility " << utility << std::endl;
     if (max_utility < utility) {
       best_cand = cand.first;
@@ -592,9 +583,9 @@ std::pair<pose3D, int> CandidateView<T>::getBestCandidate(const VecPairPoseFloat
     path_cost++;
     cand_counter++;
   }
-  if( ig_sum/cand_list.size() < ig_target_){
+  if (ig_sum / cand_list.size() < ig_target_) {
     exploration_status_ = 1;
-    std::cout << "low information gain" << std::endl;
+    std::cout << "low information gain  " << ig_sum/cand_list.size() << std::endl;
 
   }
   return std::make_pair(best_cand, cand_num);
@@ -679,14 +670,14 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
                         const Eigen::Matrix4f &pose,
                         VecPose &path,
                         VecPose &cand_views,
-                        int* exploration_done) {
+                        int *exploration_done) {
   // Planning Setup
 
   auto collision_checker_v = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
   auto collision_checker = aligned_shared<CollisionCheckerM<T> >(octree_ptr, planning_config);
   //   setup rrt ompl object
   auto path_planner_ompl_ptr =
-      aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker_v, planning_config);
+      aligned_shared<PathPlannerOmpl < T> > (octree_ptr, collision_checker_v, planning_config);
 
   // wavefront / Astar
 
@@ -694,7 +685,8 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
 //  std::cout << "[se/candview] frontier map size " << frontier_map.size() << std::endl;
 
   // Candidate view generation
-  CandidateView<T> candidate_view(volume, planning_config, collision_checker_v, res, config, pose, step);
+  CandidateView<T>
+      candidate_view(volume, planning_config, collision_checker_v, res, config, pose, step);
   candidate_view.getCandidateViews(frontier_map);
 
   VecPairPoseFloat pose_gain = candidate_view.getCandidateGain();
@@ -704,28 +696,29 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   }
 
   const int size = cand_views.size();
-
+  pose3D start = getCurrPose(pose, res);
   float path_length[size];
   VecPose all_path[size];
   VecPose last;
+  // TODO replace push back and parallelize
   last.push_back(cand_views.back());
   all_path[size - 1] = last;
   path_length[size - 1] = 0.f;
   std::pair<pose3D, int> best_cand_pose_with_gain = std::make_pair(cand_views.back(), 0);
+
   if (size > 1) {
     for (int i = 0; i < size - 1; i++) {
       // for (int i = 0; i < 1; i++) {
       LOG(INFO) << "start " << cand_views[size - 1].p.format(InLine) << " goal "
                 << cand_views[i].p.format(InLine);
-      bool setup_planner = path_planner_ompl_ptr->setupPlanner(cand_views[size - 1].p.cast<int>(),
-                                                               cand_views[i].p.cast<int>(),
-                                                               free_map);
+      bool setup_planner = path_planner_ompl_ptr->setupPlanner(free_map);
       DLOG(INFO) << "setup planner successful " << setup_planner;
-      bool path_planned = path_planner_ompl_ptr->planPath();
+      bool path_planned = path_planner_ompl_ptr->planPath(cand_views[size - 1].p.cast<int>(),
+                                                          cand_views[i].p.cast<int>());
       LOG(INFO) << "path planned " << path_planned;
       if (!path_planned) {
-        path_length[i] = 0;
-        VecPose vec ;
+        path_length[i] = (start.p - cand_views[i].p).norm();
+        VecPose vec;
         vec.push_back(cand_views[i]);
         all_path[i] = vec;
         continue;
@@ -740,17 +733,16 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
     best_cand_pose_with_gain = candidate_view.getBestCandidate(pose_gain, path_length);
   }
   // TODO make this nicer
-  if (candidate_view.getExplorationStatus()==1){
-    *exploration_done =1;
-    std::cout << "out of here "<< std::endl;
-  }
-  else {
-    *exploration_done =0;
+  if (candidate_view.getExplorationStatus() == 1) {
+    *exploration_done = 1;
+    std::cout << "out of here " << std::endl;
+  } else {
+    *exploration_done = 0;
   }
   // std::cout << "[se/candview] best candidate is " << best_cand_pose_with_gain.first.p.format(InLine)
   //           << " yaw " << toEulerAngles(best_cand_pose_with_gain.first.q).yaw * 180.f / M_PI
   //           << " cand num " << best_cand_pose_with_gain.second << std::endl;
-  pose3D start = getCurrPose(pose, res);
+
   VecPose path_tmp = interpolateYaw(start,
                                     best_cand_pose_with_gain.first,
                                     0.52,

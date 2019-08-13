@@ -83,7 +83,6 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i &inputSize,
     normal_(computation_size_.x(), computation_size_.y()),
     float_depth_(computation_size_.x(), computation_size_.y()) {
   planning_config_ = planning_config;
-  std::cout << "[se/constructor] config " << planning_config.num_cand_views << std::endl;
   this->init_pose_ = initPose.block<3, 1>(0, 3);
   this->volume_dimension_ = volumeDimensions;
   this->volume_resolution_ = volumeResolution;
@@ -407,13 +406,6 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   set3i *frontier_blocks,
                                   set3i *free_blocks) {
 
-//bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
-//                                  unsigned int integration_rate,
-//                                  float mu,
-//                                  unsigned int frame,
-//                                  std::vector<Eigen::Vector3i> *updated_blocks,
-//                                  std::vector<Eigen::Vector3i> *frontier_blocks) {
-
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
 
     float voxelsize = volume_._extent / volume_._size;
@@ -500,7 +492,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   frontier_funct);
       std::set<uint64_t> *copy_frontier_blocks = frontier_blocks;
-      bool update_frontier_map = (frame % frontier_map_update_rate) == 0;
+      bool update_frontier_map = (frame % integration_rate) == 0;
       updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
       insertBlocksToMap(free_map_, free_blocks);
 //      std::cout << "[se/denseslam] free_map_  size  " << free_map_.size() << std::endl;
@@ -522,7 +514,10 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
   return true;
 }
 
-bool DenseSLAMSystem::planning(VecPose &path, VecPose &cand_views, mapvec3i *free_blocks, int * exploration_done) {
+bool DenseSLAMSystem::planning(VecPose &path,
+                               VecPose &cand_views,
+                               mapvec3i *free_blocks,
+                               int *exploration_done) {
   se::exploration::initNewPosition(pose_ * Tbc_,
                                    planning_config_,
                                    free_blocks,

@@ -58,6 +58,10 @@ struct Planning_Configuration{
   * [s] ompl solving time
   */
   float ompl_solving_time;
+
+  int min_loop_for_termination;
+
+  int frontier_cluster_size;
 };
 
 inline Planning_Configuration getDefaultPlanningConfig(){
@@ -73,6 +77,8 @@ inline Planning_Configuration getDefaultPlanningConfig(){
   config.height_min = 1.5f;
   config.skeleton_sample_precision = 0.05;
   config.ompl_solving_time = 2.5;
+  config.min_loop_for_termination = 10;
+  config.frontier_cluster_size = 20;
   return config;
 }
 #endif //SUPEREIGHT_PLANNER_CONFIG_H
