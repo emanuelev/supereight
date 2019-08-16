@@ -29,7 +29,6 @@ static inline void insertBlocksToMap(map3i &blocks_map, set3i *blocks) {
 }
 static inline void insertBlocksToMap(map3i &blocks_map, mapvec3i *blocks) {
   if (blocks->size() == 0) return;
-
   for (auto it = blocks->begin(); it != blocks->end(); ++it) {
     const Eigen::Vector3i voxel_coord = se::keyops::decode(it->first);
     blocks_map.emplace(it->first, voxel_coord);
@@ -82,27 +81,54 @@ static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree
                                     const map3i &blocks_map,
                                     Eigen::Vector3i &lower_bound,
                                     Eigen::Vector3i &upper_bound) {
-  std::cout << "map size " << blocks_map.size() << std::endl;
 
   se::node_iterator<T> node_it(*octree_ptr_);
   auto it_beg = blocks_map.begin();
   auto it_end = blocks_map.end();
+  Eigen::Vector3i lower_bound_tmp;
+  Eigen::Vector3i upper_bound_tmp;
+  // lower_bound = Eigen::Vector3i(-1, -1, -1);
 
-  lower_bound = Eigen::Vector3i(-1, -1, -1);
+  // while (lower_bound == Eigen::Vector3i(-1, -1, -1)) {
+  //   const key_t lower_bound_morton = it_beg->first;
+  //   lower_bound = node_it.getFreeVoxel(lower_bound_morton);
 
-  while (lower_bound == Eigen::Vector3i(-1, -1, -1)) {
-    const key_t lower_bound_morton = it_beg->first;
-    lower_bound = node_it.getFreeVoxel(lower_bound_morton);
+  //   ++it_beg;
+  // }
+  // upper_bound = Eigen::Vector3i(-1, -1, -1);
+  // while (upper_bound == Eigen::Vector3i(-1, -1, -1)) {
+  //   --it_end;
+  //   const key_t upper_bound_morton = it_end->first;
 
+  //   upper_bound = node_it.getFreeVoxel(upper_bound_morton);
+  // }
+
+  key_t lower_bound_morton = it_beg->first;
+  lower_bound = node_it.getFreeVoxel(lower_bound_morton);
+  --it_end;
+  key_t upper_bound_morton = it_end->first;
+
+  upper_bound = node_it.getFreeVoxel(upper_bound_morton);
+  while (it_beg != it_end) {
     ++it_beg;
-  }
-
-  upper_bound = Eigen::Vector3i(-1, -1, -1);
-  while (upper_bound == Eigen::Vector3i(-1, -1, -1)) {
+    lower_bound_morton = it_beg->first;
     --it_end;
-    const key_t upper_bound_morton = it_end->first;
+    upper_bound_morton = it_end->first;
 
-    upper_bound = node_it.getFreeVoxel(upper_bound_morton);
+    lower_bound_tmp = node_it.getFreeVoxel(lower_bound_morton);
+    upper_bound_tmp = node_it.getFreeVoxel(upper_bound_morton);
+    if (lower_bound_tmp.norm() < lower_bound.norm()) {
+      std::cout << "lower_bound from " << lower_bound.format(InLine) << " to "
+                << lower_bound_tmp.format(InLine) << std::endl;
+      lower_bound = lower_bound_tmp;
+
+    }
+    if (upper_bound_tmp.norm() > upper_bound.norm()) {
+      std::cout << "upper_bound from " << upper_bound.format(InLine) << " to "
+                << upper_bound_tmp.format(InLine) << std::endl;
+      upper_bound = upper_bound_tmp;
+    }
+
   }
   upper_bound += Eigen::Vector3i(8, 8, 8);
 

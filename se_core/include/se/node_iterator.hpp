@@ -154,7 +154,7 @@ class node_iterator {
 
     typename VoxelBlock<T>::value_type value;
     const Eigen::Vector3i blockCoord = keyops::decode(morton);
-    const int level = keyops::level(morton);
+
 
     Node<T> *node = nullptr;
     bool is_block = false;

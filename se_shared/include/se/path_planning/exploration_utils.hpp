@@ -25,6 +25,8 @@
 #include "se/octree_defines.h"
 #include "lodepng.h"
 
+
+
 namespace se {
 namespace exploration {
 struct pose3D {
@@ -38,6 +40,8 @@ struct pose3D {
   }
   pose3D(Eigen::Vector3f point, Eigen::Quaternionf quat) : p(point), q(quat) {}
 };
+
+
 
 static inline std::ostream &operator<<(std::ostream &os, const pose3D &pose) {
   return os << pose.p.x() << pose.p.y() << pose.p.z() << pose.q.x() << pose.q.y() << pose.q.z()

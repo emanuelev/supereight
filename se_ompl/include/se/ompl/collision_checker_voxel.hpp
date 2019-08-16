@@ -15,6 +15,7 @@
 
 #include "se/continuous/volume_template.hpp"
 #include "se/octree.hpp"
+#include "se/planner_config.h"
 
 namespace se {
 namespace exploration {
@@ -49,7 +50,7 @@ class CollisionCheckerV {
   bool isLineFree(const Eigen::Vector3i &start,
                   const Eigen::Vector3i &connection,
                   const int num_subpos) const; // check segment fligh corridor skeleton
-
+  float getVoxelDim() const{return voxel_dim_;}
 
  private:
 
@@ -69,7 +70,7 @@ const Planning_Configuration &planning_config)
 octree_ptr_ (octree_ptr), planning_params_(planning_config){
   voxel_dim_ = octree_ptr->voxelDim();
 
-  LOG(INFO) << "Collision Checker V setup";
+  DLOG(INFO) << "Collision Checker V setup";
 }
 
 template<typename FieldType>
@@ -137,7 +138,7 @@ bool CollisionCheckerV<FieldType>::isVoxelFree(const Eigen::Vector3i &point_v) c
   } else {
     // TODO without up propagation, ignore unknown nodes
     if (octree_ptr_->get(se::keyops::decode(node->code_)).x > 0.f) {
-      const Eigen::Vector3i pos = se::keyops::decode(node->code_);
+      // const Eigen::Vector3i pos = se::keyops::decode(node->code_);
       // LOG(INFO) << "collision at node "
       // << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;
       return false;

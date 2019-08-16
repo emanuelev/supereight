@@ -145,28 +145,8 @@ static inline float applyWindow(const float occupancy,
   return occupancy * fraction;
 }
 
-/**
- * update frontier map
- */
-template<typename DataHandlerT>
-bool updateFrontierMapIntegration(DataHandlerT &data,
-                                  VecVec3i *frontier_blocks,
-                                  const Eigen::Vector3i &coord,
-                                  const bool &is_frustum_boarder) {
 
-  if (is_frustum_boarder) {
-    frontier_blocks->emplace_back(coord);
-    data.st = voxel_state::kFrontier;
-  }
-}
 
-/**
- * check if occlusion boundary
- */
-
-bool isOcclusionBoundary(const float depth) {
-  return false;
-}
 
 /**
  * Struct to hold the data and perform the update of the map from a single
@@ -299,13 +279,14 @@ struct bfusion_update {
         // if the occupancy probability is not low or high enough => back to unknown
         data.st = voxel_state::kUnknown;
       }
-#pragma omp critical
-      {
+
         bool voxelOccupied = prev_occ <= 0.5 && prob > 0.5;
         bool voxelFreed = prev_occ >= 0.5 && prob < 0.5;
         bool occupancyUpdated = handler.occupancyUpdated();
         if (is_voxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
             && data.st != voxel_state::kFrontier) {
+#pragma omp critical
+      {
           updated_blocks_->insert(morton_code_child);
           handler.occupancyUpdated(true);
         }
@@ -314,13 +295,14 @@ struct bfusion_update {
     }
 
     if (detect_frontier_) {
-#pragma omp critical
-      {
-        if (std::is_same<FieldType, OFusion>::value) {
+
+      if (std::is_same<FieldType, OFusion>::value) {
           // conservative estimate as the occupancy probability for a free voxel is set quite low
-          if (data.st == voxel_state::kFree && is_voxel) {
-            bool is_frontier = handler.isFrontier(map);
-            if (is_frontier) {
+        if (data.st == voxel_state::kFree && is_voxel) {
+          bool is_frontier = handler.isFrontier(map);
+          if (is_frontier) {
+              #pragma omp critical
+            {
               frontier_blocks_->insert(morton_code_child);
               data.st = voxel_state::kFrontier;
             }

@@ -399,7 +399,6 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 // TODO fix alignment
 bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   unsigned int integration_rate,
-                                  unsigned int frontier_map_update_rate,
                                   float mu,
                                   unsigned int frame,
                                   set3i *updated_blocks,
@@ -495,8 +494,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
       bool update_frontier_map = (frame % integration_rate) == 0;
       updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
       insertBlocksToMap(free_map_, free_blocks);
-//      std::cout << "[se/denseslam] free_map_  size  " << free_map_.size() << std::endl;
-//      std::cout <<  "[se/denseslam] frontier_map_ size " << frontier_map_.size() << std::endl;
+      // std::cout << "[se/denseslam] free_map_  size  " << free_map_.size() << std::endl;
+      // std::cout << "[se/denseslam] frontier_map_ size " << frontier_map_.size() << std::endl;
     }
 
     // if(frame % 15 == 0) {
@@ -526,6 +525,7 @@ bool DenseSLAMSystem::planning(VecPose &path,
   insertBlocksToMap(free_map_, free_blocks);
   init_position_cleared_ = true;
   float res_v = volume_dimension_.cast<float>().x() / volume_resolution_.cast<float>().x();
+  // LOG(INFO) << "Planning free_map_  size  " << free_map_.size();
 
   float step = volume_dimension_.x() / volume_resolution_.x();
   se::exploration::getExplorationPath(discrete_vol_ptr_,

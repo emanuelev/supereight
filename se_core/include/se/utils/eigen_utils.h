@@ -19,7 +19,6 @@
 
 #include "se/path_planning/exploration_utils.hpp"
 
-
 template <typename Type>
 using AlignedVector = std::vector<Type, Eigen::aligned_allocator<Type> > ;
 
@@ -37,6 +36,7 @@ typedef AlignedVector<std::pair<Eigen::Vector3i, float>> VectorPair3iFloat;
 typedef AlignedVector<se::exploration::pose3D>  VecPose;
 typedef AlignedVector<VecPose>  VecVecPose;
 typedef AlignedVector<std::pair<se::exploration::pose3D, float>> VecPairPoseFloat;
+
 
 
 typedef AlignedVector<se::Image<Eigen::Vector3f> > AlignedImage3f;
@@ -66,4 +66,29 @@ inline std::shared_ptr<Type> aligned_shared(Arguments&&... arguments) {
 
 static Eigen::IOFormat
     InLine(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", " ", ";");
+
+
+
+struct Candidate
+{
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  se::exploration::pose3D pose; //check
+  float information_gain; // check
+  float path_length;
+  VecPose path; // [voxel coord]
+  int planning_solution_status;
+  float utility;
+
+  Candidate(){
+    pose={ {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f, 0.f}};
+    information_gain = -1.f;
+    path_length = -1.f;
+    path.clear();
+    planning_solution_status = -1;
+    utility = -1.f;
+  }
+};
+
+typedef AlignedVector<Candidate> VecCandidate;
 #endif //SUPEREIGHT_EIGEN_ALIGNED_ALLOCATION_H

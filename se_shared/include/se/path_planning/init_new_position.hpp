@@ -127,7 +127,7 @@ static void initNewPosition(const Eigen::Matrix4f &pose,
   }
   map.allocate(alloc_list.data(), alloc_list.size());
   setStateToFree(map, block_voxel_map);
-  std::cout << "[se/setSphere] done." << std::endl;
+  // std::cout << "[se/setSphere] done." << std::endl;
 
 }
 

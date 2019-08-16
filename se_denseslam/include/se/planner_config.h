@@ -8,7 +8,12 @@
 #include <vector>
 #include <string>
 
-
+  enum PlannerType {
+    kRrtConnect = 0,
+    kRrtStar,
+    kInformedRrtStar,
+    kBitStar
+  };
 struct Planning_Configuration{
   /**
    * EXPLORATION
@@ -62,6 +67,8 @@ struct Planning_Configuration{
   int min_loop_for_termination;
 
   int frontier_cluster_size;
+  PlannerType planner_type;
+
 };
 
 inline Planning_Configuration getDefaultPlanningConfig(){
@@ -79,6 +86,7 @@ inline Planning_Configuration getDefaultPlanningConfig(){
   config.ompl_solving_time = 2.5;
   config.min_loop_for_termination = 10;
   config.frontier_cluster_size = 20;
+  config.planner_type = kRrtStar;
   return config;
 }
 #endif //SUPEREIGHT_PLANNER_CONFIG_H
