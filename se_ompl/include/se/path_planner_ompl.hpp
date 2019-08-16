@@ -285,7 +285,7 @@ int PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
     LOG(INFO) << "No start and goal set";
     return -1;
   }
-  ss_->print(std::cout);
+  // ss_->print(std::cout);
 
   path_->states.clear();
   path_not_simplified_->states.clear();

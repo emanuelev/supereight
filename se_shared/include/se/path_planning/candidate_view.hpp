@@ -582,9 +582,9 @@ int CandidateView<T>::getBestCandidate() {
   std::sort(candidates_.begin(),
     candidates_.end(),
     [](const auto &a, const auto &b) { return (a.utility > b.utility); });
-  for(const auto& cand : candidates_){
-    LOG(INFO)<< " cand path length " << cand.path_length ;
-  }
+  // for(const auto& cand : candidates_){
+  //   LOG(INFO)<< " cand path length " << cand.path_length ;
+  // }
   ig_sum += curr_pose_.information_gain;
   calculateUtility(curr_pose_, max_yaw_rate);
   if (ig_sum / cand_counter < ig_target_) {
@@ -687,7 +687,7 @@ bool CandidateView<T>::addPathSegments(const float sampling_dist, const int idx)
           intermediate_point = (candidates_[idx].path[i - 1].p + dir * t).template cast<int>();
       if (!pcc_->isSphereSkeletonFree(intermediate_point, static_cast<int>(
           planning_config_.robot_safety_radius / res_))) {
-        LOG(INFO) << "Path not free at " << intermediate_point.format(InLine);
+        LOG(WARNING) << "Path not free at " << intermediate_point.format(InLine);
         candidates_[idx].path.clear();
         candidates_[idx].path = path_out;
         return false;
@@ -784,17 +784,13 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   }
 //
   int best_cand_idx = -1;
-  bool check_path = false;
   bool use_curr_pose = true;
   if (valid_path) {
     best_cand_idx = candidate_view.getBestCandidate();
-    check_path =
-        candidate_view.addPathSegments(planning_config.robot_safety_radius * 1.5, best_cand_idx);
-    std::cout << "[se/candview] best candidate is "
-              << candidate_view.candidates_[best_cand_idx].pose.p.format(InLine) << " cand num "
-              << best_cand_idx << std::endl;
-    std::cout << " path length of best cand "
-              << candidate_view.candidates_[best_cand_idx].path.size() << std::endl;
+    LOG(INFO) << "[se/candview] best candidate is "
+              << candidate_view.candidates_[best_cand_idx].pose.p.format(InLine) ;
+    // std::cout << " path length of best cand "
+    //           << candidate_view.candidates_[best_cand_idx].path.size() << std::endl;
     use_curr_pose =
         candidate_view.candidates_[best_cand_idx].utility > candidate_view.curr_pose_.utility
         ? false : true;
@@ -814,6 +810,7 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
 
   VecPose path_tmp;
   if (valid_path && !use_curr_pose) {
+    candidate_view.addPathSegments(planning_config.robot_safety_radius * 1.5, best_cand_idx);
     path_tmp = candidate_view.getFinalPath(0.52, candidate_view.candidates_[best_cand_idx]);
   } else {
     path_tmp = candidate_view.getFinalPath(0.52, candidate_view.curr_pose_);

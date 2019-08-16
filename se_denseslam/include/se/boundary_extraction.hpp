@@ -118,14 +118,14 @@ static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree
     lower_bound_tmp = node_it.getFreeVoxel(lower_bound_morton);
     upper_bound_tmp = node_it.getFreeVoxel(upper_bound_morton);
     if (lower_bound_tmp.norm() < lower_bound.norm()) {
-      std::cout << "lower_bound from " << lower_bound.format(InLine) << " to "
-                << lower_bound_tmp.format(InLine) << std::endl;
+      // std::cout << "lower_bound from " << lower_bound.format(InLine) << " to "
+      //           << lower_bound_tmp.format(InLine) << std::endl;
       lower_bound = lower_bound_tmp;
 
     }
     if (upper_bound_tmp.norm() > upper_bound.norm()) {
-      std::cout << "upper_bound from " << upper_bound.format(InLine) << " to "
-                << upper_bound_tmp.format(InLine) << std::endl;
+      // std::cout << "upper_bound from " << upper_bound.format(InLine) << " to "
+      //           << upper_bound_tmp.format(InLine) << std::endl;
       upper_bound = upper_bound_tmp;
     }
 
