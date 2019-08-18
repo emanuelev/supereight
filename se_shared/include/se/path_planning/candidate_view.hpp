@@ -90,6 +90,8 @@ class CandidateView {
 
   int getExplorationStatus() const { return exploration_status_; }
 
+  float getTargetIG() const {return ig_target_;}
+
   VecCandidate candidates_;
   Candidate curr_pose_;
  private:
@@ -180,7 +182,7 @@ Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand
   CollisionCheck<T> collision_check(volume_, planning_config_, res_);
   // curr res 24m/128 vox = 0.1875 m/vx
 
-  int offset_v = static_cast<int>(planning_config_.robot_safety_radius / res_) * 3;
+  int offset_v = static_cast<int>(planning_config_.robot_safety_radius / res_) * 1.5;
   // fit plane through frontier voxels in the block
 // source https://www.ilikebigbits.com/2017_09_25_plane_from_points_2.html
 // https://www.ilikebigbits.com/2015_03_04_plane_from_points.html
@@ -302,6 +304,7 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
   std::default_random_engine generator(rd());
   std::uniform_int_distribution<int> distribution_block(0, frontier_blocks_map.size() - 1);
 
+#pragma omp parallel for
   for (int i = 0; i < num_views_; i++) {
     auto it = frontier_voxels_map.begin();
 
@@ -515,7 +518,7 @@ float CandidateView<T>::getIGWeight_tanh(const float tanh_range,
 
 template<typename T>
 void CandidateView<T>::calculateCandidateViewGain() {
-
+#pragma omp parallel for
   for (int i = 0; i < num_views_; i++) {
 
     if (candidates_[i].pose.p == Eigen::Vector3f(0, 0, 0)) {
@@ -540,7 +543,7 @@ void CandidateView<T>::calculateUtility(Candidate &candidate, const float max_ya
 
   candidate.utility = candidate.information_gain / (t_yaw + t_path);
 
-  LOG(INFO) << "ig " << candidate.information_gain << " t_yaw " << t_yaw << " t_path "
+  LOG(INFO) <<"Cand coord" << candidate.pose.p.format(InLine)<< "ig " << candidate.information_gain << " t_yaw " << t_yaw << " t_path "
             << t_path << " utility " << candidate.utility ;
 }
 /**
@@ -563,9 +566,9 @@ int CandidateView<T>::getBestCandidate() {
   float ig_sum = 0.f;
 
   // path cost = voxel *res[m/vox] / (v =1m/s) = time
-  bool force_travelling = curr_pose_.information_gain < ig_target_;
+
   // int views_to_evaluate = force_travelling ? planning_config_.num_cand_views : planning_config_.num_cand_views + 1;
-// #pragma omp parallel for
+#pragma omp parallel for
   for (int i = 0; i < num_views_; i++) {
     if (candidates_[i].pose.p != Eigen::Vector3f(0, 0, 0)
         && candidates_[i].planning_solution_status >= 0) {
@@ -663,7 +666,7 @@ VecPose CandidateView<T>::getYawPath(const pose3D &start,
 
 template<typename T>
 bool CandidateView<T>::addPathSegments(const float sampling_dist, const int idx) {
-  VecPose path_out;
+
   int sampling_dist_v = static_cast<int>(sampling_dist / res_);
   if (candidates_[idx].path.size() == 1) {
     LOG(INFO) << "Path size 1";
@@ -673,7 +676,9 @@ bool CandidateView<T>::addPathSegments(const float sampling_dist, const int idx)
     LOG(WARNING) << "Path size 0";
     return false;
   }
-  for (int i = 1; i < candidates_[idx].path.size(); i++) {
+
+    VecPose path_out;
+      for (int i = 1; i < candidates_[idx].path.size(); i++) {
 
     LOG(INFO) << "segment start " << candidates_[idx].path[i - 1].p.format(InLine) << " end "
               << candidates_[idx].path[i].p.format(InLine);
@@ -734,8 +739,8 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
                         int *exploration_done) {
 
   auto collision_checker_v = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
-  auto path_planner_ompl_ptr =
-      aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker_v, planning_config);
+  // auto path_planner_ompl_ptr =
+      // aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker_v, planning_config);
 
   // Candidate view generation
   CandidateView<T>
@@ -748,9 +753,12 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   bool valid_path = false;
 
   // if (size > 1) {
+  #pragma omp parallel for
   for (int i = 0; i < planning_config.num_cand_views; i++) {
     if (candidate_view.candidates_[i].pose.p != Eigen::Vector3f(0, 0, 0)) {
-
+  auto collision_checker = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
+  auto path_planner_ompl_ptr =
+      aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker, planning_config);
       // LOG(INFO) << "Candidate " << i << " goal coord " << cand_views[i].p.format(InLine);
       LOG(INFO) << "Candidate " << i << " start " << start.p.format(InLine) << " goal "
                 << candidate_view.candidates_[i].pose.p.format(InLine);
@@ -785,6 +793,7 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
 //
   int best_cand_idx = -1;
   bool use_curr_pose = true;
+  bool force_travelling = candidate_view.curr_pose_.information_gain < candidate_view.getTargetIG();
   if (valid_path) {
     best_cand_idx = candidate_view.getBestCandidate();
     LOG(INFO) << "[se/candview] best candidate is "
@@ -792,9 +801,8 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
     // std::cout << " path length of best cand "
     //           << candidate_view.candidates_[best_cand_idx].path.size() << std::endl;
     use_curr_pose =
-        candidate_view.candidates_[best_cand_idx].utility > candidate_view.curr_pose_.utility
-        ? false : true;
-    LOG(INFO) << "use curr pose " << use_curr_pose << " candidate utility "
+        candidate_view.candidates_[best_cand_idx].utility < candidate_view.curr_pose_.utility;
+    LOG(INFO) << "force travelling "<< force_travelling << " use curr pose " << use_curr_pose << " candidate utility "
               << candidate_view.candidates_[best_cand_idx].utility << " curr pose utility "
               << candidate_view.curr_pose_.utility;
 
@@ -809,7 +817,7 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   \
 
   VecPose path_tmp;
-  if (valid_path && !use_curr_pose) {
+  if (valid_path && (!use_curr_pose || force_travelling)) {
     candidate_view.addPathSegments(planning_config.robot_safety_radius * 1.5, best_cand_idx);
     path_tmp = candidate_view.getFinalPath(0.52, candidate_view.candidates_[best_cand_idx]);
   } else {
