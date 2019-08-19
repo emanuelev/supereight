@@ -180,6 +180,7 @@ struct bfusion_update {
                  float vs,
                  set3i *updated_blocks,
                  set3i *free_blocks,
+                  set3i *frontier_blocks,
                  bool detect_frontier,
                  int place_holder)
       :
@@ -190,6 +191,7 @@ struct bfusion_update {
       voxelsize(vs),
       updated_blocks_(updated_blocks),
       free_blocks_(free_blocks),
+      frontier_blocks_(frontier_blocks),
       detect_frontier_(detect_frontier),
       place_holder_(place_holder) {};
 //  bfusion_update(const float *d,
@@ -291,38 +293,55 @@ struct bfusion_update {
           handler.occupancyUpdated(true);
         }
       }
+
+      #pragma omp critical
+    {
+      if (std::is_same<FieldType, OFusion>::value && is_voxel) {
+          // conservative estimate as the occupancy probability for a free voxel is set quite low
+        if (data.st == voxel_state::kFree && handler.isFrontier(map)) {
+          // bool is_frontier = handler.isFrontier(map);
+          // if (is_frontier) {
+
+              frontier_blocks_->insert(morton_code_child);
+              data.st = voxel_state::kFrontier;
+
+          // }
+        }
+      }
+    }
+
       handler.set(data);
     }
 
-    if (detect_frontier_) {
+//     if (detect_frontier_) {
+// #pragma omp critical
+//     {
+//       if (std::is_same<FieldType, OFusion>::value && is_voxel) {
+//           // conservative estimate as the occupancy probability for a free voxel is set quite low
+//         if (data.x <= THRESH_FREE_LOG && handler.isFrontier(map)) {
+//           // bool is_frontier = handler.isFrontier(map);
+//           // if (is_frontier) {
 
-      if (std::is_same<FieldType, OFusion>::value) {
-          // conservative estimate as the occupancy probability for a free voxel is set quite low
-        if (data.st == voxel_state::kFree && is_voxel) {
-          bool is_frontier = handler.isFrontier(map);
-          if (is_frontier) {
-              #pragma omp critical
-            {
-              frontier_blocks_->insert(morton_code_child);
-              data.st = voxel_state::kFrontier;
-            }
-          }
-        }
-        handler.set(data);
-      }
+//               frontier_blocks_->insert(morton_code_child);
+//               data.st = voxel_state::kFrontier;
 
+//           // }
+//         }
+//         handler.set(data);
+//       }
+//     }
 
-/*
-      bool is_voxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
-      if (prev_occ >= 0.5 && data.x < 0.5 && isVoxel) {
-#pragma omp critical
-        freedVoxels_.push_back(pix);
-      } else if (prev_occ <= 0.5 && data.x > 0.5 && isVoxel) {
-#pragma omp critical
-        occupiedVoxels_.push_back(pix);
-      }
-    */
-    }
+// /*
+//       bool is_voxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
+//       if (prev_occ >= 0.5 && data.x < 0.5 && isVoxel) {
+// #pragma omp critical
+//         freedVoxels_.push_back(pix);
+//       } else if (prev_occ <= 0.5 && data.x > 0.5 && isVoxel) {
+// #pragma omp critical
+//         occupiedVoxels_.push_back(pix);
+//       }
+//     */
+     // }
   }
 };
 #endif

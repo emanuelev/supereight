@@ -467,6 +467,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   voxelsize,
                                   updated_blocks,
                                   free_blocks,
+                                  frontier_blocks,
                                   false,
                                   1);
 // Update all active nodes and voxels using the bfusion_update function
@@ -476,26 +477,26 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   getCameraMatrix(k),
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   funct);
-      struct bfusion_update frontier_funct(float_depth,
-                                           Eigen::Vector2i(computation_size_.x(),
-                                                           computation_size_.y()),
-                                           mu,
-                                           timestamp,
-                                           voxelsize,
-                                           frontier_blocks,
-                                           true);
+      // struct bfusion_update frontier_funct(float_depth,
+      //                                      Eigen::Vector2i(computation_size_.x(),
+      //                                                      computation_size_.y()),
+      //                                      mu,
+      //                                      timestamp,
+      //                                      voxelsize,
+      //                                      frontier_blocks,
+      //                                      true);
 
-      se::functor::projective_map(*volume_._map_index,
-                                  Sophus::SE3f(pose_ * Tbc_).inverse(),
-                                  getCameraMatrix(k),
-                                  Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
-                                  frontier_funct);
+      // se::functor::projective_map(*volume_._map_index,
+      //                             Sophus::SE3f(pose_ * Tbc_).inverse(),
+      //                             getCameraMatrix(k),
+      //                             Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
+      //                             frontier_funct);
       std::set<uint64_t> *copy_frontier_blocks = frontier_blocks;
       bool update_frontier_map = (frame % integration_rate) == 0;
       updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
       insertBlocksToMap(free_map_, free_blocks);
       // std::cout << "[se/denseslam] free_map_  size  " << free_map_.size() << std::endl;
-      // std::cout << "[se/denseslam] frontier_map_ size " << frontier_map_.size() << std::endl;
+      std::cout << "[se/denseslam] frontier_map_ size " << frontier_map_.size() << std::endl;
     }
 
     // if(frame % 15 == 0) {

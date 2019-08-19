@@ -68,6 +68,7 @@ void updateFrontierMap(const Volume<T> &volume,
   Eigen::Vector3i upperbound;
   // check if the ones in the map
   if (update_frontier_map) {
+    // std::cout << "update frontier map " <<std::endl;
     updateFrontierMap(volume, blocks_map);
   }
 

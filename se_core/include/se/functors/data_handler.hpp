@@ -127,8 +127,8 @@ public:
           && (_voxel.y() / BLOCK_SIDE) == (face_voxel.y() / BLOCK_SIDE)
           && (_voxel.z() / BLOCK_SIDE) == (face_voxel.z() / BLOCK_SIDE)) {
         // CASE 1: same voxel block
-        if (_block->data(face_voxel).st == voxel_state::kUnknown)
-
+        // std::cout << "prob " << _block->data(face_voxel).x << " state " << _block->data(face_voxel).st << std::endl; _block->data(face_voxel).x == 0.f &&
+        if (_block->data(face_voxel).x==0.f )
           return true;
       } else {
         // not same voxel block => check if neighbour is a voxel block
@@ -137,9 +137,10 @@ public:
         map.fetch_octant(face_voxel(0), face_voxel(1), face_voxel(2), node, is_voxel_block);
        // CASE 2: not same voxelblock but is a voxel
         if (is_voxel_block) {
-          // neighbour is a voxel block
+          // neighbour is a voxel block block->data(face_voxel).x == 0.f  &&
           se::VoxelBlock<FieldType> *block = static_cast<se::VoxelBlock<FieldType> *> (node);
-          if (block->data(face_voxel).st == voxel_state::kUnknown)
+          // std::cout << "prob " << block->data(face_voxel).x << " state " << block->data(face_voxel).st << std::endl;
+          if (block->data(face_voxel).x == 0.f )
             return true;
 
         // CASE 3: not same voxelblock but belongs to a node
@@ -153,8 +154,9 @@ public:
               map.leaf_level(), map.max_level());
           const int idx = se::child_id(octant, map.leaf_level(), map.max_level());
           // in case the neighbour node is also not in the same parent
-          if (node->data(idx).st == voxel_state::kUnknown)
-            return true;
+          if (map.get(face_voxel).x == 0.f){
+            return false;
+          }
         }
       }
     }
@@ -217,6 +219,7 @@ class NodeHandler: DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> >
    * for leaf level nodes
    */
   bool isFrontier(const se::Octree<FieldType> &map) {
+    std::cout << "node is frontier "<< std::endl;
     // find out at which level the node is
     const key_t morton_parent = _node->code_;
     const Eigen::Vector3i coord = _node->childCoordinates(_idx);

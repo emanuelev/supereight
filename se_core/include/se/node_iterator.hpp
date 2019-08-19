@@ -115,7 +115,7 @@ class node_iterator {
     return occupiedVoxels;
   }
 
-  vec3i getFreeVoxels(float threshold, const uint64_t morton) {
+  vec3i getFreeVoxels( const uint64_t morton) {
     vec3i freeVoxels;
     freeVoxels.clear();
 
@@ -139,7 +139,7 @@ class node_iterator {
           for (int x = blockCoord(0); x < xlast; ++x) {
             const Eigen::Vector3i vox{x, y, z};
             value = block->data(vox);
-            if (value.x <= threshold) {
+            if (value.x == 0.f) {
               freeVoxels.push_back(vox);
             }
           }
@@ -173,7 +173,7 @@ class node_iterator {
           for (int x = blockCoord(0); x < xlast; ++x) {
             const Eigen::Vector3i vox{x, y, z};
             value = block->data(vox);
-            if (value.st == voxel_state::kFree) {
+            if (value.x == 0.f) {
               free_voxel=vox;
               // std::cout << "[se/nodeit] block " << free_voxel.format(InLine) << std::endl;
               return free_voxel;
@@ -321,7 +321,10 @@ class node_iterator {
 //                        << z << std::endl;
               } else if (data.x >= THRESH_OCC) {
                 data.st = voxel_state::kOccupied;
+              } else{
+                data.st = voxel_state::kUnknown;
               }
+              // std::cout << "frontier update state " << data.st << std::endl;
               handler.set(data);
 
             } else if (handler.isFrontier(map_)) {
@@ -332,6 +335,7 @@ class node_iterator {
         }
       }
     } else {
+      std::cout << "delete node frontier"<< std::endl;
       // data handler set parent_node ->value[idx];
       // TODO include when we consider frontier nodes at lower than leaf level
       const int level = keyops::level(morton);
