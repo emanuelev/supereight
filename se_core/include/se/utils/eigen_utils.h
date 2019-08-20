@@ -65,7 +65,7 @@ inline std::shared_ptr<Type> aligned_shared(Arguments&&... arguments) {
 }
 
 static Eigen::IOFormat
-    InLine(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", " ", ";");
+    InLine(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", " ", " ");
 
 
 

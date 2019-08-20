@@ -92,6 +92,7 @@ static void setStateToFree(Octree<FieldType> &map, mapvec3i *block_voxel_map) {
       auto data = handler.get();
       if (data.st == voxel_state::kUnknown || data.st == voxel_state::kFrontier) {
         data.st = voxel_state::kFree;
+        data.x = -1.f;
         handler.set(data);
       }
     }

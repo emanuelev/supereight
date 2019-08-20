@@ -99,5 +99,5 @@ static  std::ostream& operator<<(std::ostream& os, const voxel_state & dt)
 #define THRESH_OCC 0.8f
 #define THRESH_FREE 0.2f
 #define THRESH_FREE_LOG log2(0.2f / (1.f - 0.2f))
-
+#define THRESH_OCC_LOG log2(0.8f / (1.f - 0.8f))
 #endif
