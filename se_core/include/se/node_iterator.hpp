@@ -114,7 +114,7 @@ class node_iterator {
     }
     return occupiedVoxels;
   }
-
+ // for rviz viauslization
   vec3i getFreeVoxels( const uint64_t morton) {
     vec3i freeVoxels;
     freeVoxels.clear();
@@ -149,20 +149,23 @@ class node_iterator {
     return freeVoxels;
   }
 
-  Eigen::Vector3i getFreeVoxel(const key_t morton) {
-    Eigen::Vector3i free_voxel(-1,-1,-1);
+
+// for boundary check
+  bool getFreeVoxel(const key_t morton, Eigen::Vector3i &free_voxel) {
+
 
     typename VoxelBlock<T>::value_type value;
-    const Eigen::Vector3i blockCoord = keyops::decode(morton);
+
 
 
     Node<T> *node = nullptr;
     bool is_block = false;
-    map_.fetch_octant(blockCoord(0), blockCoord(1), blockCoord(2), node, is_block);
+    map_.fetch_octant(free_voxel(0), free_voxel(1), free_voxel(2), node, is_block);
+    const Eigen::Vector3i blockCoord = free_voxel;
     if (!is_block) {
-//      freeVoxel= blockCoord;
+
       // std::cout << "[se/nodeit] node " << free_voxel.format(InLine) << std::endl;
-      return free_voxel;
+      return true;
     } else {
       VoxelBlock<T> *block = static_cast< VoxelBlock<T> *> (node);
       const int xlast = blockCoord(0) + BLOCK_SIDE;
@@ -173,19 +176,19 @@ class node_iterator {
           for (int x = blockCoord(0); x < xlast; ++x) {
             const Eigen::Vector3i vox{x, y, z};
             value = block->data(vox);
-            if (value.x == 0.f) {
+            if (value.x < 0.f) {
               free_voxel=vox;
               // std::cout << "[se/nodeit] block " << free_voxel.format(InLine) << std::endl;
-              return free_voxel;
+              return true;
             }
           }
         }
       }
     }
     // std::cout <<"[se/nodeit] vb with no free voxel " << std::endl;
-    return free_voxel;
+    return false;
   }
-
+  // rviz visualization
   vec3i getOccupiedVoxels(float threshold, const uint64_t morton) {
     vec3i occupiedVoxels;
     occupiedVoxels.clear();

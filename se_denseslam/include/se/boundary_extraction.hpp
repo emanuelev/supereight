@@ -88,45 +88,41 @@ static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree
   auto it_end = blocks_map.end();
   Eigen::Vector3i lower_bound_tmp;
   Eigen::Vector3i upper_bound_tmp;
-  // lower_bound = Eigen::Vector3i(-1, -1, -1);
-
-  // while (lower_bound == Eigen::Vector3i(-1, -1, -1)) {
-  //   const key_t lower_bound_morton = it_beg->first;
-  //   lower_bound = node_it.getFreeVoxel(lower_bound_morton);
-
-  //   ++it_beg;
-  // }
-  // upper_bound = Eigen::Vector3i(-1, -1, -1);
-  // while (upper_bound == Eigen::Vector3i(-1, -1, -1)) {
-  //   --it_end;
-  //   const key_t upper_bound_morton = it_end->first;
-
-  //   upper_bound = node_it.getFreeVoxel(upper_bound_morton);
-  // }
 
   key_t lower_bound_morton = it_beg->first;
-  lower_bound = node_it.getFreeVoxel(lower_bound_morton);
+  Eigen::Vector3i lower_block_coord = se::keyops::decode(lower_bound_morton);
+  bool valid_lower = node_it.getFreeVoxel(lower_bound_morton,lower_block_coord);
+
   --it_end;
   key_t upper_bound_morton = it_end->first;
+  Eigen::Vector3i upper_block_coord = se::keyops::decode(upper_bound_morton);
+  bool valid_upper = node_it.getFreeVoxel(upper_bound_morton,upper_block_coord);
 
-  upper_bound = node_it.getFreeVoxel(upper_bound_morton);
+  // std::cout << "upper " << upper_block_coord.format(InLine) << " lower "<< lower_block_coord.format(InLine)
+  // << std::endl;
+lower_bound =upper_block_coord;
+upper_bound = lower_block_coord;
   while (it_beg != it_end) {
     ++it_beg;
     lower_bound_morton = it_beg->first;
+    lower_bound_tmp = se::keyops::decode(lower_bound_morton);
+    valid_lower = node_it.getFreeVoxel(lower_bound_morton,lower_bound_tmp);
+
     --it_end;
     upper_bound_morton = it_end->first;
-
-    lower_bound_tmp = node_it.getFreeVoxel(lower_bound_morton);
-    upper_bound_tmp = node_it.getFreeVoxel(upper_bound_morton);
-    if (lower_bound_tmp.norm() < lower_bound.norm()) {
+    upper_bound_tmp = se::keyops::decode(upper_bound_morton);
+    valid_upper = node_it.getFreeVoxel(upper_bound_morton,upper_bound_tmp);
+  // std::cout << "upper " << upper_bound_tmp.format(InLine) << " lower "<< lower_bound_tmp.format(InLine)
+  // << std::endl;
+    if (lower_bound_tmp.norm() < lower_bound.norm() && valid_lower) {
       // std::cout << "lower_bound from " << lower_bound.format(InLine) << " to "
-      //           << lower_bound_tmp.format(InLine) << std::endl;
+                // << lower_bound_tmp.format(InLine) << std::endl;
       lower_bound = lower_bound_tmp;
 
     }
-    if (upper_bound_tmp.norm() > upper_bound.norm()) {
+    if (upper_bound_tmp.norm() > upper_bound.norm() && valid_upper) {
       // std::cout << "upper_bound from " << upper_bound.format(InLine) << " to "
-      //           << upper_bound_tmp.format(InLine) << std::endl;
+                // << upper_bound_tmp.format(InLine) << std::endl;
       upper_bound = upper_bound_tmp;
     }
 
