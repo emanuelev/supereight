@@ -166,7 +166,6 @@ struct bfusion_update {
   set3i *frontier_blocks_;
   set3i *free_blocks_;
 
-  bool detect_frontier_;
   int place_holder_;
 
   bfusion_update(const float *d, const Eigen::Vector2i framesize, float n, float t, float vs)
@@ -181,7 +180,6 @@ struct bfusion_update {
                  set3i *updated_blocks,
                  set3i *free_blocks,
                   set3i *frontier_blocks,
-                 bool detect_frontier,
                  int place_holder)
       :
       depth(d),
@@ -192,7 +190,6 @@ struct bfusion_update {
       updated_blocks_(updated_blocks),
       free_blocks_(free_blocks),
       frontier_blocks_(frontier_blocks),
-      detect_frontier_(detect_frontier),
       place_holder_(place_holder) {};
 //  bfusion_update(const float *d,
 //                 const Eigen::Vector2i framesize,
@@ -210,21 +207,7 @@ struct bfusion_update {
 //      occupiedVoxels_(occupiedVoxels),
 //      freedVoxels_(freedVoxels) {};
 
-  bfusion_update(const float *d,
-                 const Eigen::Vector2i framesize,
-                 float n,
-                 float t,
-                 float vs,
-                 set3i *frontier_blocks,
-                 bool detect_frontier)
-      :
-      depth(d),
-      depthSize(framesize),
-      noiseFactor(n),
-      timestamp(t),
-      voxelsize(vs),
-      frontier_blocks_(frontier_blocks),
-      detect_frontier_(detect_frontier) {};
+
 
   template<typename FieldType, template<typename FieldT> class MapT, typename DataHandlerT>
   void operator()(DataHandlerT &handler,
@@ -263,85 +246,45 @@ struct bfusion_update {
 
     // in log2
     // Update the occupancy probability
-    if (!detect_frontier_) {
-      const double delta_t = timestamp - data.y;
-      data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
-      data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
-      data.y = timestamp;
-      float prob = se::math::getProbFromLog(data.x);
-      if (prob >= THRESH_OCC) {
-        data.st = voxel_state::kOccupied;
-      } else if (prob <= THRESH_FREE) {
-        data.st = voxel_state::kFree;
-        if(is_voxel || se::keyops::level(morton_code_child)==map.leaf_level()) {
-#pragma omp critical
-          free_blocks_->insert(morton_code_child);
-        }
-      } else {
-        // if the occupancy probability is not low or high enough => back to unknown
-        data.st = voxel_state::kUnknown;
-      }
 
-        bool voxelOccupied = prev_occ <= 0.5 && prob > 0.5;
-        bool voxelFreed = prev_occ >= 0.5 && prob < 0.5;
-        bool occupancyUpdated = handler.occupancyUpdated();
-        if (is_voxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
-            && data.st != voxel_state::kFrontier) {
+    const double delta_t = timestamp - data.y;
+    data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
+    data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
+    data.y = timestamp;
+    float prob = se::math::getProbFromLog(data.x);
+    if (data.x > SURF_BOUNDARY) {
+      data.st = voxel_state::kOccupied;
+    } else if (data.x < SURF_BOUNDARY) {
+      data.st = voxel_state::kFree;
+      if(is_voxel || se::keyops::level(morton_code_child)==map.leaf_level()) {
+#pragma omp critical
+        free_blocks_->insert(morton_code_child);
+      }
+    }
+    bool voxelOccupied = prev_occ <= 0.5 && prob > 0.5;
+    bool voxelFreed = prev_occ >= 0.5 && prob < 0.5;
+    bool occupancyUpdated = handler.occupancyUpdated();
+    if (is_voxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
+      && data.st != voxel_state::kFrontier) {
 #pragma omp critical
       {
-          updated_blocks_->insert(morton_code_child);
-          handler.occupancyUpdated(true);
-        }
+        updated_blocks_->insert(morton_code_child);
+        handler.occupancyUpdated(true);
       }
+    }
 
       #pragma omp critical
     {
       if (std::is_same<FieldType, OFusion>::value && is_voxel) {
           // conservative estimate as the occupancy probability for a free voxel is set quite low
-        if (data.st == voxel_state::kFree && handler.isFrontier(map)) {
-          // bool is_frontier = handler.isFrontier(map);
-          // if (is_frontier) {
+        if (prob <0.5 && handler.isFrontier(map)) {
+          frontier_blocks_->insert(morton_code_child);
+          data.st = voxel_state::kFrontier;
 
-              frontier_blocks_->insert(morton_code_child);
-              data.st = voxel_state::kFrontier;
-
-          // }
         }
       }
     }
-
-      handler.set(data);
-    }
-
-//     if (detect_frontier_) {
-// #pragma omp critical
-//     {
-//       if (std::is_same<FieldType, OFusion>::value && is_voxel) {
-//           // conservative estimate as the occupancy probability for a free voxel is set quite low
-//         if (data.x <= THRESH_FREE_LOG && handler.isFrontier(map)) {
-//           // bool is_frontier = handler.isFrontier(map);
-//           // if (is_frontier) {
-
-//               frontier_blocks_->insert(morton_code_child);
-//               data.st = voxel_state::kFrontier;
-
-//           // }
-//         }
-//         handler.set(data);
-//       }
-//     }
-
-// /*
-//       bool is_voxel = std::is_same<DataHandlerT, VoxelBlockHandler<OFusion>>::value;
-//       if (prev_occ >= 0.5 && data.x < 0.5 && isVoxel) {
-// #pragma omp critical
-//         freedVoxels_.push_back(pix);
-//       } else if (prev_occ <= 0.5 && data.x > 0.5 && isVoxel) {
-// #pragma omp critical
-//         occupiedVoxels_.push_back(pix);
-//       }
-//     */
-     // }
+    handler.set(data);
   }
 };
 #endif

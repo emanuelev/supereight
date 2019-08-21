@@ -139,7 +139,7 @@ class node_iterator {
           for (int x = blockCoord(0); x < xlast; ++x) {
             const Eigen::Vector3i vox{x, y, z};
             value = block->data(vox);
-            if (value.x == 0.f) {
+            if (value.st == voxel_state::kFree) {
               freeVoxels.push_back(vox);
             }
           }
