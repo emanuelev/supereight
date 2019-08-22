@@ -487,6 +487,8 @@ template<typename FieldType>
 void PathPlannerOmpl<FieldType>::setInformedRrtStar() {
   std::shared_ptr<og::InformedRRTstar> planner = aligned_shared<og::InformedRRTstar>(ss_->getSpaceInformation());
   planner->setGoalBias(0.08);
+  planner->setRange(2);
+  planner->setNumSamplingAttempts(50);
   ss_->setPlanner(planner);
 }
 
