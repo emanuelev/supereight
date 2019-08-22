@@ -46,8 +46,11 @@
 #include "kfusion/mapping_impl.hpp"
 #include "bfusion/alloc_impl.hpp"
 #include "kfusion/alloc_impl.hpp"
-#include "se/boundary_extraction.hpp"
+//#include "se/boundary_extraction.hpp"
 
+#include "se/ompl/prob_collision_checker.hpp"
+#include "se/utils/planning_parameter.hpp"
+#include "se/path_planner_ompl.hpp"
 PerfStats Stats;
 static bool print_kernel_timing = false;
 
@@ -80,7 +83,6 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i &inputSize,
     normal_(computation_size_.x(), computation_size_.y()),
     float_depth_(computation_size_.x(), computation_size_.y()) {
   planning_config_ = planning_config;
-  std::cout << "[se/constructor] config " << planning_config.num_cand_views << std::endl;
   this->init_pose_ = initPose.block<3, 1>(0, 3);
   this->volume_dimension_ = volumeDimensions;
   this->volume_resolution_ = volumeResolution;
@@ -126,7 +128,7 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i &inputSize,
 
   // ********* END : Generate the gaussian *************
 
-  discrete_vol_ptr_ = std::make_shared<se::Octree<FieldType> >();
+  discrete_vol_ptr_ = aligned_shared<se::Octree<FieldType> >();
   discrete_vol_ptr_->init(volume_resolution_.x(), volume_dimension_.x());
   volume_ =
       Volume<FieldType>(volume_resolution_.x(), volume_dimension_.x(), discrete_vol_ptr_.get());
@@ -397,19 +399,11 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 // TODO fix alignment
 bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   unsigned int integration_rate,
-                                  unsigned int frontier_map_update_rate,
                                   float mu,
                                   unsigned int frame,
                                   set3i *updated_blocks,
                                   set3i *frontier_blocks,
                                   set3i *free_blocks) {
-
-//bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
-//                                  unsigned int integration_rate,
-//                                  float mu,
-//                                  unsigned int frame,
-//                                  std::vector<Eigen::Vector3i> *updated_blocks,
-//                                  std::vector<Eigen::Vector3i> *frontier_blocks) {
 
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
 
@@ -473,7 +467,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   voxelsize,
                                   updated_blocks,
                                   free_blocks,
-                                  false,
+                                  frontier_blocks,
                                   1);
 // Update all active nodes and voxels using the bfusion_update function
 
@@ -482,24 +476,13 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   getCameraMatrix(k),
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   funct);
-      struct bfusion_update frontier_funct(float_depth,
-                                           Eigen::Vector2i(computation_size_.x(),
-                                                           computation_size_.y()),
-                                           mu,
-                                           timestamp,
-                                           voxelsize,
-                                           frontier_blocks,
-                                           true);
 
-      se::functor::projective_map(*volume_._map_index,
-                                  Sophus::SE3f(pose_ * Tbc_).inverse(),
-                                  getCameraMatrix(k),
-                                  Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
-                                  frontier_funct);
       std::set<uint64_t> *copy_frontier_blocks = frontier_blocks;
-      bool update_frontier_map = (frame % frontier_map_update_rate) == 0;
+      bool update_frontier_map = (frame % integration_rate) == 0;
       updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
-
+      insertBlocksToMap(free_map_, free_blocks);
+      // std::cout << "[se/denseslam] free_map_  size  " << free_map_.size() << std::endl;
+      std::cout << "[se/denseslam] frontier_map_ size " << frontier_map_.size() << std::endl;
     }
 
     // if(frame % 15 == 0) {
@@ -517,21 +500,23 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
   return true;
 }
 
-bool DenseSLAMSystem::planning(se::exploration::posevector &path,
-                               se::exploration::posevector &cand_views,
+int DenseSLAMSystem::planning(VecPose &path,
+                               VecPose &cand_views,
                                mapvec3i *free_blocks) {
-  if (!init_position_cleared_) {
-  std::cout << "[se/denseSLAM] clear sphere around robot" << std::endl;
-    se::exploration::initNewPosition(pose_ * Tbc_,
-                                     planning_config_,
-                                     free_blocks,
-                                     *volume_._map_index);
-    init_position_cleared_ = true;
-  }
+  se::exploration::initNewPosition(pose_ * Tbc_,
+                                   planning_config_,
+                                   free_blocks,
+                                   *volume_._map_index);
+
+  insertBlocksToMap(free_map_, free_blocks);
+  init_position_cleared_ = true;
   float res_v = volume_dimension_.cast<float>().x() / volume_resolution_.cast<float>().x();
+  // LOG(INFO) << "Planning free_map_  size  " << free_map_.size();
 
   float step = volume_dimension_.x() / volume_resolution_.x();
-  se::exploration::getExplorationPath(volume_,
+  int exploration_done =  se::exploration::getExplorationPath(discrete_vol_ptr_,
+                                      volume_,
+                                      free_map_,
                                       frontier_map_,
                                       res_v,
                                       step,
@@ -540,6 +525,7 @@ bool DenseSLAMSystem::planning(se::exploration::posevector &path,
                                       pose_ * Tbc_,
                                       path,
                                       cand_views);
+  return exploration_done;
 //  std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
 }
 

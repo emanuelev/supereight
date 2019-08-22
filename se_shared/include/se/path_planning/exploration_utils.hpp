@@ -12,6 +12,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <random>
 #include <iterator>
@@ -19,6 +20,9 @@
 
 #include <Eigen/StdVector>
 
+#include "se/utils/eigen_utils.h"
+#include "se/utils/math_utils.h"
+#include "se/octree_defines.h"
 #include "lodepng.h"
 
 namespace se {
@@ -47,10 +51,6 @@ static inline std::istream &operator>>(std::istream &input, pose3D &pose) {
   pose.q.normalize();
   return input;
 }
-
-typedef std::vector<pose3D, Eigen::aligned_allocator<pose3D> > posevector;
-
-typedef AlignedVector<std::pair<pose3D, double>> VectorPairPoseDouble;
 
 struct eulerAngles {
   float yaw, pitch, roll;
@@ -188,14 +188,14 @@ static inline bool saveMatrixToDepthImage(const Eigen::MatrixXf matrix,
     std::strcpy(filename, s.c_str());
   }
   myfile.open(filename, std::ofstream::app);
-  myfile << "P2" <<std::endl;
-  myfile << w << " " << h  << std::endl;
-  myfile << "255"<<std::endl;
+  myfile << "P2" << std::endl;
+  myfile << w << " " << h << std::endl;
+  myfile << "255" << std::endl;
   for (int v = 0; v < h; ++v) {
     for (int u = 0; u < w; ++u) {
       input_depth[u + v * w] =
           static_cast<uint8_t >(255.f * (1.f - ((matrix(v, u) - min_val) / diff)));
-      myfile <<std::to_string( input_depth[u + v*w]) << " ";
+      myfile << std::to_string(input_depth[u + v * w]) << " ";
     }
     myfile << std::endl;
   }
@@ -204,15 +204,48 @@ static inline bool saveMatrixToDepthImage(const Eigen::MatrixXf matrix,
   return true;
 }
 
-// transforms current pose from matrix4f to position and orientation (quaternion)
-static pose3D getCurrPose(const Eigen::Matrix4f &pose, const float res){
+// transforms current pose from matrix4f to position and orientation (quaternion) [voxrl]
+static pose3D getCurrPose(const Eigen::Matrix4f &pose, const float res) {
   pose3D curr_pose;
   curr_pose.q = se::math::rot_mat_2_quat(pose.block<3, 3>(0, 0));
   curr_pose.p = pose.block<3, 1>(0, 3) / res;
+  curr_pose.p.x() = round(curr_pose.p.x());
+  curr_pose.p.y() = round(curr_pose.p.y());
+  curr_pose.p.z() = round(curr_pose.p.z());
   return curr_pose;
 }
 
+static inline Eigen::Vector3i toVoxelCoord(const Eigen::Vector3f &coord_m, const float dim) {
+  Eigen::Vector3i coord_v = (coord_m / dim).cast<int>();
+  return coord_v;
+}
 
+static inline bool boundHeight(int *h, const float h_max, const float h_min, const float res) {
+
+  if (*h > h_max / res) {
+    *h = static_cast<int>(h_max / res) - 0.2;
+    return true;
+  } else if (*h < h_min / res) {
+    *h = static_cast<int>(h_min / res) + 0.2;
+    return true;
+  }
+  return false;
+
+}
+
+static inline void wrapYawRad(float &yaw_diff) {
+
+  if (yaw_diff < M_PI)
+    yaw_diff += 2 * M_PI;
+  if (yaw_diff >= M_PI)
+    yaw_diff -= 2 * M_PI;
+}
+static inline void wrapYawDeg(int &yaw_diff) {
+  if (yaw_diff < -180)
+    yaw_diff += 360;
+  if (yaw_diff >= 180)
+    yaw_diff -= 360;
+}
 } //exploration
 }//namespace se
 #endif //SUPEREIGHT_EXPLORATION_UTILS_HPP

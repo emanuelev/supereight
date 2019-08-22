@@ -1,5 +1,5 @@
 /*
- Copyright 2016 Emanuele Vespa, Imperial College London 
+ Copyright 2016 Emanuele Vespa, Imperial College London
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
@@ -24,7 +24,7 @@
  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef VOLUME_H
 #define VOLUME_H
@@ -98,5 +98,6 @@ static  std::ostream& operator<<(std::ostream& os, const voxel_state & dt)
 #define BOTTOM_CLAMP  (-TOP_CLAMP)
 #define THRESH_OCC 0.8f
 #define THRESH_FREE 0.2f
-
+#define THRESH_FREE_LOG log2(0.2f / (1.f - 0.2f))
+#define THRESH_OCC_LOG log2(0.8f / (1.f - 0.8f))
 #endif

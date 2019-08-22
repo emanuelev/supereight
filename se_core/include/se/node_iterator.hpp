@@ -39,7 +39,7 @@ namespace se {
 /*! \brief Iterate through all the nodes (first Node and then VoxelBlock nodes)
  * of the Octree.
  */
-template <typename T>
+template<typename T>
 class node_iterator {
 
  public:
@@ -59,8 +59,8 @@ class node_iterator {
    * \return A pointer to the next node. Returns nullptr if all nodes have been
    * iterated through.
    */
-  Node<T> *  next() {
-    switch(state_) {
+  Node<T> *next() {
+    switch (state_) {
       case BRANCH_NODES:
         if (last < map_.nodes_buffer_.size()) {
           Node<T> *n = map_.nodes_buffer_[last++];
@@ -114,8 +114,8 @@ class node_iterator {
     }
     return occupiedVoxels;
   }
-
-  vec3i getFreeVoxels(float threshold, const uint64_t morton) {
+  // for rviz viauslization
+  vec3i getFreeVoxels(const uint64_t morton) {
     vec3i freeVoxels;
     freeVoxels.clear();
 
@@ -139,7 +139,7 @@ class node_iterator {
           for (int x = blockCoord(0); x < xlast; ++x) {
             const Eigen::Vector3i vox{x, y, z};
             value = block->data(vox);
-            if (value.x <= threshold) {
+            if (value.x < 0.f) {
               freeVoxels.push_back(vox);
             }
           }
@@ -149,6 +149,42 @@ class node_iterator {
     return freeVoxels;
   }
 
+// for boundary check
+  bool getFreeVoxel(const key_t morton, Eigen::Vector3i &free_voxel) {
+
+    typename VoxelBlock<T>::value_type value;
+
+    Node<T> *node = nullptr;
+    bool is_block = false;
+    map_.fetch_octant(free_voxel(0), free_voxel(1), free_voxel(2), node, is_block);
+    const Eigen::Vector3i blockCoord = free_voxel;
+    if (!is_block) {
+
+      // std::cout << "[se/nodeit] node " << free_voxel.format(InLine) << std::endl;
+      return true;
+    } else {
+      VoxelBlock<T> *block = static_cast< VoxelBlock<T> *> (node);
+      const int xlast = blockCoord(0) + BLOCK_SIDE;
+      const int ylast = blockCoord(1) + BLOCK_SIDE;
+      const int zlast = blockCoord(2) + BLOCK_SIDE;
+      for (int z = blockCoord(2); z < zlast; ++z) {
+        for (int y = blockCoord(1); y < ylast; ++y) {
+          for (int x = blockCoord(0); x < xlast; ++x) {
+            const Eigen::Vector3i vox{x, y, z};
+            value = block->data(vox);
+            if (value.x < 0.f) {
+              free_voxel = vox;
+              // std::cout << "[se/nodeit] block " << free_voxel.format(InLine) << std::endl;
+              return true;
+            }
+          }
+        }
+      }
+    }
+    // std::cout <<"[se/nodeit] vb with no free voxel " << std::endl;
+    return false;
+  }
+  // rviz visualization
   vec3i getOccupiedVoxels(float threshold, const uint64_t morton) {
     vec3i occupiedVoxels;
     occupiedVoxels.clear();
@@ -167,7 +203,7 @@ class node_iterator {
 //          float prob = map_.get(x, y, z).x;
           value = block->data(vox);
 // TODO use state
-          if (value.x >= threshold) {
+          if (value.x > threshold) {
 #pragma omp critical
             occupiedVoxels.push_back(vox);
           }
@@ -213,7 +249,7 @@ class node_iterator {
         }
       }
     } else {
-      std::cout << " node frontier " << blockCoord.format(InLine) << std::endl;
+      // std::cout << " node frontier " << blockCoord.format(InLine) << std::endl;
       frontierVoxels.push_back(blockCoord);
       frontierVoxels.push_back(Eigen::Vector3i(0, 0, 0));
     }
@@ -278,13 +314,14 @@ class node_iterator {
             if (data.st == voxel_state::kFrontier && !handler.isFrontier(map_)) {
 //            std::cout << " [supereight/node it] voxel is a frontier" << std::endl;
               // check for the curr voxel if it a Frontier / has an unknown voxel next to it
-              if (data.x <= THRESH_FREE) {
+              if (data.x < 0.f) {
                 data.st = voxel_state::kFree;
 //              std::cout << "[superegiht/node_it] frontier=> free , voxel " << x << " " << y << " "
 //                        << z << std::endl;
-              } else if (data.x >= THRESH_OCC) {
+              } else if (data.x > 0.f) {
                 data.st = voxel_state::kOccupied;
               }
+              // std::cout << "frontier update state " << data.st << std::endl;
               handler.set(data);
 
             } else if (handler.isFrontier(map_)) {
@@ -295,6 +332,7 @@ class node_iterator {
         }
       }
     } else {
+      std::cout << "delete node frontier" << std::endl;
       // data handler set parent_node ->value[idx];
       // TODO include when we consider frontier nodes at lower than leaf level
       const int level = keyops::level(morton);

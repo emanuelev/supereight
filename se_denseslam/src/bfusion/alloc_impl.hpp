@@ -35,7 +35,7 @@
 
 /**
  * Compute step size based on distance travelled along the ray
- * @param[in]  dist_travelled       Distance traveled from the surface boundary in 
+ * @param[in]  dist_travelled       Distance traveled from the surface boundary in
  *                                  the direction of the camera origin
  * @param[in]  hf_band              band = 6*mu !!! Unsure if this is supposed to be 3*mu (i.e half the band) !!!
  * @param[in]  voxel_size           Size of a voxel edge in [m]
@@ -56,10 +56,10 @@ static inline float compute_stepsize(const float dist_travelled,
   return new_stepsize;
 }
 
-/** 
- * Compute octree level for a node to be allocated given a step size. 
- * Given the current step size options (1x voxel size, 10x voxel size, 30x voxel_size), 
- * the octree level is either max_depth (1 voxel), max_depth - 4 (16 voxels) 
+/**
+ * Compute octree level for a node to be allocated given a step size.
+ * Given the current step size options (1x voxel size, 10x voxel size, 30x voxel_size),
+ * the octree level is either max_depth (1 voxel), max_depth - 4 (16 voxels)
  * or max_depth - 5 (32 voxels)
  * @param[in]  step                Step size of the raycast in [m]
  * @param[in]  max_depth           Maximum depth of the tree (i.e. log2(size))
@@ -74,7 +74,7 @@ static inline int step_to_depth(const float step,
 
 /**
  * brief Allocates nodes and voxel blocks for each value in the depth image.
- * The size of each node depends on the distance to the surface and is allocated 
+ * The size of each node depends on the distance to the surface and is allocated
  * using a ray casting algorithm.
  * @param[out] allocationList      List of morton codes describing the nodes to be allocated
  * @param[in]  reserved            Capacity of the allocationList
@@ -138,7 +138,7 @@ size_t buildOctantList(HashType*              allocation_list,
             (y + 0.5f) * depth, depth).homogeneous()).head<3>();
       // get stepping direction
       Eigen::Vector3f direction = (camera_pos - world_vertex).normalized();
-      const float sigma = se::math::clamp(noise_factor * se::math::sq(depth), 2 * voxel_size, 0.05f);
+      const float sigma = se::math::clamp(noise_factor * se::math::sq(depth), voxel_size, 2* voxel_size);
       const float band = 2 * sigma;
       // begin the allocation behind the projected 3D point/ max dist from camera
       const Eigen::Vector3f origin = world_vertex - (band * 0.5f) * direction;

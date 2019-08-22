@@ -65,8 +65,6 @@
 typedef SE_FIELD_TYPE FieldType;
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 
-typedef std::set<uint64_t > set3i;
-
 
 
 extern PerfStats Stats;
@@ -102,9 +100,9 @@ class DenseSLAMSystem {
 
   // intra-frame
   std::vector<float> reduction_output_;
-  std::vector<se::Image<float> > scaled_depth_;
-  std::vector<se::Image<Eigen::Vector3f> > input_vertex_;
-  std::vector<se::Image<Eigen::Vector3f> > input_normal_;
+  AlignedImagef  scaled_depth_;
+  AlignedImage3f input_vertex_;
+  AlignedImage3f   input_normal_;
   se::Image<float> float_depth_;
   std::vector<TrackData> tracking_result_;
   Eigen::Matrix4f old_pose_;
@@ -112,6 +110,7 @@ class DenseSLAMSystem {
 
   //exploration
   map3i frontier_map_;
+  map3i free_map_;
   bool init_position_cleared_ = false;
 
  public:
@@ -225,7 +224,6 @@ class DenseSLAMSystem {
 
   bool integration(const Eigen::Vector4f &k,
                    unsigned int integration_rate,
-                   unsigned int frontier_map_update_rate,
                    float mu,
                    unsigned int frame,
                    set3i *updated_blocks,
@@ -253,8 +251,8 @@ class DenseSLAMSystem {
  * \param cand_views
  * \return true if planning was performed
  */
-  bool planning(se::exploration::posevector &path, se::exploration::posevector &cand_views,
-      mapvec3i *free_blocks);
+  int planning(VecPose &path, VecPose &cand_views, mapvec3i *free_blocks);
+
 
   /*
    * TODO Implement this.

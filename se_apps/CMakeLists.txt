@@ -144,7 +144,7 @@ find_package(Qt5OpenGL)
 find_package(Qt5PrintSupport)
 
 # Set the common libraries to link.
-set(common_libraries stdc++ ${SUPEREIGHT_CORE_LIBS})
+set(common_libraries stdc++ ${SUPEREIGHT_CORE_LIBS} ${SUPEREIGHT_OMPL_LIBS})
 
 # Create the executables for each of the compiled se-denseslam libraries.
 foreach(lib_name ${SUPEREIGHT_DENSESLAM_LIBS})

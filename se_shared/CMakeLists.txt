@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
+find_package(ompl REQUIRED)
 # Define the library targets. Use generator expressions (BUILD_INTERFACE and
 # INSTALL_INTERFACE) to change the include directories when building the
 # library and when it is installed and used from another project.
@@ -32,6 +33,12 @@ install(
 # Populate the list of libraries that are part of se-shared.
 list(APPEND SUPEREIGHT_SHARED_LIBS lodepng)
 
+add_executable(ompl-demo src/StateSampling.cpp)
+
+target_include_directories(ompl-demo PUBLIC ${OMPL_INCLUDE_DIRS})
+target_link_libraries(ompl-demo
+        ${OMPL_LIBRARIES}
+)
 
 
 # Install the headers for all libraries in se-shared.
