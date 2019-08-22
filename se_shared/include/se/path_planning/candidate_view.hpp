@@ -1,6 +1,13 @@
-//
-// Created by anna on 27/06/19.
-//
+/**
+ * Information-theoretic exploration
+ *
+ * Copyright (C) 2019 Imperial College London.
+ * Copyright (C) 2019 ETH Zürich.
+ *
+ * @file candidate_view.hpp
+ * @author Anna Dai
+ * @date August 22, 2019
+ */
 
 #ifndef SUPEREIGHT_CANDIDATE_VIEW_HPP
 #define SUPEREIGHT_CANDIDATE_VIEW_HPP
