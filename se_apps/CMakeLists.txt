@@ -29,6 +29,14 @@ function(add_version lib_name libraries)
       "-DDO_OPENNI ${main_common_compile_flags}")
   endif(OPENNI2_FOUND)
 
+  add_executable(${lib_name}-voxelcounter
+  src/exploration_progress_evaluation.cpp
+  )
+  target_link_libraries(${lib_name}-voxelcounter
+    ${lib_name}
+    ${main_common_libraries})
+  target_include_directories(${lib_name}-voxelcounter PUBLIC
+    include)
   #  ------ BENCHMARK --------
   add_executable(${lib_name}-benchmark
     src/benchmark.cpp
