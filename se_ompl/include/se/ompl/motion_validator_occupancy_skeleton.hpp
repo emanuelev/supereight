@@ -75,7 +75,7 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
     // [m] to voxel
     Eigen::Vector3i start = OmplToEigen::convertState_v(*s1, dim_);
     Eigen::Vector3i ending = OmplToEigen::convertState_v(*s2, dim_);
-    // DLOG(INFO) << "start " << start.format(InLine) << "ending" << ending.format(InLine);
+    // LOG(INFO) << "start " << start.format(InLine) << "ending" << ending.format(InLine);
     if (pcc_->isSegmentFlightCorridorSkeletonFree(start, ending, 0, robot_safety_radius_)) {
       return true;
     }

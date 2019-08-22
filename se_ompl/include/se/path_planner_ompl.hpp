@@ -188,18 +188,12 @@ bool PathPlannerOmpl<FieldType>::setStartGoal(const Eigen::Vector3i &start_v,
     LOG(INFO) << "\033[1;31mStart at " << start_v.format(InLine) << " is occupied "
               << octree_ptr_->get(start_v).x << "\033[0m";
 
-    //LOG(ERROR) << "Start is occupied";
-    // start_end_occupied_ = true;
-    // return false;
   }
 
   if (!pcc_->isSphereSkeletonFree(goal_v, safety_radius_v_)) {
     LOG(INFO) << "\033[1;31mGoal at " << goal_v.format(InLine) << " is occupied "
               << octree_ptr_->get(goal_v).x << "\033[0m";
 
-    //LOG(ERROR) << "Goal is occupied";
-    // start_end_occupied_ = true;
-    // return false;
   }
   // Set the start and goal states
   ob::ScopedState<> start_ompl(ss_->getSpaceInformation());
@@ -352,7 +346,7 @@ int PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
         LOG(ERROR) << "No start vertices in RRT!";
         return -1;
       } else {
-        LOG(INFO) << "planner data received";
+        DLOG(INFO) << "planner data received";
 
       }
       ompl_failed_ = true;
@@ -491,7 +485,9 @@ VecPose PathPlannerOmpl<FieldType>::getPathSegments_m() {
 
 template<typename FieldType>
 void PathPlannerOmpl<FieldType>::setInformedRrtStar() {
-  ss_->setPlanner(aligned_shared<og::InformedRRTstar>(ss_->getSpaceInformation()));
+  std::shared_ptr<og::InformedRRTstar> planner = aligned_shared<og::InformedRRTstar>(ss_->getSpaceInformation());
+  planner->setGoalBias(0.08);
+  ss_->setPlanner(planner);
 }
 
 template<typename FieldType>

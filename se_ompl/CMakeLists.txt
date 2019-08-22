@@ -17,7 +17,6 @@ cmake_minimum_required(VERSION 3.10)
 
 
 add_library(se-vs STATIC
-        src/volume_shifter.cpp
         src/utils/timing.cpp)
 
 target_link_libraries(se-vs  PUBLIC

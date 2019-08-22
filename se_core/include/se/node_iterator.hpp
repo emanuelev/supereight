@@ -139,7 +139,7 @@ class node_iterator {
           for (int x = blockCoord(0); x < xlast; ++x) {
             const Eigen::Vector3i vox{x, y, z};
             value = block->data(vox);
-            if (value.st == voxel_state::kFree) {
+            if (value.x < 0.f) {
               freeVoxels.push_back(vox);
             }
           }
@@ -314,14 +314,12 @@ class node_iterator {
             if (data.st == voxel_state::kFrontier && !handler.isFrontier(map_)) {
 //            std::cout << " [supereight/node it] voxel is a frontier" << std::endl;
               // check for the curr voxel if it a Frontier / has an unknown voxel next to it
-              if (data.x <= THRESH_FREE) {
+              if (data.x < 0.f) {
                 data.st = voxel_state::kFree;
 //              std::cout << "[superegiht/node_it] frontier=> free , voxel " << x << " " << y << " "
 //                        << z << std::endl;
-              } else if (data.x >= THRESH_OCC) {
+              } else if (data.x > 0.f) {
                 data.st = voxel_state::kOccupied;
-              } else {
-                data.st = voxel_state::kUnknown;
               }
               // std::cout << "frontier update state " << data.st << std::endl;
               handler.set(data);
