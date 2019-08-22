@@ -28,7 +28,6 @@
 #include "se/utils/math_utils.h"
 #include "se/config.h"
 #include "se/utils/eigen_utils.h"
-#include "collision_checker.hpp"
 #include "exploration_utils.hpp"
 
 #include "se/path_planner_ompl.hpp"
@@ -59,8 +58,6 @@ class CandidateView {
                 const Eigen::Matrix4f &curr_pose,
                 const float step);
 
-  Eigen::Vector3i getOffsetCandidate(const Eigen::Vector3i &cand_v,
-                                     const VecVec3i &frontier_voxels);
   void getCandidateViews(const map3i &frontier_blocks_map);
 
   void printFaceVoxels(const Eigen::Vector3i &voxel);
@@ -90,7 +87,7 @@ class CandidateView {
 
   int getExplorationStatus() const { return exploration_status_; }
 
-  float getTargetIG() const {return ig_target_;}
+  float getTargetIG() const { return ig_target_; }
 
   VecCandidate candidates_;
   Candidate curr_pose_;
@@ -135,14 +132,14 @@ CandidateView<T>::CandidateView(const Volume<T> &volume,
     exploration_status_(0),
     num_views_(planning_config.num_cand_views) {
 
-  curr_pose_.pose =getCurrPose(curr_pose, res_);
+  curr_pose_.pose = getCurrPose(curr_pose, res_);
   curr_pose_.path.push_back(curr_pose_.pose);
   curr_pose_.path_length = 0.f;
   pose_ = curr_pose_.pose;
   int n_col = planning_config.fov_hor * 0.75 / planning_config.dphi;
   int n_row = planning_config.fov_hor / planning_config.dtheta;
   ig_total_ = n_col * n_row * (farPlane / step) * getEntropy(0);
-  ig_target_ = n_col * n_row * (farPlane / step) * getEntropy(log2(0.02 / (1.f - 0.02)));
+  ig_target_ = n_col * n_row * (farPlane / step) * getEntropy(log2(0.1 / (1.f - 0.1)));
   // std::cout << "ig total " << ig_total_ << " ig target " << ig_target_ << std::endl;
   candidates_.resize(num_views_);
 }
@@ -165,115 +162,6 @@ void CandidateView<T>::printFaceVoxels(const Eigen::Vector3i &_voxel) {
     std::cout << volume_._map_get->get(face_voxel).st << " ";
   }
   std::cout << std::endl;
-
-}
-/**
- * offsets the candidate view by a pre-determined distance from the frontier surface and checks
- * if the sphere is collision free
- * @param cand_v [vx coord] position
- * @param frontier_voxels  vector with frontier voxels
- * @return candidate views in voxel coord global
- */
-template<typename T>
-Eigen::Vector3i CandidateView<T>::getOffsetCandidate(const Eigen::Vector3i &cand_v,
-                                                     const VecVec3i &frontier_voxels) {
-  Eigen::Vector3i offset_cand_v(0, 0, 0);
-  bool is_valid = false;
-  CollisionCheck<T> collision_check(volume_, planning_config_, res_);
-  // curr res 24m/128 vox = 0.1875 m/vx
-
-  int offset_v = static_cast<int>(planning_config_.robot_safety_radius / res_) * 1.5;
-  // fit plane through frontier voxels in the block
-// source https://www.ilikebigbits.com/2017_09_25_plane_from_points_2.html
-// https://www.ilikebigbits.com/2015_03_04_plane_from_points.html
-  const float num_points = frontier_voxels.size();
-  if (num_points < 3) return Eigen::Vector3i(0, 0, 0);
-  Eigen::Vector3i sum(0, 0, 0);
-  for (auto p : frontier_voxels) {
-    sum += p;
-  }
-  Eigen::Vector3f centroid = sum.cast<float>() * (1.0f / num_points);
-  // calculate full 3x3 covariance matrix, excluding symmetries
-  // relative around the centroid
-  float xx = 0.0f, xy = 0.0f, xz = 0.0f, yy = 0.0f, yz = 0.0f, zz = 0.0f;
-  for (auto p : frontier_voxels) {
-    Eigen::Vector3f dist = p.cast<float>() - centroid;
-    xx += dist.x() * dist.x();
-    xy += dist.x() * dist.y();
-    xz += dist.x() * dist.z();
-    yy += dist.y() * dist.y();
-    yz += dist.y() * dist.z();
-    zz += dist.z() * dist.z();
-  }
-  xx /= num_points;
-  xy /= num_points;
-  xz /= num_points;
-  yy /= num_points;
-  yz /= num_points;
-  zz /= num_points;
-
-  float det_x = yy * zz - yz * yz;
-  float det_y = xx * zz - xz * xz;
-  float det_z = xx * yy - xy * xy;
-
-  float max_det = std::max({det_x, det_y, det_z});
-
-  if (max_det <= 0.0f) {
-    return Eigen::Vector3i(0, 0, 0);
-  }
-  // find normal
-  Eigen::Vector3f normal;
-  if (max_det == det_x) {
-    normal.x() = det_x;
-    normal.y() = xz * yz - xy * zz;
-    normal.z() = xy * yz - xz * yy;
-  } else if (max_det == det_y) {
-
-    normal.x() = xz * yz - xy * zz;
-    normal.y() = det_y;
-    normal.z() = xy * yz - xz * xx;
-  } else if (max_det == det_z) {
-
-    normal.x() = xz * yz - xy * yy;
-    normal.y() = xy * xz - yz * xx;
-    normal.z() = det_z;
-  }
-  normal = normal.normalized();
-
-  // offset candidate
-  offset_cand_v.x() = ceil(normal.x() * offset_v);
-  offset_cand_v.y() = ceil(normal.y() * offset_v);
-  offset_cand_v.z() = ceil(normal.z() * offset_v);
-  offset_cand_v = cand_v + offset_cand_v.cast<int>();
-
-//  printFaceVoxels(volume_, offset_cand_v);
-
-  if (volume_._map_index->get(offset_cand_v).x > 0.0f) {
-
-    offset_cand_v.x() = ceil(-normal.x() * offset_v);
-    offset_cand_v.y() = ceil(-normal.y() * offset_v);
-    offset_cand_v.z() = ceil(-normal.z() * offset_v);
-    offset_cand_v = cand_v + offset_cand_v.cast<int>();
-//    printFaceVoxels(volume_, offset_cand_v);
-    if (volume_._map_index->get(offset_cand_v).x <= 0.0f) {
-      is_valid = true;
-    }
-  } else {
-    is_valid = true;
-  }
-
-  if (is_valid) {
-    bool is_free = pcc_->isSphereSkeletonFree(offset_cand_v, static_cast<int>(
-        planning_config_.robot_safety_radius / res_));
-    if (is_free == 1) {
-      return offset_cand_v;
-    } else {
-      return Eigen::Vector3i(0, 0, 0);
-    }
-  } else {
-// not a valid view or sphere is not collision free
-    return Eigen::Vector3i(0, 0, 0);
-  }
 
 }
 
@@ -332,15 +220,17 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
                                                                    volume_._map_index->max_level())];
 
     }
+    bool is_free = pcc_->isSphereSkeletonFreeCand(candidate_frontier_voxel, static_cast<int>(
+        planning_config_.robot_safety_radius / res_));
+    if (is_free == 1) {
+      candidates_[i].pose.p = candidate_frontier_voxel.cast<float>();
 
-    // offset the candidate frontier voxel
-    Eigen::Vector3i cand_view_v = getOffsetCandidate(candidate_frontier_voxel, frontier_voxelblock);
-
-    if (cand_view_v != Eigen::Vector3i(0, 0, 0)) {
-      candidates_[i].pose.p = cand_view_v.cast<float>();
+    } else {
+      candidates_[i].pose.p = Eigen::Vector3f(0, 0, 0);
     }
+    candidates_[i].pose.p = candidate_frontier_voxel.cast<float>();
+    DLOG(INFO) << "Cand voxel " << candidate_frontier_voxel.format(InLine);
   }
-
 }
 
 template<typename T>
@@ -543,8 +433,9 @@ void CandidateView<T>::calculateUtility(Candidate &candidate, const float max_ya
 
   candidate.utility = candidate.information_gain / (t_yaw + t_path);
 
-  LOG(INFO) <<"Cand coord" << candidate.pose.p.format(InLine)<< "ig " << candidate.information_gain << " t_yaw " << t_yaw << " t_path "
-            << t_path << " utility " << candidate.utility ;
+  DLOG(INFO) << "Cand coord" << candidate.pose.p.format(InLine) << "ig "
+             << candidate.information_gain << " t_yaw " << t_yaw << " t_path " << t_path
+             << " utility " << candidate.utility;
 }
 /**
  * finds the best candidate based on information gain
@@ -579,12 +470,12 @@ int CandidateView<T>::getBestCandidate() {
       cand_counter++;
     }
   }
-    // highest utility in the beginning
-    // TODO prune invalid ones after sorting
+  // highest utility in the beginning
+  // TODO prune invalid ones after sorting
 
   std::sort(candidates_.begin(),
-    candidates_.end(),
-    [](const auto &a, const auto &b) { return (a.utility > b.utility); });
+            candidates_.end(),
+            [](const auto &a, const auto &b) { return (a.utility > b.utility); });
   // for(const auto& cand : candidates_){
   //   LOG(INFO)<< " cand path length " << cand.path_length ;
   // }
@@ -600,10 +491,10 @@ int CandidateView<T>::getBestCandidate() {
 
 template<typename T>
 VecPose CandidateView<T>::getFinalPath(const float max_yaw_rate, const Candidate &candidate) {
-
+  float num_yaws = candidate.path.size();
   VecPose path;
   VecPose yaw_path = getYawPath(pose_, candidate.pose, max_yaw_rate);
-  LOG(INFO) << "candidate path size " << candidate.path.size();
+  DLOG(INFO) << "candidate path size " << candidate.path.size();
   if (yaw_path.size() >= candidate.path.size()) {
 
     for (int i = 0; i < yaw_path.size(); i++) {
@@ -638,12 +529,12 @@ VecPose CandidateView<T>::getYawPath(const pose3D &start,
   pose3D pose_tmp;
 //  path.push_back(start);
   float yaw_diff = toEulerAngles(goal.q).yaw - toEulerAngles(start.q).yaw;
-  LOG(INFO) << "[interpolateYaw] yaw diff " << yaw_diff ;
+  // LOG(INFO) << "[interpolateYaw] yaw diff " << yaw_diff ;
   wrapYawRad(yaw_diff);
- LOG(INFO) << "[interpolateYaw] yaw diff " << yaw_diff ;
+  // LOG(INFO) << "[interpolateYaw] yaw diff " << yaw_diff ;
   // interpolate yaw
   if (yaw_diff >= 0) {
-    for (float dyaw = 0.0f; dyaw < yaw_diff; dyaw += max_yaw_rate ) {
+    for (float dyaw = 0.0f; dyaw < yaw_diff; dyaw += max_yaw_rate) {
       pose_tmp = goal;
       pose_tmp.q = toQuaternion(toEulerAngles(start.q).yaw + dyaw, 0.f, 0.f);
       pose_tmp.q.normalize();
@@ -652,7 +543,7 @@ VecPose CandidateView<T>::getYawPath(const pose3D &start,
     }
   } else {
 
-    for (float dyaw = 0.0f; dyaw > yaw_diff; dyaw -= max_yaw_rate ) {
+    for (float dyaw = 0.0f; dyaw > yaw_diff; dyaw -= max_yaw_rate) {
       pose_tmp = goal;
       pose_tmp.q = toQuaternion(toEulerAngles(start.q).yaw + dyaw, 0.f, 0.f);
       pose_tmp.q.normalize();
@@ -677,8 +568,8 @@ bool CandidateView<T>::addPathSegments(const float sampling_dist, const int idx)
     return false;
   }
 
-    VecPose path_out;
-      for (int i = 1; i < candidates_[idx].path.size(); i++) {
+  VecPose path_out;
+  for (int i = 1; i < candidates_[idx].path.size(); i++) {
 
     LOG(INFO) << "segment start " << candidates_[idx].path[i - 1].p.format(InLine) << " end "
               << candidates_[idx].path[i].p.format(InLine);
@@ -690,13 +581,19 @@ bool CandidateView<T>::addPathSegments(const float sampling_dist, const int idx)
     for (float t = sampling_dist_v; t < dist; t += sampling_dist_v) {
       Eigen::Vector3i
           intermediate_point = (candidates_[idx].path[i - 1].p + dir * t).template cast<int>();
-      if (!pcc_->isSphereSkeletonFree(intermediate_point, static_cast<int>(
-          planning_config_.robot_safety_radius / res_))) {
-        LOG(WARNING) << "Path not free at " << intermediate_point.format(InLine);
-        candidates_[idx].path.clear();
-        candidates_[idx].path = path_out;
-        return false;
-      }
+      Eigen::Vector3f alternative_point;
+      // if (!pcc_->isSphereSkeletonFree(intermediate_point, static_cast<int>(
+      //     planning_config_.robot_safety_radius / res_), alternative_point )) {
+      //      candidates_[idx].pose.p = alternative_point;
+      //   LOG(WARNING) << "Path not free at " << intermediate_point.format(InLine) << " free alternative "
+      //   << alternative_point.format(InLine);
+      //    getViewInformationGain(candidates_[idx]) ;
+      //    pose3D tmp(alternative_point.cast<float>(), {1.0, 0.0, 0.0, 0.0});
+      //    path_out.push_back(tmp);
+      //   candidates_[idx].path.clear();
+      //   candidates_[idx].path = path_out;
+      //   return false;
+      // }
       pose3D tmp(intermediate_point.cast<float>(), {1.0, 0.0, 0.0, 0.0});
       LOG(INFO) << "intermediate_point " << intermediate_point.format(InLine);
       path_out.push_back(tmp);
@@ -740,28 +637,26 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
 
   auto collision_checker_v = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
   // auto path_planner_ompl_ptr =
-      // aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker_v, planning_config);
-
+  // aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker_v, planning_config);
+  LOG(INFO) << "frontier map size " << frontier_map.size();
   // Candidate view generation
   CandidateView<T>
       candidate_view(volume, planning_config, collision_checker_v, res, config, pose, step);
   candidate_view.getCandidateViews(frontier_map);
 
-  candidate_view.calculateCandidateViewGain();
-
   pose3D start = getCurrPose(pose, res);
   bool valid_path = false;
 
   // if (size > 1) {
-  #pragma omp parallel for
+#pragma omp parallel for
   for (int i = 0; i < planning_config.num_cand_views; i++) {
     if (candidate_view.candidates_[i].pose.p != Eigen::Vector3f(0, 0, 0)) {
-  auto collision_checker = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
-  auto path_planner_ompl_ptr =
-      aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker, planning_config);
+      auto collision_checker = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
+      auto path_planner_ompl_ptr =
+          aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker, planning_config);
       // LOG(INFO) << "Candidate " << i << " goal coord " << cand_views[i].p.format(InLine);
-      LOG(INFO) << "Candidate " << i << " start " << start.p.format(InLine) << " goal "
-                << candidate_view.candidates_[i].pose.p.format(InLine);
+      DLOG(INFO) << "Candidate " << i << " start " << start.p.format(InLine) << " goal "
+                 << candidate_view.candidates_[i].pose.p.format(InLine);
 
       bool setup_planner = path_planner_ompl_ptr->setupPlanner(free_map);
       DLOG(INFO) << "setup planner successful " << setup_planner;
@@ -786,25 +681,34 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
 
         // all_path[i] = vec;
         candidate_view.candidates_[i].path = vec;
+        if (path_planned == 2) {
+          DLOG(INFO) << "cand changed from " << candidate_view.candidates_[i].pose.p.format(InLine)
+                     << " to "
+                     << candidate_view.candidates_[i].path[candidate_view.candidates_[i].path.size()
+                         - 1].p.format(InLine);
+          candidate_view.candidates_[i].pose.p =
+              candidate_view.candidates_[i].path[candidate_view.candidates_[i].path.size() - 1].p;
+        }
         // DLOG(INFO) << "seg length " << all_path[i].size() << std::endl;
       }
     }
   }
-//
+
+  candidate_view.calculateCandidateViewGain();
   int best_cand_idx = -1;
   bool use_curr_pose = true;
   bool force_travelling = candidate_view.curr_pose_.information_gain < candidate_view.getTargetIG();
   if (valid_path) {
     best_cand_idx = candidate_view.getBestCandidate();
     LOG(INFO) << "[se/candview] best candidate is "
-              << candidate_view.candidates_[best_cand_idx].pose.p.format(InLine) ;
+              << candidate_view.candidates_[best_cand_idx].pose.p.format(InLine);
     // std::cout << " path length of best cand "
     //           << candidate_view.candidates_[best_cand_idx].path.size() << std::endl;
     use_curr_pose =
         candidate_view.candidates_[best_cand_idx].utility < candidate_view.curr_pose_.utility;
-    LOG(INFO) << "force travelling "<< force_travelling << " use curr pose " << use_curr_pose << " candidate utility "
-              << candidate_view.candidates_[best_cand_idx].utility << " curr pose utility "
-              << candidate_view.curr_pose_.utility;
+    LOG(INFO) << "force travelling " << force_travelling << " use curr pose " << use_curr_pose
+              << " candidate utility " << candidate_view.candidates_[best_cand_idx].utility
+              << " curr pose utility " << candidate_view.curr_pose_.utility;
 
   }
   // }
@@ -818,7 +722,16 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
 
   VecPose path_tmp;
   if (valid_path && (!use_curr_pose || force_travelling)) {
-    candidate_view.addPathSegments(planning_config.robot_safety_radius * 1.5, best_cand_idx);
+    // if(candidate_view.candidates_[best_cand_idx].planning_solution_status ==2){
+    //   candidate_view.candidates_[best_cand_idx].pose.p =
+    //   candidate_view.candidates_[best_cand_idx].path[candidate_view.candidates_[best_cand_idx].path.size()-1].p;
+    //   // LOG(INFO)<<"yaw before "<< candidate_view.candidates_[best_cand_idx].pose.q.w() << " "<< candidate_view.candidates_[best_cand_idx].pose.p.format(InLine);
+
+    //   candidate_view.getViewInformationGain(candidate_view.candidates_[best_cand_idx]) ;
+    //   // LOG(INFO)<<"yaw after "<< candidate_view.candidates_[best_cand_idx].pose.q.w() << " "<< candidate_view.candidates_[best_cand_idx].pose.p.format(InLine);
+
+    // }
+    // candidate_view.addPathSegments(planning_config.robot_safety_radius * 1.5, best_cand_idx);
     path_tmp = candidate_view.getFinalPath(0.52, candidate_view.candidates_[best_cand_idx]);
   } else {
     path_tmp = candidate_view.getFinalPath(0.52, candidate_view.curr_pose_);
@@ -831,8 +744,8 @@ void getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   }
 
   for (const auto &pose : path_tmp) {
-    std::cout << "cand view " << (pose.p * res).format(InLine) << " " << pose.q.w() << " "
-              << pose.q.vec().format(InLine) << std::endl;
+    DLOG(INFO) << "cand view " << (pose.p * res).format(InLine) << " " << pose.q.w() << " "
+               << pose.q.vec().format(InLine);
     path.push_back(pose);
   }
 
