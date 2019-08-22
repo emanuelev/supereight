@@ -500,10 +500,9 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
   return true;
 }
 
-bool DenseSLAMSystem::planning(VecPose &path,
+int DenseSLAMSystem::planning(VecPose &path,
                                VecPose &cand_views,
-                               mapvec3i *free_blocks,
-                               int *exploration_done) {
+                               mapvec3i *free_blocks) {
   se::exploration::initNewPosition(pose_ * Tbc_,
                                    planning_config_,
                                    free_blocks,
@@ -515,7 +514,7 @@ bool DenseSLAMSystem::planning(VecPose &path,
   // LOG(INFO) << "Planning free_map_  size  " << free_map_.size();
 
   float step = volume_dimension_.x() / volume_resolution_.x();
-  se::exploration::getExplorationPath(discrete_vol_ptr_,
+  int exploration_done =  se::exploration::getExplorationPath(discrete_vol_ptr_,
                                       volume_,
                                       free_map_,
                                       frontier_map_,
@@ -525,8 +524,8 @@ bool DenseSLAMSystem::planning(VecPose &path,
                                       config_,
                                       pose_ * Tbc_,
                                       path,
-                                      cand_views,
-                                      exploration_done);
+                                      cand_views);
+  return exploration_done;
 //  std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
 }
 

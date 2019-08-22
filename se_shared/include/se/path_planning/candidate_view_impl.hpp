@@ -85,8 +85,8 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
                                                                    volume_._map_index->max_level())];
 
     }
-    bool is_free = pcc_->isSphereSkeletonFree(candidate_frontier_voxel, static_cast<int>(
-        planning_config_.robot_safety_radius / res_), 1);
+    bool is_free = pcc_->isSphereSkeletonFreeCand(candidate_frontier_voxel, static_cast<int>(
+        planning_config_.robot_safety_radius / res_));
     if (is_free == 1) {
       candidates_[i].pose.p = candidate_frontier_voxel.cast<float>();
 

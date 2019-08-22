@@ -56,7 +56,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "neighbors/neighbor_gather.hpp"
 #include "neighbors/voxel_abstraction.hpp"
 
-//typedef SE_FIELD_TYPE FieldType;
 namespace se {
 
 template<typename T>
@@ -72,7 +71,7 @@ template <typename T>
 class Octree {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  typedef std::shared_ptr<Octree> Ptr;
+  typedef std::shared_ptr<Octree> SPtr;
   typedef voxel_traits<T> traits_type;
   typedef typename traits_type::value_type value_type;
   value_type empty() const { return traits_type::empty(); }
