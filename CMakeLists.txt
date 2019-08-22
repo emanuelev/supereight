@@ -11,7 +11,8 @@ set(SUPEREIGHT_VERSION
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 # Compilation options.
-add_compile_options(-std=c++14 -march=native)
+set(CMAKE_CXX_STANDARD 14)
+add_compile_options(-march=native)
 add_definitions(-DEIGEN_MAX_ALIGN_BYTES=16)
 option(WITH_OPENMP "Compile with OpenMP" ON)
 
