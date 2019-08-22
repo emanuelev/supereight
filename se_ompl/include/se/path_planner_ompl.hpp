@@ -437,7 +437,7 @@ template<typename FieldType>
 void PathPlannerOmpl<FieldType>::setSpaceBoundaries_m() {
   ob::RealVectorBounds bounds(3);
   const float dim = octree_ptr_->voxelDim();
-  const float buffer_m = 0.5;
+  const float buffer_m = 0.;
   lower_bound_ = lower_bound_v_.cast<float>() * dim;
   upper_bound_ = upper_bound_v_.cast<float>() * dim;
   bounds.setLow(0, lower_bound_v_.x() * dim - buffer_m);
@@ -487,6 +487,8 @@ template<typename FieldType>
 void PathPlannerOmpl<FieldType>::setInformedRrtStar() {
   std::shared_ptr<og::InformedRRTstar> planner = aligned_shared<og::InformedRRTstar>(ss_->getSpaceInformation());
   planner->setGoalBias(0.08);
+  planner->setRange(2);
+  planner->setNumSamplingAttempts(50);
   ss_->setPlanner(planner);
 }
 

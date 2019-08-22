@@ -161,7 +161,7 @@ class node_iterator {
     if (!is_block) {
 
       // std::cout << "[se/nodeit] node " << free_voxel.format(InLine) << std::endl;
-      return true;
+      return false;
     } else {
       VoxelBlock<T> *block = static_cast< VoxelBlock<T> *> (node);
       const int xlast = blockCoord(0) + BLOCK_SIDE;
