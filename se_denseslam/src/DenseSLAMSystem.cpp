@@ -48,8 +48,6 @@
 #include "kfusion/alloc_impl.hpp"
 //#include "se/boundary_extraction.hpp"
 
-#include "se/ompl/prob_collision_checker.hpp"
-#include "se/utils/planning_parameter.hpp"
 #include "se/path_planner_ompl.hpp"
 PerfStats Stats;
 static bool print_kernel_timing = false;

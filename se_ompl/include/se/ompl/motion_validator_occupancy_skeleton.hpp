@@ -33,7 +33,6 @@
 
 #include "collision_checker_voxel.hpp"
 
-#include "se/occupancy_world.hpp"
 #include "se/utils/ompl_to_eigen.hpp"
 namespace ob = ompl::base;
 
