@@ -482,7 +482,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
       updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
       insertBlocksToMap(free_map_, free_blocks);
       // std::cout << "[se/denseslam] free_map_  size  " << free_map_.size() << std::endl;
-      // std::cout << "[se/denseslam] frontier_map_ size " << frontier_map_.size() << std::endl;
+      std::cout << "[se/denseslam] frontier_map_ size " << frontier_map_.size() << std::endl;
     }
 
     // if(frame % 15 == 0) {

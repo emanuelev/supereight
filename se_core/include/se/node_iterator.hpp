@@ -39,7 +39,7 @@ namespace se {
 /*! \brief Iterate through all the nodes (first Node and then VoxelBlock nodes)
  * of the Octree.
  */
-template <typename T>
+template<typename T>
 class node_iterator {
 
  public:
@@ -59,8 +59,8 @@ class node_iterator {
    * \return A pointer to the next node. Returns nullptr if all nodes have been
    * iterated through.
    */
-  Node<T> *  next() {
-    switch(state_) {
+  Node<T> *next() {
+    switch (state_) {
       case BRANCH_NODES:
         if (last < map_.nodes_buffer_.size()) {
           Node<T> *n = map_.nodes_buffer_[last++];
@@ -114,8 +114,8 @@ class node_iterator {
     }
     return occupiedVoxels;
   }
- // for rviz viauslization
-  vec3i getFreeVoxels( const uint64_t morton) {
+  // for rviz viauslization
+  vec3i getFreeVoxels(const uint64_t morton) {
     vec3i freeVoxels;
     freeVoxels.clear();
 
@@ -149,14 +149,10 @@ class node_iterator {
     return freeVoxels;
   }
 
-
 // for boundary check
   bool getFreeVoxel(const key_t morton, Eigen::Vector3i &free_voxel) {
 
-
     typename VoxelBlock<T>::value_type value;
-
-
 
     Node<T> *node = nullptr;
     bool is_block = false;
@@ -177,7 +173,7 @@ class node_iterator {
             const Eigen::Vector3i vox{x, y, z};
             value = block->data(vox);
             if (value.x < 0.f) {
-              free_voxel=vox;
+              free_voxel = vox;
               // std::cout << "[se/nodeit] block " << free_voxel.format(InLine) << std::endl;
               return true;
             }
@@ -207,7 +203,7 @@ class node_iterator {
 //          float prob = map_.get(x, y, z).x;
           value = block->data(vox);
 // TODO use state
-          if (value.x >= threshold) {
+          if (value.x > threshold) {
 #pragma omp critical
             occupiedVoxels.push_back(vox);
           }
@@ -324,7 +320,7 @@ class node_iterator {
 //                        << z << std::endl;
               } else if (data.x >= THRESH_OCC) {
                 data.st = voxel_state::kOccupied;
-              } else{
+              } else {
                 data.st = voxel_state::kUnknown;
               }
               // std::cout << "frontier update state " << data.st << std::endl;
@@ -338,7 +334,7 @@ class node_iterator {
         }
       }
     } else {
-      std::cout << "delete node frontier"<< std::endl;
+      std::cout << "delete node frontier" << std::endl;
       // data handler set parent_node ->value[idx];
       // TODO include when we consider frontier nodes at lower than leaf level
       const int level = keyops::level(morton);
