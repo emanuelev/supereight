@@ -1,6 +1,13 @@
-//
-// Created by anna on 12/06/19.
-//
+/**
+ * Information-theoretic exploration, OMPL Motion Validator Skeleton.
+ *
+ * Copyright (C) 2019 Imperial College London.
+ * Copyright (C) 2019 ETH Zürich.
+ *
+ * @file boundary_extraction.hpp
+ * @author Anna Dai
+ * @date August 22, 2019
+ */
 
 #ifndef SUPEREIGHT_BOUNDARY_EXTRACTION_HPP
 #define SUPEREIGHT_BOUNDARY_EXTRACTION_HPP
@@ -9,7 +16,6 @@
 #include <map>
 
 #include "continuous/volume_template.hpp"
-//#include "DenseSLAMSystem.h"
 #include <se/octree.hpp>
 #include <se/functors/data_handler.hpp>
 #include <se/node_iterator.hpp>
@@ -40,7 +46,6 @@ static inline void insertBlocksToMap(map3i &blocks_map, mapvec3i *blocks) {
 /**
  * check if past frontier voxels have been updated and update the std::map
  * [uint64_t morton_code, Eigen::Vector3i coord]
- * TODO how to use OMP
  * Issue map wide function
  */
 template<typename T>
@@ -77,6 +82,13 @@ void updateFrontierMap(const Volume<T> &volume,
 }
 
 // level at leaf level
+/**
+ * @brief get the boundaries from the free map
+ * @param octree_ptr_
+ * @param blocks_map   morton code of voxelblocks with free voxels
+ * @param lower_bound[out]
+ * @param upper_bound[out]
+ */
 template<typename T>
 static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree_ptr_,
                                     const map3i &blocks_map,
@@ -91,38 +103,38 @@ static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree
 
   key_t lower_bound_morton = it_beg->first;
   Eigen::Vector3i lower_block_coord = se::keyops::decode(lower_bound_morton);
-  bool valid_lower = node_it.getFreeVoxel(lower_bound_morton,lower_block_coord);
+  bool valid_lower = node_it.getFreeVoxel(lower_bound_morton, lower_block_coord);
 
   --it_end;
   key_t upper_bound_morton = it_end->first;
   Eigen::Vector3i upper_block_coord = se::keyops::decode(upper_bound_morton);
-  bool valid_upper = node_it.getFreeVoxel(upper_bound_morton,upper_block_coord);
+  bool valid_upper = node_it.getFreeVoxel(upper_bound_morton, upper_block_coord);
 
   // std::cout << "upper " << upper_block_coord.format(InLine) << " lower "<< lower_block_coord.format(InLine)
   // << std::endl;
-lower_bound =upper_block_coord;
-upper_bound = lower_block_coord;
+  lower_bound = upper_block_coord;
+  upper_bound = lower_block_coord;
   while (it_beg != it_end) {
     ++it_beg;
     lower_bound_morton = it_beg->first;
     lower_bound_tmp = se::keyops::decode(lower_bound_morton);
-    valid_lower = node_it.getFreeVoxel(lower_bound_morton,lower_bound_tmp);
+    valid_lower = node_it.getFreeVoxel(lower_bound_morton, lower_bound_tmp);
 
     --it_end;
     upper_bound_morton = it_end->first;
     upper_bound_tmp = se::keyops::decode(upper_bound_morton);
-    valid_upper = node_it.getFreeVoxel(upper_bound_morton,upper_bound_tmp);
-  // std::cout << "upper " << upper_bound_tmp.format(InLine) << " lower "<< lower_bound_tmp.format(InLine)
-  // << std::endl;
+    valid_upper = node_it.getFreeVoxel(upper_bound_morton, upper_bound_tmp);
+    // std::cout << "upper " << upper_bound_tmp.format(InLine) << " lower "<< lower_bound_tmp.format(InLine)
+    // << std::endl;
     if (lower_bound_tmp.norm() < lower_bound.norm() && valid_lower) {
       // std::cout << "lower_bound from " << lower_bound.format(InLine) << " to "
-                // << lower_bound_tmp.format(InLine) << std::endl;
+      // << lower_bound_tmp.format(InLine) << std::endl;
       lower_bound = lower_bound_tmp;
 
     }
     if (upper_bound_tmp.norm() > upper_bound.norm() && valid_upper) {
       // std::cout << "upper_bound from " << upper_bound.format(InLine) << " to "
-                // << upper_bound_tmp.format(InLine) << std::endl;
+      // << upper_bound_tmp.format(InLine) << std::endl;
       upper_bound = upper_bound_tmp;
     }
 
