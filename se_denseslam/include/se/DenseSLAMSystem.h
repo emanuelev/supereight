@@ -252,7 +252,7 @@ class DenseSLAMSystem {
  * \return true if planning was performed
  */
   int planning(VecPose &path, VecPose &cand_views, mapvec3i *free_blocks);
-      mapvec3i *free_blocks, int * exploration_done);
+
 
   /*
    * TODO Implement this.
