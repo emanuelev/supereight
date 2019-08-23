@@ -65,7 +65,7 @@ class CandidateView {
                 const Eigen::Matrix4f &curr_pose,
                 const float step);
 
-  void getCandidateViews(const map3i &frontier_blocks_map);
+  void getCandidateViews(const map3i &frontier_blocks_map, const int frontier_cluster_size);
 
   void printFaceVoxels(const Eigen::Vector3i &voxel);
 
@@ -73,7 +73,7 @@ class CandidateView {
                                                 const float tnear,
                                                 const float tfar,
                                                 const Eigen::Vector3f &origin);
-  void getViewInformationGain(Candidate &candidate);
+  float getViewInformationGain(pose3D &pose);
 
   void calculateCandidateViewGain();
 
@@ -95,6 +95,7 @@ class CandidateView {
   int getExplorationStatus() const { return exploration_status_; }
 
   float getTargetIG() const { return ig_target_; }
+  int getNumValidCandidates() const {return num_cands_;}
 
   VecCandidate candidates_;
   Candidate curr_pose_;
@@ -114,7 +115,8 @@ class CandidateView {
   float step_;
   int exploration_status_;
 
-  int num_views_;
+  int num_sampling_;
+  int num_cands_;
 
   std::shared_ptr<CollisionCheckerV<T> > pcc_ = nullptr;
 };
@@ -137,7 +139,8 @@ CandidateView<T>::CandidateView(const Volume<T> &volume,
     dphi_(planning_config.dphi),
     step_(step),
     exploration_status_(0),
-    num_views_(planning_config.num_cand_views) {
+    num_sampling_(planning_config.num_cand_views),
+    num_cands_(0) {
 
   curr_pose_.pose = getCurrPose(curr_pose, res_);
   curr_pose_.path.push_back(curr_pose_.pose);
@@ -148,7 +151,7 @@ CandidateView<T>::CandidateView(const Volume<T> &volume,
   ig_total_ = n_col * n_row * (farPlane / step) * getEntropy(0);
   ig_target_ = n_col * n_row * (farPlane / step) * getEntropy(log2(0.1 / (1.f - 0.1)));
   // std::cout << "ig total " << ig_total_ << " ig target " << ig_target_ << std::endl;
-  candidates_.resize(num_views_);
+  candidates_.resize(num_sampling_);
 }
 
 /**
@@ -188,13 +191,17 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   // Candidate view generation
   CandidateView<T>
       candidate_view(volume, planning_config, collision_checker_v, res, config, pose, step);
-  candidate_view.getCandidateViews(frontier_map);
+  int frontier_cluster_size = planning_config.frontier_cluster_size;
+  while(candidate_view.getNumValidCandidates()==0){
+  candidate_view.getCandidateViews(frontier_map, frontier_cluster_size);
+  frontier_cluster_size/=2;
+ }
 
   pose3D start = getCurrPose(pose, res);
   bool valid_path = false;
 
   // if (size > 1) {
-#pragma omp parallel for
+// #pragma omp parallel for
   for (int i = 0; i < planning_config.num_cand_views; i++) {
     if (candidate_view.candidates_[i].pose.p != Eigen::Vector3f(0, 0, 0)) {
       auto collision_checker = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
@@ -247,7 +254,7 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   if (valid_path) {
     best_cand_idx = candidate_view.getBestCandidate();
     LOG(INFO) << "[se/candview] best candidate is "
-              << candidate_view.candidates_[best_cand_idx].pose.p.format(InLine);
+              << (candidate_view.candidates_[best_cand_idx].pose.p *res).format(InLine);
     // std::cout << " path length of best cand "
     //           << candidate_view.candidates_[best_cand_idx].path.size() << std::endl;
     use_curr_pose =
@@ -263,7 +270,9 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
 
   VecPose path_tmp;
   if (valid_path && (!use_curr_pose || force_travelling)) {
-    path_tmp = candidate_view.getFinalPath(0.52, candidate_view.candidates_[best_cand_idx]);
+     candidate_view.addPathSegments(planning_config.robot_safety_radius*2.5 ,best_cand_idx);
+     path_tmp = candidate_view.candidates_[best_cand_idx].path;
+    // path_tmp = candidate_view.getFinalPath(0.52, candidate_view.candidates_[best_cand_idx]);
   } else {
     path_tmp = candidate_view.getFinalPath(0.52, candidate_view.curr_pose_);
   }

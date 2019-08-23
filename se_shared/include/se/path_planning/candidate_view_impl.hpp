@@ -37,7 +37,7 @@ void CandidateView<T>::printFaceVoxels(const Eigen::Vector3i &_voxel) {
  * @param frontier_blocks_map
  */
 template<typename T>
-void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
+void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map, const int frontier_cluster_size) {
 
   mapvec3i frontier_voxels_map;
   node_iterator<T> node_it(*(volume_._map_index));
@@ -58,13 +58,13 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
   std::uniform_int_distribution<int> distribution_block(0, frontier_blocks_map.size() - 1);
 
 #pragma omp parallel for
-  for (int i = 0; i < num_views_; i++) {
+  for (int i = 0; i < num_sampling_; i++) {
     auto it = frontier_voxels_map.begin();
 
     const int rand_num = distribution_block(generator);
     std::advance(it, rand_num);
     uint64_t rand_morton = it->first;
-    if (frontier_voxels_map[rand_morton].size() < planning_config_.frontier_cluster_size) {
+    if (frontier_voxels_map[rand_morton].size() < frontier_cluster_size) {
       continue;
     }
     std::uniform_int_distribution<int>
@@ -89,6 +89,7 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
         planning_config_.robot_safety_radius / res_));
     if (is_free == 1) {
       candidates_[i].pose.p = candidate_frontier_voxel.cast<float>();
+      num_cands_++;
 
     } else {
       candidates_[i].pose.p = Eigen::Vector3f(0, 0, 0);
@@ -99,7 +100,7 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map) {
 }
 
 template<typename T>
-void CandidateView<T>::getViewInformationGain(Candidate &candidate) {
+float CandidateView<T>::getViewInformationGain(pose3D &pose) {
   float gain = 0.0;
   const float r_max = farPlane; // equal to far plane
   // const float r_min = 0.01; // depth camera r min [m]  gazebo model
@@ -119,7 +120,7 @@ void CandidateView<T>::getViewInformationGain(Candidate &candidate) {
   gain_per_yaw.empty();
   Eigen::Vector3f vec(0.0, 0.0, 0.0); //[m]
   Eigen::Vector3f dir(0.0, 0.0, 0.0);// [m]
-  Eigen::Vector3f cand_view_m = candidate.pose.p * res_;
+  Eigen::Vector3f cand_view_m = pose.p * res_;
 
   // sparse ray cast every x0 deg
   int row = 0;
@@ -179,8 +180,8 @@ void CandidateView<T>::getViewInformationGain(Candidate &candidate) {
   }
 
   float yaw_rad = M_PI * best_yaw / 180.f;
-  candidate.pose.q = toQuaternion(yaw_rad, 0.0, 0.0);
-  candidate.information_gain = best_yaw_gain;
+  pose.q = toQuaternion(yaw_rad, 0.0, 0.0);
+  return best_yaw_gain;
 //    std::cout << "[se/candview] gain_matrix \n" << gain_matrix.transpose() << std::endl;
 //    std::cout << "[se/candview] depth_matrix \n" << depth_matrix.transpose() << std::endl;
 //    std::cout << "[se/candview] for cand " << cand_view.format(InLine) << " best theta angle is "
@@ -274,15 +275,17 @@ float CandidateView<T>::getIGWeight_tanh(const float tanh_range,
 template<typename T>
 void CandidateView<T>::calculateCandidateViewGain() {
 #pragma omp parallel for
-  for (int i = 0; i < num_views_; i++) {
+  for (int i = 0; i < num_sampling_; i++) {
 
     if (candidates_[i].pose.p == Eigen::Vector3f(0, 0, 0)) {
       // cand_counter++;
       continue;
     }
-    getViewInformationGain(candidates_[i]);
+    float information_gain= getViewInformationGain(candidates_[i].pose);
+    candidates_[i].information_gain = information_gain;
   }
-  getViewInformationGain(curr_pose_);
+  float information_gain =getViewInformationGain(curr_pose_.pose);
+  curr_pose_.information_gain = information_gain;
 
 }
 template<typename T>
@@ -325,7 +328,7 @@ int CandidateView<T>::getBestCandidate() {
 
   // int views_to_evaluate = force_travelling ? planning_config_.num_cand_views : planning_config_.num_cand_views + 1;
 #pragma omp parallel for
-  for (int i = 0; i < num_views_; i++) {
+  for (int i = 0; i < num_sampling_; i++) {
     if (candidates_[i].pose.p != Eigen::Vector3f(0, 0, 0)
         && candidates_[i].planning_solution_status >= 0) {
 
@@ -432,24 +435,43 @@ bool CandidateView<T>::addPathSegments(const float sampling_dist, const int idx)
     LOG(WARNING) << "Path size 0";
     return false;
   }
-
+  // float planning_dist_max = 2.5f; // [m]
+  // float curr_planned_dist = 0.f;
   VecPose path_out;
   for (int i = 1; i < candidates_[idx].path.size(); i++) {
+    // height restriction
+    if (candidates_[idx].path[i].p.z()*res_ < planning_config_.height_min + 0.2){
+      candidates_[idx].path[i].p.z() += 0.3 / res_;
+    }
+    if (candidates_[idx].path[i].p.z()*res_ > planning_config_.height_max - 0.2){
+      candidates_[idx].path[i].p.z() -= 0.4 / res_;
+    }
 
     LOG(INFO) << "segment start " << candidates_[idx].path[i - 1].p.format(InLine) << " end "
               << candidates_[idx].path[i].p.format(InLine);
+
     path_out.push_back(candidates_[idx].path[i - 1]);
     float dist = (candidates_[idx].path[i].p - candidates_[idx].path[i - 1].p).norm();
     Eigen::Vector3f
         dir = (candidates_[idx].path[i].p - candidates_[idx].path[i - 1].p).normalized();
-
-    for (float t = sampling_dist_v; t < dist; t += sampling_dist_v) {
+    getViewInformationGain(candidates_[idx].path[i]);
+    float yaw_diff = toEulerAngles(candidates_[idx].path[i].q).yaw - toEulerAngles(candidates_[idx].path[i-1].q).yaw;
+    wrapYawRad(yaw_diff);
+    float yaw_rate =  yaw_diff/(dist/sampling_dist_v);
+    LOG(INFO) << "yaw_ diff "<< yaw_diff << " num interpolation " << dist/sampling_dist_v << " yaw rate" << yaw_rate;
+    for (float t = sampling_dist_v, a = yaw_rate; t < dist, std::abs(a)< std::abs(yaw_diff); t += sampling_dist_v, a += yaw_rate) {
       Eigen::Vector3i
           intermediate_point = (candidates_[idx].path[i - 1].p + dir * t).template cast<int>();
-      pose3D tmp(intermediate_point.cast<float>(), {1.0, 0.0, 0.0, 0.0});
+      Eigen::Quaternionf quat = toQuaternion(toEulerAngles(candidates_[idx].path[i - 1].q).yaw + a, 0.f, 0.f);
+      pose3D tmp(intermediate_point.cast<float>(), quat);
       LOG(INFO) << "intermediate_point " << intermediate_point.format(InLine);
       path_out.push_back(tmp);
-
+      // curr_planned_dist += sampling_dist;
+      // if(curr_planned_dist>=planning_dist_max){
+      //   candidates_[idx].path.clear();
+      //   candidates_[idx].path = path_out;
+      //   return true;
+      // }
     }
 
   }
