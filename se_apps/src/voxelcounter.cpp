@@ -11,6 +11,10 @@
  */
 
 
+// TODO
+// Compute volume using voxel/Node side length.
+
+#include <cstdio>
 #include <iostream>
 #include <set>
 #include <string>
@@ -35,6 +39,16 @@ std::string parse_arguments(int argc, char** argv) {
     default:
       std::cout << "Usage: " << argv[0] << " FILENAME\n";
       exit(EXIT_FAILURE);
+  }
+
+  // Test if the file exists.
+  FILE* fp = fopen(filename.c_str(), "r");
+  if (fp == nullptr) {
+    std::cout << "Error: file " << filename
+        << " does not exist or is not accessible\n";
+    exit(EXIT_FAILURE);
+  } else {
+    fclose(fp);
   }
 
   return filename;
