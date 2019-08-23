@@ -358,35 +358,61 @@ int CandidateView<T>::getBestCandidate() {
 }
 
 template<typename T>
-VecPose CandidateView<T>::getFinalPath(const float max_yaw_rate, const Candidate &candidate) {
-  float num_yaws = candidate.path.size();
+VecPose CandidateView<T>::getFinalPath(const float max_yaw_rate,  Candidate &candidate ,
+  const float sampling_dist) {
+
   VecPose path;
-  VecPose yaw_path = getYawPath(pose_, candidate.pose, max_yaw_rate);
-  DLOG(INFO) << "candidate path size " << candidate.path.size();
-  if (yaw_path.size() >= candidate.path.size()) {
+// first add points between paths
+  if(candidate.path.size()>2){
+    for (int i = 1; i < candidate.path.size(); i++) {
 
-    for (int i = 0; i < yaw_path.size(); i++) {
-      if (i < candidate.path.size()) {
-        yaw_path[i].p = candidate.path[i].p;
-      } else {
-        yaw_path[i].p = candidate.path[candidate.path.size() - 1].p;
+    LOG(INFO) << "segment start " << candidate.path[i - 1].p.format(InLine) << " end "
+              << candidate.path[i].p.format(InLine);
+      VecPose path_tmp = addPathSegments(sampling_dist ,candidate.path[i-1], candidate.path[i] );
+      getViewInformationGain(candidate.path[i]);
+      VecPose yaw_path = getYawPath(candidate.path[i-1], candidate.path[i], max_yaw_rate);
+      VecPose path_fused = fusePath(path_tmp, yaw_path);
+      // push back the new path
+      for(const auto& pose : path_fused){
+        path.push_back(pose);
       }
     }
-    return yaw_path;
-  } else {
-    path = candidate.path;
-    for (int i = 0; i < path.size(); i++) {
-      if (i < yaw_path.size()) {
-        path[i].q = yaw_path[i].q;
-      } else {
-        path[i].q = yaw_path[yaw_path.size() - 1].q;
-      }
-    }
+  }else{
+    VecPose yaw_path = getYawPath(pose_, candidate.pose, max_yaw_rate);
+    VecPose path_tmp = candidate.path;
+    path = fusePath(path_tmp, yaw_path);
   }
-
 
 //  std::cout << "[interpolateYaw] path size" << path.size() << std::endl;
   return path;
+}
+
+template<typename T>
+VecPose CandidateView<T>::fusePath( VecPose &path_tmp,  VecPose &yaw_path){
+  VecPose path_out;
+    if (yaw_path.size() >= path_tmp.size()) {
+
+    for (int i = 0; i < yaw_path.size(); i++) {
+      if (i < path_tmp.size()) {
+        yaw_path[i].p = path_tmp[i].p;
+      } else {
+        yaw_path[i].p = path_tmp[path_tmp.size() - 1].p;
+      }
+    }
+
+    path_out= yaw_path;
+  } else {
+
+    for (int i = 0; i < path_tmp.size(); i++) {
+      if (i < yaw_path.size()) {
+        path_tmp[i].q = yaw_path[i].q;
+      } else {
+        path_tmp[i].q = yaw_path[yaw_path.size() - 1].q;
+      }
+    }
+    path_out = path_tmp;
+  }
+  return path_out;
 }
 
 template<typename T>
@@ -423,63 +449,42 @@ VecPose CandidateView<T>::getYawPath(const pose3D &start,
   return path;
 }
 
+
+
+
 template<typename T>
-bool CandidateView<T>::addPathSegments(const float sampling_dist, const int idx) {
+VecPose CandidateView<T>::addPathSegments(const float sampling_dist, const pose3D &start_in,
+ const pose3D &goal_in) {
 
   int sampling_dist_v = static_cast<int>(sampling_dist / res_);
-  if (candidates_[idx].path.size() == 1) {
-    LOG(INFO) << "Path size 1";
-    return true;
-  }
-  if (candidates_[idx].path.size() == 0) {
-    LOG(WARNING) << "Path size 0";
-    return false;
-  }
-  // float planning_dist_max = 2.5f; // [m]
-  // float curr_planned_dist = 0.f;
   VecPose path_out;
-  for (int i = 1; i < candidates_[idx].path.size(); i++) {
-    // height restriction
-    if (candidates_[idx].path[i].p.z()*res_ < planning_config_.height_min + 0.2){
-      candidates_[idx].path[i].p.z() += 0.3 / res_;
-    }
-    if (candidates_[idx].path[i].p.z()*res_ > planning_config_.height_max - 0.2){
-      candidates_[idx].path[i].p.z() -= 0.4 / res_;
-    }
+  pose3D start = start_in;
+  pose3D goal = goal_in;
+  boundHeight(reinterpret_cast<int*>(&start.p.z()),
+                    planning_config_.height_max + ground_height_,
+                    planning_config_.height_min + ground_height_,
+                    res_);
+  boundHeight(reinterpret_cast<int*>(&goal.p.z()),
+                    planning_config_.height_max + ground_height_,
+                    planning_config_.height_min + ground_height_,
+                    res_);
 
-    LOG(INFO) << "segment start " << candidates_[idx].path[i - 1].p.format(InLine) << " end "
-              << candidates_[idx].path[i].p.format(InLine);
 
-    path_out.push_back(candidates_[idx].path[i - 1]);
-    float dist = (candidates_[idx].path[i].p - candidates_[idx].path[i - 1].p).norm();
-    Eigen::Vector3f
-        dir = (candidates_[idx].path[i].p - candidates_[idx].path[i - 1].p).normalized();
-    getViewInformationGain(candidates_[idx].path[i]);
-    float yaw_diff = toEulerAngles(candidates_[idx].path[i].q).yaw - toEulerAngles(candidates_[idx].path[i-1].q).yaw;
-    wrapYawRad(yaw_diff);
-    float yaw_rate =  yaw_diff/(dist/sampling_dist_v);
-    LOG(INFO) << "yaw_ diff "<< yaw_diff << " num interpolation " << dist/sampling_dist_v << " yaw rate" << yaw_rate;
-    for (float t = sampling_dist_v, a = yaw_rate; t < dist, std::abs(a)< std::abs(yaw_diff); t += sampling_dist_v, a += yaw_rate) {
-      Eigen::Vector3i
-          intermediate_point = (candidates_[idx].path[i - 1].p + dir * t).template cast<int>();
-      Eigen::Quaternionf quat = toQuaternion(toEulerAngles(candidates_[idx].path[i - 1].q).yaw + a, 0.f, 0.f);
-      pose3D tmp(intermediate_point.cast<float>(), quat);
-      LOG(INFO) << "intermediate_point " << intermediate_point.format(InLine);
-      path_out.push_back(tmp);
-      // curr_planned_dist += sampling_dist;
-      // if(curr_planned_dist>=planning_dist_max){
-      //   candidates_[idx].path.clear();
-      //   candidates_[idx].path = path_out;
-      //   return true;
-      // }
-    }
+  path_out.push_back(start);
+  float dist = (goal.p - start.p).norm();
+  Eigen::Vector3f dir = (goal.p - start.p).normalized();
+  for (float t = sampling_dist_v; t < dist; t += sampling_dist_v) {
+    Eigen::Vector3f intermediate_point = start.p + dir * t;
+    pose3D tmp(intermediate_point, {1.f, 0.f, 0.f, 0.f});
+    LOG(INFO) << "intermediate_point " << intermediate_point.format(InLine);
+    path_out.push_back(tmp);
 
   }
-  path_out.push_back(candidates_[idx].path[candidates_[idx].path.size() - 1]);
-  candidates_[idx].path.clear();
-  candidates_[idx].path = path_out;
-  return true;
+  path_out.push_back(goal);
+  return path_out;
+
 }
+
 } // exploration
 } // se
 #endif

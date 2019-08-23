@@ -87,15 +87,16 @@ class CandidateView {
                          float &t_hit,
                          bool &hit_unknown) const;
 
-  VecPose getFinalPath(const float max_yaw_rate, const Candidate &candidate);
+  VecPose getFinalPath(const float max_yaw_rate,  Candidate &candidate, const float sampling_dist);
   VecPose getYawPath(const pose3D &start, const pose3D &goal, const float max_yaw_rate);
-
-  bool addPathSegments(const float sampling_dist, const int idx);
+  VecPose fusePath( VecPose &path_tmp,  VecPose &yaw_path);
+  VecPose addPathSegments(const float sampling_dist, const pose3D &start, const pose3D &goal);
 
   int getExplorationStatus() const { return exploration_status_; }
 
   float getTargetIG() const { return ig_target_; }
   int getNumValidCandidates() const {return num_cands_;}
+
 
   VecCandidate candidates_;
   Candidate curr_pose_;
@@ -114,6 +115,7 @@ class CandidateView {
   int dphi_;
   float step_;
   int exploration_status_;
+
 
   int num_sampling_;
   int num_cands_;
@@ -181,6 +183,7 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
                         const Eigen::Matrix4f &pose,
                         const Eigen::Vector3i &lower_bound,
                         const Eigen::Vector3i &upper_bound,
+                        const float ground_height,
                         VecPose &path,
                         VecPose &cand_views) {
 
@@ -190,7 +193,7 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   LOG(INFO) << "frontier map size " << frontier_map.size();
   // Candidate view generation
   CandidateView<T>
-      candidate_view(volume, planning_config, collision_checker_v, res, config, pose, step);
+      candidate_view(volume, planning_config, collision_checker_v, res, config, pose, step, ground_height);
   int frontier_cluster_size = planning_config.frontier_cluster_size;
   while(candidate_view.getNumValidCandidates()==0){
   candidate_view.getCandidateViews(frontier_map, frontier_cluster_size);
@@ -206,7 +209,7 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
     if (candidate_view.candidates_[i].pose.p != Eigen::Vector3f(0, 0, 0)) {
       auto collision_checker = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
       auto path_planner_ompl_ptr =
-          aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker, planning_config);
+          aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker, planning_config, ground_height);
       // LOG(INFO) << "Candidate " << i << " goal coord " << cand_views[i].p.format(InLine);
       DLOG(INFO) << "Candidate " << i << " start " << start.p.format(InLine) << " goal "
                  << candidate_view.candidates_[i].pose.p.format(InLine);
@@ -270,11 +273,11 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
 
   VecPose path_tmp;
   if (valid_path && (!use_curr_pose || force_travelling)) {
-     candidate_view.addPathSegments(planning_config.robot_safety_radius*2.5 ,best_cand_idx);
-     path_tmp = candidate_view.candidates_[best_cand_idx].path;
-    // path_tmp = candidate_view.getFinalPath(0.52, candidate_view.candidates_[best_cand_idx]);
+     // candidate_view.addPathSegments(planning_config.robot_safety_radius*2.5 ,best_cand_idx);
+     // path_tmp = candidate_view.candidates_[best_cand_idx].path;
+    path_tmp = candidate_view.getFinalPath(0.52, candidate_view.candidates_[best_cand_idx],planning_config.robot_safety_radius*2.5  );
   } else {
-    path_tmp = candidate_view.getFinalPath(0.52, candidate_view.curr_pose_);
+    path_tmp = candidate_view.getFinalPath(0.52, candidate_view.curr_pose_, 1.f);
   }
   for (int i = 0; i <= planning_config.num_cand_views; i++) {
     if (candidate_view.candidates_[i].pose.p == Eigen::Vector3f(0, 0, 0)) {
