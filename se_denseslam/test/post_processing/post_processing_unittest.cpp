@@ -194,13 +194,52 @@ TEST_F(TestOctree, CountVoxels) {
       free_nodes,      free_node_volume,
       occupied_nodes,  occupied_node_volume);
 
-  EXPECT_EQ(free_voxels,           free_voxels);
-  EXPECT_EQ(free_voxel_volume,     free_voxel_volume);
-  EXPECT_EQ(occupied_voxels,       occupied_voxels);
-  EXPECT_EQ(occupied_voxel_volume, occupied_voxel_volume);
-  EXPECT_EQ(free_nodes,            free_nodes);
-  EXPECT_EQ(free_node_volume,      free_node_volume);
-  EXPECT_EQ(occupied_nodes,        occupied_nodes);
-  EXPECT_EQ(occupied_node_volume,  occupied_node_volume);
+  EXPECT_EQ(      free_voxels,           free_voxels_);
+  EXPECT_FLOAT_EQ(free_voxel_volume,     free_voxel_volume_);
+  EXPECT_EQ(      occupied_voxels,       occupied_voxels_);
+  EXPECT_FLOAT_EQ(occupied_voxel_volume, occupied_voxel_volume_);
+  EXPECT_EQ(      free_nodes,            free_nodes_);
+  EXPECT_FLOAT_EQ(free_node_volume,      free_node_volume_);
+  EXPECT_EQ(      occupied_nodes,        occupied_nodes_);
+  EXPECT_FLOAT_EQ(occupied_node_volume,  occupied_node_volume_);
+}
+
+
+
+TEST_F(TestOctree, CropOctreeExact) {
+  // Crop the octree.
+  const Eigen::Vector3f dim (64 * octree_->voxelDim(),
+                             32 * octree_->voxelDim(),
+                             16 * octree_->voxelDim());
+  crop_octree(*octree_, dim);
+  //octree_->save("/tmp/test_map_cropped.bin");
+  //octree_->writeAllocatedNodes("/tmp/test_nodes_cropped.txt");
+
+  // Count the explored voxels.
+  size_t free_voxels;
+  float  free_voxel_volume;
+  size_t occupied_voxels;
+  float  occupied_voxel_volume;
+  size_t free_nodes;
+  float  free_node_volume;
+  size_t occupied_nodes;
+  float  occupied_node_volume;
+  count_voxels(*octree_,
+      free_voxels,     free_voxel_volume,
+      occupied_voxels, occupied_voxel_volume,
+      free_nodes,      free_node_volume,
+      occupied_nodes,  occupied_node_volume);
+
+  // Compare with the exprected number of voxels.
+  const float voxel_block_volume
+      = std::pow(BLOCK_SIDE, 3.f) * std::pow(octree_->voxelDim(), 3.f);
+  EXPECT_EQ(      free_voxels,           0);
+  EXPECT_FLOAT_EQ(free_voxel_volume,     0.f);
+  EXPECT_EQ(      occupied_voxels,       0);
+  EXPECT_FLOAT_EQ(occupied_voxel_volume, 0.f);
+  EXPECT_EQ(      free_nodes,            36);
+  EXPECT_FLOAT_EQ(free_node_volume,      36 * voxel_block_volume);
+  EXPECT_EQ(      occupied_nodes,        12);
+  EXPECT_FLOAT_EQ(occupied_node_volume,  12 * voxel_block_volume);
 }
 

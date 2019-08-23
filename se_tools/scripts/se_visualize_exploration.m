@@ -25,6 +25,9 @@ clear variables
 
 
 % Settings %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+dim_x = 10;
+dim_y = 20;
+dim_z = 3;
 
 
 
@@ -53,6 +56,8 @@ end
 [script_dir, ~, ~] = fileparts(program_invocation_name());
 voxelcounter_program = [script_dir ...
     '/../../build/Release/se_apps/se-denseslam-ofusion-voxelcounter'];
+mapcropper_program = [script_dir ...
+    '/../../build/Release/se_apps/se-denseslam-ofusion-mapcropper'];
 addpath(genpath([script_dir '/octave_functions']));
 
 % Get the command line arguments.
@@ -76,8 +81,13 @@ filenames = sort(args);
 for i = 1:length(filenames);
   filename = args{i};
 
+  % Crop the octree.
+  [status, output] = system([mapcropper_program ' ' filename ' ' ...
+      num2str(dim_x) ' ' num2str(dim_y) ' ' num2str(dim_z)]);
+
   % Evaluate the file.
-  [status, output] = system([voxelcounter_program ' ' filename]);
+  filename_cropped = strrep(filename, '.bin', '_cropped.bin');
+  [status, output] = system([voxelcounter_program ' ' filename_cropped]);
 
   % Test for errors.
   if status ~= 0
