@@ -99,8 +99,8 @@ int main(int argc, char** argv) {
     free_voxels += free_voxels_vec.size();
     occupied_voxels += occupied_voxels_vec.size();
   }
-  float free_voxel_volume = free_voxels * voxel_dim;
-  float occupied_voxel_volume = occupied_voxels * voxel_dim;
+  float free_voxel_volume = free_voxels * voxel_volume;
+  float occupied_voxel_volume = occupied_voxels * voxel_volume;
 
   // Count occupied and free Nodes and compute their volume.
   size_t free_nodes = 0;
