@@ -30,7 +30,7 @@ function(add_version lib_name libraries)
   endif(OPENNI2_FOUND)
 
   add_executable(${lib_name}-voxelcounter
-  src/exploration_progress_evaluation.cpp
+  src/voxelcounter.cpp
   )
   target_link_libraries(${lib_name}-voxelcounter
     ${lib_name}
