@@ -478,7 +478,12 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
       std::set<uint64_t> *copy_frontier_blocks = frontier_blocks;
       bool update_frontier_map = (frame % integration_rate) == 0;
       updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
+      int map_size_before = free_map_.size();
       insertBlocksToMap(free_map_, free_blocks);
+      if(map_size_before != free_map_.size()){
+        getFreeMapBounds(discrete_vol_ptr_, free_map_, lower_map_bound_v_, upper_map_bound_v_);
+        // std::cout << "map bounds " << lower_map_bound_v_ << " " << upper_map_bound_v_;
+      }
       // std::cout << "[se/denseslam] free_map_  size  " << free_map_.size() << std::endl;
       std::cout << "[se/denseslam] frontier_map_ size " << frontier_map_.size() << std::endl;
     }
@@ -505,12 +510,15 @@ int DenseSLAMSystem::planning(VecPose &path,
                                    planning_config_,
                                    free_blocks,
                                    *volume_._map_index);
-
+int map_size_before = free_map_.size();
   insertBlocksToMap(free_map_, free_blocks);
   init_position_cleared_ = true;
   float res_v = volume_dimension_.cast<float>().x() / volume_resolution_.cast<float>().x();
   // LOG(INFO) << "Planning free_map_  size  " << free_map_.size();
-
+      if(map_size_before != free_map_.size()){
+        getFreeMapBounds(discrete_vol_ptr_, free_map_, lower_map_bound_v_, upper_map_bound_v_);
+        // std::cout << "map bounds " << lower_map_bound_v_ << " " << upper_map_bound_v_;
+      }
   float step = volume_dimension_.x() / volume_resolution_.x();
   int exploration_done =  se::exploration::getExplorationPath(discrete_vol_ptr_,
                                       volume_,
@@ -521,8 +529,11 @@ int DenseSLAMSystem::planning(VecPose &path,
                                       planning_config_,
                                       config_,
                                       pose_ * Tbc_,
+                                      lower_map_bound_v_,
+                                      upper_map_bound_v_,
                                       path,
-                                      cand_views);
+                                      cand_views
+                                      );
   return exploration_done;
 //  std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
 }

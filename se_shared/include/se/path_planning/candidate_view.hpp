@@ -176,6 +176,8 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
                         const Planning_Configuration &planning_config,
                         const Configuration &config,
                         const Eigen::Matrix4f &pose,
+                        const Eigen::Vector3i &lower_bound,
+                        const Eigen::Vector3i &upper_bound,
                         VecPose &path,
                         VecPose &cand_views) {
 
@@ -202,7 +204,7 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
       DLOG(INFO) << "Candidate " << i << " start " << start.p.format(InLine) << " goal "
                  << candidate_view.candidates_[i].pose.p.format(InLine);
 
-      bool setup_planner = path_planner_ompl_ptr->setupPlanner(free_map);
+      bool setup_planner = path_planner_ompl_ptr->setupPlanner(lower_bound, upper_bound);
       DLOG(INFO) << "setup planner successful " << setup_planner;
       int path_planned = path_planner_ompl_ptr->planPath(start.p.cast<int>(),
                                                          candidate_view.candidates_[i].pose.p.template cast<

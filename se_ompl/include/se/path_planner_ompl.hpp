@@ -72,7 +72,8 @@ class PathPlannerOmpl {
    * @param [in] start Start position for path planning. [m]
    * @param [in] goal Goal position for path planning. [m]
    */
-  bool setupPlanner(const map3i &free_blocks);
+  bool setupPlanner(const Eigen::Vector3i &lower_bound,
+                        const Eigen::Vector3i &upper_bound);
   bool setStartGoal(const Eigen::Vector3i &start_v, const Eigen::Vector3i &goal_v);
 
   Path_v::Ptr getPathNotSimplified_v() { return path_not_simplified_v_; }
@@ -190,7 +191,7 @@ bool PathPlannerOmpl<FieldType>::setStartGoal(const Eigen::Vector3i &start_v,
 
   }
 
-  if (!pcc_->isSphereSkeletonFree(goal_v, safety_radius_v_)) {
+  if (!pcc_->isSphereSkeletonFreeCand(goal_v, safety_radius_v_)) {
     LOG(INFO) << "\033[1;31mGoal at " << goal_v.format(InLine) << " is occupied "
               << octree_ptr_->get(goal_v).x << "\033[0m";
 
@@ -221,12 +222,15 @@ bool PathPlannerOmpl<FieldType>::setStartGoal(const Eigen::Vector3i &start_v,
  * @return
  */
 template<typename FieldType>
-bool PathPlannerOmpl<FieldType>::setupPlanner(const map3i &free_blocks) {
+bool PathPlannerOmpl<FieldType>::setupPlanner(const Eigen::Vector3i &lower_bound,
+  const Eigen::Vector3i &upper_bound) {
   DLOG(INFO) << "start setting up planner voxel based";
 //  ss_->clear();
   // TODO to be replaced
   // Get map boundaries and set space boundaries [voxel coord]
-  getFreeMapBounds(octree_ptr_, free_blocks, lower_bound_v_, upper_bound_v_);
+  // getFreeMapBounds(octree_ptr_, free_blocks, lower_bound_v_, upper_bound_v_);
+  lower_bound_v_ = lower_bound;
+  upper_bound_v_ = upper_bound;
   DLOG(INFO) << "lower bound " << lower_bound_v_.format(InLine) << " upper bound "
              << upper_bound_v_.format(InLine);
   setSpaceBoundaries_m(); // [m]
@@ -438,6 +442,7 @@ void PathPlannerOmpl<FieldType>::setSpaceBoundaries_m() {
   ob::RealVectorBounds bounds(3);
   const float dim = octree_ptr_->voxelDim();
   const float buffer_m = 0.;
+
   lower_bound_ = lower_bound_v_.cast<float>() * dim;
   upper_bound_ = upper_bound_v_.cast<float>() * dim;
   bounds.setLow(0, lower_bound_v_.x() * dim - buffer_m);
@@ -487,7 +492,7 @@ template<typename FieldType>
 void PathPlannerOmpl<FieldType>::setInformedRrtStar() {
   std::shared_ptr<og::InformedRRTstar> planner = aligned_shared<og::InformedRRTstar>(ss_->getSpaceInformation());
   planner->setGoalBias(0.08);
-  planner->setRange(2);
+  // planner->setRange(0.5);
   planner->setNumSamplingAttempts(50);
   ss_->setPlanner(planner);
 }
