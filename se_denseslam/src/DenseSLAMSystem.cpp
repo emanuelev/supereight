@@ -505,7 +505,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 
 int DenseSLAMSystem::planning(VecPose &path,
                                VecPose &cand_views,
-                               mapvec3i *free_blocks) {
+                               mapvec3i *free_blocks,
+                               const float ground_height) {
   se::exploration::initNewPosition(pose_ * Tbc_,
                                    planning_config_,
                                    free_blocks,
@@ -531,9 +532,13 @@ int map_size_before = free_map_.size();
                                       pose_ * Tbc_,
                                       lower_map_bound_v_,
                                       upper_map_bound_v_,
+                                      ground_height,
                                       path,
                                       cand_views
                                       );
+  candidates_old_.clear();
+  candidates_old_ = cand_views;
+
   return exploration_done;
 //  std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;
 }

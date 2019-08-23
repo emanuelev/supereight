@@ -223,10 +223,10 @@ static inline Eigen::Vector3i toVoxelCoord(const Eigen::Vector3f &coord_m, const
 static inline bool boundHeight(int *h, const float h_max, const float h_min, const float res) {
 
   if (*h > h_max / res) {
-    *h = static_cast<int>(h_max / res) - 0.2;
+    *h = static_cast<int>((h_max - 0.25f) / res);
     return true;
   } else if (*h < h_min / res) {
-    *h = static_cast<int>(h_min / res) + 0.2;
+    *h = static_cast<int>((h_min +0.25f )/ res) ;
     return true;
   }
   return false;
@@ -246,6 +246,8 @@ static inline void wrapYawDeg(int &yaw_diff) {
   if (yaw_diff >= 180)
     yaw_diff -= 360;
 }
+
+
 } //exploration
 }//namespace se
 #endif //SUPEREIGHT_EXPLORATION_UTILS_HPP

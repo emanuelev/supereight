@@ -63,7 +63,8 @@ class PathPlannerOmpl {
    */
   PathPlannerOmpl(const std::shared_ptr<Octree<FieldType> > octree_ptr,
                   const std::shared_ptr<CollisionCheckerV<FieldType> > pcc,
-                  const Planning_Configuration &planning_config);
+                  const Planning_Configuration &planning_config,
+                  const float ground_height);
 
   ~PathPlannerOmpl() {};
 
@@ -122,6 +123,8 @@ class PathPlannerOmpl {
   std::shared_ptr<Octree<FieldType> > octree_ptr_ = nullptr;
   std::shared_ptr<CollisionCheckerV<FieldType> > pcc_ = nullptr;
   const Planning_Configuration planning_params_;
+
+  float ground_height_;
   float solving_time_;
   og::SimpleSetupPtr ss_; /// Create the set of classes typically needed to solve a
 
@@ -151,11 +154,13 @@ class PathPlannerOmpl {
 template<typename FieldType>
 PathPlannerOmpl<FieldType>::PathPlannerOmpl(const std::shared_ptr<Octree<FieldType> > octree_ptr,
                                             const std::shared_ptr<CollisionCheckerV<FieldType> > pcc,
-                                            const Planning_Configuration &planning_config)
+                                            const Planning_Configuration &planning_config,
+                                            const float ground_height)
     :
     octree_ptr_(octree_ptr),
     pcc_(pcc),
     planning_params_(planning_config),
+    ground_height_(ground_height),
     solving_time_(planning_config.ompl_solving_time),
     ss_(aligned_shared<og::SimpleSetup>(ob::StateSpacePtr(new ob::RealVectorStateSpace(3))))
 //    ss_(ob::StateSpacePtr(std::make_shared<ob::RealVectorStateSpace>(kDim))),
@@ -447,10 +452,10 @@ void PathPlannerOmpl<FieldType>::setSpaceBoundaries_m() {
   upper_bound_ = upper_bound_v_.cast<float>() * dim;
   bounds.setLow(0, lower_bound_v_.x() * dim - buffer_m);
   bounds.setLow(1, lower_bound_v_.y() * dim - buffer_m);
-  bounds.setLow(2, planning_params_.height_min - 0.2);
+  bounds.setLow(2,  ground_height_);
   bounds.setHigh(0, upper_bound_v_.x() * dim + buffer_m);
   bounds.setHigh(1, upper_bound_v_.y() * dim + buffer_m);
-  bounds.setHigh(2, planning_params_.height_max + 0.2);
+  bounds.setHigh(2, ground_height_ +2.8f);
   ss_->getStateSpace()->as<ob::RealVectorStateSpace>()->setBounds(bounds);
 }
 

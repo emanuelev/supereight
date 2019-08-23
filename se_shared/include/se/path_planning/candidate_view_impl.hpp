@@ -74,8 +74,8 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map, const
     VecVec3i frontier_voxelblock = frontier_voxels_map[rand_morton];
     Eigen::Vector3i candidate_frontier_voxel = frontier_voxels_map[rand_morton].at(rand_voxel);
     if (boundHeight(&candidate_frontier_voxel.z(),
-                    planning_config_.height_max,
-                    planning_config_.height_min,
+                    planning_config_.height_max + ground_height_,
+                    planning_config_.height_min + ground_height_,
                     res_)) {
 
       frontier_voxelblock = frontier_voxels_map[se::keyops::encode(candidate_frontier_voxel.x(),
@@ -460,16 +460,20 @@ VecPose CandidateView<T>::addPathSegments(const float sampling_dist, const pose3
   VecPose path_out;
   pose3D start = start_in;
   pose3D goal = goal_in;
-  boundHeight(reinterpret_cast<int*>(&start.p.z()),
+  int start_h = start.p.z();
+  int goal_h = goal.p.z();
+  boundHeight(&start_h,
                     planning_config_.height_max + ground_height_,
                     planning_config_.height_min + ground_height_,
                     res_);
-  boundHeight(reinterpret_cast<int*>(&goal.p.z()),
+  boundHeight(&goal_h,
                     planning_config_.height_max + ground_height_,
                     planning_config_.height_min + ground_height_,
                     res_);
 
-
+  LOG(INFO) << start.p.format(InLine) << " " << start_h;
+  start.p.z() =(float)start_h ;
+  goal.p.z() = (float)goal_h;
   path_out.push_back(start);
   float dist = (goal.p - start.p).norm();
   Eigen::Vector3f dir = (goal.p - start.p).normalized();

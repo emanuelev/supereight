@@ -63,7 +63,8 @@ class CandidateView {
                 const float res,
                 const Configuration &config,
                 const Eigen::Matrix4f &curr_pose,
-                const float step);
+                const float step,
+                const float ground_height);
 
   void getCandidateViews(const map3i &frontier_blocks_map, const int frontier_cluster_size);
 
@@ -114,6 +115,7 @@ class CandidateView {
   int dtheta_;
   int dphi_;
   float step_;
+  float ground_height_;
   int exploration_status_;
 
 
@@ -130,7 +132,8 @@ CandidateView<T>::CandidateView(const Volume<T> &volume,
                                 const float res,
                                 const Configuration &config,
                                 const Eigen::Matrix4f &curr_pose,
-                                const float step)
+                                const float step,
+                                const float ground_height)
     :
     volume_(volume),
     planning_config_(planning_config),
@@ -142,7 +145,8 @@ CandidateView<T>::CandidateView(const Volume<T> &volume,
     step_(step),
     exploration_status_(0),
     num_sampling_(planning_config.num_cand_views),
-    num_cands_(0) {
+    num_cands_(0) ,
+    ground_height_(ground_height){
 
   curr_pose_.pose = getCurrPose(curr_pose, res_);
   curr_pose_.path.push_back(curr_pose_.pose);
