@@ -185,7 +185,10 @@ bool CollisionCheckerV<FieldType>::isVoxelFree(const Eigen::Vector3i &point_v) c
   se::Node<FieldType> *node = nullptr;
   se::VoxelBlock<FieldType> *block = nullptr;
   bool is_voxel_block;
-
+  if(point_v.x()<0|| point_v.y() <0 || point_v.z()<0 ||
+    point_v.x() > octree_ptr_->size() || point_v.y() > octree_ptr_->size() || point_v.z() > octree_ptr_->size()){
+    return false;
+  }
   octree_ptr_->fetch_octant(point_v.x(), point_v.y(), point_v.z(), node, is_voxel_block);
   if (is_voxel_block) {
     block = static_cast<se::VoxelBlock<FieldType> *> (node);

@@ -235,7 +235,7 @@ struct bfusion_update {
 
     // Compute the occupancy probability for the current measurement.
     const float diff = (pos.z() - depthSample);
-    float sigma = se::math::clamp(noiseFactor * se::math::sq(pos.z()), voxelsize, 2* voxelsize);
+    float sigma = se::math::clamp(noiseFactor * se::math::sq(pos.z()), voxelsize * 0.75f, voxelsize);
     float sample = H(diff / sigma, pos.z()); // prob not in log2
 
     // 0.5 = unknown
