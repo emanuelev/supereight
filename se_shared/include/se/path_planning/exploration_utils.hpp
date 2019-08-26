@@ -223,10 +223,10 @@ static inline Eigen::Vector3i toVoxelCoord(const Eigen::Vector3f &coord_m, const
 static inline bool boundHeight(int *h, const float h_max, const float h_min, const float res) {
 
   if (*h > h_max / res) {
-    *h = static_cast<int>((h_max - 0.25f) / res);
+    *h = static_cast<int>((h_max ) / res);
     return true;
   } else if (*h < h_min / res) {
-    *h = static_cast<int>((h_min +0.25f )/ res) ;
+    *h = static_cast<int>((h_min )/ res) ;
     return true;
   }
   return false;

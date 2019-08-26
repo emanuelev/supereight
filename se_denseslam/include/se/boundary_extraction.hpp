@@ -138,26 +138,13 @@ static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree
       lower_bound.z() = lower_bound_tmp.z() < lower_bound.z() ? lower_bound_tmp.z() : lower_bound.z();
     }
     if (valid_upper){
-      upper_bound.x() = upper_bound_tmp.x() > upper_bound.x() ? upper_bound_tmp.x() : upper_bound.x();
-      upper_bound.y() = upper_bound_tmp.y() > upper_bound.y() ? upper_bound_tmp.y() : upper_bound.y();
-      upper_bound.z() = upper_bound_tmp.z() > upper_bound.z() ? upper_bound_tmp.z() : upper_bound.z();
+      upper_bound.x() = upper_bound_tmp.x() +1> upper_bound.x() ? upper_bound_tmp.x()+1 : upper_bound.x();
+      upper_bound.y() = upper_bound_tmp.y() +1> upper_bound.y() ? upper_bound_tmp.y()+1 : upper_bound.y();
+      upper_bound.z() = upper_bound_tmp.z() +1> upper_bound.z() ? upper_bound_tmp.z()+1 : upper_bound.z();
 
     }
-
-    //  if (lower_bound_tmp.norm() < lower_bound.norm() && valid_lower) {
-    //   // std::cout << "lower_bound from " << lower_bound.format(InLine) << " to "
-    //   // << lower_bound_tmp.format(InLine) << std::endl;
-    //   lower_bound = lower_bound_tmp;
-
-    // }
-    // if (upper_bound_tmp.norm() > upper_bound.norm() && valid_upper) {
-    //   // std::cout << "upper_bound from " << upper_bound.format(InLine) << " to "
-    //   // << upper_bound_tmp.format(InLine) << std::endl;
-    //   upper_bound = upper_bound_tmp;
-    // }
-
   }
-  upper_bound += Eigen::Vector3i(8, 8, 8);
+
 
 }
 #endif //SUPEREIGHT_BOUNDARY_EXTRACTION_HPP

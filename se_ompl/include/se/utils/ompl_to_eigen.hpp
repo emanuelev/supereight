@@ -105,9 +105,9 @@ class OmplToEigen {
   // state [meter] to voxel
   static Eigen::Vector3i convertState_v(const ompl::base::State &state, const float dim) {
 
-    Eigen::Vector3i eigen_point(std::round(state.as<ompl::base::RealVectorStateSpace::StateType>()->values[0]/dim),
-                                std::round(state.as<ompl::base::RealVectorStateSpace::StateType>()->values[1]/dim),
-                                std::round(state.as<ompl::base::RealVectorStateSpace::StateType>()->values[2]/dim));
+    Eigen::Vector3i eigen_point(static_cast<int>(state.as<ompl::base::RealVectorStateSpace::StateType>()->values[0]/dim),
+                                static_cast<int>(state.as<ompl::base::RealVectorStateSpace::StateType>()->values[1]/dim),
+                                static_cast<int>(state.as<ompl::base::RealVectorStateSpace::StateType>()->values[2]/dim));
 
     return eigen_point;
   };

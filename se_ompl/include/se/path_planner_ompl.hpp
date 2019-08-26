@@ -455,7 +455,7 @@ void PathPlannerOmpl<FieldType>::setSpaceBoundaries_m() {
   bounds.setLow(2,  ground_height_);
   bounds.setHigh(0, upper_bound_v_.x() * dim + buffer_m);
   bounds.setHigh(1, upper_bound_v_.y() * dim + buffer_m);
-  bounds.setHigh(2, ground_height_ +2.8f);
+  bounds.setHigh(2, ground_height_ + planning_params_.ceiling_height);
   ss_->getStateSpace()->as<ob::RealVectorStateSpace>()->setBounds(bounds);
 }
 
