@@ -16,7 +16,6 @@
 #include "se/utils/eigen_utils.h"
 
 #include "se/utils/support_structs.hpp"
-#include "se/utils/planning_parameter.hpp"
 #include "se/ompl/motion_validator_occupancy_skeleton.hpp"
 
 namespace ob = ompl::base;

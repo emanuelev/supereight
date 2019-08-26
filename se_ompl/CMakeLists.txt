@@ -15,6 +15,10 @@ cmake_minimum_required(VERSION 3.10)
 #list(APPEND SUPEREIGHT_OMPL_LIBS se-ompl)
 
 
+# Find dependencies.
+find_package(Eigen3 REQUIRED)
+
+
 
 add_library(se-vs STATIC
         src/utils/timing.cpp)
