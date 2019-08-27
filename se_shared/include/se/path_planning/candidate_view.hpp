@@ -56,7 +56,7 @@ template<typename T>
 class CandidateView {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  typedef std::shared_ptr<CandidateView> Ptr;
+  typedef std::shared_ptr<CandidateView> SPtr;
   CandidateView(const Volume<T> &volume,
                 const Planning_Configuration &planning_config,
                 const std::shared_ptr<CollisionCheckerV<T> > pcc,
@@ -189,7 +189,9 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
                         const Eigen::Vector3i &upper_bound,
                         const float ground_height,
                         VecPose &path,
-                        VecPose &cand_views) {
+                        VecPose &cand_views,
+                        VecCandidate &candidates,
+                        Candidate &best_candidate) {
 
   auto collision_checker_v = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
   // auto path_planner_ompl_ptr =
@@ -280,8 +282,10 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
      // candidate_view.addPathSegments(planning_config.robot_safety_radius*2.5 ,best_cand_idx);
      // path_tmp = candidate_view.candidates_[best_cand_idx].path;
     path_tmp = candidate_view.getFinalPath(0.52, candidate_view.candidates_[best_cand_idx],planning_config.robot_safety_radius*2.5  );
+    best_candidate = candidate_view.candidates_[best_cand_idx];
   } else {
     path_tmp = candidate_view.getFinalPath(0.52, candidate_view.curr_pose_, 1.f);
+    best_candidate = candidate_view.curr_pose_;
   }
   for (int i = 0; i <= planning_config.num_cand_views; i++) {
     if (candidate_view.candidates_[i].pose.p == Eigen::Vector3f(0, 0, 0)) {

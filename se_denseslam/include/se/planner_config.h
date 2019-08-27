@@ -61,28 +61,33 @@ struct Planning_Configuration {
   float ompl_solving_time;
 
   int min_loop_for_termination;
-
+/**
+* [vx] num voxel in a voxel block
+*/
   int frontier_cluster_size;
+
   PlannerType planner_type;
   float ceiling_height;
+  float local_minima_radius;
 };
 
 inline Planning_Configuration getDefaultPlanningConfig() {
   Planning_Configuration config;
   config.num_cand_views = 20;
-  config.robot_safety_radius = 0.6;
+  config.robot_safety_radius = 0.3f;
   config.fov_hor = 120;
   config.dphi = 10;
   config.dtheta = 10;
   config.clear_sphere_for_planning = true;
   config.clearance_radius = 1.0f;
-  config.height_max = 14.8f;
-  config.height_min = 12.8f;
+  config.height_max = 2.3f;
+  config.height_min = 1.0f;
   config.skeleton_sample_precision = 0.05;
   config.ompl_solving_time = 0.5;
   config.min_loop_for_termination = 10;
-  config.frontier_cluster_size = 20;
+  config.frontier_cluster_size = 12;
   config.planner_type = kInformedRrtStar;
+  config.local_minima_radius = 1.f;
   config.ceiling_height = 3.0f;
   return config;
 }

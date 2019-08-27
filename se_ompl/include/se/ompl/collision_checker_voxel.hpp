@@ -94,12 +94,12 @@ bool CollisionCheckerV<FieldType>::isSphereSkeletonFreeCand(const Eigen::Vector3
     return false;
 
   VecVec3i shell_main_pos;
-  shell_main_pos = {position_v + Eigen::Vector3i(1, 0, 0) * radius_v,
-                    position_v - Eigen::Vector3i(1, 0, 0) * radius_v,
-                    position_v + Eigen::Vector3i(0, 1, 0) * radius_v,
-                    position_v - Eigen::Vector3i(0, 1, 0) * radius_v,
-                    position_v + Eigen::Vector3i(0, 0, 1) * radius_v,
-                    position_v - Eigen::Vector3i(0, 0, 1) * radius_v};
+  shell_main_pos.push_back(position_v + Eigen::Vector3i(1, 0, 0) * radius_v);
+  shell_main_pos.push_back(position_v - Eigen::Vector3i(1, 0, 0) * radius_v);
+   shell_main_pos.push_back( position_v + Eigen::Vector3i(0, 1, 0) * radius_v);
+  shell_main_pos.push_back(position_v - Eigen::Vector3i(0, 1, 0) * radius_v);
+  shell_main_pos.push_back( position_v + Eigen::Vector3i(0, 0, 1) * radius_v);
+  shell_main_pos.push_back(position_v - Eigen::Vector3i(0, 0, 1) * radius_v);
   for (VecVec3i::iterator it = shell_main_pos.begin(); it != shell_main_pos.end(); it++) {
     if (octree_ptr_->get(*it).x > 0.f)
 
@@ -120,10 +120,14 @@ bool CollisionCheckerV<FieldType>::isSphereSkeletonFreeCand(const Eigen::Vector3
   vec4_u.normalize();
 
   VecVec3i shell_sub_pos;
-  shell_sub_pos = {position_v + vec1_u * radius_v, position_v - vec1_u * radius_v,
-                   position_v + vec2_u * radius_v, position_v - vec2_u * radius_v,
-                   position_v + vec3_u * radius_v, position_v - vec3_u * radius_v,
-                   position_v + vec4_u * radius_v, position_v - vec4_u * radius_v};
+  shell_sub_pos.push_back(position_v + vec1_u * radius_v);
+  shell_sub_pos.push_back( position_v - vec1_u * radius_v);
+  shell_sub_pos.push_back(position_v + vec2_u * radius_v);
+  shell_sub_pos.push_back(position_v - vec2_u * radius_v);
+  shell_sub_pos.push_back(position_v + vec3_u * radius_v);
+  shell_sub_pos.push_back( position_v - vec3_u * radius_v);
+  shell_sub_pos.push_back(position_v + vec4_u * radius_v);
+  shell_sub_pos.push_back(position_v - vec4_u * radius_v);
   for (VecVec3i::iterator it = shell_sub_pos.begin(); it != shell_sub_pos.end(); ++it) {
     if (octree_ptr_->get(*it).x > 0.f)
       return false;

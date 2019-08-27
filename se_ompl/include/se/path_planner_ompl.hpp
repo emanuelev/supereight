@@ -323,7 +323,7 @@ int PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
 
       }
     } else {
-      LOG(WARNING) << "\033[1;31mONLY APPROXIMATE SOLUTION FOUND. OMPL FAILED"
+      LOG(WARNING) << "\033[1;31mONLY APPROXIMATE SOLUTION FOUND."
                       ".\033[0m\n";
       // og::PathGeometric path = ompl_setup_.getSolutionPath();
       og::PathGeometric path = ss_->getSolutionPath();

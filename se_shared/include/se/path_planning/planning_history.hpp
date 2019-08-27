@@ -53,11 +53,14 @@ class PlanningHistoryManager {
    void updateHistoryPath(const Candidate &path, const VecPose &path_short);
    void insertNewCandidates(const VecCandidate &candidates);
    void updateValidCandidates(const Eigen::Matrix4f &curr_pose);
-   int useHistoryPath();
+   int useHistoryPath(const VecPose &path_short);
 
    VecCandidate getOldCandidates(){return candidates_old_;}
    Candidate getLastPlannedTrajectory() {return last_path_;}
    VecCandidate getPathHistory(){return path_history_;}
+   int getLocalMinimaCounter()const {return local_minima_counter_;}
+
+   VecPose getOldPath();
 
  private:
 
@@ -102,7 +105,7 @@ void PlanningHistoryManager<FieldType>::insertNewCandidates(const VecCandidate &
    }
 // check if candidate already exists if not. insert
    bool  is_new_cand = true;
-	for(const auto& new_cand : candidates ){
+	 for(const auto& new_cand : candidates ){
        for(auto old_cand : candidates_old_){
        	if(new_cand.pose.p == old_cand.pose.p || new_cand.pose.p == Eigen::Vector3f(0.f, 0.f,0.f)){
        		is_new_cand =false;
@@ -116,16 +119,16 @@ template<typename FieldType>
 void PlanningHistoryManager<FieldType>::updateValidCandidates(const Eigen::Matrix4f &curr_pose){
 	Eigen::Vector3f curr_position = curr_pose.block<3,1>(0,3);
 	Eigen::Vector3i curr_position_v = (curr_position/ voxel_dim_).cast<int>();
-	std::cout <<"currposition v" << curr_position_v.format(InLine) <<std::endl;
 	if(candidates_old_.empty()) return;
 	// check if the candidate is still a frontier
   for( auto it = candidates_old_.begin() ; it != candidates_old_.end();){
   	if(octree_ptr_->get(it->pose.p.template cast<int>()).st != voxel_state::kFrontier){
-  		std::cout << "candidate " << it->pose.p.format(InLine) << " not a frontier anymore" <<std::endl;
       it = candidates_old_.erase(it);
   	} else{
-  		if((curr_position_v-it->pose.p.template cast<int>()).squaredNorm()< planning_params_.robot_safety_radius *planning_params_.robot_safety_radius){
-  			std::cout <<"IG needs to be updated" <<std::endl;
+      Eigen::Vector3f dist = curr_position_v.cast<float>() - it->pose.p;
+  		if(dist.norm() < farPlane*2/voxel_dim_){
+        it->information_gain = -1.f;
+        it->utility = -1.f;
   		}
   		++it;
   	}
@@ -149,11 +152,65 @@ void PlanningHistoryManager<FieldType>::updateValidCandidates(const Eigen::Matri
 * determine max distance, num pose to evaluate
 */
 template<typename FieldType>
-int PlanningHistoryManager<FieldType>::useHistoryPath(){
-
+int PlanningHistoryManager<FieldType>::useHistoryPath(const VecPose &path_short){
+  Eigen::Vector3f dist_to_last_goal = path_short.back().p-path_history_.back().path.back().p;
+// check if the end point is in the local minima area
+  if(dist_to_last_goal.norm() < planning_params_.local_minima_radius){
+    if(local_minima_counter_>= 2){
+  // if the counter exceeds threshold, send old path back
+      return 1;
+    } else{
+  // if no, increase counter
+      local_minima_counter_ ++;
+      return -1;
+    }
+  } else{
+    local_minima_counter_ =0;
+    return -1;
+  }
 
 }
 
+
+template<typename FieldType>
+VecPose PlanningHistoryManager<FieldType>::getOldPath(){
+  VecPose path_out;
+
+  float max_utility=0.f;
+  float curr_utility= 0.f;
+  int cand_idx_from_back = 0;
+  int iteration_considered = path_history_.size() < 6 ? path_history_.size() : 6;
+
+  for(int i = 1 ; i <= iteration_considered ; i ++){
+    curr_utility = path_history_.at(path_history_.size() -i).utility;
+    // prevent to use another old path
+    if(curr_utility == -1.f){
+      break;
+    }
+    if(max_utility < curr_utility){
+      max_utility = curr_utility;
+      cand_idx_from_back = i;
+    }
+    std::cout << "max ut " << max_utility << " curr ut "<< curr_utility << " cand " << cand_idx_from_back << std::endl;
+  }
+
+  for(int i = 1; i<= cand_idx_from_back; i++){
+    VecPose path_tmp = path_history_.at(path_history_.size() -i).path;
+    for(const auto & pose : path_tmp){
+      path_out.push_back(pose);
+    }
+  }
+
+  Candidate tmp;
+  tmp.path = path_out;
+  tmp.information_gain = path_history_.at(path_history_.size() -cand_idx_from_back).information_gain;
+
+  tmp.pose = path_history_.at(path_history_.size() -cand_idx_from_back).pose;
+  path_history_.push_back(tmp);
+
+
+  return path_out;
+}
 
  } //exploration
 } //se

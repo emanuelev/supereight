@@ -64,25 +64,28 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map, const
     const int rand_num = distribution_block(generator);
     std::advance(it, rand_num);
     uint64_t rand_morton = it->first;
-    if (frontier_voxels_map[rand_morton].size() < frontier_cluster_size) {
+    if (frontier_voxels_map[rand_morton].size() < frontier_cluster_size || frontier_voxels_map[rand_morton].size() ==0) {
       continue;
     }
     std::uniform_int_distribution<int>
         distribution_voxel(0, frontier_voxels_map[rand_morton].size() - 1);
     // random frontier voxel inside the the randomly chosen voxel block
     int rand_voxel = distribution_voxel(generator);
-    VecVec3i frontier_voxelblock = frontier_voxels_map[rand_morton];
+    // VecVec3i frontier_voxelblock = frontier_voxels_map[rand_morton];
     Eigen::Vector3i candidate_frontier_voxel = frontier_voxels_map[rand_morton].at(rand_voxel);
-    if (boundHeight(&candidate_frontier_voxel.z(),
+    DLOG(INFO) << "height_max " << planning_config_.height_max << " " << planning_config_.height_min << " "
+    << ground_height_ ;
+     DLOG(INFO) << "z "<< candidate_frontier_voxel.z();
+    if (boundHeight(candidate_frontier_voxel.z(),
                     planning_config_.height_max + ground_height_,
                     planning_config_.height_min + ground_height_,
                     res_)) {
-
-      frontier_voxelblock = frontier_voxels_map[se::keyops::encode(candidate_frontier_voxel.x(),
-                                                                   candidate_frontier_voxel.y(),
-                                                                   candidate_frontier_voxel.z(),
-                                                                   volume_._map_index->leaf_level(),
-                                                                   volume_._map_index->max_level())];
+    DLOG(INFO) << "z "<< candidate_frontier_voxel.z();
+      // frontier_voxelblock = frontier_voxels_map[se::keyops::encode(candidate_frontier_voxel.x(),
+      //                                                              candidate_frontier_voxel.y(),
+      //                                                              candidate_frontier_voxel.z(),
+      //                                                              volume_._map_index->leaf_level(),
+      //                                                              volume_._map_index->max_level())];
 
     }
     bool is_free = pcc_->isSphereSkeletonFreeCand(candidate_frontier_voxel, static_cast<int>(
@@ -101,6 +104,7 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map, const
 
 template<typename T>
 float CandidateView<T>::getViewInformationGain(pose3D &pose) {
+  DLOG(INFO) << pose.p.format(InLine);
   float gain = 0.0;
   const float r_max = farPlane; // equal to far plane
   // const float r_min = 0.01; // depth camera r min [m]  gazebo model
@@ -283,11 +287,14 @@ void CandidateView<T>::calculateCandidateViewGain() {
     }
     float information_gain= getViewInformationGain(candidates_[i].pose);
     candidates_[i].information_gain = information_gain;
+    DLOG(INFO) << information_gain;
   }
   float information_gain =getViewInformationGain(curr_pose_.pose);
   curr_pose_.information_gain = information_gain;
 
 }
+
+
 template<typename T>
 void CandidateView<T>::calculateUtility(Candidate &candidate, const float max_yaw_rate) {
 
@@ -462,16 +469,16 @@ VecPose CandidateView<T>::addPathSegments(const float sampling_dist, const pose3
   pose3D goal = goal_in;
   int start_h = start.p.z();
   int goal_h = goal.p.z();
-  boundHeight(&start_h,
+  boundHeight(start_h,
                     planning_config_.height_max + ground_height_,
                     planning_config_.height_min + ground_height_,
                     res_);
-  boundHeight(&goal_h,
+  boundHeight(goal_h,
                     planning_config_.height_max + ground_height_,
                     planning_config_.height_min + ground_height_,
                     res_);
 
-  LOG(INFO) << start.p.format(InLine) << " " << start_h;
+  DLOG(INFO) << start.p.format(InLine) << " " << start_h;
   start.p.z() =(float)start_h ;
   goal.p.z() = (float)goal_h;
   path_out.push_back(start);
@@ -480,7 +487,7 @@ VecPose CandidateView<T>::addPathSegments(const float sampling_dist, const pose3
   for (float t = sampling_dist_v; t < dist; t += sampling_dist_v) {
     Eigen::Vector3f intermediate_point = start.p + dir * t;
     pose3D tmp(intermediate_point, {1.f, 0.f, 0.f, 0.f});
-    LOG(INFO) << "intermediate_point " << intermediate_point.format(InLine);
+    DLOG(INFO) << "intermediate_point " << intermediate_point.format(InLine);
     path_out.push_back(tmp);
 
   }
