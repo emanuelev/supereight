@@ -536,8 +536,6 @@ int map_size_before = free_map_.size();
                                       path,
                                       cand_views
                                       );
-  candidates_old_.clear();
-  candidates_old_ = cand_views;
 
   return exploration_done;
 //  std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;

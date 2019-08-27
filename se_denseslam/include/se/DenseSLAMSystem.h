@@ -112,6 +112,8 @@ class DenseSLAMSystem {
   map3i frontier_map_;
   map3i free_map_;
   bool init_position_cleared_ = false;
+  Eigen::Vector3i lower_map_bound_v_;
+  Eigen::Vector3i upper_map_bound_v_;
 
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
