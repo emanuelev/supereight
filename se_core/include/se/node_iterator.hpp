@@ -184,6 +184,8 @@ class node_iterator {
     // std::cout <<"[se/nodeit] vb with no free voxel " << std::endl;
     return false;
   }
+
+
   // rviz visualization
   vec3i getOccupiedVoxels(float threshold, const uint64_t morton) {
     vec3i occupiedVoxels;
@@ -203,7 +205,7 @@ class node_iterator {
 //          float prob = map_.get(x, y, z).x;
           value = block->data(vox);
 // TODO use state
-          if (value.x > threshold) {
+          if (value.x > 0.f) {
 #pragma omp critical
             occupiedVoxels.push_back(vox);
           }
@@ -213,7 +215,7 @@ class node_iterator {
     return occupiedVoxels;
   }
   /**
-   *
+   * rviz visualization
    * @param threshold upper and lower range for frontier voxel probability
    * @param blockCoord of frontier voxel block
    * @return vector with all frontier voxels

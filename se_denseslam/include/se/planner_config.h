@@ -64,7 +64,7 @@ struct Planning_Configuration {
 
   int frontier_cluster_size;
   PlannerType planner_type;
-
+  float ceiling_height;
 };
 
 inline Planning_Configuration getDefaultPlanningConfig() {
@@ -83,6 +83,7 @@ inline Planning_Configuration getDefaultPlanningConfig() {
   config.min_loop_for_termination = 10;
   config.frontier_cluster_size = 20;
   config.planner_type = kInformedRrtStar;
+  config.ceiling_height = 3.0f;
   return config;
 }
 #endif //SUPEREIGHT_PLANNER_CONFIG_H

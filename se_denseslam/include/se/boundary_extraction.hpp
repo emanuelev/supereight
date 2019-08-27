@@ -95,20 +95,24 @@ static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree
                                     Eigen::Vector3i &lower_bound,
                                     Eigen::Vector3i &upper_bound) {
 
-  se::node_iterator<T> node_it(*octree_ptr_);
+
   auto it_beg = blocks_map.begin();
   auto it_end = blocks_map.end();
   Eigen::Vector3i lower_bound_tmp;
   Eigen::Vector3i upper_bound_tmp;
+  se::Node<T> *node = nullptr;
+  bool is_block = false;
+
 
   key_t lower_bound_morton = it_beg->first;
-  Eigen::Vector3i lower_block_coord = se::keyops::decode(lower_bound_morton);
-  bool valid_lower = node_it.getFreeVoxel(lower_bound_morton, lower_block_coord);
-
+  Eigen::Vector3i lower_block_coord = it_beg->second;
+  octree_ptr_->fetch_octant(lower_block_coord(0), lower_block_coord(1), lower_block_coord(2), node, is_block);
+  bool valid_lower = is_block;
   --it_end;
   key_t upper_bound_morton = it_end->first;
-  Eigen::Vector3i upper_block_coord = se::keyops::decode(upper_bound_morton);
-  bool valid_upper = node_it.getFreeVoxel(upper_bound_morton, upper_block_coord);
+  Eigen::Vector3i upper_block_coord = it_end->second;
+  octree_ptr_->fetch_octant(upper_block_coord(0), upper_block_coord(1), upper_block_coord(2), node, is_block);
+  bool valid_upper = is_block;
 
   // std::cout << "upper " << upper_block_coord.format(InLine) << " lower "<< lower_block_coord.format(InLine)
   // << std::endl;
@@ -117,29 +121,30 @@ static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree
   while (it_beg != it_end) {
     ++it_beg;
     lower_bound_morton = it_beg->first;
-    lower_bound_tmp = se::keyops::decode(lower_bound_morton);
-    valid_lower = node_it.getFreeVoxel(lower_bound_morton, lower_bound_tmp);
+    lower_bound_tmp = it_beg->second;
+    octree_ptr_->fetch_octant(lower_bound_tmp(0), lower_bound_tmp(1), lower_bound_tmp(2), node, is_block);
+    valid_lower = is_block;
 
     --it_end;
     upper_bound_morton = it_end->first;
-    upper_bound_tmp = se::keyops::decode(upper_bound_morton);
-    valid_upper = node_it.getFreeVoxel(upper_bound_morton, upper_bound_tmp);
+    upper_bound_tmp = it_end->second;
+    octree_ptr_->fetch_octant(upper_bound_tmp(0), upper_bound_tmp(1), upper_bound_tmp(2), node, is_block);
+    valid_upper = is_block;
     // std::cout << "upper " << upper_bound_tmp.format(InLine) << " lower "<< lower_bound_tmp.format(InLine)
     // << std::endl;
-    if (lower_bound_tmp.norm() < lower_bound.norm() && valid_lower) {
-      // std::cout << "lower_bound from " << lower_bound.format(InLine) << " to "
-      // << lower_bound_tmp.format(InLine) << std::endl;
-      lower_bound = lower_bound_tmp;
+    if(valid_lower){
+      lower_bound.x() = lower_bound_tmp.x() < lower_bound.x() ? lower_bound_tmp.x() : lower_bound.x();
+      lower_bound.y() = lower_bound_tmp.y() < lower_bound.y() ? lower_bound_tmp.y() : lower_bound.y();
+      lower_bound.z() = lower_bound_tmp.z() < lower_bound.z() ? lower_bound_tmp.z() : lower_bound.z();
+    }
+    if (valid_upper){
+      upper_bound.x() = upper_bound_tmp.x() +1> upper_bound.x() ? upper_bound_tmp.x()+1 : upper_bound.x();
+      upper_bound.y() = upper_bound_tmp.y() +1> upper_bound.y() ? upper_bound_tmp.y()+1 : upper_bound.y();
+      upper_bound.z() = upper_bound_tmp.z() +1> upper_bound.z() ? upper_bound_tmp.z()+1 : upper_bound.z();
 
     }
-    if (upper_bound_tmp.norm() > upper_bound.norm() && valid_upper) {
-      // std::cout << "upper_bound from " << upper_bound.format(InLine) << " to "
-      // << upper_bound_tmp.format(InLine) << std::endl;
-      upper_bound = upper_bound_tmp;
-    }
-
   }
-  upper_bound += Eigen::Vector3i(8, 8, 8);
+
 
 }
 #endif //SUPEREIGHT_BOUNDARY_EXTRACTION_HPP

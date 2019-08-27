@@ -251,7 +251,7 @@ class DenseSLAMSystem {
  * \param cand_views
  * \return true if planning was performed
  */
-  int planning(VecPose &path, VecPose &cand_views, mapvec3i *free_blocks);
+  int planning(VecPose &path, VecPose &cand_views, mapvec3i *free_blocks, const float ground_height);
 
 
   /*
