@@ -130,8 +130,6 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i &inputSize,
   discrete_vol_ptr_->init(volume_resolution_.x(), volume_dimension_.x());
   volume_ =
       Volume<FieldType>(volume_resolution_.x(), volume_dimension_.x(), discrete_vol_ptr_.get());
-  planning_history_manager_ = se::exploration::PlanningHistoryManager<FieldType>(discrete_vol_ptr_, planning_config);
-
 }
 
 bool DenseSLAMSystem::preprocessing(const unsigned short *inputDepth,
@@ -481,7 +479,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
       updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
       // int map_size_before = free_map_.size();
       insertBlocksToMap(free_map_, free_blocks);
-      planning_history_manager_.updateValidCandidates(pose_*Tbc_);
+
       // if(map_size_before != free_map_.size()){
         // getFreeMapBounds(discrete_vol_ptr_, free_map_, lower_map_bound_v_, upper_map_bound_v_);
         // std::cout << "map bounds " << lower_map_bound_v_ << " " << upper_map_bound_v_;
@@ -542,8 +540,6 @@ int DenseSLAMSystem::planning(VecPose &path,
                                       candidates,
                                       best_candidate
                                       );
-  planning_history_manager_.insertNewCandidates(candidates);
-  planning_history_manager_.updateHistoryPath(best_candidate, path);
 
   return exploration_done;
 //  std::cout << "[se/denseSLAM] path length " << path.size() <<std::endl;

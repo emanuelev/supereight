@@ -58,7 +58,7 @@
 #include "se/path_planning/candidate_view.hpp"
 #include "se/path_planning/exploration_utils.hpp"
 #include "se/path_planning/init_new_position.hpp"
-#include "se/path_planning/planning_history.hpp"
+
 
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
@@ -115,7 +115,6 @@ class DenseSLAMSystem {
   bool init_position_cleared_ = false;
   Eigen::Vector3i lower_map_bound_v_;
   Eigen::Vector3i upper_map_bound_v_;
-  se::exploration::PlanningHistoryManager<FieldType> planning_history_manager_;
 
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
