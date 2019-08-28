@@ -306,6 +306,7 @@ class node_iterator {
       const int xlast = blockCoord(0) + BLOCK_SIDE;
       const int ylast = blockCoord(1) + BLOCK_SIDE;
       const int zlast = blockCoord(2) + BLOCK_SIDE;
+#pragma omp parallel for
       for (int z = blockCoord(2); z < zlast; ++z) {
         for (int y = blockCoord(1); y < ylast; ++y) {
           for (int x = blockCoord(0); x < xlast; ++x) {
