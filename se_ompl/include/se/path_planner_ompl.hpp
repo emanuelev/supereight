@@ -191,13 +191,13 @@ bool PathPlannerOmpl<FieldType>::setStartGoal(const Eigen::Vector3i &start_v,
   // -timings[1]).count();
   ss_->clear();
   if (!pcc_->isSphereSkeletonFree(start_v, safety_radius_v_)) {
-    LOG(INFO) << "\033[1;31mStart at " << start_v.format(InLine) << " is occupied "
+    DLOG(INFO) << "\033[1;31mStart at " << start_v.format(InLine) << " is occupied "
               << octree_ptr_->get(start_v).x << "\033[0m";
 
   }
 
   if (!pcc_->isSphereSkeletonFreeCand(goal_v, safety_radius_v_)) {
-    LOG(INFO) << "\033[1;31mGoal at " << goal_v.format(InLine) << " is occupied "
+    DLOG(INFO) << "\033[1;31mGoal at " << goal_v.format(InLine) << " is occupied "
               << octree_ptr_->get(goal_v).x << "\033[0m";
 
   }
@@ -281,10 +281,10 @@ int PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
   // Setup the ompl planner
 
   if (!setStartGoal(start_v, goal_v)) {
-    LOG(INFO) << "No start and goal set";
+    DLOG(INFO) << "No start and goal set";
     return -1;
   }
-  ss_->print(std::cout);
+  // ss_->print(std::cout);
 
   path_->states.clear();
   path_not_simplified_->states.clear();
@@ -316,15 +316,15 @@ int PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
 
       if (true) {
         // std::cout << "Found solution" << std::endl;
-        std::cout << "FINAL PATH: \n";
+        // std::cout << "FINAL PATH: \n";
 //        path.printAsMatrix(myfile);
-        path.printAsMatrix(std::cout);
+        // path.printAsMatrix(std::cout);
 //        myfile.close();
 
       }
     } else {
-      LOG(WARNING) << "\033[1;31mONLY APPROXIMATE SOLUTION FOUND."
-                      ".\033[0m\n";
+      LOG(INFO) << "\033[1;31mONLY APPROXIMATE SOLUTION FOUND."
+                      ".\033[0m";
       // og::PathGeometric path = ompl_setup_.getSolutionPath();
       og::PathGeometric path = ss_->getSolutionPath();
       prunePath(path);
@@ -362,7 +362,7 @@ int PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
       return 2;
     }
   } else {
-    std::cout << "\033[1;31mNO STRAIGHT-LINE SOLUTION FOUND. OMPL FAILED.\033[0m\n";
+    LOG(INFO) << "\033[1;31mNO STRAIGHT-LINE SOLUTION FOUND. OMPL FAILED.\033[0m";
     ompl_failed_ = true;
 
     return -1;

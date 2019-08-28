@@ -203,7 +203,7 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
       candidate_view(volume, planning_config, collision_checker_v, res, config, pose, step, ground_height);
   int frontier_cluster_size = planning_config.frontier_cluster_size;
   while(candidate_view.getNumValidCandidates()<5){
-    LOG(INFO) << "get candidates";
+    DLOG(INFO) << "get candidates";
     candidate_view.getCandidateViews(frontier_map, frontier_cluster_size);
     if(frontier_cluster_size>8){
     frontier_cluster_size/=2;

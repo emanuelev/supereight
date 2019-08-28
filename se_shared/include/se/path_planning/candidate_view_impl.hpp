@@ -37,7 +37,7 @@ void CandidateView<T>::printFaceVoxels(const Eigen::Vector3i &_voxel) {
  * @param frontier_blocks_map
  */
 template<typename T>
-void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map, const int frontier_cluster_size) {
+void CandidateView<T>::getCandidateViews( const map3i &frontier_blocks_map, const int frontier_cluster_size) {
 
   mapvec3i frontier_voxels_map;
   node_iterator<T> node_it(*(volume_._map_index));
@@ -46,16 +46,20 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map, const
 
   for (const auto &frontier_block : frontier_blocks_map) {
     VecVec3i frontier_voxels = node_it.getFrontierVoxels(frontier_block.first);
-    frontier_voxels_map[frontier_block.first] = frontier_voxels;
+    DLOG(INFO) << "frontier voxel size "<< frontier_voxels.size();
+    if(frontier_voxels.size()>0){
+      frontier_voxels_map[frontier_block.first] = frontier_voxels;
+      DLOG(INFO) << " mapsize "<< frontier_voxels_map.size();
+    }
   }
 
-  if (frontier_voxels_map.size() != frontier_blocks_map.size()) {
-    return;
-  }
+  // if (frontier_voxels_map.size() != frontier_blocks_map.size()) {
+  //   return;
+  // }
   // random candidate view generator
   std::random_device rd;
   std::default_random_engine generator(planning_config_.random_generator_seed);
-  std::uniform_int_distribution<int> distribution_block(0, frontier_blocks_map.size() - 1);
+  std::uniform_int_distribution<int> distribution_block(0, frontier_voxels_map.size() - 1);
 
 #pragma omp parallel for
   for (int i = 0; i < num_sampling_; i++) {
@@ -65,9 +69,9 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map, const
 
     std::advance(it, rand_num);
     uint64_t rand_morton = it->first;
-    LOG(INFO) << "block number " << rand_num << " morton " << rand_morton << " map size " << frontier_blocks_map.size() ;
+    DLOG(INFO) << "block number " << rand_num << " morton " << rand_morton << " map size " << frontier_voxels_map.size() ;
     if (frontier_voxels_map[rand_morton].size() < frontier_cluster_size || frontier_voxels_map[rand_morton].size() ==0) {
-    LOG(INFO) << " size "<< frontier_voxels_map[rand_morton].size()  << " "<<
+    DLOG(INFO) << " size "<< frontier_voxels_map[rand_morton].size()  << " "<<
       frontier_cluster_size;
       continue;
     }
@@ -75,7 +79,7 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map, const
         distribution_voxel(0, frontier_voxels_map[rand_morton].size() - 1);
     // random frontier voxel inside the the randomly chosen voxel block
     int rand_voxel = distribution_voxel(generator);
-    LOG(INFO) << " rand voxel " << rand_voxel << " size " << frontier_voxels_map[rand_morton].size();
+    DLOG(INFO) << " rand voxel " << rand_voxel << " size " << frontier_voxels_map[rand_morton].size();
     // VecVec3i frontier_voxelblock = frontier_voxels_map[rand_morton];
     Eigen::Vector3i candidate_frontier_voxel = frontier_voxels_map[rand_morton].at(rand_voxel);
     DLOG(INFO) << "height_max " << planning_config_.height_max << " " << planning_config_.height_min << " "
@@ -98,13 +102,13 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map, const
     if (is_free == 1) {
       candidates_[i].pose.p = candidate_frontier_voxel.cast<float>();
       num_cands_++;
-      LOG(INFO) << " free voxel ";
+      DLOG(INFO) << " free voxel ";
     } else {
-      LOG(INFO) << " not free ";
+      DLOG(INFO) << " not free ";
       candidates_[i].pose.p = Eigen::Vector3f(0, 0, 0);
     }
     // candidates_[i].pose.p = candidate_frontier_voxel.cast<float>();
-    LOG(INFO) << "Cand voxel " << candidate_frontier_voxel.format(InLine);
+    DLOG(INFO) << "Cand voxel " << candidate_frontier_voxel.format(InLine);
   }
   return;
 }
@@ -315,9 +319,11 @@ void CandidateView<T>::calculateUtility(Candidate &candidate) {
 
   candidate.utility = candidate.information_gain / (t_yaw + t_path);
 
-  LOG(INFO) << "Cand coord" << candidate.pose.p.format(InLine) << "ig "
-             << candidate.information_gain << " t_yaw " << t_yaw << " t_path " << t_path
-             << " utility " << candidate.utility;
+  // LOG(INFO) << "Cand coord" << candidate.pose.p.format(InLine) << "ig "
+             // << candidate.information_gain << " t_yaw " << t_yaw << " t_path " << t_path
+             // << " utility " << candidate.utility;
+  LOG(INFO) <<"IG: " << candidate.information_gain << ", t_yaw: " << t_yaw << ", t_path: " << t_path
+             << ", utility: " << candidate.utility;
 }
 /**
  * finds the best candidate based on information gain

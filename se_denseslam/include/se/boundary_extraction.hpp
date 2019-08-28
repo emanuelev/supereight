@@ -53,12 +53,15 @@ void updateFrontierMap(const Volume<T> &volume, map3i &blocks_map) {
 //  std::cout << "[supereight] frontier map size: before " << frontier_blocks_map.size()
 //  <<std::endl;
   se::node_iterator<T> node_it(*(volume._map_index));
-  for (auto it = blocks_map.begin(); it != blocks_map.end(); ++it) {
+  for (auto it = blocks_map.begin(); it != blocks_map.end(); ) {
     // check if the occupancy probability of the frontier voxels has been updated
     // changes voxel states from frontier to free or occupied
     if (!node_it.deleteFrontierVoxelBlockviaMorton(it->first)) {
-//      std::cout << "[supereight/boundary] no frontier in voxel block => erase" << std::endl;
-      blocks_map.erase(it->first);
+     // std::cout << "[supereight/boundary] no frontier in voxel block => erase" << std::endl;
+
+      it =blocks_map.erase(it);
+    }else{
+      ++it;
     }
   }
 }
@@ -72,10 +75,10 @@ void updateFrontierMap(const Volume<T> &volume,
   Eigen::Vector3i lowerbound;
   Eigen::Vector3i upperbound;
   // check if the ones in the map
-  if (update_frontier_map) {
+  // if (update_frontier_map) {
     // std::cout << "update frontier map " <<std::endl;
     updateFrontierMap(volume, blocks_map);
-  }
+  // }
 
   // insert new frontier blocks to map
   insertBlocksToMap(blocks_map, blocks);
