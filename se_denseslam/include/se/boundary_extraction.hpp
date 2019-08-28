@@ -143,6 +143,7 @@ static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree
       upper_bound.z() = upper_bound_tmp.z() +1> upper_bound.z() ? upper_bound_tmp.z()+1 : upper_bound.z();
 
     }
+
   }
 
 

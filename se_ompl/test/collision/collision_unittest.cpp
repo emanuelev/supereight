@@ -10,6 +10,7 @@
 #include "se/config.h"
 #include "se/planner_config.h"
 #include "se/path_planning/exploration_utils.hpp"
+#include "se/path_planning/planning_history.hpp"
 #include "se/utils/memory_pool.hpp"
 
 #include "se/path_planner_ompl.hpp"
@@ -52,7 +53,7 @@ class CollisionUnitTest : public ::testing::Test {
 };
 
 TEST_F(CollisionUnitTest, CorridorCheckPass) {
-
+  //GIVEN a octree map , a collision checker for the map, start and end point of a path segment
   auto &block_buffer_base = tree_->getBlockBuffer();
   // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
   auto collision_checker =
@@ -60,14 +61,17 @@ TEST_F(CollisionUnitTest, CorridorCheckPass) {
 
   Eigen::Vector3i start = {89, 75, 72};
   Eigen::Vector3i end = {95, 75, 72};
-
+  // WHEN: checking for collision of the segment corridor in free space
   bool is_collision_free = collision_checker->isSegmentFlightCorridorSkeletonFree(start, end, 0, 3);
+
+  // THEN: the corridor is collision free
   EXPECT_TRUE(is_collision_free);
 
 }
 
 TEST_F(CollisionUnitTest, CorridorCheckFail) {
 
+  //GIVEN a octree map , a collision checker for the map, start and end point of a path segment
   auto &block_buffer_base = tree_->getBlockBuffer();
   // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
   auto collision_checker =
@@ -75,44 +79,89 @@ TEST_F(CollisionUnitTest, CorridorCheckFail) {
 
   Eigen::Vector3i start = {60, 50, 72};
   Eigen::Vector3i end = {80, 50, 72};
-
+// WHEN: checking for collision of the segment corridor with a wall between the two points
   bool is_collision_free = collision_checker->isSegmentFlightCorridorSkeletonFree(start, end, 0, 4);
+
+  // THEN: the collision check should fail,
   EXPECT_FALSE(is_collision_free);
 
 }
 
 TEST_F(CollisionUnitTest, PathPlanningPass) {
-
+ //GIVEN a octree map , a path planner, a collision checker for the map, start and end point of a path are free
   auto &block_buffer_base = tree_->getBlockBuffer();
   // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
   auto collision_checker =
       aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
   auto path_planner_ompl_ptr = aligned_shared<se::exploration::PathPlannerOmpl<OFusion> >(tree_,
                                                                                           collision_checker,
-                                                                                          planner_config_);
+                                                                                          planner_config_,
+                                                                                          12.1f);
   map3i free_map = createMap3i(block_buffer_base);
-  bool setup_planner = path_planner_ompl_ptr->setupPlanner(free_map);
+  Eigen::Vector3i lower_bound ;
+  Eigen::Vector3i upper_bound ;
+  getFreeMapBounds(tree_, free_map, lower_bound, upper_bound);
+  bool setup_planner = path_planner_ompl_ptr->setupPlanner(lower_bound, upper_bound);
   Eigen::Vector3i start = {89, 75, 72};
   Eigen::Vector3i end = {95, 75, 72};
+  // WHEN planning a path in free space
   int solution_status = path_planner_ompl_ptr->planPath(start, end);
+
+  // THEN there is an exact solution
   EXPECT_EQ(solution_status, 1);
 
 }
 
 TEST_F(CollisionUnitTest, PathPlanningAroundWall) {
-
+// GIVEN a octree map , a path planner, a collision checker for the map, start and end point of a path are free
   auto &block_buffer_base = tree_->getBlockBuffer();
   // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
   auto collision_checker =
       aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
   auto path_planner_ompl_ptr = aligned_shared<se::exploration::PathPlannerOmpl<OFusion> >(tree_,
                                                                                           collision_checker,
-                                                                                          planner_config_);
+                                                                                          planner_config_,
+                                                                                          12.1f);
   map3i free_map = createMap3i(block_buffer_base);
-  bool setup_planner = path_planner_ompl_ptr->setupPlanner(free_map);
+  Eigen::Vector3i lower_bound ;
+  Eigen::Vector3i upper_bound ;
+  getFreeMapBounds(tree_, free_map, lower_bound, upper_bound);
+  bool setup_planner = path_planner_ompl_ptr->setupPlanner(lower_bound, upper_bound);
   Eigen::Vector3i start = {80, 80, 72};
   Eigen::Vector3i end = {90, 50, 72};
+   // WHEN planning a path around a wall
   int solution_status = path_planner_ompl_ptr->planPath(start, end);
+
+  // THEN there is an exact solution
   EXPECT_EQ(solution_status, 1);
 
 }
+
+TEST_F(CollisionUnitTest, ApproximateSolution) {
+// GIVEN a octree map , a path planner, a collision checker for the map,
+  // start is free and end is occupied
+  auto &block_buffer_base = tree_->getBlockBuffer();
+  // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+  auto collision_checker =
+      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+  auto path_planner_ompl_ptr = aligned_shared<se::exploration::PathPlannerOmpl<OFusion> >(tree_,
+                                                                                          collision_checker,
+                                                                                          planner_config_,
+                                                                                          12.1f);
+  map3i free_map = createMap3i(block_buffer_base);
+  Eigen::Vector3i lower_bound ;
+  Eigen::Vector3i upper_bound ;
+  getFreeMapBounds(tree_, free_map, lower_bound, upper_bound);
+  bool setup_planner = path_planner_ompl_ptr->setupPlanner(lower_bound, upper_bound);
+  Eigen::Vector3i start = {80, 80, 72};
+  Eigen::Vector3i end = {90, 60, 72};
+
+ // WHEN planning a path around a wall
+  int solution_status = path_planner_ompl_ptr->planPath(start, end);
+
+  // THEN there is only an approxiamted solution
+  EXPECT_EQ(solution_status, 2);
+
+}
+
+

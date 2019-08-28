@@ -88,6 +88,15 @@ struct Candidate
     planning_solution_status = -1;
     utility = -1.f;
   }
+
+  void clear(){
+    pose={ {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f, 0.f}};
+    information_gain = -1.f;
+    path_length = -1.f;
+    path.clear();
+    planning_solution_status = -1;
+    utility = -1.f;
+  }
 };
 
 typedef AlignedVector<Candidate> VecCandidate;

@@ -1,5 +1,5 @@
 /*
-  Copyright 2016 Emanuele Vespa, Imperial College London 
+  Copyright 2016 Emanuele Vespa, Imperial College London
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
 
@@ -23,23 +23,27 @@
   SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
   CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <random>
+
 #include "se/octree.hpp"
 #include "se/node_iterator.hpp"
 #include "se/node.hpp"
 #include "se/utils/math_utils.h"
 #include "se/utils/morton_utils.hpp"
+#include "se/utils/eigen_utils.h"
+
 #include "se/functors/axis_aligned_functor.hpp"
 #include "se/config.h"
 #include "se/planner_config.h"
 #include "gtest/gtest.h"
 
+// #include "se/ompl/collision_checker_voxel.hpp"
 #include "se/path_planning/candidate_view.hpp"
 #include "se/path_planning/init_new_position.hpp"
 
-typedef std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i> > vec3i;
+// typedef std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i> > vec3i;
 
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 typedef struct {
@@ -60,6 +64,7 @@ class CandidateViewTest : public ::testing::Test {
     unsigned size = 128;
     float dim = 12.8f;
     oct_.init(size, dim); // 10 meters
+    planning_config = getDefaultPlanningConfig();
 
     const unsigned center = 6.4f;
 
@@ -94,8 +99,11 @@ TEST_F(CandidateViewTest, WeightFunction) {
   //GIVEN: a cand view object
   Eigen::Matrix4f pose;
   pose << 1.f, 0.f, 0.f, 3.f, 0.f, 1.f, 0.f, 3.f, 0.f, 0.f, 1.f, 3.f, 0.f, 0.f, 0.f, 1.f;
+  std::shared_ptr<se::Octree<testT> > tree = aligned_shared<se::Octree<testT> >();
+  auto collision_checker =
+      aligned_shared<se::exploration::CollisionCheckerV<testT> >(tree, planning_config);
   se::exploration::CandidateView<testT>
-      cand_view(volume_, planning_config, voxelsize, config, pose);
+      cand_view(volume_, planning_config,collision_checker, voxelsize, config, pose, 0.1f, 12.1f);
   bool hit_unknown[3] = {false, false, false};
   float t_hit[3]={0.f, 0.f , 0.f};
   float prob_log[3] = {0.f, 3.f, 0.f};
@@ -135,63 +143,193 @@ TEST_F(CandidateViewTest, WeightFunction) {
   std::string output = testing::internal::GetCapturedStdout();
 //  EXPECT_TRUE(false) << output;
 }
-TEST_F(CandidateViewTest, EntropyCalculation_occ) {
-  //GIVEN:
-// set map value
-// TODO make this work
-//  std::pair<double, float> ig = cand_view.getInformationGain(volume_,
-//                                                             Eigen::Vector3f(1.f, 0.f, 0.f),
-//                                                             0.1f,
-//                                                             4.1f,
-//                                                             0.1,
-//                                                             Eigen::Vector3f(3.f, 3.f, 3.f));
-//  std::cout << ig.first << ig.second << std::endl;
-  auto set_to_five = [](auto &handler, const Eigen::Vector3i &) {
-    handler.set({5.f});
-  };
-  se::functor::axis_aligned_map(oct_,
-                                set_to_five,
-                                Eigen::Vector3i::Constant(0),
-                                Eigen::Vector3i::Constant(51));
 
-  //WHEN
 
-  //THEN
+class CandViewUnitTest : public ::testing::Test {
+ public:
+   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+ protected:
+  virtual void SetUp() {
+    tree_ = std::make_shared<se::Octree<OFusion> >();
+    std::string
+        filename = "/home/anna/exploration_ws/src/supereight/se_shared/test/path_planning/frontier.bin";
+    tree_->load(filename);
+    std::cout << "file loaded" << std::endl;
+    max_depth_ = log2(tree_->size());
+    leaves_level_ = tree_->leaf_level();
+    dim_ = tree_->voxelDim();
+    planner_config_ = getDefaultPlanningConfig();
+    auto &block_buffer_base = tree_->getBlockBuffer();
+    morton_code_ = createMap3i(block_buffer_base);
+    volume_ = Volume<OFusion>(128, 24, tree_.get());
+
+  }
+
+  map3i createMap3i(se::MemoryPool<se::VoxelBlock<OFusion> > &block_buffer) {
+    map3i morton_map;
+    for (int i = 0; i < block_buffer.size(); i++) {
+      const Eigen::Vector3i block_coord = block_buffer[i]->coordinates();
+      const key_t morton_code = block_buffer[i]->code_;
+      morton_map.emplace(morton_code, block_coord);
+    }
+    return morton_map;
+  }
+  Volume<OFusion> volume_;
+  std::shared_ptr<se::Octree<OFusion> > tree_;
+  map3i morton_code_;
+  int max_depth_;
+  int leaves_level_;
+  float dim_;
+  Planning_Configuration planner_config_;
+  Configuration config_;
+
+};
+
+TEST_F(CandViewUnitTest, ClassSetup){
+  Eigen::Matrix4f curr_pose;
+  curr_pose << 1 , 0,0, 15.f ,0,1,0,12.f, 0,0,1,13.5f, 0,0,0,1;
+  auto collision_checker =
+      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+  se::exploration::CandidateView<OFusion>
+      cand_view(volume_, planner_config_, collision_checker, dim_, config_, curr_pose, 0.1f, 12.1f);
+
+
+  EXPECT_FLOAT_EQ(cand_view.curr_pose_.pose.p.x(), 15.f/dim_);
+  EXPECT_FLOAT_EQ(cand_view.curr_pose_.pose.p.y(), 12.f/dim_);
+  EXPECT_FLOAT_EQ(cand_view.curr_pose_.pose.p.z(), 13.5f/dim_);
+
+  EXPECT_EQ(cand_view.candidates_.size(), planner_config_.num_cand_views);
 }
-// TODO fix this test!
-TEST_F(CandidateViewTest, getSphereAroundPoint ) {
-  //GIVEN:
-  // Allocated block: {56, 8, 248};
-  mapvec3i block_voxel_map;
-  const Eigen::Vector3i center = {60, 12, 252};
-  const float radius = 0.2f;// [m] 2 voxels
-  //WHEN
-  /* Update bottom left corner as occupied */
-  se::VoxelBlock<testT> *block = oct_.fetch(56, 8, 248);
-  const Eigen::Vector3i blockCoord = block->coordinates();
-  int x, y, z, blockSide;
-  testT low;
-  low.x = 2.f;
-  testT high;
-  high.x = 10.f;
-  blockSide = (int) se::VoxelBlock<testT>::side;
-  int xlast = blockCoord(0) + blockSide;
-  int ylast = blockCoord(1) + blockSide;
-  int zlast = blockCoord(2) + blockSide;
-  for (z = blockCoord(2); z < zlast; ++z) {
-    for (y = blockCoord(1); y < ylast; ++y) {
-      for (x = blockCoord(0); x < xlast; ++x) {
-        if ((blockCoord(0)) < x && x < (xlast - 4) && (blockCoord(1)) < y && y < (ylast - 4)
-            && (blockCoord(2)) < z && z < (zlast - 4)) {
-          block->data(Eigen::Vector3i(x, y, z), low);
-        } else {
-          block->data(Eigen::Vector3i(x, y, z), high);
-        }
-      }
+
+
+
+TEST_F(CandViewUnitTest, GetViewInformationGain4Times){
+
+  Eigen::Matrix4f curr_pose;
+  curr_pose << 1 , 0,0, 15.f ,0,1,0,12.f, 0,0,1,13.5f, 0,0,0,1;
+  auto collision_checker =
+      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+  se::exploration::CandidateView<OFusion>
+      cand_view(volume_, planner_config_, collision_checker, dim_, config_, curr_pose, 0.1f, 12.1f);
+  cand_view.candidates_[0].pose.p = Eigen::Vector3f(50, 100, 75);
+  cand_view.candidates_[1].pose.p = Eigen::Vector3f(51, 115, 72);
+
+  float ig_1 = cand_view.getViewInformationGain(cand_view.candidates_[0].pose);
+  float yaw_1 =  se::exploration::toEulerAngles(cand_view.candidates_[0].pose.q).yaw ;
+
+ float ig_2 =  cand_view.getViewInformationGain(cand_view.candidates_[0].pose);
+
+  float yaw_2 =  se::exploration::toEulerAngles(cand_view.candidates_[0].pose.q).yaw ;
+
+  EXPECT_FLOAT_EQ(yaw_1, yaw_2);
+  EXPECT_FLOAT_EQ(ig_1, ig_2);
+
+   ig_1 =  cand_view.getViewInformationGain(cand_view.candidates_[1].pose);
+   yaw_1 =  se::exploration::toEulerAngles(cand_view.candidates_[1].pose.q).yaw ;
+
+  ig_2 = cand_view.getViewInformationGain(cand_view.candidates_[1].pose);
+
+   yaw_2 =  se::exploration::toEulerAngles(cand_view.candidates_[1].pose.q).yaw ;
+  EXPECT_FLOAT_EQ(yaw_1, yaw_2);
+  EXPECT_FLOAT_EQ(ig_1, ig_2);
+}
+
+TEST_F(CandViewUnitTest, IGSparsityTest){
+
+  Eigen::Matrix4f curr_pose;
+  curr_pose << 1 , 0,0, 15.f ,0,1,0,12.f, 0,0,1,13.5f, 0,0,0,1;
+  auto collision_checker =
+  aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+  int dphi[4] = {1, 5 , 10, 15};
+  int dtheta[4] = {1, 10, 20, 30};
+    std::chrono::time_point<std::chrono::steady_clock> timings[2];
+  for (int i = 0; i < 4 ; i++ ){
+
+    planner_config_.dtheta = dtheta[i];
+    planner_config_.dphi = dphi[i];
+    se::exploration::CandidateView<OFusion>
+    cand_view(volume_, planner_config_, collision_checker, dim_, config_, curr_pose, 0.1f, 12.1f);
+    cand_view.candidates_[0].pose.p = Eigen::Vector3f(50, 100, 75);
+    timings[0] = std::chrono::steady_clock::now();
+    float ig_1 = cand_view.getViewInformationGain(cand_view.candidates_[0].pose);
+
+    timings[1] = std::chrono::steady_clock::now();
+    double progress_time = std::chrono::duration_cast<std::chrono::duration<double> >
+    (timings[1] - timings[0]).count();
+    float yaw_1 =  se::exploration::toEulerAngles(cand_view.candidates_[0].pose.q).yaw ;
+
+    float ig_2 = cand_view.getViewInformationGain(cand_view.candidates_[0].pose);
+    float yaw_2 =  se::exploration::toEulerAngles(cand_view.candidates_[0].pose.q).yaw ;
+    LOG(INFO) <<"theta " << dtheta[i] << " phi " << dphi[i]<< " "<< ig_1 << " time " << progress_time ;
+    int n_col = planner_config_.fov_hor * 0.75 / dphi[i];
+    int n_row = 360 / dtheta[i];
+    LOG(INFO)<< "time per ray " << progress_time/ (n_col*n_row) << " num ray " << n_row*n_col;
+
+    EXPECT_FLOAT_EQ(yaw_1, yaw_2);
+    EXPECT_FLOAT_EQ(ig_1, ig_2);
+  }
+
+}
+
+
+TEST_F(CandViewUnitTest, GetRandCand){
+  Eigen::Matrix4f curr_pose;
+ curr_pose << 1 , 0,0, 15.f ,0,1,0,12.f, 0,0,1,13.5f, 0,0,0,1;
+  auto collision_checker =
+      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+    std::chrono::time_point<std::chrono::steady_clock> timings[2];
+
+ int num_sample[4] = {10, 20, 30, 40};
+ for(int i = 0 ; i < 4 ; i ++){
+  int frontier_cluster_size = planner_config_.frontier_cluster_size;
+  planner_config_.num_cand_views = num_sample[i];
+    se::exploration::CandidateView<OFusion>
+      cand_view(volume_, planner_config_, collision_checker, dim_, config_, curr_pose, 0.1f, 12.1f);
+    timings[0] = std::chrono::steady_clock::now();
+  while(cand_view.getNumValidCandidates()<5){
+
+    cand_view.getCandidateViews(morton_code_, frontier_cluster_size);
+    if(frontier_cluster_size>8){
+      frontier_cluster_size/=2;
     }
   }
-  se::exploration::getSphereAroundPoint(center, radius, oct_, block_voxel_map);
+    timings[1] = std::chrono::steady_clock::now();
+    double progress_time = std::chrono::duration_cast<std::chrono::duration<double> >
+    (timings[1] - timings[0]).count();
 
-  //THEN
+  int num_cand = cand_view.getNumValidCandidates();
+  LOG(INFO) << "num_cand " << num_cand << " cluster size " << frontier_cluster_size <<
+  " progress time " << progress_time;
+
+  EXPECT_TRUE(num_cand>0);
+}
 }
 
+TEST_F(CandViewUnitTest, AddSegments){
+  Eigen::Matrix4f curr_pose;
+ curr_pose << 1 , 0,0, 15.f ,0,1,0,12.f, 0,0,1,13.5f, 0,0,0,1;
+  auto collision_checker =
+      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+    std::chrono::time_point<std::chrono::steady_clock> timings[2];
+ se::exploration::pose3D start;
+ start = {{50, 100, 75}, {1.f, 0.f, 0.f, 0.f}};
+ se::exploration::pose3D end;
+ end = {{60, 120, 75}, {1.f, 0.f, 0.f, 0.f}};
+
+ float sampling_dist[3] = {0.4, 0.8, 1.2};
+ int num_seg[3] = {13, 7, 5};
+ for(int i = 0 ; i < 3 ; i ++){
+    planner_config_.max_rrt_edge_length = sampling_dist[i];
+    se::exploration::CandidateView<OFusion>
+      cand_view(volume_, planner_config_, collision_checker, dim_, config_, curr_pose, 0.1f, 12.1f);
+    timings[0] = std::chrono::steady_clock::now();
+    VecPose path = cand_view.addPathSegments( start, end );
+    timings[1] = std::chrono::steady_clock::now();
+    double progress_time = std::chrono::duration_cast<std::chrono::duration<double> >
+    (timings[1] - timings[0]).count();
+
+
+  LOG(INFO) << "samling dist " << planner_config_.max_rrt_edge_length<< " path size "<< path.size() << " progress time " << progress_time;
+  EXPECT_EQ(path.size(), num_seg[i] );
+}
+}

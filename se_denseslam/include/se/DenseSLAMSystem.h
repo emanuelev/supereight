@@ -59,6 +59,7 @@
 #include "se/path_planning/exploration_utils.hpp"
 #include "se/path_planning/init_new_position.hpp"
 
+
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
  */
