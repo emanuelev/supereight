@@ -81,6 +81,11 @@ filenames = sort(args);
 for i = 1:length(filenames);
   filename = args{i};
 
+  % This is a cropped map, skip.
+  if strfind(filename, '_cropped.bin')
+	  continue;
+  end
+
   % Crop the octree.
   [status, output] = system([mapcropper_program ' ' filename ' ' ...
       num2str(dim_x) ' ' num2str(dim_y) ' ' num2str(dim_z)]);
