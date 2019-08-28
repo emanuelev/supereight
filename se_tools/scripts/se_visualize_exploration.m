@@ -73,6 +73,7 @@ t = [];
 total_volume = [];
 voxel_volume = [];
 node_volume  = [];
+poses = {};
 
 % Sort the filenames.
 filenames = sort(args);
@@ -81,46 +82,66 @@ filenames = sort(args);
 for i = 1:length(filenames);
   filename = args{i};
 
+
+
   % This is a cropped map, skip.
   if strfind(filename, '_cropped.bin')
 	  continue;
   end
 
-  % Crop the octree.
-  [status, output] = system([mapcropper_program ' ' filename ' ' ...
-      num2str(dim_x) ' ' num2str(dim_y) ' ' num2str(dim_z)]);
 
-  % Evaluate the file.
-  filename_cropped = strrep(filename, '.bin', '_cropped.bin');
-  [status, output] = system([voxelcounter_program ' ' filename_cropped]);
 
-  % Test for errors.
-  if status ~= 0
-    fprintf('%s', output);
-    continue;
+  % This is a map, process.
+  if strfind(filename, '.bin')
+    % Crop the octree.
+    [status, output] = system([mapcropper_program ' ' filename ' ' ...
+        num2str(dim_x) ' ' num2str(dim_y) ' ' num2str(dim_z)]);
+
+    % Evaluate the file.
+    filename_cropped = strrep(filename, '.bin', '_cropped.bin');
+    [status, output] = system([voxelcounter_program ' ' filename_cropped]);
+
+    % Test for errors.
+    if status ~= 0
+      fprintf('%s', output);
+      continue;
+    end
+
+    % Parse the output.
+    output_lines = strsplit(output, '\n');
+    for l = 1:length(output_lines)
+      line = output_lines{l};
+
+      if match_pattern(voxel_volume_pattern, line)
+        explored_volume = sscanf(line, 'Explored voxel volume: %f', 1);
+        voxel_volume = [voxel_volume explored_volume];
+
+      elseif match_pattern(node_volume_pattern, line)
+        explored_volume = sscanf(line, 'Explored node volume: %f', 1);
+        node_volume = [node_volume explored_volume];
+
+      elseif match_pattern(explored_volume_pattern, line)
+        explored_volume = sscanf(line, 'Explored volume: %f', 1);
+        total_volume = [total_volume explored_volume];
+      end
+    end
+
+    timestamp = str2double(filename(end-9:end-4));
+    t = [t timestamp];
   end
 
-  % Parse the output.
-  output_lines = strsplit(output, '\n');
-  for l = 1:length(output_lines)
-    line = output_lines{l};
 
-    if match_pattern(voxel_volume_pattern, line)
-      explored_volume = sscanf(line, 'Explored voxel volume: %f', 1);
-      voxel_volume = [voxel_volume explored_volume];
 
-    elseif match_pattern(node_volume_pattern, line)
-      explored_volume = sscanf(line, 'Explored node volume: %f', 1);
-      node_volume = [node_volume explored_volume];
-
-    elseif match_pattern(explored_volume_pattern, line)
-      explored_volume = sscanf(line, 'Explored volume: %f', 1);
-      total_volume = [total_volume explored_volume];
+  % This is the pose list.
+  if strfind(filename, '.txt')
+    data = importdata(filename);
+    num_poses = size(data, 1);
+    poses = cell([1 num_poses]);
+    for i = 1:num_poses
+      poses{i} = data(i, 2:17);
+      poses{i} = reshape(poses{i}, 4, 4)';
     end
   end
-
-  timestamp = str2double(filename(end-9:end-4));
-  t = [t timestamp];
 end
 
 
@@ -129,6 +150,7 @@ end
 lw = 2;
 figure;
 hold on;
+grid on;
 
 plot(t, total_volume, 'bo-', 'LineWidth', lw);
 plot(t, node_volume,  'go-', 'LineWidth', lw);
@@ -136,6 +158,27 @@ plot(t, voxel_volume, 'ro-', 'LineWidth', lw);
 xlabel('Time (s)');
 ylabel('Explored volume (m^3)');
 legend('Total volume', 'Node volume', 'Voxel volume', 'Location', 'southeast');
+
+if ~isempty(poses)
+  figure;
+  hold on;
+  axis equal;
+  grid on;
+
+  for i = 1:length(poses)
+    plot_axes(poses{i});
+  end
+  for i = 1:length(poses)-1
+    pos_c = poses{i}(1:3, 4);
+    pos_n = poses{i+1}(1:3, 4);
+    plot3([pos_c(1) pos_n(1)], [pos_c(2) pos_n(2)], [pos_c(3) pos_n(3)], ...
+        'm.-', 'LineWidth', lw);
+  end
+
+  xlabel('x (m)');
+  ylabel('y (m)');
+  zlabel('z (m)');
+end
 
 ginput();
 
