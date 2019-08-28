@@ -54,7 +54,7 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map, const
   }
   // random candidate view generator
   std::random_device rd;
-  std::default_random_engine generator(rd());
+  std::default_random_engine generator(planning_config_.random_generator_seed);
   std::uniform_int_distribution<int> distribution_block(0, frontier_blocks_map.size() - 1);
 
 #pragma omp parallel for
@@ -62,44 +62,51 @@ void CandidateView<T>::getCandidateViews(const map3i &frontier_blocks_map, const
     auto it = frontier_voxels_map.begin();
 
     const int rand_num = distribution_block(generator);
+
     std::advance(it, rand_num);
     uint64_t rand_morton = it->first;
+    LOG(INFO) << "block number " << rand_num << " morton " << rand_morton << " map size " << frontier_blocks_map.size() ;
     if (frontier_voxels_map[rand_morton].size() < frontier_cluster_size || frontier_voxels_map[rand_morton].size() ==0) {
+    LOG(INFO) << " size "<< frontier_voxels_map[rand_morton].size()  << " "<<
+      frontier_cluster_size;
       continue;
     }
     std::uniform_int_distribution<int>
         distribution_voxel(0, frontier_voxels_map[rand_morton].size() - 1);
     // random frontier voxel inside the the randomly chosen voxel block
     int rand_voxel = distribution_voxel(generator);
+    LOG(INFO) << " rand voxel " << rand_voxel << " size " << frontier_voxels_map[rand_morton].size();
     // VecVec3i frontier_voxelblock = frontier_voxels_map[rand_morton];
     Eigen::Vector3i candidate_frontier_voxel = frontier_voxels_map[rand_morton].at(rand_voxel);
     DLOG(INFO) << "height_max " << planning_config_.height_max << " " << planning_config_.height_min << " "
     << ground_height_ ;
      DLOG(INFO) << "z "<< candidate_frontier_voxel.z();
-    if (boundHeight(candidate_frontier_voxel.z(),
+    boundHeight(candidate_frontier_voxel.z(),
                     planning_config_.height_max + ground_height_,
                     planning_config_.height_min + ground_height_,
-                    res_)) {
-    DLOG(INFO) << "z "<< candidate_frontier_voxel.z();
+                    res_);
+    // DLOG(INFO) << "z "<< candidate_frontier_voxel.z();
       // frontier_voxelblock = frontier_voxels_map[se::keyops::encode(candidate_frontier_voxel.x(),
       //                                                              candidate_frontier_voxel.y(),
       //                                                              candidate_frontier_voxel.z(),
       //                                                              volume_._map_index->leaf_level(),
       //                                                              volume_._map_index->max_level())];
 
-    }
+    // }
     bool is_free = pcc_->isSphereSkeletonFreeCand(candidate_frontier_voxel, static_cast<int>(
         planning_config_.robot_safety_radius / res_));
     if (is_free == 1) {
       candidates_[i].pose.p = candidate_frontier_voxel.cast<float>();
       num_cands_++;
-
+      LOG(INFO) << " free voxel ";
     } else {
+      LOG(INFO) << " not free ";
       candidates_[i].pose.p = Eigen::Vector3f(0, 0, 0);
     }
     // candidates_[i].pose.p = candidate_frontier_voxel.cast<float>();
-    DLOG(INFO) << "Cand voxel " << candidate_frontier_voxel.format(InLine);
+    LOG(INFO) << "Cand voxel " << candidate_frontier_voxel.format(InLine);
   }
+  return;
 }
 
 template<typename T>
@@ -366,7 +373,6 @@ int CandidateView<T>::getBestCandidate() {
 
 template<typename T>
 VecPose CandidateView<T>::getFinalPath(Candidate &candidate ) {
-  const float sampling_dist) {
 
   VecPose path;
 // first add points between paths
@@ -391,8 +397,6 @@ VecPose CandidateView<T>::getFinalPath(Candidate &candidate ) {
       for(const auto& pose : path_fused){
         path.push_back(pose);
       }
-
-
     }
   }else{
     VecPose yaw_path = getYawPath(pose_, candidate.pose );
@@ -440,7 +444,6 @@ VecPose CandidateView<T>::fusePath( VecPose &path_tmp,  VecPose &yaw_path){
 template<typename T>
 VecPose CandidateView<T>::getYawPath(const pose3D &start,
                                      const pose3D &goal) {
-                                     const float max_yaw_rate) {
   VecPose path;
   pose3D pose_tmp;
   const float max_yaw_rate =planning_config_.max_yaw_rate;

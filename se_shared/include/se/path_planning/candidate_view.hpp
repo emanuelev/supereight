@@ -158,6 +158,7 @@ CandidateView<T>::CandidateView(const Volume<T> &volume,
   ig_target_ = n_col * n_row * (farPlane / step) * getEntropy(log2(0.1 / (1.f - 0.1)));
   // std::cout << "ig total " << ig_total_ << " ig target " << ig_target_ << std::endl;
   candidates_.resize(num_sampling_);
+  LOG(INFO) << "setup candidate view";
 }
 
 /**
@@ -201,18 +202,21 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   CandidateView<T>
       candidate_view(volume, planning_config, collision_checker_v, res, config, pose, step, ground_height);
   int frontier_cluster_size = planning_config.frontier_cluster_size;
-  while(candidate_view.getNumValidCandidates()==0){
+  while(candidate_view.getNumValidCandidates()<5){
+    LOG(INFO) << "get candidates";
     candidate_view.getCandidateViews(frontier_map, frontier_cluster_size);
+    if(frontier_cluster_size>8){
     frontier_cluster_size/=2;
+    }
   }
 
   pose3D start = getCurrPose(pose, res);
   bool valid_path = false;
 
   // if (size > 1) {
-// #pragma omp parallel for
-  for (int i = 0; i < planning_config.num_cand_views; i++) {
 #pragma omp parallel for
+  for (int i = 0; i < planning_config.num_cand_views; i++) {
+
     if (candidate_view.candidates_[i].pose.p != Eigen::Vector3f(0, 0, 0)) {
       auto collision_checker = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
       auto path_planner_ompl_ptr =
@@ -257,6 +261,7 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
     }
   }
 
+  candidate_view.calculateCandidateViewGain();
 
   int best_cand_idx = -1;
   bool use_curr_pose = true;

@@ -279,17 +279,19 @@ TEST_F(CandViewUnitTest, GetRandCand){
       aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
     std::chrono::time_point<std::chrono::steady_clock> timings[2];
 
- int num_sample[3] = {10, 20, 30};
- for(int i = 0 ; i < 3 ; i ++){
+ int num_sample[4] = {10, 20, 30, 40};
+ for(int i = 0 ; i < 4 ; i ++){
   int frontier_cluster_size = planner_config_.frontier_cluster_size;
   planner_config_.num_cand_views = num_sample[i];
     se::exploration::CandidateView<OFusion>
       cand_view(volume_, planner_config_, collision_checker, dim_, config_, curr_pose, 0.1f, 12.1f);
     timings[0] = std::chrono::steady_clock::now();
-  while(cand_view.getNumValidCandidates()==0){
+  while(cand_view.getNumValidCandidates()<5){
 
     cand_view.getCandidateViews(morton_code_, frontier_cluster_size);
-    frontier_cluster_size/=2;
+    if(frontier_cluster_size>8){
+      frontier_cluster_size/=2;
+    }
   }
     timings[1] = std::chrono::steady_clock::now();
     double progress_time = std::chrono::duration_cast<std::chrono::duration<double> >
@@ -317,17 +319,17 @@ TEST_F(CandViewUnitTest, AddSegments){
  float sampling_dist[3] = {0.4, 0.8, 1.2};
  int num_seg[3] = {13, 7, 5};
  for(int i = 0 ; i < 3 ; i ++){
-
+    planner_config_.max_rrt_edge_length = sampling_dist[i];
     se::exploration::CandidateView<OFusion>
       cand_view(volume_, planner_config_, collision_checker, dim_, config_, curr_pose, 0.1f, 12.1f);
     timings[0] = std::chrono::steady_clock::now();
-    VecPose path = cand_view.addPathSegments(sampling_dist[i], start, end );
+    VecPose path = cand_view.addPathSegments( start, end );
     timings[1] = std::chrono::steady_clock::now();
     double progress_time = std::chrono::duration_cast<std::chrono::duration<double> >
     (timings[1] - timings[0]).count();
 
 
-  LOG(INFO) << "samling dist " << sampling_dist[i]<< " path size "<< path.size() << " progress time " << progress_time;
+  LOG(INFO) << "samling dist " << planner_config_.max_rrt_edge_length<< " path size "<< path.size() << " progress time " << progress_time;
   EXPECT_EQ(path.size(), num_seg[i] );
 }
 }
