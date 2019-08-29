@@ -28,6 +28,8 @@ clear variables
 dim_x = 10;
 dim_y = 20;
 dim_z = 3;
+plot_path = false;
+export_plot = true;
 
 
 
@@ -35,6 +37,7 @@ dim_z = 3;
 voxel_volume_pattern    = 'Explored voxel volume: +\d+';
 node_volume_pattern     = 'Explored node volume: +\d+';
 explored_volume_pattern = 'Explored volume: +\d+';
+timestamp_pattern       = '\d{4}-\d{2}-\d{2}_\d{6}';
 
 
 
@@ -47,6 +50,13 @@ function matched = match_pattern(pattern, line)
 	if DEBUG && matched
 		fprintf('M %s\n', upper(inputname(1)));
 	end
+end
+
+
+
+function p = get_pattern(pattern, line)
+	[~, ~, ~, m, ~, ~, ~] = regexp(line, pattern);
+	p = m{1};
 end
 
 
@@ -133,7 +143,7 @@ for i = 1:length(filenames);
 
 
   % This is the pose list.
-  if strfind(filename, '.txt')
+  if plot_path && strfind(filename, '.txt')
     data = importdata(filename);
     num_poses = size(data, 1);
     poses = cell([1 num_poses]);
@@ -159,7 +169,14 @@ xlabel('Time (s)');
 ylabel('Explored volume (m^3)');
 legend('Total volume', 'Node volume', 'Voxel volume', 'Location', 'southeast');
 
-if ~isempty(poses)
+if export_plot
+	directory = fileparts(args{1});
+	timestamp = get_pattern(timestamp_pattern, args{1});
+	image_name = [directory '/' 'volume_' timestamp '.png'];
+	print(image_name);
+end
+
+if plot_path && ~isempty(poses)
   figure;
   hold on;
   axis equal;
