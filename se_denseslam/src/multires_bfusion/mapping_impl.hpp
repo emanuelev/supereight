@@ -31,6 +31,11 @@
 
 #ifndef MULTIRES_BFUSION_MAPPING_HPP
 #define MULTIRES_BFUSION_MAPPING_HPP
+#include <cstdlib>
+#include <Eigen/StdVector>
+#include <atomic>
+#include <omp.h>
+#include <map>
 
 #include <se/node.hpp>
 #include <se/functors/projective_functor.hpp>
@@ -221,6 +226,64 @@ namespace se {
         data.st = st_max;
       }
 
+      bool isFrontier(const se::Octree<FieldType> &map, se::VoxelBlock<OFusion>* block, const Eigen::Vector3i voxel) {
+        Eigen::Vector3i face_neighbour_voxel[6];
+
+        face_neighbour_voxel[0] << voxel.x() - 1, voxel.y(), voxel.z();
+        face_neighbour_voxel[1] << voxel.x() + 1, voxel.y(), voxel.z();
+        face_neighbour_voxel[2] << voxel.x(), voxel.y() - 1, voxel.z();
+        face_neighbour_voxel[3] << voxel.x(), voxel.y() + 1, voxel.z();
+        face_neighbour_voxel[4] << voxel.x(), voxel.y(), voxel.z() - 1;
+        face_neighbour_voxel[5] << voxel.x(), voxel.y(), voxel.z() + 1;
+        for (const auto &face_voxel : face_neighbour_voxel) {
+
+          // map boarder check, don't want the drone to fly there.
+          if(face_voxel.x() < 0|| face_voxel.y() < 0 || face_voxel.z() <0 ||
+             face_voxel.x() >= map.size() || face_voxel.y() >= map.size() || face_voxel.z() >= map.size()){
+            return false;
+          }
+
+          // check if face voxel is inside same voxel block
+          if ((voxel.x() / BLOCK_SIDE) == (face_voxel.x() / BLOCK_SIDE)
+              && (voxel.y() / BLOCK_SIDE) == (face_voxel.y() / BLOCK_SIDE)
+              && (voxel.z() / BLOCK_SIDE) == (face_voxel.z() / BLOCK_SIDE)) {
+            // CASE 1: same voxel block
+            // std::cout << "prob " << _block->data(face_voxel).x << " state " << _block->data(face_voxel).st << std::endl; _block->data(face_voxel).x == 0.f &&
+            if (block->data(face_voxel).x==0.f )
+              return true;
+          } else {
+            // not same voxel block => check if neighbour is a voxel block
+            se::Node<FieldType> *node = nullptr;
+            bool is_voxel_block;
+            map.fetch_octant(face_voxel(0), face_voxel(1), face_voxel(2), node, is_voxel_block);
+            // CASE 2: not same voxelblock but is a voxel
+            if (is_voxel_block) {
+              // neighbour is a voxel block block->data(face_voxel).x == 0.f  &&
+              se::VoxelBlock<FieldType> *block = static_cast<se::VoxelBlock<FieldType> *> (node);
+              // std::cout << "prob " << block->data(face_voxel).x << " state " << block->data(face_voxel).st << std::endl;
+              if (block->data(face_voxel).x == 0.f )
+                return true;
+
+              // CASE 3: not same voxelblock but belongs to a node
+              // TODO take value from node or say the curr voxel is unknown?
+              // currently just take node state
+              // the node can be at a much higher level
+
+            } else {
+              // get parent node and get idx of this node to get value
+              const key_t octant = se::keyops::encode(face_voxel.x(), face_voxel.y(), face_voxel.z(),
+                                                      map.leaf_level(), map.max_level());
+              const int idx = se::child_id(octant, map.leaf_level(), map.max_level());
+              // in case the neighbour node is also not in the same parent
+              if (map.get(face_voxel).x == 0.f){
+                return false;
+              }
+            }
+          }
+        }
+        return false;
+      }
+
       struct multires_block_update {
         multires_block_update(
             const se::Octree<OFusion>& octree,
@@ -238,7 +301,30 @@ namespace se {
             offset(off),
             depth(d),
             frame(f),
-            mu(m) {}
+            mu(m) {};
+
+        multires_block_update(
+            const se::Octree<OFusion>& octree,
+            const Sophus::SE3f& T,
+            const Eigen::Matrix4f& calib,
+            const float vsize,
+            const Eigen::Vector3f& off,
+            const se::Image<float>& d,
+            const int f,
+            const float m,
+            set3i *updated_blocks,
+            set3i *free_blocks,
+            set3i *frontier_blocks) :
+            map(octree),
+            Tcw(T),
+            K(calib),
+            voxel_size(vsize),
+            offset(off),
+            depth(d),
+            frame(f),
+            updated_blocks_(updated_blocks),
+            free_blocks_(free_blocks),
+            frontier_blocks_(frontier_blocks) {};
 
         const se::Octree<OFusion>& map;
         const Sophus::SE3f& Tcw;
@@ -248,6 +334,11 @@ namespace se {
         const se::Image<float>& depth;
         const int frame;
         float mu;
+
+        set3i *updated_blocks_ = new set3i;
+        set3i *frontier_blocks_ = new set3i;
+        set3i *free_blocks_ = new set3i;
+
 
         void operator()(se::VoxelBlock<OFusion>* block) {
           constexpr int side = se::VoxelBlock<OFusion>::side;
@@ -293,7 +384,9 @@ namespace se {
                 sample = se::math::clamp(sample, 0.03f, 0.97f);
 
                 auto data = block->data(pix, scale);
-
+                float prev_occ = se::math::getProbFromLog(data.x);
+                const bool is_voxel = true;
+                const key_t morton_code_child = block->code_;
                 // Update the occupancy probability
 
                 // NOTE: Time dependency is deactivated
@@ -301,6 +394,39 @@ namespace se {
 //                data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
                 data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
                 data.y = frame;
+
+                float prob = se::math::getProbFromLog(data.x);
+                if (data.x > SURF_BOUNDARY) {
+                  data.st = voxel_state::kOccupied;
+                } else if (data.x < SURF_BOUNDARY) {
+                  data.st = voxel_state::kFree;
+                  if(is_voxel || se::keyops::level(morton_code_child)==map.leaf_level()) {
+#pragma omp critical
+                    free_blocks_->insert(morton_code_child);
+                  }
+                }
+                bool voxelOccupied = prev_occ <= 0.5 && prob > 0.5;
+                bool voxelFreed = prev_occ >= 0.5 && prob < 0.5;
+                bool occupancyUpdated = block->occupancyUpdated();
+                if (is_voxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
+                    && data.st != voxel_state::kFrontier) {
+#pragma omp critical
+                  {
+                    updated_blocks_->insert(morton_code_child);
+                    block->occupancyUpdated(true);
+                  }
+                }
+
+#pragma omp critical
+                {
+                  if (std::is_same<FieldType, OFusion>::value && is_voxel) {
+                    // conservative estimate as the occupancy probability for a free voxel is set quite low
+                    if (prob <0.5 && isFrontier(map, block, pix)) {
+                      frontier_blocks_->insert(morton_code_child);
+                      data.st = voxel_state::kFrontier;
+                    }
+                  }
+                }
 
                 block->data(pix, scale, data);
               }
@@ -315,6 +441,13 @@ namespace se {
       void integrate(se::Octree<T>& , const Sophus::SE3f& , const
       Eigen::Matrix4f& , float , const Eigen::Vector3f& , const
                      se::Image<float>& , float , const unsigned) {
+      }
+
+      template <typename T>
+      void integrate(se::Octree<T>& , const Sophus::SE3f& , const
+      Eigen::Matrix4f& , float , const Eigen::Vector3f& , const
+                     se::Image<float>& , float , const unsigned,
+                     set3i*, set3i*, set3i*) {
       }
 
       template <>void integrate(se::Octree<OFusion>& map, const Sophus::SE3f& Tcw, const
@@ -338,6 +471,56 @@ namespace se {
         // Update voxel block values
         struct multires_block_update funct(map, Tcw, K, voxelsize,
                                            offset, depth, frame, mu);
+        se::functor::internal::parallel_for_each(active_list, funct);
+
+        std::deque<Node<OFusion> *> prop_list;
+        std::mutex deque_mutex;
+
+        // Up propagate voxel block max values to first node level
+        for (const auto &b : active_list) {
+          if (b->parent()) {
+            prop_list.push_back(b->parent());
+            const unsigned int id = se::child_id(b->code_,
+                                                 se::keyops::level(b->code_), map.max_level());
+            auto data = b->data(b->coordinates(), se::math::log2_const(se::VoxelBlock<OFusion>::side));
+            auto &parent_data = b->parent()->value_[id];
+            parent_data = data;
+          }
+        }
+
+        // Up propagate node max values to root level
+        while (!prop_list.empty()) {
+          Node<OFusion> *n = prop_list.front();
+          prop_list.pop_front();
+          if (n->timestamp() == frame) continue;
+          propagate_up(n, map.max_level(), frame);
+          if (n->parent()) prop_list.push_back(n->parent());
+        }
+      }
+
+      template <>void integrate(se::Octree<OFusion>& map, const Sophus::SE3f& Tcw, const
+      Eigen::Matrix4f& K, float voxelsize, const Eigen::Vector3f& offset, const
+                                se::Image<float>& depth, float mu, const unsigned frame,
+                                set3i* updated_blocks, set3i* free_blocks,
+                                set3i* frontier_blocks) {
+        // Filter active blocks / blocks in frustum from the block buffer
+        using namespace std::placeholders;
+        std::vector<se::VoxelBlock<OFusion> *> active_list;
+        auto &block_array = map.getBlockBuffer();
+        auto is_active_predicate = [](const se::VoxelBlock<OFusion> *b) {
+          return b->active();
+        };
+        const Eigen::Vector2i framesize(depth.width(), depth.height());
+        const Eigen::Matrix4f Pcw = K * Tcw.matrix();
+        auto in_frustum_predicate =
+            std::bind(se::algorithms::in_frustum<se::VoxelBlock<OFusion>>, _1,
+                      voxelsize, Pcw, framesize);
+        se::algorithms::filter(active_list, block_array, is_active_predicate,
+                               in_frustum_predicate);
+
+        // Update voxel block values
+        struct multires_block_update funct(map, Tcw, K, voxelsize,
+                                           offset, depth, frame, mu, updated_blocks, free_blocks, frontier_blocks);
         se::functor::internal::parallel_for_each(active_list, funct);
 
         std::deque<Node<OFusion> *> prop_list;
