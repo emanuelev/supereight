@@ -1156,6 +1156,7 @@ bool Octree<T>::allocate_level(key_t *keys, int num_tasks, int target_level) {
       if (!(*n)) {
         if (level == leaves_level) {
           *n = block_buffer_.acquire_block();
+          (*n)->parent() = parent;
           (*n)->side_ = edge;
           static_cast<VoxelBlock<T> *>(*n)->coordinates(Eigen::Vector3i(unpack_morton(myKey)));
           static_cast<VoxelBlock<T> *>(*n)->active(true);
@@ -1163,6 +1164,7 @@ bool Octree<T>::allocate_level(key_t *keys, int num_tasks, int target_level) {
           parent->children_mask_ = parent->children_mask_ | (1 << index);
         } else {
           *n = nodes_buffer_.acquire_block();
+          (*n)->parent() = parent;
           (*n)->code_ = myKey | level;
           (*n)->side_ = edge;
           parent->children_mask_ = parent->children_mask_ | (1 << index);
