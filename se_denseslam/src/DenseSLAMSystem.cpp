@@ -474,7 +474,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   funct);
 
-      std::set<uint64_t> *copy_frontier_blocks = frontier_blocks;
+      set3i *copy_frontier_blocks = frontier_blocks;
       bool update_frontier_map = (frame % integration_rate) == 0;
       updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
       // int map_size_before = free_map_.size();
@@ -525,7 +525,6 @@ int DenseSLAMSystem::planning(VecPose &path,
   Candidate best_candidate;
   int exploration_done =  se::exploration::getExplorationPath(discrete_vol_ptr_,
                                       volume_,
-                                      free_map_,
                                       frontier_map_,
                                       res_v,
                                       step,
@@ -605,7 +604,3 @@ void DenseSLAMSystem::dump_mesh(const std::string filename) {
   writeVtkMesh(filename.c_str(), mesh);
 }
 
-bool DenseSLAMSystem::getFrontierVoxelMap(map3i &frontier_map) {
-  frontier_map = frontier_map_;
-  return true;
-}

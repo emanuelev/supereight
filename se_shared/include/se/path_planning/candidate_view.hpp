@@ -66,7 +66,7 @@ class CandidateView {
                 const float step,
                 const float ground_height);
 
-  void getCandidateViews(const map3i &frontier_blocks_map, const int frontier_cluster_size);
+  void getCandidateViews(const set3i &frontier_blocks_map, const int frontier_cluster_size);
 
   void printFaceVoxels(const Eigen::Vector3i &voxel);
 
@@ -179,8 +179,7 @@ CandidateView<T>::CandidateView(const Volume<T> &volume,
 template<typename T>
 int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
                         const Volume<T> &volume,
-                        const map3i &free_map,
-                        const map3i &frontier_map,
+                        const set3i &frontier_map,
                         const float res,
                         const float step,
                         const Planning_Configuration &planning_config,
