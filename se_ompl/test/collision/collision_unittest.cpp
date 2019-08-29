@@ -34,14 +34,14 @@ class CollisionUnitTest : public ::testing::Test {
 
   }
 
-  map3i createMap3i(se::MemoryPool<se::VoxelBlock<OFusion> > &block_buffer) {
-    map3i morton_map;
+  set3i createMap3i(se::MemoryPool<se::VoxelBlock<OFusion> > &block_buffer) {
+    set3i morton_set;
     for (int i = 0; i < block_buffer.size(); i++) {
-      const Eigen::Vector3i block_coord = block_buffer[i]->coordinates();
+      // const Eigen::Vector3i block_coord = block_buffer[i]->coordinates();
       const key_t morton_code = block_buffer[i]->code_;
-      morton_map.emplace(morton_code, block_coord);
+      morton_set.emplace(morton_code);
     }
-    return morton_map;
+    return morton_set;
   }
 
   std::shared_ptr<se::Octree<OFusion> > tree_;
@@ -97,7 +97,7 @@ TEST_F(CollisionUnitTest, PathPlanningPass) {
                                                                                           collision_checker,
                                                                                           planner_config_,
                                                                                           12.1f);
-  map3i free_map = createMap3i(block_buffer_base);
+  set3i free_map = createMap3i(block_buffer_base);
   Eigen::Vector3i lower_bound ;
   Eigen::Vector3i upper_bound ;
   getFreeMapBounds(tree_, free_map, lower_bound, upper_bound);
@@ -122,7 +122,7 @@ TEST_F(CollisionUnitTest, PathPlanningAroundWall) {
                                                                                           collision_checker,
                                                                                           planner_config_,
                                                                                           12.1f);
-  map3i free_map = createMap3i(block_buffer_base);
+  set3i free_map = createMap3i(block_buffer_base);
   Eigen::Vector3i lower_bound ;
   Eigen::Vector3i upper_bound ;
   getFreeMapBounds(tree_, free_map, lower_bound, upper_bound);
@@ -148,7 +148,7 @@ TEST_F(CollisionUnitTest, ApproximateSolution) {
                                                                                           collision_checker,
                                                                                           planner_config_,
                                                                                           12.1f);
-  map3i free_map = createMap3i(block_buffer_base);
+  set3i free_map = createMap3i(block_buffer_base);
   Eigen::Vector3i lower_bound ;
   Eigen::Vector3i upper_bound ;
   getFreeMapBounds(tree_, free_map, lower_bound, upper_bound);

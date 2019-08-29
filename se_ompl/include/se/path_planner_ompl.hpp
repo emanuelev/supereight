@@ -314,14 +314,14 @@ int PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
       // std::cout << "FINAL PATH: ";
       // path.printAsMatrix(std::cout);
 
-      if (true) {
+      // if (true) {
         // std::cout << "Found solution" << std::endl;
         // std::cout << "FINAL PATH: \n";
 //        path.printAsMatrix(myfile);
         // path.printAsMatrix(std::cout);
 //        myfile.close();
 
-      }
+      // }
     } else {
       LOG(INFO) << "\033[1;31mONLY APPROXIMATE SOLUTION FOUND."
                       ".\033[0m";
@@ -363,6 +363,7 @@ int PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
     }
   } else {
     LOG(INFO) << "\033[1;31mNO STRAIGHT-LINE SOLUTION FOUND. OMPL FAILED.\033[0m";
+    ss_->print(std::cout);
     ompl_failed_ = true;
 
     return -1;

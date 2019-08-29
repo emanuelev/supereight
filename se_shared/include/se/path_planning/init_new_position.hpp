@@ -31,7 +31,7 @@
 #include "exploration_utils.hpp"
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 //typedef SE_FIELD_TYPE FieldType;
-typedef std::set<uint64_t> set3i;
+typedef std::set<key_t> set3i;
 namespace se {
 
 namespace exploration {

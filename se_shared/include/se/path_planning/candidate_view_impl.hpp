@@ -37,7 +37,7 @@ void CandidateView<T>::printFaceVoxels(const Eigen::Vector3i &_voxel) {
  * @param frontier_blocks_map
  */
 template<typename T>
-void CandidateView<T>::getCandidateViews( const map3i &frontier_blocks_map, const int frontier_cluster_size) {
+void CandidateView<T>::getCandidateViews( const set3i &frontier_blocks_map, const int frontier_cluster_size) {
 
   mapvec3i frontier_voxels_map;
   node_iterator<T> node_it(*(volume_._map_index));
@@ -45,10 +45,10 @@ void CandidateView<T>::getCandidateViews( const map3i &frontier_blocks_map, cons
   // get all frontier voxels inside a voxel block
 
   for (const auto &frontier_block : frontier_blocks_map) {
-    VecVec3i frontier_voxels = node_it.getFrontierVoxels(frontier_block.first);
+    VecVec3i frontier_voxels = node_it.getFrontierVoxels(frontier_block);
     DLOG(INFO) << "frontier voxel size "<< frontier_voxels.size();
     if(frontier_voxels.size()>0){
-      frontier_voxels_map[frontier_block.first] = frontier_voxels;
+      frontier_voxels_map[frontier_block] = frontier_voxels;
       DLOG(INFO) << " mapsize "<< frontier_voxels_map.size();
     }
   }

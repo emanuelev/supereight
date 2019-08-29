@@ -27,7 +27,7 @@ using AlignedDeque = std::deque<Type, Eigen::aligned_allocator<Type>>;
 template <typename Type>
 using AlignedQueue = std::queue<Type, AlignedDeque<Type>>;
 
-typedef std::set<uint64_t > set3i;
+typedef std::set<key_t > set3i;
 typedef AlignedVector<Eigen::Vector3i> VecVec3i;
 typedef AlignedVector<Eigen::Vector3f> VecVec3f;
 typedef AlignedVector<std::pair<Eigen::Vector3i, float>> VectorPair3iFloat;
