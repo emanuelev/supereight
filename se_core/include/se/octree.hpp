@@ -827,12 +827,14 @@ Node<T> *Octree<T>::insert(const int x, const int y, const int z, const int dept
       const key_t prefix = keyops::code(key) & MASK[d + shift];
       if (edge == blockSide) {
         tmp = block_buffer_.acquire_block();
+        tmp->parent() = n;
         static_cast<VoxelBlock<T> *>(tmp)->coordinates(Eigen::Vector3i(unpack_morton(prefix)));
         static_cast<VoxelBlock<T> *>(tmp)->active(true);
         static_cast<VoxelBlock<T> *>(tmp)->code_ = prefix | d;
         n->children_mask_ = n->children_mask_ | (1 << childid);
       } else {
         tmp = nodes_buffer_.acquire_block();
+        tmp->parent() = n;
         tmp->code_ = prefix | d;
         tmp->side_ = edge;
         n->children_mask_ = n->children_mask_ | (1 << childid);
@@ -1274,6 +1276,7 @@ void Octree<T>::load(const std::string &filename) {
     internal::deserialise(tmp, is);
     Eigen::Vector3i coords = keyops::decode(tmp.code_);
     Node<T> *n = insert(coords(0), coords(1), coords(2), keyops::level(tmp.code_));
+
     std::memcpy(n->value_, tmp.value_, sizeof(tmp.value_));
   }
 

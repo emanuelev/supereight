@@ -149,7 +149,7 @@ class VoxelBlock: public Node<T> {
       return traits_type::initValue();
     }
 
-    VoxelBlock(){
+    VoxelBlock (){
       coordinates_ = Eigen::Vector3i::Constant(0);
       current_scale_ = 0;
       min_scale_ = -1;

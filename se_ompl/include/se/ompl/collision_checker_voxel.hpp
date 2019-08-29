@@ -235,7 +235,7 @@ int CollisionCheckerV<FieldType>::getNodeLevel(const int object_size_v){
   for(int i  = 1; i <= octree_ptr_->leaf_level() ; ++i){
     int next_side = 1 << (octree_ptr_->max_level() - i);
 
-    if ( next_side > object_size_v && side > BLOCK_SIDE){
+    if ( next_side > object_size_v ){
       side = next_side;
       node_level = i;
     }
@@ -252,8 +252,12 @@ set3i CollisionCheckerV<FieldType>::getCollisionNodeList(const int node_level, c
     morton_code_list.insert(node->code_);
     DLOG(INFO) << "code "<< node->code_ << " coord " << se::keyops::decode(node->code_).format(InLine);
     const unsigned int id = se::child_id(node->code_, se::keyops::level(node->code_), octree_ptr_->max_level());
-    auto& data = node->parent()->value_[id];
-    DLOG(INFO) << "data " << data.x;
+    if(node->parent()){
+       auto data = node->parent()->value_[id];
+       DLOG(INFO) << "data " << data.x;
+    }else if (node->parent() ==nullptr){
+      DLOG(INFO) << "null parent";
+    }
   }
   return morton_code_list;
 }

@@ -24,7 +24,7 @@ class CollisionUnitTest : public ::testing::Test {
   virtual void SetUp() {
     tree_ = std::make_shared<se::Octree<OFusion> >();
     std::string
-        filename = "/home/anna/exploration_ws/src/supereight/se_ompl/test/collision/w_box.bin";
+        filename = "/home/anna/exploration_ws/src/supereight/se_ompl/test/collision/w_box_multires.bin";
     tree_->load(filename);
     std::cout << "file loaded" << std::endl;
     max_depth_ = log2(tree_->size());
@@ -213,12 +213,33 @@ TEST_F(CollisionUnitTest, GetMortonCode) {
   set3i morton_set_node = collision_checker->getCollisionNodeList(node_level,point_list );
   EXPECT_EQ(node_level, tree_->leaf_level()-1);
 
+  object_size_v = 27;
+  node_level = collision_checker->getNodeLevel(object_size_v);
+  set3i morton_set_node2 = collision_checker->getCollisionNodeList(node_level,point_list );
+  EXPECT_EQ(node_level, tree_->leaf_level()-2);
 
   object_size_v = 55;
   node_level = collision_checker->getNodeLevel(object_size_v);
-  set3i morton_set_node2 = collision_checker->getCollisionNodeList(node_level,point_list );
+  set3i morton_set_node3 = collision_checker->getCollisionNodeList(node_level,point_list );
   EXPECT_EQ(node_level, tree_->leaf_level()-3);
 
+  DLOG(INFO) << tree_->root()->value_[5].x;
+  DLOG(INFO) << tree_->root()->child(5)->value_[0].x << ", " <<
+  tree_->root()->child(5)->value_[1].x << ",  " <<
+  tree_->root()->child(5)->value_[2].x << ",  " <<
+  tree_->root()->child(5)->value_[3].x << ",  " <<
+  tree_->root()->child(5)->value_[4].x << ",  " <<
+  tree_->root()->child(5)->value_[5].x << ",  " <<
+  tree_->root()->child(5)->value_[6].x << ", "<<  tree_->root()->child(5)->value_[7].x ;
+
+  DLOG(INFO) << tree_->root()->child(5)->value_[2].x;
+  DLOG(INFO) << tree_->root()->child(5)->child(2)->value_[0].x << ", " <<
+  tree_->root()->child(5)->child(2)->value_[1].x << ",  " <<
+  tree_->root()->child(5)->child(2)->value_[2].x << ",  " <<
+  tree_->root()->child(5)->child(2)->value_[3].x << ",  " <<
+  tree_->root()->child(5)->child(2)->value_[4].x << ",  " <<
+  tree_->root()->child(5)->child(2)->value_[5].x << ",  " <<
+  tree_->root()->child(5)->child(2)->value_[6].x << ", "<<  tree_->root()->child(5)->child(2)->value_[7].x ;
 
 }
 

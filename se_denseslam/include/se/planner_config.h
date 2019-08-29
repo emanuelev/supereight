@@ -84,7 +84,7 @@ struct Planning_Configuration {
 inline Planning_Configuration getDefaultPlanningConfig() {
   Planning_Configuration config;
   config.num_cand_views = 20;
-  config.robot_safety_radius = 0.3f;
+  config.robot_safety_radius = 0.5f;
   config.fov_hor = 120;
   config.dphi = 10;
   config.dtheta = 10;
