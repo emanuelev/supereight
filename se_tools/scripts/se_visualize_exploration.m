@@ -30,6 +30,7 @@ dim_y = 20;
 dim_z = 3;
 plot_path = false;
 export_plot = true;
+interactive = true;
 
 
 
@@ -56,7 +57,7 @@ end
 
 function p = get_pattern(pattern, line)
 	[~, ~, ~, m, ~, ~, ~] = regexp(line, pattern);
-	p = m{1};
+	p = m{end};
 end
 
 
@@ -90,7 +91,7 @@ filenames = sort(args);
 
 % Iterate over each file.
 for i = 1:length(filenames);
-  filename = args{i};
+  filename = filenames{i};
 
 
 
@@ -168,6 +169,7 @@ plot(t, voxel_volume, 'ro-', 'LineWidth', lw);
 xlabel('Time (s)');
 ylabel('Explored volume (m^3)');
 legend('Total volume', 'Node volume', 'Voxel volume', 'Location', 'southeast');
+axis([0 10*60], [0 600]);
 
 if export_plot
 	directory = fileparts(args{1});
@@ -197,5 +199,9 @@ if plot_path && ~isempty(poses)
   zlabel('z (m)');
 end
 
-ginput();
+if interactive
+	ginput();
+else
+	pause(0.01);
+end
 
