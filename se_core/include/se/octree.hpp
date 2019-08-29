@@ -1287,7 +1287,8 @@ void Octree<T>::load(const std::string &filename) {
                                                            coords(1),
                                                            coords(2),
                                                            keyops::level(tmp.code_)));
-    std::memcpy(n->getBlockRawPtr(), tmp.getBlockRawPtr(), 512 * sizeof(*(tmp.getBlockRawPtr())));
+
+    std::memcpy(n->getBlockRawPtr(), tmp.getBlockRawPtr(), VoxelBlock<T>::buff_size * sizeof(*(tmp.getBlockRawPtr())));
   }
 }
 
@@ -1325,7 +1326,7 @@ void Octree<T>::loadMultilevel(const std::string &filename) {
                                                            coords(2),
                                                            keyops::level(tmp.code_)));
     n->value_[0] = tmp.value_[0];
-    std::memcpy(n->getBlockRawPtr(), tmp.getBlockRawPtr(), 512 * sizeof(*(tmp.getBlockRawPtr())));
+    std::memcpy(n->getBlockRawPtr(), tmp.getBlockRawPtr(), VoxelBlock<T>::buff_size * sizeof(*(tmp.getBlockRawPtr())));
   }
 }
 
