@@ -23,6 +23,7 @@
 #include "se/utils/eigen_utils.h"
 #include "se/utils/math_utils.h"
 #include "se/octree_defines.h"
+#include "se/octree.hpp"
 #include "lodepng.h"
 
 namespace se {
@@ -249,6 +250,7 @@ static inline void wrapYawDeg(int &yaw_diff) {
   if (yaw_diff >= 180)
     yaw_diff -= 360;
 }
+
 
 
 } //exploration

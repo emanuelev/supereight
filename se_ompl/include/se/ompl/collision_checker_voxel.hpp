@@ -62,6 +62,8 @@ class CollisionCheckerV {
                   const int num_subpos) const; // check segment fligh corridor skeleton
 
   float getVoxelDim() const { return voxel_dim_; }
+  int getNodeLevel(const int object_size_v);
+  set3i getCollisionNodeList(const int node_level, const VecVec3i& point_list);
 
  private:
 
@@ -96,9 +98,9 @@ bool CollisionCheckerV<FieldType>::isSphereSkeletonFreeCand(const Eigen::Vector3
   VecVec3i shell_main_pos;
   shell_main_pos.push_back(position_v + Eigen::Vector3i(1, 0, 0) * radius_v);
   shell_main_pos.push_back(position_v - Eigen::Vector3i(1, 0, 0) * radius_v);
-   shell_main_pos.push_back( position_v + Eigen::Vector3i(0, 1, 0) * radius_v);
+  shell_main_pos.push_back(position_v + Eigen::Vector3i(0, 1, 0) * radius_v);
   shell_main_pos.push_back(position_v - Eigen::Vector3i(0, 1, 0) * radius_v);
-  shell_main_pos.push_back( position_v + Eigen::Vector3i(0, 0, 1) * radius_v);
+  shell_main_pos.push_back(position_v + Eigen::Vector3i(0, 0, 1) * radius_v);
   shell_main_pos.push_back(position_v - Eigen::Vector3i(0, 0, 1) * radius_v);
   for (VecVec3i::iterator it = shell_main_pos.begin(); it != shell_main_pos.end(); it++) {
     if (octree_ptr_->get(*it).x > 0.f)
@@ -151,6 +153,8 @@ bool CollisionCheckerV<FieldType>::isSphereSkeletonFree(const Eigen::Vector3i &p
                     position_v - Eigen::Vector3i(0, 1, 0) * radius_v,
                     position_v + Eigen::Vector3i(0, 0, 1) * radius_v,
                     position_v - Eigen::Vector3i(0, 0, 1) * radius_v};
+
+
   for (VecVec3i::iterator it = shell_main_pos.begin(); it != shell_main_pos.end(); it++) {
     if (!isVoxelFree(*it))
 
@@ -220,6 +224,38 @@ bool CollisionCheckerV<FieldType>::isVoxelFree(const Eigen::Vector3i &point_v) c
       return true;
   }
 
+}
+
+template<typename FieldType>
+int CollisionCheckerV<FieldType>::getNodeLevel(const int object_size_v){
+
+  int node_level= 0;
+  int side = 1 << (octree_ptr_->max_level()  - node_level);
+
+  for(int i  = 1; i <= octree_ptr_->leaf_level() ; ++i){
+    int next_side = 1 << (octree_ptr_->max_level() - i);
+
+    if ( next_side > object_size_v && side > BLOCK_SIDE){
+      side = next_side;
+      node_level = i;
+    }
+  }
+  return node_level;
+}
+
+template<typename FieldType>
+set3i CollisionCheckerV<FieldType>::getCollisionNodeList(const int node_level, const VecVec3i& point_list){
+  set3i morton_code_list;
+
+  for(const auto& point : point_list){
+    Node<FieldType> * node = octree_ptr_->fetch_octant(point.x(), point.y(), point.z(), node_level);
+    morton_code_list.insert(node->code_);
+    DLOG(INFO) << "code "<< node->code_ << " coord " << se::keyops::decode(node->code_).format(InLine);
+    const unsigned int id = se::child_id(node->code_, se::keyops::level(node->code_), octree_ptr_->max_level());
+    auto& data = node->parent()->value_[id];
+    DLOG(INFO) << "data " << data.x;
+  }
+  return morton_code_list;
 }
 
 //   !!! took code snippets from DubinsSateSpace MotionValidator

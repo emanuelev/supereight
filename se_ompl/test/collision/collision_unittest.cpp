@@ -165,3 +165,60 @@ TEST_F(CollisionUnitTest, ApproximateSolution) {
 }
 
 
+
+TEST_F(CollisionUnitTest, SideLengthCheck) {
+// GIVEN a octree map , a path planner, a collision checker for the map,
+  // start is free and end is occupied
+  auto &block_buffer_base = tree_->getBlockBuffer();
+  // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+  auto collision_checker =
+      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+
+
+  int object_size_v = std::ceil(planner_config_.robot_safety_radius /tree_->voxelDim())*2;
+  int node_level = collision_checker->getNodeLevel( object_size_v);
+  EXPECT_EQ(node_level, tree_->leaf_level());
+
+  object_size_v = 10;
+  node_level = collision_checker->getNodeLevel(object_size_v);
+  EXPECT_EQ(node_level, tree_->leaf_level()-1);
+
+  object_size_v = 55;
+  node_level = collision_checker->getNodeLevel(object_size_v);
+  EXPECT_EQ(node_level, tree_->leaf_level()-3);
+
+
+}
+
+
+
+TEST_F(CollisionUnitTest, GetMortonCode) {
+// GIVEN a octree map , a path planner, a collision checker for the map,
+  // start is free and end is occupied
+  auto &block_buffer_base = tree_->getBlockBuffer();
+  // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+  auto collision_checker =
+      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+
+  VecVec3i point_list;
+  point_list = {{80,80,72}, {90,60,72}};
+  int object_size_v = std::ceil(planner_config_.robot_safety_radius /tree_->voxelDim())*2;
+  int node_level = collision_checker->getNodeLevel( object_size_v);
+  EXPECT_EQ(node_level, tree_->leaf_level());
+  set3i morton_set_leaf = collision_checker->getCollisionNodeList(node_level,point_list );
+
+
+  object_size_v = 10;
+  node_level = collision_checker->getNodeLevel(object_size_v);
+  set3i morton_set_node = collision_checker->getCollisionNodeList(node_level,point_list );
+  EXPECT_EQ(node_level, tree_->leaf_level()-1);
+
+
+  object_size_v = 55;
+  node_level = collision_checker->getNodeLevel(object_size_v);
+  set3i morton_set_node2 = collision_checker->getCollisionNodeList(node_level,point_list );
+  EXPECT_EQ(node_level, tree_->leaf_level()-3);
+
+
+}
+
