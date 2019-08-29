@@ -61,10 +61,9 @@ struct voxel_traits<SDF> {
 
 typedef enum class voxel_state: std::int8_t
 {
-  kUnknown = -1,
-  kFree = 0,
+  kFree     = 0,
   kFrontier = 1,
-  kOccluded = 2,
+  kUnknown  = 2,
   kOccupied = 3
 };
 typedef struct {
