@@ -374,10 +374,10 @@ namespace se {
                 if (depthSample <= 0) continue;
 
                 // Compute the occupancy probability for the current measurement.
-                const float diff = (pos.z() - depthSample)
-                                   * std::sqrt( 1 + se::math::sq(pos.x() / pos.z()) + se::math::sq(pos.y() / pos.z()));
+                const float diff = (pos.z() - depthSample);
+                                   // * std::sqrt( 1 + se::math::sq(pos.x() / pos.z()) + se::math::sq(pos.y() / pos.z()));
                 float sigma = se::math::clamp(mu * se::math::sq(pos.z()),
-                                              2 * voxel_size, 0.05f);
+                                              0.5f * voxel_size, 0.75f * voxel_size);
                 float sample = H(diff/sigma, pos.z());
                 if (sample == 0.5f)
                   continue;

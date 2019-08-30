@@ -14,7 +14,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 set(CMAKE_CXX_STANDARD 14)
 add_compile_options(-march=native)
 add_definitions(-DEIGEN_MAX_ALIGN_BYTES=16)
-option(WITH_OPENMP "Compile with OpenMP" ON)
+option(WITH_OPENMP "Compile with OpenMP" OFF)
 
 # Initialize the variables containing the built libraries and field types.
 set(SUPEREIGHT_SHARED_LIBS "")
