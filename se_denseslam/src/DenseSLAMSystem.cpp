@@ -246,7 +246,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
     size_t total = num_vox_per_pix * computation_size_.x() * computation_size_.y();
     allocation_list_.reserve(total);
 
-    const Sophus::SE3f&    Tcw = Sophus::SE3f(pose_).inverse();
+    const Sophus::SE3f&    Tcw = Sophus::SE3f(pose_ * Tbc_).inverse();
     const Eigen::Matrix4f& K   = getCameraMatrix(k);
     unsigned int allocated = 0;
     if (std::is_same<FieldType, SDF>::value) {
@@ -422,7 +422,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
       }
     }
 
-    const Sophus::SE3f&    Tcw = Sophus::SE3f(pose_).inverse();
+    const Sophus::SE3f&    Tcw = Sophus::SE3f(pose_ * Tbc_).inverse();
     const Eigen::Matrix4f& K   = getCameraMatrix(k);
     unsigned int allocated = 0;
     if (std::is_same<FieldType, SDF>::value) {
@@ -492,7 +492,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
         // getFreeMapBounds(discrete_vol_ptr_, free_map_, lower_map_bound_v_, upper_map_bound_v_);
         // std::cout << "map bounds " << lower_map_bound_v_ << " " << upper_map_bound_v_;
       // }
-      // std::cout << "[se/denseslam] free_map_  size  " << free_map_.size() << std::endl;
+       std::cout << "[se/denseslam] free_map_  size  " << free_map_.size() << std::endl;
       std::cout << "[se/denseslam] frontier_map_ size " << frontier_map_.size() << std::endl;
     }
 

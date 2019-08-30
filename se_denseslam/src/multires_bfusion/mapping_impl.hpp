@@ -227,7 +227,7 @@ namespace se {
       }
 
       bool isFrontier(const se::Octree<FieldType> &map, se::VoxelBlock<OFusion>* block, const Eigen::Vector3i voxel) {
-        Eigen::Vector3i face_neighbour_voxel[6];
+        VecVec3i face_neighbour_voxel(6);
 
         face_neighbour_voxel[0] << voxel.x() - 1, voxel.y(), voxel.z();
         face_neighbour_voxel[1] << voxel.x() + 1, voxel.y(), voxel.z();
@@ -390,8 +390,8 @@ namespace se {
                 // Update the occupancy probability
 
                 // NOTE: Time dependency is deactivated
-//                const double delta_t = (double)(frame - data.y) / 30;
-//                data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
+                const double delta_t = (double)(frame - data.y) / 30;
+                data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
                 data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
                 data.y = frame;
 
@@ -400,34 +400,28 @@ namespace se {
                   data.st = voxel_state::kOccupied;
                 } else if (data.x < SURF_BOUNDARY) {
                   data.st = voxel_state::kFree;
-                  if(is_voxel || se::keyops::level(morton_code_child)==map.leaf_level()) {
 #pragma omp critical
                     free_blocks_->insert(morton_code_child);
-                  }
                 }
                 bool voxelOccupied = prev_occ <= 0.5 && prob > 0.5;
                 bool voxelFreed = prev_occ >= 0.5 && prob < 0.5;
                 bool occupancyUpdated = block->occupancyUpdated();
-                if (is_voxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
+                if ((voxelOccupied || voxelFreed)
                     && data.st != voxel_state::kFrontier) {
 #pragma omp critical
                   {
                     updated_blocks_->insert(morton_code_child);
-                    block->occupancyUpdated(true);
                   }
                 }
 
 #pragma omp critical
                 {
-                  if (std::is_same<FieldType, OFusion>::value && is_voxel) {
-                    // conservative estimate as the occupancy probability for a free voxel is set quite low
-                    if (prob <0.5 && isFrontier(map, block, pix)) {
-                      frontier_blocks_->insert(morton_code_child);
-                      data.st = voxel_state::kFrontier;
-                    }
+                  // conservative estimate as the occupancy probability for a free voxel is set quite low
+                  if (prob <0.5 && isFrontier(map, block, pix)) {
+                    frontier_blocks_->insert(morton_code_child);
+                    data.st = voxel_state::kFrontier;
                   }
                 }
-
                 block->data(pix, scale, data);
               }
             }
