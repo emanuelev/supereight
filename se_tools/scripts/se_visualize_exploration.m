@@ -45,20 +45,20 @@ timestamp_pattern       = '\d{4}-\d{2}-\d{2}_\d{6}';
 
 % Functions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function matched = match_pattern(pattern, line)
-	s = regexp(line, pattern);
-	matched = !isempty(s);
+  s = regexp(line, pattern);
+  matched = !isempty(s);
 
-	global DEBUG;
-	if DEBUG && matched
-		fprintf('M %s\n', upper(inputname(1)));
-	end
+  global DEBUG;
+  if DEBUG && matched
+    fprintf('M %s\n', upper(inputname(1)));
+  end
 end
 
 
 
 function p = get_pattern(pattern, line)
-	[~, ~, ~, m, ~, ~, ~] = regexp(line, pattern);
-	p = m{end};
+  [~, ~, ~, m, ~, ~, ~] = regexp(line, pattern);
+  p = m{end};
 end
 
 
@@ -98,7 +98,7 @@ for i = 1:length(filenames);
 
   % This is a cropped map, skip.
   if strfind(filename, '_cropped.bin')
-	  continue;
+    continue;
   end
 
 
@@ -108,16 +108,20 @@ for i = 1:length(filenames);
     % Crop the octree.
     [status, output] = system([mapcropper_program ' ' filename ' ' ...
         num2str(dim_x) ' ' num2str(dim_y) ' ' num2str(dim_z)]);
+  if status ~= 0
+    fprintf('Error from %s\n', mapcropper_program);
+    fprintf('%s', output);
+    continue;
+  end
 
     % Evaluate the file.
     filename_cropped = strrep(filename, '.bin', '_cropped.bin');
     [status, output] = system([voxelcounter_program ' ' filename_cropped]);
-
-    % Test for errors.
-    if status ~= 0
-      fprintf('%s', output);
-      continue;
-    end
+  if status ~= 0
+    fprintf('Error from %s\n', voxelcounter_program);
+    fprintf('%s', output);
+    continue;
+  end
 
     % Parse the output.
     output_lines = strsplit(output, '\n');
@@ -173,16 +177,16 @@ legend('Total volume', 'Node volume', 'Voxel volume', 'Location', 'southeast');
 axis([0 10*60], [0 600]);
 
 if export_plot
-	directory = fileparts(args{1});
-	timestamp = get_pattern(timestamp_pattern, args{1});
-	image_name = [directory '/' 'volume_' timestamp '.png'];
-	print(image_name);
+  directory = fileparts(args{1});
+  timestamp = get_pattern(timestamp_pattern, args{1});
+  image_name = [directory '/' 'data_plot_' timestamp '.png'];
+  print(image_name);
 end
 
 if export_data
-	directory = fileparts(args{1});
-	timestamp = get_pattern(timestamp_pattern, args{1});
-	data_file_name = [directory '/' 'data_' timestamp '.csv'];
+  directory = fileparts(args{1});
+  timestamp = get_pattern(timestamp_pattern, args{1});
+  data_file_name = [directory '/' 'data_' timestamp '.csv'];
     % The columns of the .csv file are:
     % timestamp, volume of explored voxels, volume of explored nodes, total
     % explored volume
@@ -211,8 +215,8 @@ if plot_path && ~isempty(poses)
 end
 
 if interactive
-	ginput();
+  ginput();
 else
-	pause(0.01);
+  pause(0.01);
 end
 
