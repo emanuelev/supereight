@@ -28,9 +28,10 @@ clear variables
 dim_x = 10;
 dim_y = 20;
 dim_z = 3;
-plot_path = false;
+plot_path   = false;
+interactive = false;
 export_plot = true;
-interactive = true;
+export_data = true;
 
 
 
@@ -176,6 +177,16 @@ if export_plot
 	timestamp = get_pattern(timestamp_pattern, args{1});
 	image_name = [directory '/' 'volume_' timestamp '.png'];
 	print(image_name);
+end
+
+if export_data
+	directory = fileparts(args{1});
+	timestamp = get_pattern(timestamp_pattern, args{1});
+	data_file_name = [directory '/' 'data_' timestamp '.csv'];
+    % The columns of the .csv file are:
+    % timestamp, volume of explored voxels, volume of explored nodes, total
+    % explored volume
+    csvwrite(data_file_name, [t' voxel_volume' node_volume' total_volume']);
 end
 
 if plot_path && ~isempty(poses)
