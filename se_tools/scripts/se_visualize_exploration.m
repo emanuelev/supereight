@@ -28,6 +28,10 @@ clear variables
 dim_x = 10;
 dim_y = 20;
 dim_z = 3;
+plot_path   = false;
+interactive = false;
+export_plot = true;
+export_data = true;
 
 
 
@@ -35,6 +39,7 @@ dim_z = 3;
 voxel_volume_pattern    = 'Explored voxel volume: +\d+';
 node_volume_pattern     = 'Explored node volume: +\d+';
 explored_volume_pattern = 'Explored volume: +\d+';
+timestamp_pattern       = '\d{4}-\d{2}-\d{2}_\d{6}';
 
 
 
@@ -47,6 +52,13 @@ function matched = match_pattern(pattern, line)
 	if DEBUG && matched
 		fprintf('M %s\n', upper(inputname(1)));
 	end
+end
+
+
+
+function p = get_pattern(pattern, line)
+	[~, ~, ~, m, ~, ~, ~] = regexp(line, pattern);
+	p = m{end};
 end
 
 
@@ -80,7 +92,7 @@ filenames = sort(args);
 
 % Iterate over each file.
 for i = 1:length(filenames);
-  filename = args{i};
+  filename = filenames{i};
 
 
 
@@ -133,7 +145,7 @@ for i = 1:length(filenames);
 
 
   % This is the pose list.
-  if strfind(filename, '.txt')
+  if plot_path && strfind(filename, '.txt')
     data = importdata(filename);
     num_poses = size(data, 1);
     poses = cell([1 num_poses]);
@@ -158,8 +170,26 @@ plot(t, voxel_volume, 'ro-', 'LineWidth', lw);
 xlabel('Time (s)');
 ylabel('Explored volume (m^3)');
 legend('Total volume', 'Node volume', 'Voxel volume', 'Location', 'southeast');
+axis([0 10*60], [0 600]);
 
-if ~isempty(poses)
+if export_plot
+	directory = fileparts(args{1});
+	timestamp = get_pattern(timestamp_pattern, args{1});
+	image_name = [directory '/' 'volume_' timestamp '.png'];
+	print(image_name);
+end
+
+if export_data
+	directory = fileparts(args{1});
+	timestamp = get_pattern(timestamp_pattern, args{1});
+	data_file_name = [directory '/' 'data_' timestamp '.csv'];
+    % The columns of the .csv file are:
+    % timestamp, volume of explored voxels, volume of explored nodes, total
+    % explored volume
+    csvwrite(data_file_name, [t' voxel_volume' node_volume' total_volume']);
+end
+
+if plot_path && ~isempty(poses)
   figure;
   hold on;
   axis equal;
@@ -180,5 +210,9 @@ if ~isempty(poses)
   zlabel('z (m)');
 end
 
-ginput();
+if interactive
+	ginput();
+else
+	pause(0.01);
+end
 
