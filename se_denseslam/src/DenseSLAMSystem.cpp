@@ -461,23 +461,23 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   funct);
     } else if (std::is_same<FieldType, OFusion>::value) {
-//      float timestamp = (1.f / 30.f) * frame;
-//      struct bfusion_update funct(float_depth_.data(),
-//                                  Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
-//                                  mu,
-//                                  timestamp,
-//                                  voxelsize,
-//                                  updated_blocks,
-//                                  free_blocks,
-//                                  frontier_blocks,
-//                                  1);
-//// Update all active nodes and voxels using the bfusion_update function
-//
-//      se::functor::projective_map(*volume_._map_index,
-//                                  Sophus::SE3f(pose_ * Tbc_).inverse(),
-//                                  getCameraMatrix(k),
-//                                  Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
-//                                  funct);
+      float timestamp = (1.f / 30.f) * frame;
+      struct bfusion_update funct(float_depth_.data(),
+                                  Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
+                                  mu,
+                                  timestamp,
+                                  voxelsize,
+                                  updated_blocks,
+                                  free_blocks,
+                                  frontier_blocks,
+                                  1);
+// Update all active nodes and voxels using the bfusion_update function
+
+      se::functor::projective_map(*volume_._map_index,
+                                  Sophus::SE3f(pose_ * Tbc_).inverse(),
+                                  getCameraMatrix(k),
+                                  Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
+                                  funct);
       se::multires::ofusion::integrate(*volume_._map_index, Tcw, K, voxelsize, Eigen::Vector3f::Constant(0.5),
                                        float_depth_, mu, frame, updated_blocks, free_blocks, frontier_blocks);
 
