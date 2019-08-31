@@ -194,19 +194,20 @@ class projective_functor {
    * Update all active nodes/voxels
    */
   void apply() {
-    /* Update the leaf Octree nodes (VoxelBlock). */
-    build_active_list();
-    const float voxel_size = _map.dim() / _map.size();
-    size_t list_size = _active_list.size();
-#pragma omp parallel for
-    for (unsigned int i = 0; i < list_size; ++i) {
-      update_block(_active_list[i], voxel_size);
-    }
-    _active_list.clear();
+//    /* Update the leaf Octree nodes (VoxelBlock). */
+//    build_active_list();
+//    const float voxel_size = _map.dim() / _map.size();
+//    size_t list_size = _active_list.size();
+//#pragma omp parallel for
+//    for (unsigned int i = 0; i < list_size; ++i) {
+//      update_block(_active_list[i], voxel_size);
+//    }
+//    _active_list.clear();
 
     /* Update the intermediate Octree nodes (Node). */
     auto &nodes_list = _map.getNodesBuffer();
-    list_size = nodes_list.size();
+    const float voxel_size = _map.dim() / _map.size();
+    size_t list_size = nodes_list.size();
 #pragma omp parallel for
     for (unsigned int i = 0; i < list_size; ++i) {
       update_node(nodes_list[i], voxel_size);

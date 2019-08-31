@@ -313,8 +313,7 @@ namespace se {
             const int f,
             const float m,
             set3i *updated_blocks,
-            set3i *free_blocks,
-            set3i *frontier_blocks) :
+            set3i *free_blocks) :
             map(octree),
             Tcw(T),
             K(calib),
@@ -323,8 +322,7 @@ namespace se {
             depth(d),
             frame(f),
             updated_blocks_(updated_blocks),
-            free_blocks_(free_blocks),
-            frontier_blocks_(frontier_blocks) {};
+            free_blocks_(free_blocks) {};
 
         const se::Octree<OFusion>& map;
         const Sophus::SE3f& Tcw;
@@ -336,7 +334,6 @@ namespace se {
         float mu;
 
         set3i *updated_blocks_ = new set3i;
-        set3i *frontier_blocks_ = new set3i;
         set3i *free_blocks_ = new set3i;
 
 
@@ -405,21 +402,11 @@ namespace se {
                 }
                 bool voxelOccupied = prev_occ <= 0.5 && prob > 0.5;
                 bool voxelFreed = prev_occ >= 0.5 && prob < 0.5;
-                bool occupancyUpdated = block->occupancyUpdated();
-                if ((voxelOccupied || voxelFreed)
-                    && data.st != voxel_state::kFrontier) {
+                if (voxelOccupied || voxelFreed) { // Isn't the && data.st != voxel_state::kFrontier redundant as it
+                                                   // get's most likely overwritten above (i.e. data.x != SURF_BOUNDARY)
 #pragma omp critical
                   {
                     updated_blocks_->insert(morton_code_child);
-                  }
-                }
-
-#pragma omp critical
-                {
-                  // conservative estimate as the occupancy probability for a free voxel is set quite low
-                  if (prob <0.5 && isFrontier(map, block, pix)) {
-                    frontier_blocks_->insert(morton_code_child);
-                    data.st = voxel_state::kFrontier;
                   }
                 }
                 block->data(pix, scale, data);
@@ -428,6 +415,83 @@ namespace se {
           }
           propagate_up(block, scale);
           block->active(visible);
+        }
+      };
+
+      struct frontier_update {
+        frontier_update(const se::Octree<OFusion>& octree, set3i *frontier_blocks) :
+            map(octree),
+            frontier_blocks_(frontier_blocks){};
+        const se::Octree<OFusion>& map;
+        set3i *frontier_blocks_ = new set3i;
+
+        void operator()(se::VoxelBlock<OFusion>* block) {
+          constexpr int side = se::VoxelBlock<OFusion>::side;
+          const key_t morton_code_child = block->code_;
+
+          if (block->data(VoxelBlock<OFusion>::buff_size - 1).st == voxel_state::kOccupied) {
+            return;
+          } else if (block->data(VoxelBlock<OFusion>::buff_size - 1).st == voxel_state::kFree) {
+#pragma omp critical
+            {
+              for (int i = 0; i < 2 ; i++) {
+                for (int y = 0; y < side; y++) {
+                  for (int z = 0; z < side; z++) {
+                    Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(i*(side-1),y,z);
+                    auto data = block->data(pix);
+                    if (data.st == voxel_state::kFree && isFrontier(map, block, pix)) {
+                      frontier_blocks_->insert(morton_code_child);
+                      data.st = voxel_state::kFrontier;
+                      block->data(pix, 0, data);
+                    }
+                  }
+                }
+              }
+              for (int x = 1; x < side-1 ; x++) {
+                for (int j = 0; j < 2 ; j++) {
+                  for (int z = 0; z < side; z++) {
+                    Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(x,j*(side-1),z);
+                    auto data = block->data(pix);
+                    if (data.st == voxel_state::kFree && isFrontier(map, block, pix)) {
+                      frontier_blocks_->insert(morton_code_child);
+                      data.st = voxel_state::kFrontier;
+                      block->data(pix, 0, data);
+                    }
+                  }
+                }
+              }
+              for (int x = 1; x < side-1 ; x++) {
+                for (int y = 1; y < side-1; y++) {
+                  for (int k = 0; k < 2 ; k++) {
+                    Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(x,y,k*(side-1));
+                    auto data = block->data(pix);
+                    if (data.st == voxel_state::kFree && isFrontier(map, block, pix)) {
+                      frontier_blocks_->insert(morton_code_child);
+                      data.st = voxel_state::kFrontier;
+                      block->data(pix, 0, data);
+                    }
+                  }
+                }
+              }
+            }
+            return;
+          }
+#pragma omp critical
+          {
+            for (int x = 0; x < side ; x++) {
+              for (int y = 0; y < side; y++) {
+                for (int z = 0; z < side; z++) {
+                  Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(x,y,z);
+                  auto data = block->data(pix);
+                  if (data.st == voxel_state::kFree && isFrontier(map, block, pix)) {
+                    frontier_blocks_->insert(morton_code_child);
+                    data.st = voxel_state::kFrontier;
+                    block->data(pix, 0, data);
+                  }
+                }
+              }
+            }
+          }
         }
       };
 
@@ -513,9 +577,11 @@ namespace se {
                                in_frustum_predicate);
 
         // Update voxel block values
-        struct multires_block_update funct(map, Tcw, K, voxelsize,
-                                           offset, depth, frame, mu, updated_blocks, free_blocks, frontier_blocks);
-        se::functor::internal::parallel_for_each(active_list, funct);
+        struct multires_block_update functMultires(map, Tcw, K, voxelsize,
+                                           offset, depth, frame, mu, updated_blocks, free_blocks);
+        se::functor::internal::parallel_for_each(active_list, functMultires);
+        struct frontier_update functFrontier(map, frontier_blocks);
+        se::functor::internal::parallel_for_each(active_list, functFrontier);
 
         std::deque<Node<OFusion> *> prop_list;
         std::mutex deque_mutex;

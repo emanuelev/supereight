@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
+find_package(Eigen3 REQUIRED)
 find_package(ompl REQUIRED)
+
 # Define the library targets. Use generator expressions (BUILD_INTERFACE and
 # INSTALL_INTERFACE) to change the include directories when building the
 # library and when it is installed and used from another project.
@@ -22,6 +24,7 @@ list(APPEND SUPEREIGHT_SHARED_LIBS se-shared)
 add_library(lodepng SHARED src/lodepng.cpp)
 target_include_directories(lodepng PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  ${EIGEN3_INCLUDE_DIR}
   $<INSTALL_INTERFACE:include>)
 install(
   TARGETS lodepng
@@ -35,7 +38,7 @@ list(APPEND SUPEREIGHT_SHARED_LIBS lodepng)
 
 add_executable(ompl-demo src/StateSampling.cpp)
 
-target_include_directories(ompl-demo PUBLIC ${OMPL_INCLUDE_DIRS})
+target_include_directories(ompl-demo PUBLIC ${OMPL_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
 target_link_libraries(ompl-demo
         ${OMPL_LIBRARIES}
 )

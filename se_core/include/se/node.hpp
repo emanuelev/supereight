@@ -184,6 +184,7 @@ class VoxelBlock: public Node<T> {
 
     value_type * getBlockRawPtr(){ return voxel_block_; }
     static constexpr int size(){ return sizeof(VoxelBlock<T>); }
+
     static constexpr size_t compute_buff_size() {
       size_t size = 0;
       unsigned int s = side;
