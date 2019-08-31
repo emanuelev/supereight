@@ -223,7 +223,7 @@ TEST_F(CollisionUnitTest, GetMortonCode) {
   set3i morton_set_node3 = collision_checker->getCollisionNodeList(node_level,point_list );
   EXPECT_EQ(node_level, tree_->leaf_level()-3);
 
-  DLOG(INFO) << tree_->root()->value_[5].x;
+  DLOG(INFO) << "Level 1: " <<tree_->root()->value_[5].x;
   DLOG(INFO) << tree_->root()->child(5)->value_[0].x << ", " <<
   tree_->root()->child(5)->value_[1].x << ",  " <<
   tree_->root()->child(5)->value_[2].x << ",  " <<
@@ -232,14 +232,27 @@ TEST_F(CollisionUnitTest, GetMortonCode) {
   tree_->root()->child(5)->value_[5].x << ",  " <<
   tree_->root()->child(5)->value_[6].x << ", "<<  tree_->root()->child(5)->value_[7].x ;
 
-  DLOG(INFO) << tree_->root()->child(5)->value_[2].x;
+  DLOG(INFO) <<"Level 2: " << tree_->root()->child(5)->value_[2].x;
   DLOG(INFO) << tree_->root()->child(5)->child(2)->value_[0].x << ", " <<
   tree_->root()->child(5)->child(2)->value_[1].x << ",  " <<
   tree_->root()->child(5)->child(2)->value_[2].x << ",  " <<
   tree_->root()->child(5)->child(2)->value_[3].x << ",  " <<
   tree_->root()->child(5)->child(2)->value_[4].x << ",  " <<
   tree_->root()->child(5)->child(2)->value_[5].x << ",  " <<
-  tree_->root()->child(5)->child(2)->value_[6].x << ", "<<  tree_->root()->child(5)->child(2)->value_[7].x ;
+  tree_->root()->child(5)->child(2)->value_[6].x << ", "<<
+  tree_->root()->child(5)->child(2)->value_[7].x ;
+
+  DLOG(INFO) <<"Level 3: "<<  tree_->root()->child(5)->child(2)->value_[1].x;
+  DLOG(INFO) <<  tree_->root()->child(5)->child(2)->child(1) ->value_[0].x<< ", " <<
+  tree_->root()->child(5)->child(2)->child(1) ->value_[1].x<< ", " <<
+  tree_->root()->child(5)->child(2)->child(1) ->value_[2].x<< ", " <<
+  tree_->root()->child(5)->child(2)->child(1) ->value_[3].x<< ", " <<
+  tree_->root()->child(5)->child(2)->child(1) ->value_[4].x<< ", " <<
+  tree_->root()->child(5)->child(2)->child(1) ->value_[5].x<< ", " <<
+  tree_->root()->child(5)->child(2)->child(1) ->value_[6].x<< ", " <<
+  tree_->root()->child(5)->child(2)->child(1) ->value_[7].x;
+
+
 
 }
 
