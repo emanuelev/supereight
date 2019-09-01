@@ -47,7 +47,7 @@ class CollisionUnitTest : public ::testing::Test {
   std::shared_ptr<se::Octree<OFusion> > tree_;
   int max_depth_;
   int leaves_level_;
-  int dim_;
+  float dim_;
   Planning_Configuration planner_config_;
 
 };
@@ -279,7 +279,7 @@ TEST_F(CollisionUnitTest, GetMortonCode) {
   // tree_->root()->child(5)->child(2)->child(1) ->value_[7].x;
 }
 
-TEST_F(CollisionUnitTest, CollisionCheckSphere) {
+TEST_F(CollisionUnitTest, CollisionCheckSpherePass) {
 // GIVEN a octree map , a path planner, a collision checker for the map,
   // start is free and end is occupied
   auto &block_buffer_base = tree_->getBlockBuffer();
@@ -298,5 +298,232 @@ TEST_F(CollisionUnitTest, CollisionCheckSphere) {
   bool is_collision_free = collision_checker->isSphereSkeletonFree(center, planner_config_.robot_safety_radius /tree_->voxelDim());
 
   EXPECT_TRUE(is_collision_free);
+
+}
+TEST_F(CollisionUnitTest, CollisionCheckSphereOldPass) {
+// GIVEN a octree map , a path planner, a collision checker for the map,
+  // start is free and end is occupied
+  auto &block_buffer_base = tree_->getBlockBuffer();
+  // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+  planner_config_.robot_safety_radius = 0.8;
+  auto collision_checker =
+      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+
+
+  int object_size_v = std::ceil(planner_config_.robot_safety_radius /tree_->voxelDim())*2;
+  int node_level = collision_checker->getNodeLevel( object_size_v);
+  EXPECT_EQ(node_level, tree_->leaf_level()-1);
+
+
+  Eigen::Vector3i center = {80, 80, 72};
+  bool is_collision_free = collision_checker->isSphereSkeletonFreeCand(center, planner_config_.robot_safety_radius /tree_->voxelDim());
+
+  EXPECT_TRUE(is_collision_free);
+
+}
+
+// TEST_F(CollisionUnitTest, CollisionCheckSphereFail) {
+// // GIVEN a octree map , a path planner, a collision checker for the map,
+//   // start is free and end is occupied
+//   auto &block_buffer_base = tree_->getBlockBuffer();
+//   // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+//   planner_config_.robot_safety_radius = 0.8;
+//   auto collision_checker =
+//       aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+
+
+//   int object_size_v = std::ceil(planner_config_.robot_safety_radius /tree_->voxelDim())*2;
+//   int node_level = collision_checker->getNodeLevel( object_size_v);
+//   EXPECT_EQ(node_level, tree_->leaf_level()-1);
+
+
+//   Eigen::Vector3i center = {89, 80, 72};
+//   bool is_collision_free = collision_checker->isSphereSkeletonFree(center, planner_config_.robot_safety_radius /tree_->voxelDim());
+
+//   EXPECT_TRUE(is_collision_free);
+
+// }
+// TEST_F(CollisionUnitTest, CollisionCheckSphereOldFail) {
+// // GIVEN a octree map , a path planner, a collision checker for the map,
+//   // start is free and end is occupied
+//   auto &block_buffer_base = tree_->getBlockBuffer();
+//   // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+//   planner_config_.robot_safety_radius = 0.8;
+//   auto collision_checker =
+//       aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+
+
+//   int object_size_v = std::ceil(planner_config_.robot_safety_radius /tree_->voxelDim())*2;
+//   int node_level = collision_checker->getNodeLevel( object_size_v);
+//   EXPECT_EQ(node_level, tree_->leaf_level()-1);
+
+
+//   Eigen::Vector3i center = {89, 80, 72};
+//   bool is_collision_free = collision_checker->isSphereSkeletonFreeCand(center, planner_config_.robot_safety_radius /tree_->voxelDim());
+
+//   EXPECT_TRUE(is_collision_free);
+
+// }
+// TEST_F(CollisionUnitTest, CollisionCheckSphereFailVB) {
+// // GIVEN a octree map , a path planner, a collision checker for the map,
+//   // start is free and end is occupied
+//   auto &block_buffer_base = tree_->getBlockBuffer();
+//   // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+
+//   auto collision_checker =
+//       aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+
+
+//   int object_size_v = std::ceil(planner_config_.robot_safety_radius /tree_->voxelDim())*2;
+//   int node_level = collision_checker->getNodeLevel( object_size_v);
+//   EXPECT_EQ(node_level, tree_->leaf_level());
+
+
+//   Eigen::Vector3i center = {89, 80, 72};
+//   bool is_collision_free = collision_checker->isSphereSkeletonFree(center, planner_config_.robot_safety_radius /tree_->voxelDim());
+
+//   EXPECT_TRUE(is_collision_free);
+
+// }
+// TEST_F(CollisionUnitTest, CollisionCheckSphereOldFailVB) {
+// // GIVEN a octree map , a path planner, a collision checker for the map,
+//   // start is free and end is occupied
+//   auto &block_buffer_base = tree_->getBlockBuffer();
+//   // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+
+//   auto collision_checker =
+//       aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+
+
+//   int object_size_v = std::ceil(planner_config_.robot_safety_radius /tree_->voxelDim())*2;
+//   int node_level = collision_checker->getNodeLevel( object_size_v);
+//   EXPECT_EQ(node_level, tree_->leaf_level());
+
+
+//   Eigen::Vector3i center = {89, 80, 72};
+//   bool is_collision_free = collision_checker->isSphereSkeletonFreeCand(center, planner_config_.robot_safety_radius /tree_->voxelDim());
+
+//   EXPECT_TRUE(is_collision_free);
+
+// }
+
+TEST_F(CollisionUnitTest, GetLinePoints) {
+  //GIVEN a octree map , a collision checker for the map, start and end point of a path segment
+  auto &block_buffer_base = tree_->getBlockBuffer();
+  // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+  auto collision_checker =
+      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+  const int seg_prec_v = std::ceil(planner_config_.skeleton_sample_precision / dim_);
+  const Eigen::Vector3i start = {89, 75, 72};
+  const Eigen::Vector3i end = {80, 75, 72};
+  const Eigen::Vector3i vec_seg_connection_v = end - start;
+  const int num_axial_subpos = vec_seg_connection_v.norm() / seg_prec_v;
+  // WHEN: checking for collision of the segment corridor in free space
+  VecVec3i points = collision_checker->getLinePoints(start, vec_seg_connection_v, num_axial_subpos);
+  const int size =  points.size();
+  for(auto point : points){
+    LOG(INFO)<< point.format(InLine);
+  }
+
+  // THEN: the corridor is collision free
+  EXPECT_EQ(size, num_axial_subpos+2);
+
+}
+TEST_F(CollisionUnitTest, CheckLinePass) {
+
+  bool collision_free = true;
+
+  //GIVEN a octree map , a collision checker for the map, start and end point of a path segment
+  auto &block_buffer_base = tree_->getBlockBuffer();
+  // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+  auto collision_checker =
+      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+  const int seg_prec_v = std::ceil(planner_config_.skeleton_sample_precision / dim_);
+  const Eigen::Vector3i start = {89, 75, 72};
+  const Eigen::Vector3i end = {80, 75, 72};
+  const Eigen::Vector3i vec_seg_connection_v = end - start;
+  const int num_axial_subpos = vec_seg_connection_v.norm() / seg_prec_v;
+  // WHEN: checking for collision of the segment corridor in free space
+  // VecVec3i points = collision_checker->getLinePoints(start, vec_seg_connection_v, num_axial_subpos);
+  VecVec3i points = collision_checker->getSphereSkeletonPoints(start,std::ceil(planner_config_.robot_safety_radius /tree_->voxelDim()) );
+  int object_size_v = std::ceil(planner_config_.robot_safety_radius /tree_->voxelDim())*2;
+  int node_level = collision_checker->getNodeLevel( object_size_v);
+  mapvec3i affected_nodes_list = collision_checker->getCollisionNodePointList(points, node_level);
+  LOG(INFO)<< "size " << affected_nodes_list.size();
+  bool check_lower_node_level= false;
+  VecVec3i points_new;
+  for (mapvec3i::iterator it_morton_code = affected_nodes_list.begin(); it_morton_code != affected_nodes_list.end(); ) {
+    if (collision_checker->isNodeFree(it_morton_code->first, node_level)){
+      it_morton_code = affected_nodes_list.erase(it_morton_code);
+      LOG(INFO)<< "erase ";
+    }else{
+      for( auto p : affected_nodes_list[it_morton_code->first]){
+        points_new.push_back(p);
+      }
+      it_morton_code++;
+    }
+  }
+  if(points_new.size()!= 0){
+    for (VecVec3i::iterator it = points_new.begin(); it != points_new.end(); ++it) {
+      if (tree_->get(*it).x > 0.f)
+        collision_free = false;
+    }
+  }
+  LOG(INFO)<< "point size " << points.size() << " new point size() " << points_new.size();
+
+  LOG(INFO) << "node list size "<< affected_nodes_list.size();
+
+
+  // THEN: the corridor is collision free
+  EXPECT_EQ(collision_free, true);
+
+}
+
+TEST_F(CollisionUnitTest, CheckLinePass3) {
+
+  bool collision_free = true;
+
+  //GIVEN a octree map , a collision checker for the map, start and end point of a path segment
+  auto &block_buffer_base = tree_->getBlockBuffer();
+  planner_config_.robot_safety_radius = 0.8;
+  auto collision_checker =
+      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+  const int seg_prec_v = std::ceil(planner_config_.skeleton_sample_precision / dim_);
+  const Eigen::Vector3i start = {89, 75, 72};
+  const Eigen::Vector3i end = {80, 75, 72};
+  const Eigen::Vector3i vec_seg_connection_v = end - start;
+  const int num_axial_subpos = vec_seg_connection_v.norm() / seg_prec_v;
+  // WHEN: checking for collision of the segment corridor in free space
+  // VecVec3i points = collision_checker->getLinePoints(start, vec_seg_connection_v, num_axial_subpos);
+  VecVec3i points = collision_checker->getSphereSkeletonPoints(start,std::ceil(planner_config_.robot_safety_radius /tree_->voxelDim()) );
+  int object_size_v = std::ceil(planner_config_.robot_safety_radius /tree_->voxelDim())*2;
+  int node_level = collision_checker->getNodeLevel( object_size_v);
+  mapvec3i affected_nodes_list = collision_checker->getCollisionNodePointList(points, node_level);
+  LOG(INFO)<< "size " << affected_nodes_list.size();
+  bool check_lower_node_level= false;
+  VecVec3i points_new = collision_checker->areNodesFree(affected_nodes_list,node_level);
+
+  if(points_new.size()!= 0){
+    affected_nodes_list = collision_checker->getCollisionNodePointList(points_new, node_level+1);
+    points_new  =collision_checker->areNodesFree(affected_nodes_list,node_level+1);
+  }
+  if(points_new.size()!= 0 && node_level+1 == tree_->leaf_level()){
+    for (VecVec3i::iterator it = points_new.begin(); it != points_new.end(); ) {
+      LOG(INFO)<< tree_->get(*it).x ;
+      if (tree_->get(*it).x > 0.f)
+        it++;
+      else
+        it = points_new.erase(it);
+    }
+  }
+  if(points_new.size()!=0)
+    collision_free = false;
+  LOG(INFO)<< "point size " << points.size() << " new point size() " << points_new.size();
+
+  LOG(INFO) << "node list size "<< affected_nodes_list.size();
+
+
+  // THEN: the corridor is collision free
+  EXPECT_EQ(collision_free, true);
 
 }
