@@ -198,7 +198,7 @@ class projective_functor {
 //    build_active_list();
 //    const float voxel_size = _map.dim() / _map.size();
 //    size_t list_size = _active_list.size();
-//#pragma omp parallel for
+// #pragma omp parallel for
 //    for (unsigned int i = 0; i < list_size; ++i) {
 //      update_block(_active_list[i], voxel_size);
 //    }

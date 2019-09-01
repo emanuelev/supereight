@@ -245,7 +245,7 @@ class Octree {
    * \param y y coordinate in interval [0, size]
    * \param z z coordinate in interval [0, size]
    */
-   VoxelBlock<T> *fetch(const uint64_t morton) const;
+  VoxelBlock<T> *fetch(const uint64_t morton) const;
   VoxelBlock<T> *fetch(const int x, const int y, const int z) const;
 
   /*! \brief Fetch the octant (x,y,z) at level depth

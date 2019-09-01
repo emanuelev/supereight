@@ -363,7 +363,7 @@ int PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
     }
   } else {
     LOG(INFO) << "\033[1;31mNO STRAIGHT-LINE SOLUTION FOUND. OMPL FAILED.\033[0m";
-    ss_->print(std::cout);
+    // ss_->print(std::cout);
     ompl_failed_ = true;
 
     return -1;

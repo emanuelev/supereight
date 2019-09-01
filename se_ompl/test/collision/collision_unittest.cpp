@@ -60,7 +60,7 @@ TEST_F(CollisionUnitTest, CorridorCheckPass) {
       aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
 
   Eigen::Vector3i start = {89, 75, 72};
-  Eigen::Vector3i end = {95, 75, 72};
+  Eigen::Vector3i end = {80, 75, 72};
   // WHEN: checking for collision of the segment corridor in free space
   bool is_collision_free = collision_checker->isSegmentFlightCorridorSkeletonFree(start, end, 0, 3);
 
@@ -87,82 +87,82 @@ TEST_F(CollisionUnitTest, CorridorCheckFail) {
 
 }
 
-TEST_F(CollisionUnitTest, PathPlanningPass) {
- //GIVEN a octree map , a path planner, a collision checker for the map, start and end point of a path are free
-  auto &block_buffer_base = tree_->getBlockBuffer();
-  // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
-  auto collision_checker =
-      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
-  auto path_planner_ompl_ptr = aligned_shared<se::exploration::PathPlannerOmpl<OFusion> >(tree_,
-                                                                                          collision_checker,
-                                                                                          planner_config_,
-                                                                                          12.1f);
-  set3i free_map = createMap3i(block_buffer_base);
-  Eigen::Vector3i lower_bound ;
-  Eigen::Vector3i upper_bound ;
-  getFreeMapBounds(tree_, free_map, lower_bound, upper_bound);
-  bool setup_planner = path_planner_ompl_ptr->setupPlanner(lower_bound, upper_bound);
-  Eigen::Vector3i start = {89, 75, 72};
-  Eigen::Vector3i end = {95, 75, 72};
-  // WHEN planning a path in free space
-  int solution_status = path_planner_ompl_ptr->planPath(start, end);
+// TEST_F(CollisionUnitTest, PathPlanningPass) {
+//  //GIVEN a octree map , a path planner, a collision checker for the map, start and end point of a path are free
+//   auto &block_buffer_base = tree_->getBlockBuffer();
+//   // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+//   auto collision_checker =
+//       aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+//   auto path_planner_ompl_ptr = aligned_shared<se::exploration::PathPlannerOmpl<OFusion> >(tree_,
+//                                                                                           collision_checker,
+//                                                                                           planner_config_,
+//                                                                                           12.1f);
+//   set3i free_map = createMap3i(block_buffer_base);
+//   Eigen::Vector3i lower_bound ;
+//   Eigen::Vector3i upper_bound ;
+//   getFreeMapBounds(tree_, free_map, lower_bound, upper_bound);
+//   bool setup_planner = path_planner_ompl_ptr->setupPlanner(lower_bound, upper_bound);
+//   Eigen::Vector3i start = {89, 75, 72};
+//   Eigen::Vector3i end = {95, 75, 72};
+//   // WHEN planning a path in free space
+//   int solution_status = path_planner_ompl_ptr->planPath(start, end);
 
-  // THEN there is an exact solution
-  EXPECT_EQ(solution_status, 1);
+//   // THEN there is an exact solution
+//   EXPECT_EQ(solution_status, 1);
 
-}
+// }
 
-TEST_F(CollisionUnitTest, PathPlanningAroundWall) {
-// GIVEN a octree map , a path planner, a collision checker for the map, start and end point of a path are free
-  auto &block_buffer_base = tree_->getBlockBuffer();
-  // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
-  auto collision_checker =
-      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
-  auto path_planner_ompl_ptr = aligned_shared<se::exploration::PathPlannerOmpl<OFusion> >(tree_,
-                                                                                          collision_checker,
-                                                                                          planner_config_,
-                                                                                          12.1f);
-  set3i free_map = createMap3i(block_buffer_base);
-  Eigen::Vector3i lower_bound ;
-  Eigen::Vector3i upper_bound ;
-  getFreeMapBounds(tree_, free_map, lower_bound, upper_bound);
-  bool setup_planner = path_planner_ompl_ptr->setupPlanner(lower_bound, upper_bound);
-  Eigen::Vector3i start = {80, 80, 72};
-  Eigen::Vector3i end = {90, 50, 72};
-   // WHEN planning a path around a wall
-  int solution_status = path_planner_ompl_ptr->planPath(start, end);
+// TEST_F(CollisionUnitTest, PathPlanningAroundWall) {
+// // GIVEN a octree map , a path planner, a collision checker for the map, start and end point of a path are free
+//   auto &block_buffer_base = tree_->getBlockBuffer();
+//   // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+//   auto collision_checker =
+//       aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+//   auto path_planner_ompl_ptr = aligned_shared<se::exploration::PathPlannerOmpl<OFusion> >(tree_,
+//                                                                                           collision_checker,
+//                                                                                           planner_config_,
+//                                                                                           12.1f);
+//   set3i free_map = createMap3i(block_buffer_base);
+//   Eigen::Vector3i lower_bound ;
+//   Eigen::Vector3i upper_bound ;
+//   getFreeMapBounds(tree_, free_map, lower_bound, upper_bound);
+//   bool setup_planner = path_planner_ompl_ptr->setupPlanner(lower_bound, upper_bound);
+//   Eigen::Vector3i start = {80, 80, 72};
+//   Eigen::Vector3i end = {90, 50, 72};
+//    // WHEN planning a path around a wall
+//   int solution_status = path_planner_ompl_ptr->planPath(start, end);
 
-  // THEN there is an exact solution
-  EXPECT_EQ(solution_status, 1);
+//   // THEN there is an exact solution
+//   EXPECT_EQ(solution_status, 1);
 
-}
+// }
 
-TEST_F(CollisionUnitTest, ApproximateSolution) {
-// GIVEN a octree map , a path planner, a collision checker for the map,
-  // start is free and end is occupied
-  auto &block_buffer_base = tree_->getBlockBuffer();
-  // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
-  auto collision_checker =
-      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
-  auto path_planner_ompl_ptr = aligned_shared<se::exploration::PathPlannerOmpl<OFusion> >(tree_,
-                                                                                          collision_checker,
-                                                                                          planner_config_,
-                                                                                          12.1f);
-  set3i free_map = createMap3i(block_buffer_base);
-  Eigen::Vector3i lower_bound ;
-  Eigen::Vector3i upper_bound ;
-  getFreeMapBounds(tree_, free_map, lower_bound, upper_bound);
-  bool setup_planner = path_planner_ompl_ptr->setupPlanner(lower_bound, upper_bound);
-  Eigen::Vector3i start = {80, 80, 72};
-  Eigen::Vector3i end = {90, 60, 72};
+// TEST_F(CollisionUnitTest, ApproximateSolution) {
+// // GIVEN a octree map , a path planner, a collision checker for the map,
+//   // start is free and end is occupied
+//   auto &block_buffer_base = tree_->getBlockBuffer();
+//   // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+//   auto collision_checker =
+//       aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+//   auto path_planner_ompl_ptr = aligned_shared<se::exploration::PathPlannerOmpl<OFusion> >(tree_,
+//                                                                                           collision_checker,
+//                                                                                           planner_config_,
+//                                                                                           12.1f);
+//   set3i free_map = createMap3i(block_buffer_base);
+//   Eigen::Vector3i lower_bound ;
+//   Eigen::Vector3i upper_bound ;
+//   getFreeMapBounds(tree_, free_map, lower_bound, upper_bound);
+//   bool setup_planner = path_planner_ompl_ptr->setupPlanner(lower_bound, upper_bound);
+//   Eigen::Vector3i start = {80, 80, 72};
+//   Eigen::Vector3i end = {90, 60, 72};
 
- // WHEN planning a path around a wall
-  int solution_status = path_planner_ompl_ptr->planPath(start, end);
+//  // WHEN planning a path around a wall
+//   int solution_status = path_planner_ompl_ptr->planPath(start, end);
 
-  // THEN there is only an approxiamted solution
-  EXPECT_EQ(solution_status, 2);
+//   // THEN there is only an approxiamted solution
+//   EXPECT_EQ(solution_status, 2);
 
-}
+// }
 
 
 
@@ -205,54 +205,98 @@ TEST_F(CollisionUnitTest, GetMortonCode) {
   int object_size_v = std::ceil(planner_config_.robot_safety_radius /tree_->voxelDim())*2;
   int node_level = collision_checker->getNodeLevel( object_size_v);
   EXPECT_EQ(node_level, tree_->leaf_level());
-  set3i morton_set_leaf = collision_checker->getCollisionNodeList(node_level,point_list );
+  set3i morton_set_leaf = collision_checker->getCollisionNodeList(point_list, node_level);
 
 
   object_size_v = 10;
   node_level = collision_checker->getNodeLevel(object_size_v);
-  set3i morton_set_node = collision_checker->getCollisionNodeList(node_level,point_list );
+  set3i morton_set_node = collision_checker->getCollisionNodeList(point_list, node_level );
   EXPECT_EQ(node_level, tree_->leaf_level()-1);
 
   object_size_v = 27;
   node_level = collision_checker->getNodeLevel(object_size_v);
-  set3i morton_set_node2 = collision_checker->getCollisionNodeList(node_level,point_list );
+  set3i morton_set_node2 = collision_checker->getCollisionNodeList(point_list, node_level );
   EXPECT_EQ(node_level, tree_->leaf_level()-2);
 
   object_size_v = 55;
   node_level = collision_checker->getNodeLevel(object_size_v);
-  set3i morton_set_node3 = collision_checker->getCollisionNodeList(node_level,point_list );
+  set3i morton_set_node3 = collision_checker->getCollisionNodeList(point_list, node_level );
   EXPECT_EQ(node_level, tree_->leaf_level()-3);
 
-  DLOG(INFO) << "Level 1: " <<tree_->root()->value_[5].x;
-  DLOG(INFO) << tree_->root()->child(5)->value_[0].x << ", " <<
-  tree_->root()->child(5)->value_[1].x << ",  " <<
-  tree_->root()->child(5)->value_[2].x << ",  " <<
-  tree_->root()->child(5)->value_[3].x << ",  " <<
-  tree_->root()->child(5)->value_[4].x << ",  " <<
-  tree_->root()->child(5)->value_[5].x << ",  " <<
-  tree_->root()->child(5)->value_[6].x << ", "<<  tree_->root()->child(5)->value_[7].x ;
 
-  DLOG(INFO) <<"Level 2: " << tree_->root()->child(5)->value_[2].x;
-  DLOG(INFO) << tree_->root()->child(5)->child(2)->value_[0].x << ", " <<
-  tree_->root()->child(5)->child(2)->value_[1].x << ",  " <<
-  tree_->root()->child(5)->child(2)->value_[2].x << ",  " <<
-  tree_->root()->child(5)->child(2)->value_[3].x << ",  " <<
-  tree_->root()->child(5)->child(2)->value_[4].x << ",  " <<
-  tree_->root()->child(5)->child(2)->value_[5].x << ",  " <<
-  tree_->root()->child(5)->child(2)->value_[6].x << ", "<<
-  tree_->root()->child(5)->child(2)->value_[7].x ;
+  // check that parent node has the highest occupancy child probability
+  float prob[8];
+  for(int i = 0; i <8 ; i++){
+    prob[i] = tree_->root()->child(5)->value_[i].x;
+  }
+  float* parent_prob;
+  parent_prob = std::max_element(prob, prob + 8);
+  EXPECT_FLOAT_EQ( tree_->root()->value_[5].x, *parent_prob);
 
-  DLOG(INFO) <<"Level 3: "<<  tree_->root()->child(5)->child(2)->value_[1].x;
-  DLOG(INFO) <<  tree_->root()->child(5)->child(2)->child(1) ->value_[0].x<< ", " <<
-  tree_->root()->child(5)->child(2)->child(1) ->value_[1].x<< ", " <<
-  tree_->root()->child(5)->child(2)->child(1) ->value_[2].x<< ", " <<
-  tree_->root()->child(5)->child(2)->child(1) ->value_[3].x<< ", " <<
-  tree_->root()->child(5)->child(2)->child(1) ->value_[4].x<< ", " <<
-  tree_->root()->child(5)->child(2)->child(1) ->value_[5].x<< ", " <<
-  tree_->root()->child(5)->child(2)->child(1) ->value_[6].x<< ", " <<
-  tree_->root()->child(5)->child(2)->child(1) ->value_[7].x;
+  for(int i = 0; i <8 ; i++){
+    prob[i] = tree_->root()->child(5)->child(2)->value_[i].x;
+  }
+  parent_prob;
+  parent_prob = std::max_element(prob, prob + 8);
+  EXPECT_FLOAT_EQ( tree_->root()->child(5)->value_[2].x, *parent_prob);
+
+  for(int i = 0; i <8 ; i++){
+    prob[i] = tree_->root()->child(5)->child(2)->child(1)->value_[i].x;
+  }
+  parent_prob;
+  parent_prob = std::max_element(prob, prob + 8);
+  EXPECT_FLOAT_EQ( tree_->root()->child(5)->child(2)->value_[1].x, *parent_prob);
+
+  // DLOG(INFO) << "Level 1: " <<tree_->root()->value_[5].x;
+  // DLOG(INFO) << tree_->root()->child(5)->value_[0].x << ", " <<
+  // tree_->root()->child(5)->value_[1].x << ",  " <<
+  // tree_->root()->child(5)->value_[2].x << ",  " <<
+  // tree_->root()->child(5)->value_[3].x << ",  " <<
+  // tree_->root()->child(5)->value_[4].x << ",  " <<
+  // tree_->root()->child(5)->value_[5].x << ",  " <<
+  // tree_->root()->child(5)->value_[6].x <<  ", "  <<
+   // tree_->root()->child(5)->value_[7].x ;
+
+  // DLOG(INFO) <<"Level 2: " << tree_->root()->child(5)->value_[2].x;
+  // DLOG(INFO) << tree_->root()->child(5)->child(2)->value_[0].x << ", " <<
+  // tree_->root()->child(5)->child(2)->value_[1].x << ",  " <<
+  // tree_->root()->child(5)->child(2)->value_[2].x << ",  " <<
+  // tree_->root()->child(5)->child(2)->value_[3].x << ",  " <<
+  // tree_->root()->child(5)->child(2)->value_[4].x << ",  " <<
+  // tree_->root()->child(5)->child(2)->value_[5].x << ",  " <<
+  // tree_->root()->child(5)->child(2)->value_[6].x << ", "<<
+  // tree_->root()->child(5)->child(2)->value_[7].x ;
 
 
-
+  // DLOG(INFO) <<"Level 3: "<<  tree_->root()->child(5)->child(2)->value_[1].x;
+  // DLOG(INFO) <<  tree_->root()->child(5)->child(2)->child(1) ->value_[0].x<< ", " <<
+  // tree_->root()->child(5)->child(2)->child(1) ->value_[1].x<< ", " <<
+  // tree_->root()->child(5)->child(2)->child(1) ->value_[2].x<< ", " <<
+  // tree_->root()->child(5)->child(2)->child(1) ->value_[3].x<< ", " <<
+  // tree_->root()->child(5)->child(2)->child(1) ->value_[4].x<< ", " <<
+  // tree_->root()->child(5)->child(2)->child(1) ->value_[5].x<< ", " <<
+  // tree_->root()->child(5)->child(2)->child(1) ->value_[6].x<< ", " <<
+  // tree_->root()->child(5)->child(2)->child(1) ->value_[7].x;
 }
 
+TEST_F(CollisionUnitTest, CollisionCheckSphere) {
+// GIVEN a octree map , a path planner, a collision checker for the map,
+  // start is free and end is occupied
+  auto &block_buffer_base = tree_->getBlockBuffer();
+  // std::shared_ptr<se::Octree<OFusion> > octree_ptr(&tree_);
+  planner_config_.robot_safety_radius = 0.8;
+  auto collision_checker =
+      aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+
+
+  int object_size_v = std::ceil(planner_config_.robot_safety_radius /tree_->voxelDim())*2;
+  int node_level = collision_checker->getNodeLevel( object_size_v);
+  EXPECT_EQ(node_level, tree_->leaf_level()-1);
+
+
+  Eigen::Vector3i center = {80, 80, 72};
+  bool is_collision_free = collision_checker->isSphereSkeletonFree(center, planner_config_.robot_safety_radius /tree_->voxelDim());
+
+  EXPECT_TRUE(is_collision_free);
+
+}
