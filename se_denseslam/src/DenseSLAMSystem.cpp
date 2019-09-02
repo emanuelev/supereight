@@ -478,8 +478,10 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   getCameraMatrix(k),
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   funct);
+      const int ceiling_height_v = (planning_config_.ceiling_height+init_pose_(0))/discrete_vol_ptr_->voxelDim();
       se::multires::ofusion::integrate(*volume_._map_index, Tcw, K, voxelsize, Eigen::Vector3f::Constant(0.5),
-                                       float_depth_, mu, frame, updated_blocks, free_blocks, frontier_blocks);
+                                       float_depth_, mu, frame, ceiling_height_v, updated_blocks,free_blocks,
+                                       frontier_blocks);
 
 
       set3i *copy_frontier_blocks = frontier_blocks;

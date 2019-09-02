@@ -115,7 +115,7 @@ bool CollisionCheckerV<FieldType>::isVoxelFree(const Eigen::Vector3i &point_v) c
   octree_ptr_->fetch_octant(point_v.x(), point_v.y(), point_v.z(), node, is_voxel_block);
   if (is_voxel_block) {
     block = static_cast<se::VoxelBlock<FieldType> *> (node);
-    if (block->data(point_v).x < THRESH_FREE_LOG) {
+    if (block->data(point_v).x <= THRESH_FREE_LOG) {
       // DLOG(INFO) << "free at "
       // << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
       // << block->data(point_v).st << " prob "<< block->data(point_v).x ;
@@ -130,7 +130,7 @@ bool CollisionCheckerV<FieldType>::isVoxelFree(const Eigen::Vector3i &point_v) c
   } else {
     const unsigned int id = se::child_id(node->code_, octree_ptr_->leaf_level(), octree_ptr_->max_level());
     auto& data = node->parent()->value_[id];
-    if (data.x < THRESH_FREE_LOG) {
+    if (data.x <= THRESH_FREE_LOG) {
       // const Eigen::Vector3i pos = se::keyops::`decode(node->code_);
       // LOG(INFO) << "collision at node "
       // << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;
@@ -150,7 +150,7 @@ bool CollisionCheckerV<FieldType>::isNodeFree(const key_t morton_code, const int
     block = octree_ptr_->fetch(morton_code);
     // LOG(INFO) << "VB morton "<< morton_code<< " prob " << block->data(VoxelBlock<OFusion>::buff_size - 1).x <<
     // " state " << block->data(VoxelBlock<OFusion>::buff_size - 1).st;
-    if(block->data(VoxelBlock<OFusion>::buff_size - 1).x < THRESH_FREE_LOG){
+    if(block->data(VoxelBlock<OFusion>::buff_size - 1).x <= THRESH_FREE_LOG){
       return true;
     } else {
       return false;
@@ -437,11 +437,10 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
                                             mid + 1,
                                             std::get<3>(x)));
     }
-#pragma omp critical
-{
+
     if(!isCollisionFree(points))
       return false;
-}
+
   }
 
   // num  lines in cylinder . cross and along circumfence
@@ -521,11 +520,10 @@ bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eig
       if (y.second > mid)
         radial_pos.push(std::make_pair(mid + 1, y.second));
     }
-     #pragma omp critical
-       {
+
     if(!isCollisionFree(points))
       return false;
-  }
+
   }
 
   return true;

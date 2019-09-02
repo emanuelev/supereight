@@ -313,7 +313,8 @@ namespace se {
             const int f,
             const float m,
             set3i *updated_blocks,
-            set3i *free_blocks) :
+            set3i *free_blocks
+            ) :
             map(octree),
             Tcw(T),
             K(calib),
@@ -335,6 +336,7 @@ namespace se {
 
         set3i *updated_blocks_ = new set3i;
         set3i *free_blocks_ = new set3i;
+
 
 
         void operator()(se::VoxelBlock<OFusion>* block) {
@@ -419,11 +421,13 @@ namespace se {
       };
 
       struct frontier_update {
-        frontier_update(const se::Octree<OFusion>& octree, set3i *frontier_blocks) :
+        frontier_update(const se::Octree<OFusion>& octree, set3i *frontier_blocks, const int ceiling_height_v) :
             map(octree),
-            frontier_blocks_(frontier_blocks){};
+            frontier_blocks_(frontier_blocks),
+            ceiling_height_v_(ceiling_height_v){};
         const se::Octree<OFusion>& map;
         set3i *frontier_blocks_ = new set3i;
+        const int ceiling_height_v_;
 
         void operator()(se::VoxelBlock<OFusion>* block) {
           constexpr int side = se::VoxelBlock<OFusion>::side;
@@ -440,7 +444,7 @@ namespace se {
                   for (int z = 0; z < side; z++) {
                     Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(i*(side-1),y,z);
                     auto data = block->data(pix);
-                    if (data.st == voxel_state::kFree && isFrontier(map, block, pix)) {
+                    if (data.st == voxel_state::kFree && isFrontier(map, block, pix) && pix.z() < ceiling_height_v_) {
 #pragma omp critical
                       frontier_blocks_->insert(morton_code_child);
                       data.st = voxel_state::kFrontier;
@@ -454,7 +458,7 @@ namespace se {
                   for (int z = 0; z < side; z++) {
                     Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(x,j*(side-1),z);
                     auto data = block->data(pix);
-                    if (data.st == voxel_state::kFree && isFrontier(map, block, pix)) {
+                    if (data.st == voxel_state::kFree && isFrontier(map, block, pix)&& pix.z() < ceiling_height_v_) {
 #pragma omp critical
                       frontier_blocks_->insert(morton_code_child);
                       data.st = voxel_state::kFrontier;
@@ -466,9 +470,10 @@ namespace se {
               for (int x = 1; x < side-1 ; x++) {
                 for (int y = 1; y < side-1; y++) {
                   for (int k = 0; k < 2 ; k++) {
+
                     Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(x,y,k*(side-1));
                     auto data = block->data(pix);
-                    if (data.st == voxel_state::kFree && isFrontier(map, block, pix)) {
+                    if (data.st == voxel_state::kFree && isFrontier(map, block, pix)&& pix.z() < ceiling_height_v_) {
 #pragma omp critical
                       frontier_blocks_->insert(morton_code_child);
                       data.st = voxel_state::kFrontier;
@@ -488,7 +493,7 @@ namespace se {
                 for (int z = 0; z < side; z++) {
                   Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(x,y,z);
                   auto data = block->data(pix);
-                  if (data.st == voxel_state::kFree && isFrontier(map, block, pix)) {
+                  if (data.st == voxel_state::kFree && isFrontier(map, block, pix)&& pix.z() < ceiling_height_v_) {
                     frontier_blocks_->insert(morton_code_child);
                     data.st = voxel_state::kFrontier;
                     block->data(pix, 0, data);
@@ -510,7 +515,7 @@ namespace se {
       void integrate(se::Octree<T>& , const Sophus::SE3f& , const
       Eigen::Matrix4f& , float , const Eigen::Vector3f& , const
                      se::Image<float>& , float , const unsigned,
-                     set3i*, set3i*, set3i*) {
+                     const int, set3i*, set3i*, set3i*) {
       }
 
       template <>void integrate(se::Octree<OFusion>& map, const Sophus::SE3f& Tcw, const
@@ -564,7 +569,7 @@ namespace se {
       template <>void integrate(se::Octree<OFusion>& map, const Sophus::SE3f& Tcw, const
       Eigen::Matrix4f& K, float voxelsize, const Eigen::Vector3f& offset, const
                                 se::Image<float>& depth, float mu, const unsigned frame,
-                                set3i* updated_blocks, set3i* free_blocks,
+                                const int ceiling_height_v, set3i* updated_blocks, set3i* free_blocks,
                                 set3i* frontier_blocks) {
         // Filter active blocks / blocks in frustum from the block buffer
         using namespace std::placeholders;
@@ -585,7 +590,7 @@ namespace se {
         struct multires_block_update functMultires(map, Tcw, K, voxelsize,
                                            offset, depth, frame, mu, updated_blocks, free_blocks);
         se::functor::internal::parallel_for_each(active_list, functMultires);
-        struct frontier_update functFrontier(map, frontier_blocks);
+        struct frontier_update functFrontier(map, frontier_blocks, ceiling_height_v);
         se::functor::internal::parallel_for_each(active_list, functFrontier);
 
         std::deque<Node<OFusion> *> prop_list;

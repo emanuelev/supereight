@@ -32,6 +32,7 @@ protected:
     dim_ = tree_->voxelDim();
     planner_config_ = getDefaultPlanningConfig();
 
+
   }
 
   set3i createMap3i(se::MemoryPool<se::VoxelBlock<OFusion> > &block_buffer) {
