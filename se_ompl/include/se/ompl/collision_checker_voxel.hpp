@@ -210,7 +210,7 @@ bool CollisionCheckerV<FieldType>::isVoxelFree(const Eigen::Vector3i &point_v) c
   octree_ptr_->fetch_octant(point_v.x(), point_v.y(), point_v.z(), node, is_voxel_block);
   if (is_voxel_block) {
     block = static_cast<se::VoxelBlock<FieldType> *> (node);
-    if (block->data(point_v).x < SURF_BOUNDARY) {
+    if (block->data(point_v).x < THRESH_FREE_LOG) {
       // DLOG(INFO) << "free at "
       // << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
       // << block->data(point_v).st << " prob "<< block->data(point_v).x ;
@@ -223,14 +223,15 @@ bool CollisionCheckerV<FieldType>::isVoxelFree(const Eigen::Vector3i &point_v) c
     }
 
   } else {
-    // TODO without up propagation, ignore unknown nodes
-    if (octree_ptr_->get(se::keyops::decode(node->code_)).x > 0.f) {
-      // const Eigen::Vector3i pos = se::keyops::decode(node->code_);
+    const unsigned int id = se::child_id(node->code_, octree_ptr_->leaf_level(), octree_ptr_->max_level());
+    auto& data = node->parent()->value_[id];
+    if (data.x < THRESH_FREE_LOG) {
+      // const Eigen::Vector3i pos = se::keyops::`decode(node->code_);
       // LOG(INFO) << "collision at node "
       // << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;
-      return false;
-    } else
       return true;
+    } else
+      return false;
   }
 
 }
@@ -244,7 +245,7 @@ bool CollisionCheckerV<FieldType>::isNodeFree(const key_t morton_code, const int
     block = octree_ptr_->fetch(morton_code);
     // LOG(INFO) << "VB morton "<< morton_code<< " prob " << block->data(VoxelBlock<OFusion>::buff_size - 1).x <<
     // " state " << block->data(VoxelBlock<OFusion>::buff_size - 1).st;
-    if(block->data(VoxelBlock<OFusion>::buff_size - 1).x < SURF_BOUNDARY){
+    if(block->data(VoxelBlock<OFusion>::buff_size - 1).x < THRESH_FREE_LOG){
       return true;
     } else {
       return false;
@@ -256,7 +257,7 @@ bool CollisionCheckerV<FieldType>::isNodeFree(const key_t morton_code, const int
     const unsigned int id = se::child_id(morton_code, node_level_, octree_ptr_->max_level());
     auto& data = node->parent()->value_[id];
     // LOG(INFO) << "Node morton " << morton_code << " level "<< node_level<<" prob "<< data.x << " state " << data.st;
-    if(data.x < SURF_BOUNDARY){
+    if(data.x < THRESH_FREE_LOG){
       return true;
     }else{
       return false;
