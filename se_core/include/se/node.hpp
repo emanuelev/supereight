@@ -103,6 +103,11 @@ class Node {
     unsigned int timestamp(unsigned int t) { return timestamp_ = t; }
 
     virtual bool isLeaf(){ return false; }
+
+    Eigen::Vector3i coordinates() const {
+      return keyops::decode(code_);
+    }
+
     /**
      *
      * @param offset = idx
@@ -155,6 +160,7 @@ class VoxelBlock: public Node<T> {
       min_scale_ = -1;
       for (unsigned int i = 0; i < buff_size; i++)
         voxel_block_[i] = initValue();
+      this->side_ = VoxelBlock::side;
     }
 
     bool isLeaf(){ return true; }

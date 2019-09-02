@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Emanuele Vespa, Imperial College London 
+ * Copyright 2016 Emanuele Vespa, Imperial College London
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  * 1. Redistributions of source code must retain the above copyright notice, this
@@ -19,8 +19,8 @@
  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
- * 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  * */
 
 #ifndef ACTIVE_LIST_HPP
@@ -50,7 +50,7 @@ static inline bool is_frustum_boarder(const Eigen::Vector3i &v,
                                       const Eigen::Vector2i &frameSize) {
 
       const int side = VoxelBlockType::side;
-      const static Eigen::Matrix<int, 4, 8> offsets = 
+      const static Eigen::Matrix<int, 4, 8> offsets =
         (Eigen::Matrix<int, 4, 8>() << 0, side, 0, side, 0, side, 0, side,
                                        0, 0, side, side, 0, 0, side, side,
                                        0, 0, 0, 0, side, side, side, side,
@@ -81,7 +81,7 @@ static inline bool in_frustum(const VoxelBlockType *v,
                               const Eigen::Matrix4f &camera,
                               const Eigen::Vector2i &frameSize) {
 
-  const int side = VoxelBlockType::side;
+  const int side = v->side_;
   const static Eigen::Matrix<int, 4, 8> offsets = (Eigen::Matrix<int, 4, 8>()
       << 0, side, 0, side, 0, side, 0, side, 0, 0, side, side, 0, 0, side, side, 0, 0, 0, 0, side, side, side, side, 0, 0, 0, 0, 0, 0, 0, 0).finished();
 

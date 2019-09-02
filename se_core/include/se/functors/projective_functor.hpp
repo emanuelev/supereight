@@ -87,6 +87,23 @@ class projective_functor {
     algorithms::filter(_active_list, block_array, is_active_predicate, in_frustum_predicate);
   }
 
+  /*! \brief Get all the Nodes that are inside the camera frustum. The Nodes
+   * are stored in projective_functor::_in_frustum_node_list.
+   */
+  void build_in_frustum_node_list() {
+    const se::MemoryPool<se::Node<FieldType> >& node_array
+        = _map.getNodesBuffer();
+
+    /* Predicates definition */
+    const Eigen::Matrix4f Tcw = _Tcw.matrix();
+    const float voxel_size = _map.dim() / _map.size();
+    auto in_frustum_predicate = std::bind(
+        algorithms::in_frustum<se::Node<FieldType>>, std::placeholders::_1,
+        voxel_size, _K * _Tcw.matrix(), _frame_size);
+
+    algorithms::filter(_in_frustum_node_list, node_array, in_frustum_predicate);
+  }
+
   void update_block(se::VoxelBlock<FieldType> *block, const float voxel_size) {
     /* Is this the VoxelBlock center? */
     const Eigen::Vector3i blockCoord = block->coordinates();
@@ -205,13 +222,13 @@ class projective_functor {
 //    _active_list.clear();
 
     /* Update the intermediate Octree nodes (Node). */
-    auto &nodes_list = _map.getNodesBuffer();
+    build_in_frustum_node_list();
     const float voxel_size = _map.dim() / _map.size();
-    size_t list_size = nodes_list.size();
 #pragma omp parallel for
-    for (unsigned int i = 0; i < list_size; ++i) {
-      update_node(nodes_list[i], voxel_size);
+    for (unsigned int i = 0; i < _in_frustum_node_list.size(); ++i) {
+      update_node(_in_frustum_node_list[i], voxel_size);
     }
+    _in_frustum_node_list.clear();
 
   }
 
@@ -222,6 +239,7 @@ class projective_functor {
   Eigen::Matrix4f _K;
   Eigen::Vector2i _frame_size;
   std::vector<se::VoxelBlock<FieldType> *> _active_list;
+  std::vector<se::Node<FieldType> *> _in_frustum_node_list;
 };
 
 /*! \brief Create a projective_functor and call projective_functor::apply.
