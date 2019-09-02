@@ -249,7 +249,7 @@ namespace se {
               && (voxel.z() / BLOCK_SIDE) == (face_voxel.z() / BLOCK_SIDE)) {
             // CASE 1: same voxel block
             // std::cout << "prob " << _block->data(face_voxel).x << " state " << _block->data(face_voxel).st << std::endl; _block->data(face_voxel).x == 0.f &&
-            if (block->data(face_voxel).x==0.f )
+            if (block->data(face_voxel).st==voxel_state::kUnknown )
               return true;
           } else {
             // not same voxel block => check if neighbour is a voxel block
@@ -261,7 +261,7 @@ namespace se {
               // neighbour is a voxel block block->data(face_voxel).x == 0.f  &&
               se::VoxelBlock<FieldType> *block = static_cast<se::VoxelBlock<FieldType> *> (node);
               // std::cout << "prob " << block->data(face_voxel).x << " state " << block->data(face_voxel).st << std::endl;
-              if (block->data(face_voxel).x == 0.f )
+              if (block->data(face_voxel).st==voxel_state::kUnknown )
                 return true;
 
               // CASE 3: not same voxelblock but belongs to a node
@@ -270,13 +270,13 @@ namespace se {
               // the node can be at a much higher level
 
             } else {
-              // get parent node and get idx of this node to get value
+              // in case the neighbour node is also not in the same parent
               const key_t octant = se::keyops::encode(face_voxel.x(), face_voxel.y(), face_voxel.z(),
                                                       map.leaf_level(), map.max_level());
-              const int idx = se::child_id(octant, map.leaf_level(), map.max_level());
-              // in case the neighbour node is also not in the same parent
-              if (map.get(face_voxel).x == 0.f){
-                return false;
+              const unsigned int id = se::child_id(octant, map.leaf_level(), map.max_level());
+              auto& data = node->parent()->value_[id];
+              if (data.st==voxel_state::kUnknown){
+                return true;
               }
             }
           }
@@ -432,14 +432,15 @@ namespace se {
           if (block->data(VoxelBlock<OFusion>::buff_size - 1).st == voxel_state::kOccupied) {
             return;
           } else if (block->data(VoxelBlock<OFusion>::buff_size - 1).st == voxel_state::kFree) {
-#pragma omp critical
-            {
+// #pragma omp critical
+//             {
               for (int i = 0; i < 2 ; i++) {
                 for (int y = 0; y < side; y++) {
                   for (int z = 0; z < side; z++) {
                     Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(i*(side-1),y,z);
                     auto data = block->data(pix);
                     if (data.st == voxel_state::kFree && isFrontier(map, block, pix)) {
+#pragma omp critical
                       frontier_blocks_->insert(morton_code_child);
                       data.st = voxel_state::kFrontier;
                       block->data(pix, 0, data);
@@ -453,6 +454,7 @@ namespace se {
                     Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(x,j*(side-1),z);
                     auto data = block->data(pix);
                     if (data.st == voxel_state::kFree && isFrontier(map, block, pix)) {
+#pragma omp critical
                       frontier_blocks_->insert(morton_code_child);
                       data.st = voxel_state::kFrontier;
                       block->data(pix, 0, data);
@@ -466,6 +468,7 @@ namespace se {
                     Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(x,y,k*(side-1));
                     auto data = block->data(pix);
                     if (data.st == voxel_state::kFree && isFrontier(map, block, pix)) {
+#pragma omp critical
                       frontier_blocks_->insert(morton_code_child);
                       data.st = voxel_state::kFrontier;
                       block->data(pix, 0, data);
@@ -473,17 +476,18 @@ namespace se {
                   }
                 }
               }
-            }
+            // }
             return;
           }
-#pragma omp critical
-          {
+// #pragma omp critical
+          // {
             for (int x = 0; x < side ; x++) {
               for (int y = 0; y < side; y++) {
                 for (int z = 0; z < side; z++) {
                   Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(x,y,z);
                   auto data = block->data(pix);
                   if (data.st == voxel_state::kFree && isFrontier(map, block, pix)) {
+#pragma omp critical
                     frontier_blocks_->insert(morton_code_child);
                     data.st = voxel_state::kFrontier;
                     block->data(pix, 0, data);
@@ -491,7 +495,7 @@ namespace se {
                 }
               }
             }
-          }
+          // }
         }
       };
 
