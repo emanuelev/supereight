@@ -276,7 +276,7 @@ namespace se {
               const unsigned int id = se::child_id(octant, map.leaf_level(), map.max_level());
               auto& data = node->parent()->value_[id];
               if (data.st==voxel_state::kUnknown){
-                return true;
+                return false;
               }
             }
           }
@@ -431,7 +431,8 @@ namespace se {
 
           if (block->data(VoxelBlock<OFusion>::buff_size - 1).st == voxel_state::kOccupied) {
             return;
-          } else if (block->data(VoxelBlock<OFusion>::buff_size - 1).st == voxel_state::kFree) {
+          }
+            else if (block->data(VoxelBlock<OFusion>::buff_size - 1).st == voxel_state::kFree) {
 // #pragma omp critical
 //             {
               for (int i = 0; i < 2 ; i++) {
@@ -479,15 +480,15 @@ namespace se {
             // }
             return;
           }
-// #pragma omp critical
-          // {
+#pragma omp critical
+          {
+
             for (int x = 0; x < side ; x++) {
               for (int y = 0; y < side; y++) {
                 for (int z = 0; z < side; z++) {
                   Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(x,y,z);
                   auto data = block->data(pix);
                   if (data.st == voxel_state::kFree && isFrontier(map, block, pix)) {
-#pragma omp critical
                     frontier_blocks_->insert(morton_code_child);
                     data.st = voxel_state::kFrontier;
                     block->data(pix, 0, data);
@@ -495,7 +496,7 @@ namespace se {
                 }
               }
             }
-          // }
+          }
         }
       };
 

@@ -325,6 +325,9 @@ TEST_F(CollisionUnitTest, CollisionCheckSpherePass) {
 
 
   Eigen::Vector3i center = {80, 80, 72};
+  key_t morton = se::keyops::encode(80, 80, 72, 3, tree_->max_level());
+  int level = se::keyops::level(morton);
+  LOG(INFO)<< "level "<< level;
   bool is_collision_free = collision_checker->isSphereSkeletonFree(center, planner_config_.robot_safety_radius /tree_->voxelDim());
 
   EXPECT_TRUE(is_collision_free);

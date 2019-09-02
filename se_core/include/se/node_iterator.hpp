@@ -139,7 +139,7 @@ class node_iterator {
           for (int x = blockCoord(0); x < xlast; ++x) {
             const Eigen::Vector3i vox{x, y, z};
             value = block->data(vox);
-            if (value.x < 0.f) {
+            if (value.x == 0.f) {
               freeVoxels.push_back(vox);
             }
           }
@@ -205,7 +205,7 @@ class node_iterator {
 //          float prob = map_.get(x, y, z).x;
           value = block->data(vox);
 // TODO use state
-          if (value.x > 0.f) {
+          if (value.x > 0.f ) {
 #pragma omp critical
             occupiedVoxels.push_back(vox);
           }

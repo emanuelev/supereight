@@ -101,6 +101,125 @@ octree_ptr_ (octree_ptr), planning_params_(planning_config) {
   DLOG(INFO)<< "node level "<< node_level_;
 }
 
+
+template<typename FieldType>
+bool CollisionCheckerV<FieldType>::isVoxelFree(const Eigen::Vector3i &point_v) const {
+
+  se::Node<FieldType> *node = nullptr;
+  se::VoxelBlock<FieldType> *block = nullptr;
+  bool is_voxel_block;
+  if(point_v.x()<0|| point_v.y() <0 || point_v.z()<0 ||
+    point_v.x() > octree_ptr_->size() || point_v.y() > octree_ptr_->size() || point_v.z() > octree_ptr_->size()){
+    return false;
+  }
+  octree_ptr_->fetch_octant(point_v.x(), point_v.y(), point_v.z(), node, is_voxel_block);
+  if (is_voxel_block) {
+    block = static_cast<se::VoxelBlock<FieldType> *> (node);
+    if (block->data(point_v).x < THRESH_FREE_LOG) {
+      // DLOG(INFO) << "free at "
+      // << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
+      // << block->data(point_v).st << " prob "<< block->data(point_v).x ;
+
+      return true;
+    } else {
+      // DLOG(INFO)  << "collision at " << point_v.format(InLine) << " state "<<  block->data(point_v).st <<
+      // " prob " << block->data(point_v).x ;
+      return false;
+    }
+
+  } else {
+    const unsigned int id = se::child_id(node->code_, octree_ptr_->leaf_level(), octree_ptr_->max_level());
+    auto& data = node->parent()->value_[id];
+    if (data.x < THRESH_FREE_LOG) {
+      // const Eigen::Vector3i pos = se::keyops::`decode(node->code_);
+      // LOG(INFO) << "collision at node "
+      // << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;
+      return true;
+    } else
+      return false;
+  }
+
+}
+
+template<typename FieldType>
+bool CollisionCheckerV<FieldType>::isNodeFree(const key_t morton_code, const int node_level) const {
+  se::Node<FieldType> *node = nullptr;
+  se::VoxelBlock<FieldType> *block = nullptr;
+
+  if(node_level == octree_ptr_->leaf_level()){
+    block = octree_ptr_->fetch(morton_code);
+    // LOG(INFO) << "VB morton "<< morton_code<< " prob " << block->data(VoxelBlock<OFusion>::buff_size - 1).x <<
+    // " state " << block->data(VoxelBlock<OFusion>::buff_size - 1).st;
+    if(block->data(VoxelBlock<OFusion>::buff_size - 1).x < THRESH_FREE_LOG){
+      return true;
+    } else {
+      return false;
+    }
+
+  } else{
+    Eigen::Vector3i coord = se::keyops::decode(morton_code);
+    node = octree_ptr_->fetch_octant(coord.x(), coord.y(), coord.z(), node_level_);
+    const unsigned int id = se::child_id(morton_code, node_level_, octree_ptr_->max_level());
+    auto& data = node->parent()->value_[id];
+    // LOG(INFO) << "Node morton " << morton_code << " level "<< node_level<<" prob "<< data.x << " state " << data.st;
+    if(data.x < THRESH_FREE_LOG){
+      return true;
+    }else{
+      return false;
+    }
+  }
+
+}
+
+
+template<typename FieldType>
+VecVec3i CollisionCheckerV<FieldType>::checkPointsAtNodeLevel( mapvec3i & node_list, const int node_level)const{
+
+  VecVec3i points;
+  for (mapvec3i::iterator it_morton_code = node_list.begin(); it_morton_code != node_list.end(); ) {
+    if (isNodeFree(it_morton_code->first, node_level)){
+      it_morton_code = node_list.erase(it_morton_code);
+      // LOG(INFO)<< "erase ";
+    }else{
+      for( auto p : node_list[it_morton_code->first]){
+        points.push_back(p);
+      }
+      it_morton_code++;
+    }
+  }
+  return points;
+}
+
+template<typename FieldType>
+VecVec3i CollisionCheckerV<FieldType>::checkPointsAtVoxelLevel( const VecVec3i &point_list)const {
+  VecVec3i points = point_list;
+  for (VecVec3i::iterator it = points.begin(); it != points.end(); ) {
+    // LOG(INFO)<< (*it).format(InLine)<< " "<< octree_ptr_->get(*it).x ;
+    if (octree_ptr_->get(*it).x > THRESH_FREE_LOG)
+        return points;
+    else
+        it = points.erase(it);
+  }
+  return points;
+}
+
+template<typename FieldType>
+bool CollisionCheckerV<FieldType>::isCollisionFree( VecVec3i &points)const {
+  mapvec3i node_list;
+  for(int i = 0 ; i <= octree_ptr_->leaf_level()- node_level_ ; i ++){
+    if(!points.empty()){
+      node_list = getCollisionNodePointList(points, node_level_+i);
+      points = checkPointsAtNodeLevel(node_list, node_level_+i);
+      DLOG(INFO)<< "size " << node_list.size() <<" point size " << points.size() << " level "<< node_level_+i;
+    }
+  }
+  points = checkPointsAtVoxelLevel(points);
+  if(points.size()!=0)
+    return false;
+
+  return true;
+}
+
 template<typename FieldType>
 bool CollisionCheckerV<FieldType>::isSphereSkeletonFreeCand(const Eigen::Vector3i &position_v,
                                                             const int radius_v) const {
@@ -197,131 +316,6 @@ bool CollisionCheckerV<FieldType>::isSphereSkeletonFree(const Eigen::Vector3i &p
 
 }
 
-template<typename FieldType>
-bool CollisionCheckerV<FieldType>::isVoxelFree(const Eigen::Vector3i &point_v) const {
-
-  se::Node<FieldType> *node = nullptr;
-  se::VoxelBlock<FieldType> *block = nullptr;
-  bool is_voxel_block;
-  if(point_v.x()<0|| point_v.y() <0 || point_v.z()<0 ||
-    point_v.x() > octree_ptr_->size() || point_v.y() > octree_ptr_->size() || point_v.z() > octree_ptr_->size()){
-    return false;
-  }
-  octree_ptr_->fetch_octant(point_v.x(), point_v.y(), point_v.z(), node, is_voxel_block);
-  if (is_voxel_block) {
-    block = static_cast<se::VoxelBlock<FieldType> *> (node);
-    if (block->data(point_v).x < THRESH_FREE_LOG) {
-      // DLOG(INFO) << "free at "
-      // << (point_v.cast<float>() * voxel_dim_).format(InLine) << " state "
-      // << block->data(point_v).st << " prob "<< block->data(point_v).x ;
-
-      return true;
-    } else {
-      // DLOG(INFO)  << "collision at " << point_v.format(InLine) << " state "<<  block->data(point_v).st <<
-      // " prob " << block->data(point_v).x ;
-      return false;
-    }
-
-  } else {
-    const unsigned int id = se::child_id(node->code_, octree_ptr_->leaf_level(), octree_ptr_->max_level());
-    auto& data = node->parent()->value_[id];
-    if (data.x < THRESH_FREE_LOG) {
-      // const Eigen::Vector3i pos = se::keyops::`decode(node->code_);
-      // LOG(INFO) << "collision at node "
-      // << (pos.cast<float>() * voxel_dim_).format(InLine) << std::endl;
-      return true;
-    } else
-      return false;
-  }
-
-}
-
-template<typename FieldType>
-bool CollisionCheckerV<FieldType>::isNodeFree(const key_t morton_code, const int node_level) const {
-  se::Node<FieldType> *node = nullptr;
-  se::VoxelBlock<FieldType> *block = nullptr;
-
-  if(node_level == octree_ptr_->leaf_level()){
-    block = octree_ptr_->fetch(morton_code);
-    // LOG(INFO) << "VB morton "<< morton_code<< " prob " << block->data(VoxelBlock<OFusion>::buff_size - 1).x <<
-    // " state " << block->data(VoxelBlock<OFusion>::buff_size - 1).st;
-    if(block->data(VoxelBlock<OFusion>::buff_size - 1).x < THRESH_FREE_LOG){
-      return true;
-    } else {
-      return false;
-    }
-
-  } else{
-    Eigen::Vector3i coord = se::keyops::decode(morton_code);
-    node = octree_ptr_->fetch_octant(coord.x(), coord.y(), coord.z(), node_level_);
-    const unsigned int id = se::child_id(morton_code, node_level_, octree_ptr_->max_level());
-    auto& data = node->parent()->value_[id];
-    // LOG(INFO) << "Node morton " << morton_code << " level "<< node_level<<" prob "<< data.x << " state " << data.st;
-    if(data.x < THRESH_FREE_LOG){
-      return true;
-    }else{
-      return false;
-    }
-  }
-
-}
-
-
-template<typename FieldType>
-int CollisionCheckerV<FieldType>::getNodeLevel(const int object_size_v){
-
-  int node_level= 0;
-  int side = 1 << (octree_ptr_->max_level()  - node_level);
-
-  for(int i  = 1; i <= octree_ptr_->leaf_level() ; ++i){
-    int next_side = 1 << (octree_ptr_->max_level() - i);
-
-    if ( next_side > object_size_v ){
-      side = next_side;
-      node_level = i;
-    }
-  }
-  return node_level;
-}
-
-template<typename FieldType>
-mapvec3i CollisionCheckerV<FieldType>::getCollisionNodePointList(const VecVec3i& point_list, const int node_level) const {
-mapvec3i morton_code_list;
-
-  for(const auto& point : point_list){
-    Node<FieldType> * node = octree_ptr_->fetch_octant(point.x(), point.y(), point.z(), node_level);
-    if(node == nullptr){
-      // DLOG(INFO) << "node null ptr";
-      continue;
-    }
-    key_t code = node->code_;
-    morton_code_list[code].push_back(point);
-    // DLOG(INFO) << "code "<< node->code_ << " coord " << se::keyops::decode(node->code_).format(InLine) <<
-    // " point " << point.format(InLine);
-    const unsigned int id = se::child_id(node->code_, se::keyops::level(node->code_), octree_ptr_->max_level());
-
-  }
-  return morton_code_list;
-}
-
-template<typename FieldType>
-set3i CollisionCheckerV<FieldType>::getCollisionNodeList(const VecVec3i& point_list, const int node_level) const {
-  set3i morton_code_list;
-
-  for(const auto& point : point_list){
-    Node<FieldType> * node = octree_ptr_->fetch_octant(point.x(), point.y(), point.z(), node_level);
-    if(node == nullptr){
-      // DLOG(INFO) << "node null ptr";
-      continue;
-    }
-    key_t code = node->code_;
-#pragma omp critical
-    morton_code_list.insert(code);
-    // DLOG(INFO) << "code "<< node->code_ << " coord " << se::keyops::decode(node->code_).format(InLine) <<
-    // " point " << point.format(InLine);
-  }
-  return morton_code_list;
-}
 
 //   !!! took code snippets from DubinsSateSpace MotionValidator
 template<typename FieldType>
@@ -573,6 +567,64 @@ bool CollisionCheckerV<FieldType>::isLineFree(const Eigen::Vector3i &start_v,
 }
 
 template<typename FieldType>
+int CollisionCheckerV<FieldType>::getNodeLevel(const int object_size_v){
+
+  int node_level= 0;
+  int side = 1 << (octree_ptr_->max_level()  - node_level);
+
+  for(int i  = 1; i <= octree_ptr_->leaf_level() ; ++i){
+    int next_side = 1 << (octree_ptr_->max_level() - i);
+
+    if ( next_side > object_size_v ){
+      side = next_side;
+      node_level = i;
+    }
+  }
+  return node_level;
+}
+
+template<typename FieldType>
+mapvec3i CollisionCheckerV<FieldType>::getCollisionNodePointList(const VecVec3i& point_list, const int node_level) const {
+mapvec3i morton_code_list;
+
+  for(const auto& point : point_list){
+    Node<FieldType> * node = octree_ptr_->fetch_octant(point.x(), point.y(), point.z(), node_level);
+    if(node == nullptr){
+      // DLOG(INFO) << "node null ptr";
+      continue;
+    }
+    key_t code = node->code_;
+    morton_code_list[code].push_back(point);
+    // DLOG(INFO) << "code "<< node->code_ << " coord " << se::keyops::decode(node->code_).format(InLine) <<
+    // " point " << point.format(InLine);
+    const unsigned int id = se::child_id(node->code_, se::keyops::level(node->code_), octree_ptr_->max_level());
+
+  }
+  return morton_code_list;
+}
+
+template<typename FieldType>
+set3i CollisionCheckerV<FieldType>::getCollisionNodeList(const VecVec3i& point_list, const int node_level) const {
+  set3i morton_code_list;
+
+  for(const auto& point : point_list){
+    Node<FieldType> * node = octree_ptr_->fetch_octant(point.x(), point.y(), point.z(), node_level);
+    if(node == nullptr){
+      // DLOG(INFO) << "node null ptr";
+      continue;
+    }
+    key_t code = node->code_;
+#pragma omp critical
+    morton_code_list.insert(code);
+    // DLOG(INFO) << "code "<< node->code_ << " coord " << se::keyops::decode(node->code_).format(InLine) <<
+    // " point " << point.format(InLine);
+  }
+  return morton_code_list;
+}
+
+
+
+template<typename FieldType>
 VecVec3i CollisionCheckerV<FieldType>::getLinePoints(const Eigen::Vector3i &start_v,
                                               const Eigen::Vector3i &connection_v,
                                               const int num_subpos) const {
@@ -607,53 +659,7 @@ VecVec3i CollisionCheckerV<FieldType>::getLinePoints(const Eigen::Vector3i &star
 
 
 
-template<typename FieldType>
-VecVec3i CollisionCheckerV<FieldType>::checkPointsAtNodeLevel( mapvec3i & node_list, const int node_level)const{
 
-  VecVec3i points;
-  for (mapvec3i::iterator it_morton_code = node_list.begin(); it_morton_code != node_list.end(); ) {
-    if (isNodeFree(it_morton_code->first, node_level)){
-      it_morton_code = node_list.erase(it_morton_code);
-      // LOG(INFO)<< "erase ";
-    }else{
-      for( auto p : node_list[it_morton_code->first]){
-        points.push_back(p);
-      }
-      it_morton_code++;
-    }
-  }
-  return points;
-}
-
-template<typename FieldType>
-VecVec3i CollisionCheckerV<FieldType>::checkPointsAtVoxelLevel( const VecVec3i &point_list)const {
-  VecVec3i points = point_list;
-  for (VecVec3i::iterator it = points.begin(); it != points.end(); ) {
-    // LOG(INFO)<< (*it).format(InLine)<< " "<< octree_ptr_->get(*it).x ;
-    if (octree_ptr_->get(*it).x > 0.f)
-        return points;
-    else
-        it = points.erase(it);
-  }
-  return points;
-}
-
-template<typename FieldType>
-bool CollisionCheckerV<FieldType>::isCollisionFree( VecVec3i &points)const {
-  mapvec3i node_list;
-  for(int i = 0 ; i <= octree_ptr_->leaf_level()- node_level_ ; i ++){
-    if(!points.empty()){
-      node_list = getCollisionNodePointList(points, node_level_+i);
-      points = checkPointsAtNodeLevel(node_list, node_level_+i);
-      DLOG(INFO)<< "size " << node_list.size() <<" point size " << points.size() << " level "<< node_level_+i;
-    }
-  }
-  points = checkPointsAtVoxelLevel(points);
-  if(points.size()!=0)
-    return false;
-
-  return true;
-}
 
 }
 }
