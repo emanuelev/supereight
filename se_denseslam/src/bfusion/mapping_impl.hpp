@@ -256,34 +256,11 @@ struct bfusion_update {
       data.st = voxel_state::kOccupied;
     } else if (data.x < SURF_BOUNDARY) {
       data.st = voxel_state::kFree;
-      if(is_voxel || se::keyops::level(morton_code_child)==map.leaf_level()) {
 #pragma omp critical
         free_blocks_->insert(morton_code_child);
-      }
-    }
-    bool voxelOccupied = prev_occ <= 0.5 && prob > 0.5;
-    bool voxelFreed = prev_occ >= 0.5 && prob < 0.5;
-    bool occupancyUpdated = handler.occupancyUpdated();
-    if (is_voxel && !occupancyUpdated && (voxelOccupied || voxelFreed)
-      && data.st != voxel_state::kFrontier) {
-#pragma omp critical
-      {
-        updated_blocks_->insert(morton_code_child);
-        handler.occupancyUpdated(true);
-      }
+
     }
 
-      #pragma omp critical
-    {
-      if (std::is_same<FieldType, OFusion>::value && is_voxel) {
-          // conservative estimate as the occupancy probability for a free voxel is set quite low
-        if (prob <0.5 && handler.isFrontier(map)) {
-          frontier_blocks_->insert(morton_code_child);
-          data.st = voxel_state::kFrontier;
-
-        }
-      }
-    }
     handler.set(data);
   }
 };
