@@ -139,7 +139,7 @@ class node_iterator {
           for (int x = blockCoord(0); x < xlast; ++x) {
             const Eigen::Vector3i vox{x, y, z};
             value = block->data(vox);
-            if (value.x == 0.f) {
+            if (value.x < 0.f) {
               freeVoxels.push_back(vox);
             }
           }
@@ -187,7 +187,7 @@ class node_iterator {
 
 
   // rviz visualization
-  vec3i getOccupiedVoxels(float threshold, const uint64_t morton) {
+  vec3i getOccupiedVoxels(const uint64_t morton) {
     vec3i occupiedVoxels;
     occupiedVoxels.clear();
     const Eigen::Vector3i blockCoord = keyops::decode(morton);
@@ -250,10 +250,6 @@ class node_iterator {
           }
         }
       }
-    } else {
-      // std::cout << " node frontier " << blockCoord.format(InLine) << std::endl;
-      frontierVoxels.push_back(blockCoord);
-      frontierVoxels.push_back(Eigen::Vector3i(0, 0, 0));
     }
     return frontierVoxels;
   }
