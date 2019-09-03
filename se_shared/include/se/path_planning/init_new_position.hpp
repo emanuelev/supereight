@@ -31,7 +31,7 @@
 #include "exploration_utils.hpp"
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 //typedef SE_FIELD_TYPE FieldType;
-typedef std::set<uint64_t> set3i;
+typedef std::set<key_t> set3i;
 namespace se {
 
 namespace exploration {
@@ -92,7 +92,7 @@ static void setStateToFree(Octree<FieldType> &map, mapvec3i *block_voxel_map) {
       auto data = handler.get();
       if (data.st == voxel_state::kUnknown || data.st == voxel_state::kFrontier) {
         data.st = voxel_state::kFree;
-        data.x = -1.f;
+        data.x = THRESH_FREE_LOG;
         handler.set(data);
       }
     }

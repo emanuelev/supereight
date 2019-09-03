@@ -245,7 +245,7 @@ class Octree {
    * \param y y coordinate in interval [0, size]
    * \param z z coordinate in interval [0, size]
    */
-   VoxelBlock<T> *fetch(const uint64_t morton) const;
+  VoxelBlock<T> *fetch(const uint64_t morton) const;
   VoxelBlock<T> *fetch(const int x, const int y, const int z) const;
 
   /*! \brief Fetch the octant (x,y,z) at level depth
@@ -827,12 +827,14 @@ Node<T> *Octree<T>::insert(const int x, const int y, const int z, const int dept
       const key_t prefix = keyops::code(key) & MASK[d + shift];
       if (edge == blockSide) {
         tmp = block_buffer_.acquire_block();
+        tmp->parent() = n;
         static_cast<VoxelBlock<T> *>(tmp)->coordinates(Eigen::Vector3i(unpack_morton(prefix)));
         static_cast<VoxelBlock<T> *>(tmp)->active(true);
         static_cast<VoxelBlock<T> *>(tmp)->code_ = prefix | d;
         n->children_mask_ = n->children_mask_ | (1 << childid);
       } else {
         tmp = nodes_buffer_.acquire_block();
+        tmp->parent() = n;
         tmp->code_ = prefix | d;
         tmp->side_ = edge;
         n->children_mask_ = n->children_mask_ | (1 << childid);
@@ -1156,6 +1158,7 @@ bool Octree<T>::allocate_level(key_t *keys, int num_tasks, int target_level) {
       if (!(*n)) {
         if (level == leaves_level) {
           *n = block_buffer_.acquire_block();
+          (*n)->parent() = parent;
           (*n)->side_ = edge;
           static_cast<VoxelBlock<T> *>(*n)->coordinates(Eigen::Vector3i(unpack_morton(myKey)));
           static_cast<VoxelBlock<T> *>(*n)->active(true);
@@ -1163,6 +1166,7 @@ bool Octree<T>::allocate_level(key_t *keys, int num_tasks, int target_level) {
           parent->children_mask_ = parent->children_mask_ | (1 << index);
         } else {
           *n = nodes_buffer_.acquire_block();
+          (*n)->parent() = parent;
           (*n)->code_ = myKey | level;
           (*n)->side_ = edge;
           parent->children_mask_ = parent->children_mask_ | (1 << index);
@@ -1272,6 +1276,7 @@ void Octree<T>::load(const std::string &filename) {
     internal::deserialise(tmp, is);
     Eigen::Vector3i coords = keyops::decode(tmp.code_);
     Node<T> *n = insert(coords(0), coords(1), coords(2), keyops::level(tmp.code_));
+
     std::memcpy(n->value_, tmp.value_, sizeof(tmp.value_));
   }
 
@@ -1285,7 +1290,8 @@ void Octree<T>::load(const std::string &filename) {
                                                            coords(1),
                                                            coords(2),
                                                            keyops::level(tmp.code_)));
-    std::memcpy(n->getBlockRawPtr(), tmp.getBlockRawPtr(), 512 * sizeof(*(tmp.getBlockRawPtr())));
+
+    std::memcpy(n->getBlockRawPtr(), tmp.getBlockRawPtr(), VoxelBlock<T>::buff_size * sizeof(*(tmp.getBlockRawPtr())));
   }
 }
 
@@ -1323,7 +1329,7 @@ void Octree<T>::loadMultilevel(const std::string &filename) {
                                                            coords(2),
                                                            keyops::level(tmp.code_)));
     n->value_[0] = tmp.value_[0];
-    std::memcpy(n->getBlockRawPtr(), tmp.getBlockRawPtr(), 512 * sizeof(*(tmp.getBlockRawPtr())));
+    std::memcpy(n->getBlockRawPtr(), tmp.getBlockRawPtr(), VoxelBlock<T>::buff_size * sizeof(*(tmp.getBlockRawPtr())));
   }
 }
 

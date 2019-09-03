@@ -66,7 +66,7 @@ class CandidateView {
                 const float step,
                 const float ground_height);
 
-  void getCandidateViews(const map3i &frontier_blocks_map, const int frontier_cluster_size);
+  void getCandidateViews(const set3i &frontier_blocks_map, const int frontier_cluster_size);
 
   void printFaceVoxels(const Eigen::Vector3i &voxel);
 
@@ -90,14 +90,13 @@ class CandidateView {
 
   VecPose getFinalPath(Candidate &candidate);
   VecPose getYawPath(const pose3D &start, const pose3D &goal);
-  VecPose fusePath( VecPose &path_tmp,  VecPose &yaw_path);
-  VecPose addPathSegments( const pose3D &start, const pose3D &goal);
+  VecPose fusePath(VecPose &path_tmp, VecPose &yaw_path);
+  VecPose addPathSegments(const pose3D &start, const pose3D &goal);
 
   int getExplorationStatus() const { return exploration_status_; }
 
   float getTargetIG() const { return ig_target_; }
-  int getNumValidCandidates() const {return num_cands_;}
-
+  int getNumValidCandidates() const { return num_cands_; }
 
   VecCandidate candidates_;
   Candidate curr_pose_;
@@ -117,7 +116,6 @@ class CandidateView {
   float step_;
   float ground_height_;
   int exploration_status_;
-
 
   int num_sampling_;
   int num_cands_;
@@ -145,8 +143,8 @@ CandidateView<T>::CandidateView(const Volume<T> &volume,
     step_(step),
     exploration_status_(0),
     num_sampling_(planning_config.num_cand_views),
-    num_cands_(0) ,
-    ground_height_(ground_height){
+    num_cands_(0),
+    ground_height_(ground_height) {
 
   curr_pose_.pose = getCurrPose(curr_pose, res_);
   curr_pose_.path.push_back(curr_pose_.pose);
@@ -178,35 +176,34 @@ CandidateView<T>::CandidateView(const Volume<T> &volume,
  */
 template<typename T>
 int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
-                        const Volume<T> &volume,
-                        const map3i &free_map,
-                        const map3i &frontier_map,
-                        const float res,
-                        const float step,
-                        const Planning_Configuration &planning_config,
-                        const Configuration &config,
-                        const Eigen::Matrix4f &pose,
-                        const Eigen::Vector3i &lower_bound,
-                        const Eigen::Vector3i &upper_bound,
-                        const float ground_height,
-                        VecPose &path,
-                        VecPose &cand_views,
-                        VecCandidate &candidates,
-                        Candidate &best_candidate) {
+                       const Volume<T> &volume,
+                       const set3i &frontier_map,
+                       const float res,
+                       const float step,
+                       const Planning_Configuration &planning_config,
+                       const Configuration &config,
+                       const Eigen::Matrix4f &pose,
+                       const Eigen::Vector3i &lower_bound,
+                       const Eigen::Vector3i &upper_bound,
+                       const float ground_height,
+                       VecPose &path,
+                       VecPose &cand_views,
+                       VecCandidate &candidates,
+                       Candidate &best_candidate) {
 
   auto collision_checker_v = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
   // auto path_planner_ompl_ptr =
   // aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker_v, planning_config);
   LOG(INFO) << "frontier map size " << frontier_map.size();
   // Candidate view generation
-  CandidateView<T>
-      candidate_view(volume, planning_config, collision_checker_v, res, config, pose, step, ground_height);
+  CandidateView<T> candidate_view
+      (volume, planning_config, collision_checker_v, res, config, pose, step, ground_height);
   int frontier_cluster_size = planning_config.frontier_cluster_size;
-  while(candidate_view.getNumValidCandidates()<5){
+  while (candidate_view.getNumValidCandidates() < 5) {
     DLOG(INFO) << "get candidates";
     candidate_view.getCandidateViews(frontier_map, frontier_cluster_size);
-    if(frontier_cluster_size>8){
-    frontier_cluster_size/=2;
+    if (frontier_cluster_size > 8) {
+      frontier_cluster_size /= 2;
     }
   }
 
@@ -219,8 +216,10 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
 
     if (candidate_view.candidates_[i].pose.p != Eigen::Vector3f(0, 0, 0)) {
       auto collision_checker = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
-      auto path_planner_ompl_ptr =
-          aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker, planning_config, ground_height);
+      auto path_planner_ompl_ptr = aligned_shared<PathPlannerOmpl<T> >(octree_ptr,
+                                                                       collision_checker,
+                                                                       planning_config,
+                                                                       ground_height);
       // LOG(INFO) << "Candidate " << i << " goal coord " << cand_views[i].p.format(InLine);
       DLOG(INFO) << "Candidate " << i << " start " << start.p.format(InLine) << " goal "
                  << candidate_view.candidates_[i].pose.p.format(InLine);
@@ -269,7 +268,7 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   if (valid_path) {
     best_cand_idx = candidate_view.getBestCandidate();
     LOG(INFO) << "[se/candview] best candidate is "
-              << (candidate_view.candidates_[best_cand_idx].pose.p *res).format(InLine);
+              << (candidate_view.candidates_[best_cand_idx].pose.p * res).format(InLine);
     // std::cout << " path length of best cand "
     //           << candidate_view.candidates_[best_cand_idx].path.size() << std::endl;
     use_curr_pose =
@@ -285,12 +284,12 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
 
   VecPose path_tmp;
   if (valid_path && (!use_curr_pose || force_travelling)) {
-     // candidate_view.addPathSegments(planning_config.robot_safety_radius*2.5 ,best_cand_idx);
-     // path_tmp = candidate_view.candidates_[best_cand_idx].path;
+    // candidate_view.addPathSegments(planning_config.robot_safety_radius*2.5 ,best_cand_idx);
+    // path_tmp = candidate_view.candidates_[best_cand_idx].path;
     path_tmp = candidate_view.getFinalPath(candidate_view.candidates_[best_cand_idx]);
     best_candidate = candidate_view.candidates_[best_cand_idx];
   } else {
-    path_tmp = candidate_view.getFinalPath( candidate_view.curr_pose_);
+    path_tmp = candidate_view.getFinalPath(candidate_view.curr_pose_);
     best_candidate = candidate_view.curr_pose_;
   }
   for (int i = 0; i <= planning_config.num_cand_views; i++) {

@@ -46,6 +46,7 @@
 #include "kfusion/mapping_impl.hpp"
 #include "bfusion/alloc_impl.hpp"
 #include "kfusion/alloc_impl.hpp"
+#include "multires_bfusion/mapping_impl.hpp"
 //#include "se/boundary_extraction.hpp"
 
 #include "se/path_planner_ompl.hpp"
@@ -245,6 +246,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
     size_t total = num_vox_per_pix * computation_size_.x() * computation_size_.y();
     allocation_list_.reserve(total);
 
+    const Sophus::SE3f&    Tcw = Sophus::SE3f(pose_ * Tbc_).inverse();
+    const Eigen::Matrix4f& K   = getCameraMatrix(k);
     unsigned int allocated = 0;
     if (std::is_same<FieldType, SDF>::value) {
       allocated = buildAllocationList(allocation_list_.data(),
@@ -285,21 +288,22 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   funct);
     } else if (std::is_same<FieldType, OFusion>::value) {
-
-      float timestamp = (1.f / 30.f) * frame;
-
-      struct bfusion_update funct(float_depth_.data(),
-                                  Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
-                                  mu,
-                                  timestamp,
-                                  voxelsize);
-// Update all active nodes and voxels using the bfusion_update function
-
-      se::functor::projective_map(*volume_._map_index,
-                                  Sophus::SE3f(pose_).inverse(),
-                                  getCameraMatrix(k),
-                                  Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
-                                  funct);
+//      float timestamp = (1.f / 30.f) * frame;
+//
+//      struct bfusion_update funct(float_depth_.data(),
+//                                  Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
+//                                  mu,
+//                                  timestamp,
+//                                  voxelsize);
+//// Update all active nodes and voxels using the bfusion_update function
+//
+//      se::functor::projective_map(*volume_._map_index,
+//                                  Sophus::SE3f(pose_).inverse(),
+//                                  getCameraMatrix(k),
+//                                  Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
+//                                  funct);
+      se::multires::ofusion::integrate(*volume_._map_index, Tcw, K, voxelsize, Eigen::Vector3f::Constant(0.5),
+                                       float_depth_, mu, frame);
     }
 
     // if(frame % 15 == 0) {
@@ -418,6 +422,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
       }
     }
 
+    const Sophus::SE3f&    Tcw = Sophus::SE3f(pose_ * Tbc_).inverse();
+    const Eigen::Matrix4f& K   = getCameraMatrix(k);
     unsigned int allocated = 0;
     if (std::is_same<FieldType, SDF>::value) {
       allocated = buildAllocationList(allocation_list_.data(),
@@ -455,7 +461,6 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   funct);
     } else if (std::is_same<FieldType, OFusion>::value) {
-
       float timestamp = (1.f / 30.f) * frame;
       struct bfusion_update funct(float_depth_.data(),
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
@@ -473,8 +478,14 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   getCameraMatrix(k),
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   funct);
+      const int ceiling_height_v = (init_pose_(2)+ planning_config_.ceiling_height)/discrete_vol_ptr_->voxelDim();
+      const int ground_height_v = (init_pose_(2)+ planning_config_.height_min)/discrete_vol_ptr_->voxelDim();
+      se::multires::ofusion::integrate(*volume_._map_index, Tcw, K, voxelsize, Eigen::Vector3f::Constant(0.5),
+                                       float_depth_, mu, frame, ceiling_height_v, ground_height_v, updated_blocks,free_blocks,
+                                       frontier_blocks);
 
-      std::set<uint64_t> *copy_frontier_blocks = frontier_blocks;
+
+      set3i *copy_frontier_blocks = frontier_blocks;
       bool update_frontier_map = (frame % integration_rate) == 0;
       updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
       // int map_size_before = free_map_.size();
@@ -484,7 +495,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
         // getFreeMapBounds(discrete_vol_ptr_, free_map_, lower_map_bound_v_, upper_map_bound_v_);
         // std::cout << "map bounds " << lower_map_bound_v_ << " " << upper_map_bound_v_;
       // }
-      // std::cout << "[se/denseslam] free_map_  size  " << free_map_.size() << std::endl;
+       std::cout << "[se/denseslam] free_map_  size  " << free_map_.size() << std::endl;
       std::cout << "[se/denseslam] frontier_map_ size " << frontier_map_.size() << std::endl;
     }
 
@@ -505,8 +516,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 
 int DenseSLAMSystem::planning(VecPose &path,
                                VecPose &cand_views,
-                               mapvec3i *free_blocks,
-                               const float ground_height) {
+                               mapvec3i *free_blocks) {
   se::exploration::initNewPosition(pose_ * Tbc_,
                                    planning_config_,
                                    free_blocks,
@@ -525,7 +535,6 @@ int DenseSLAMSystem::planning(VecPose &path,
   Candidate best_candidate;
   int exploration_done =  se::exploration::getExplorationPath(discrete_vol_ptr_,
                                       volume_,
-                                      free_map_,
                                       frontier_map_,
                                       res_v,
                                       step,
@@ -534,7 +543,7 @@ int DenseSLAMSystem::planning(VecPose &path,
                                       pose_ * Tbc_,
                                       lower_map_bound_v_,
                                       upper_map_bound_v_,
-                                      ground_height,
+                                      init_pose_(2),
                                       path,
                                       cand_views,
                                       candidates,
@@ -605,7 +614,3 @@ void DenseSLAMSystem::dump_mesh(const std::string filename) {
   writeVtkMesh(filename.c_str(), mesh);
 }
 
-bool DenseSLAMSystem::getFrontierVoxelMap(map3i &frontier_map) {
-  frontier_map = frontier_map_;
-  return true;
-}

@@ -110,8 +110,8 @@ class DenseSLAMSystem {
   Eigen::Matrix4f raycast_pose_;
 
   //exploration
-  map3i frontier_map_;
-  map3i free_map_;
+  set3i frontier_map_;
+  set3i free_map_;
   bool init_position_cleared_ = false;
   Eigen::Vector3i lower_map_bound_v_;
   Eigen::Vector3i upper_map_bound_v_;
@@ -254,7 +254,7 @@ class DenseSLAMSystem {
  * \param cand_views
  * \return true if planning was performed
  */
-  int planning(VecPose &path, VecPose &cand_views, mapvec3i *free_blocks, const float ground_height);
+  int planning(VecPose &path, VecPose &cand_views, mapvec3i *free_blocks);
 
 
   /*
@@ -453,7 +453,6 @@ class DenseSLAMSystem {
   bool getExplorationCandidate(std::set<uint64_t> &surface_voxel_set, std::set<uint64_t>
       &occlusion_voxel_set);
 
-  bool getFrontierVoxelMap(map3i &frontier_map_);
 };
 
 /**

@@ -79,7 +79,7 @@ void count_voxels(se::Octree<T>& octree,
   occupied_voxels = 0;
   se::node_iterator<T> vb_it(octree);
   for (const auto &explored : morton_set) {
-    vec3i occupied_voxels_vec = vb_it.getOccupiedVoxels(0.f, explored);
+    vec3i occupied_voxels_vec = vb_it.getOccupiedVoxels( explored);
     vec3i free_voxels_vec = vb_it.getFreeVoxels(explored);
 
     free_voxels += free_voxels_vec.size();

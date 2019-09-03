@@ -16,31 +16,28 @@
 #include <map>
 
 #include "continuous/volume_template.hpp"
-#include <se/octree.hpp>
-#include <se/functors/data_handler.hpp>
-#include <se/node_iterator.hpp>
-#include <se/utils/eigen_utils.h>
+#include "se/octree.hpp"
+#include "se/functors/data_handler.hpp"
+#include "se/node_iterator.hpp"
+#include "se/utils/eigen_utils.h"
 
 template<typename T> using Volume = VolumeTemplate<T, se::Octree>;
 
-static inline void insertBlocksToMap(map3i &blocks_map, set3i *blocks) {
+static inline void insertBlocksToMap(set3i &blocks_map, set3i *blocks) {
   if (blocks->size() == 0) return;
-
   for (auto it = blocks->begin(); it != blocks->end(); ++it) {
-    const Eigen::Vector3i voxel_coord = se::keyops::decode(*it);
-    blocks_map.emplace(*it, voxel_coord);
+    blocks_map.emplace(*it);
   }
-
-//  std::cout << "[supereight/boundary] frontier maps size " << blocks_map.size() << std::endl;
 }
-static inline void insertBlocksToMap(map3i &blocks_map, mapvec3i *blocks) {
+
+/**
+* used for sphere initialization
+*/
+static inline void insertBlocksToMap(set3i &blocks_map, mapvec3i *blocks) {
   if (blocks->size() == 0) return;
   for (auto it = blocks->begin(); it != blocks->end(); ++it) {
-    const Eigen::Vector3i voxel_coord = se::keyops::decode(it->first);
-    blocks_map.emplace(it->first, voxel_coord);
+    blocks_map.emplace(it->first);
   }
-
-//  std::cout << "[supereight/boundary] free maps size " << blocks_map.size() << std::endl;
 }
 
 /**
@@ -49,16 +46,14 @@ static inline void insertBlocksToMap(map3i &blocks_map, mapvec3i *blocks) {
  * Issue map wide function
  */
 template<typename T>
-void updateFrontierMap(const Volume<T> &volume, map3i &blocks_map) {
+void updateFrontierMap(const Volume<T> &volume, set3i &blocks_map) {
 //  std::cout << "[supereight] frontier map size: before " << frontier_blocks_map.size()
 //  <<std::endl;
   se::node_iterator<T> node_it(*(volume._map_index));
   for (auto it = blocks_map.begin(); it != blocks_map.end(); ) {
     // check if the occupancy probability of the frontier voxels has been updated
     // changes voxel states from frontier to free or occupied
-    if (!node_it.deleteFrontierVoxelBlockviaMorton(it->first)) {
-     // std::cout << "[supereight/boundary] no frontier in voxel block => erase" << std::endl;
-
+    if (!node_it.deleteFrontierVoxelBlockviaMorton(*it)) {
       it =blocks_map.erase(it);
     }else{
       ++it;
@@ -68,7 +63,7 @@ void updateFrontierMap(const Volume<T> &volume, map3i &blocks_map) {
 
 template<typename T>
 void updateFrontierMap(const Volume<T> &volume,
-                       map3i &blocks_map,
+                       set3i &blocks_map,
                        set3i *blocks,
                        const bool update_frontier_map) {
 
@@ -94,7 +89,7 @@ void updateFrontierMap(const Volume<T> &volume,
  */
 template<typename T>
 static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree_ptr_,
-                                    const map3i &blocks_map,
+                                    const set3i &blocks_map,
                                     Eigen::Vector3i &lower_bound,
                                     Eigen::Vector3i &upper_bound) {
 
@@ -107,13 +102,13 @@ static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree
   bool is_block = false;
 
 
-  key_t lower_bound_morton = it_beg->first;
-  Eigen::Vector3i lower_block_coord = it_beg->second;
+  se::key_t lower_bound_morton = *it_beg;
+  Eigen::Vector3i lower_block_coord = se::keyops::decode(lower_bound_morton);
   octree_ptr_->fetch_octant(lower_block_coord(0), lower_block_coord(1), lower_block_coord(2), node, is_block);
   bool valid_lower = is_block;
   --it_end;
-  key_t upper_bound_morton = it_end->first;
-  Eigen::Vector3i upper_block_coord = it_end->second;
+  se::key_t upper_bound_morton = *it_end;
+  Eigen::Vector3i upper_block_coord = se::keyops::decode(upper_bound_morton);
   octree_ptr_->fetch_octant(upper_block_coord(0), upper_block_coord(1), upper_block_coord(2), node, is_block);
   bool valid_upper = is_block;
 
@@ -123,14 +118,14 @@ static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree
   upper_bound = lower_block_coord;
   while (it_beg != it_end) {
     ++it_beg;
-    lower_bound_morton = it_beg->first;
-    lower_bound_tmp = it_beg->second;
+    lower_bound_morton = *it_beg;
+    lower_bound_tmp = se::keyops::decode(lower_bound_morton);
     octree_ptr_->fetch_octant(lower_bound_tmp(0), lower_bound_tmp(1), lower_bound_tmp(2), node, is_block);
     valid_lower = is_block;
 
     --it_end;
-    upper_bound_morton = it_end->first;
-    upper_bound_tmp = it_end->second;
+    upper_bound_morton = *it_end;
+    upper_bound_tmp = se::keyops::decode(upper_bound_morton);
     octree_ptr_->fetch_octant(upper_bound_tmp(0), upper_bound_tmp(1), upper_bound_tmp(2), node, is_block);
     valid_upper = is_block;
     // std::cout << "upper " << upper_bound_tmp.format(InLine) << " lower "<< lower_bound_tmp.format(InLine)
@@ -146,9 +141,7 @@ static inline void getFreeMapBounds(const std::shared_ptr<se::Octree<T> > octree
       upper_bound.z() = upper_bound_tmp.z() +1> upper_bound.z() ? upper_bound_tmp.z()+1 : upper_bound.z();
 
     }
-
   }
-
 
 }
 #endif //SUPEREIGHT_BOUNDARY_EXTRACTION_HPP

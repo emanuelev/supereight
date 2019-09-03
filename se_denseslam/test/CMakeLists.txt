@@ -21,4 +21,5 @@ add_definitions(-DTEST_DATA_DIR="${TEST_DATA_DIR}")
 
 #add_subdirectory(camera)
 add_subdirectory(post_processing)
+add_subdirectory(multires_bfusion)
 
