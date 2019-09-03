@@ -2,6 +2,8 @@
 #include <gtest/gtest.h>
 #include "../../include/se/volume_traits.hpp"
 #include "../../src/multires_bfusion/mapping_impl.hpp"
+#include "../../../se_core/include/se/utils/eigen_utils.h"
+#include "../../../se_core/include/se/node_iterator.hpp"
 
 class MultiresOFusionNodeUpPropagation : public ::testing::Test {
 protected:
@@ -31,7 +33,7 @@ protected:
   int max_level_;
   float voxel_size_;
   float dim_;
-  
+
 private:
   std::vector<se::key_t> alloc_list;
 };
@@ -232,4 +234,272 @@ TEST_F(MultiresOFusionNodeUpPropagation, Simple) {
   ASSERT_EQ(n->value_[2].x, 2);
   ASSERT_EQ(n->value_[2].st, voxel_state::kOccupied);
 
+}
+
+TEST_F(MultiresOFusionNodeUpPropagation, FrontierTestZ) {
+
+
+  std::vector<se::VoxelBlock<OFusion>*> active_list;
+  std::deque<se::Node<OFusion>*> prop_list;
+
+  se::VoxelBlock<OFusion>* vb = NULL;
+
+
+  const Eigen::Vector3i free_block(0,0,32);
+  vb = oct_.fetch(free_block.x(), free_block.y(), free_block.z());
+  active_list.push_back(vb);
+  for (int x = 0; x < size_; x++){
+    for (int y =0; y < size_; y++){
+      for (int z = 0; z < size_/2; z++){
+        oct_.set(x, y, z, {19191919.f, -1.f, voxel_state::kFree});
+      }
+    }
+  }
+  int counter = 0;
+  int free_counter = 0;
+  bool frontier;
+  se::VoxelBlock<OFusion> *block = nullptr;
+  for (int x = 0; x < size_; x++){
+    for (int y =0; y < size_; y++){
+      for (int z = 0; z < size_; z++){
+        frontier = false;
+        Eigen::Vector3i vox {x,y,z};
+        block = oct_.fetch(vox.x(),vox.y(),vox.z());
+        bool free = oct_.get(vox).st ==voxel_state::kFree ? true : false;
+        if(free){
+          // std::cout <<"free "<< vox.format(InLine)<<std::endl;
+           frontier = se::multires::ofusion::isFrontier(oct_, block, vox);
+        if(frontier){
+            counter++;
+          }
+        }
+
+
+        if(free)
+          free_counter ++;
+        if(z==31 && x >0 && y >0 && x < size_-1 && y < size_-1){
+          EXPECT_TRUE(frontier);
+
+        }else{
+
+          EXPECT_FALSE(frontier);
+        }
+      }
+    }
+  }
+}
+TEST_F(MultiresOFusionNodeUpPropagation, FrontierTestX) {
+
+
+  std::vector<se::VoxelBlock<OFusion>*> active_list;
+  std::deque<se::Node<OFusion>*> prop_list;
+
+  se::VoxelBlock<OFusion>* vb = NULL;
+
+
+  const Eigen::Vector3i free_block(0,0,32);
+  vb = oct_.fetch(free_block.x(), free_block.y(), free_block.z());
+  active_list.push_back(vb);
+  for (int x = 0; x < size_/2; x++){
+    for (int y =0; y < size_; y++){
+      for (int z = 0; z < size_; z++){
+        oct_.set(x, y, z, {19191919.f, -1.f, voxel_state::kFree});
+      }
+    }
+  }
+  int counter = 0;
+  int free_counter = 0;
+  bool frontier;
+  se::VoxelBlock<OFusion> *block = nullptr;
+  for (int x = 0; x < size_; x++){
+    for (int y =0; y < size_; y++){
+      for (int z = 0; z < size_; z++){
+        frontier = false;
+        Eigen::Vector3i vox {x,y,z};
+        block = oct_.fetch(vox.x(),vox.y(),vox.z());
+        bool free = oct_.get(vox).st ==voxel_state::kFree ? true : false;
+        if(free){
+          // std::cout <<"free "<< vox.format(InLine)<<std::endl;
+           frontier = se::multires::ofusion::isFrontier(oct_, block, vox);
+        if(frontier){
+            counter++;
+          }
+        }
+
+
+        if(free)
+          free_counter ++;
+        if(x==31 && z >0 && y >0 && z < size_-1 && y < size_-1){
+          EXPECT_TRUE(frontier);
+
+        }else{
+          EXPECT_FALSE(frontier);
+        }
+      }
+    }
+  }
+}
+
+TEST_F(MultiresOFusionNodeUpPropagation, FrontierTestY) {
+
+
+  std::vector<se::VoxelBlock<OFusion>*> active_list;
+  std::deque<se::Node<OFusion>*> prop_list;
+
+  se::VoxelBlock<OFusion>* vb = NULL;
+
+
+  const Eigen::Vector3i free_block(0,0,32);
+  vb = oct_.fetch(free_block.x(), free_block.y(), free_block.z());
+  active_list.push_back(vb);
+  for (int x = 0; x < size_; x++){
+    for (int y =0; y < size_/2; y++){
+      for (int z = 0; z < size_; z++){
+        oct_.set(x, y, z, {19191919.f, -1.f, voxel_state::kFree});
+      }
+    }
+  }
+  int counter = 0;
+  int free_counter = 0;
+  bool frontier;
+  se::VoxelBlock<OFusion> *block = nullptr;
+  for (int x = 0; x < size_; x++){
+    for (int y =0; y < size_; y++){
+      for (int z = 0; z < size_; z++){
+        frontier = false;
+        Eigen::Vector3i vox {x,y,z};
+        block = oct_.fetch(vox.x(),vox.y(),vox.z());
+        bool free = oct_.get(vox).st ==voxel_state::kFree ? true : false;
+        if(free){
+          // std::cout <<"free "<< vox.format(InLine)<<std::endl;
+           frontier = se::multires::ofusion::isFrontier(oct_, block, vox);
+        if(frontier){
+            counter++;
+          }
+        }
+
+        if(free)
+          free_counter ++;
+        if(y==31 && x >0 && z >0 && x < size_-1 && z < size_-1){
+          EXPECT_TRUE(frontier);
+        }else{
+          EXPECT_FALSE(frontier);
+        }
+      }
+    }
+  }
+}
+
+
+TEST_F(MultiresOFusionNodeUpPropagation, Diag) {
+
+
+  std::vector<se::VoxelBlock<OFusion>*> active_list;
+  std::deque<se::Node<OFusion>*> prop_list;
+
+  se::VoxelBlock<OFusion>* vb = NULL;
+
+
+  const Eigen::Vector3i free_block(0,0,32);
+  vb = oct_.fetch(free_block.x(), free_block.y(), free_block.z());
+  active_list.push_back(vb);
+  for (int x = 0; x < size_; x++){
+    int y = x;
+      for (int z = 0; z < size_; z++){
+        oct_.set(x, y, z, {19191919.f, -1.f, voxel_state::kFree});
+      }
+
+  }
+  int counter = 0;
+  int free_counter = 0;
+  bool frontier;
+  se::VoxelBlock<OFusion> *block = nullptr;
+  for (int x = 0; x < size_; x++){
+    for (int y =0; y < size_; y++){
+      for (int z = 0; z < size_; z++){
+        frontier = false;
+        Eigen::Vector3i vox {x,y,z};
+        block = oct_.fetch(vox.x(),vox.y(),vox.z());
+        bool free = oct_.get(vox).st ==voxel_state::kFree ? true : false;
+        if(free){
+          // std::cout <<"free "<< vox.format(InLine)<<std::endl;
+           frontier = se::multires::ofusion::isFrontier(oct_, block, vox);
+        if(frontier){
+            counter++;
+                      // std::cout <<"free "<< vox.format(InLine)<<std::endl;
+
+          }
+        }
+
+
+        if(free)
+          free_counter ++;
+        if(x==y && x >0 && y >0 && x < size_-1 && y < size_-1 && z > 0 && z < size_ -1){
+          EXPECT_TRUE(frontier);
+
+        }else{
+          EXPECT_FALSE(frontier);
+        }
+      }
+    }
+  }
+}
+
+TEST_F(MultiresOFusionNodeUpPropagation, save) {
+
+
+  std::vector<se::VoxelBlock<OFusion>*> active_list;
+  std::deque<se::Node<OFusion>*> prop_list;
+
+  se::VoxelBlock<OFusion>* vb = NULL;
+
+
+  const Eigen::Vector3i free_block(0,0,32);
+  vb = oct_.fetch(free_block.x(), free_block.y(), free_block.z());
+  active_list.push_back(vb);
+  for (int x = 0; x < size_; x++){
+    int y = x;
+      for (int z = 0; z < size_; z++){
+        oct_.set(x, y, z, {19191919.f, -1.f, voxel_state::kFree});
+      }
+
+  }
+  oct_.save("/tmp/map_out.bin");
+  se::Octree<OFusion> tree ;
+  tree.load("/tmp/map_out.bin");
+
+
+  int counter = 0;
+  int free_counter = 0;
+  bool frontier;
+  se::VoxelBlock<OFusion> *block = nullptr;
+  for (int x = 0; x < size_; x++){
+    for (int y =0; y < size_; y++){
+      for (int z = 0; z < size_; z++){
+        frontier = false;
+        Eigen::Vector3i vox {x,y,z};
+        block = tree.fetch(vox.x(),vox.y(),vox.z());
+        bool free = tree.get(vox).st ==voxel_state::kFree ? true : false;
+        if(free){
+          // std::cout <<"free "<< vox.format(InLine)<<std::endl;
+           frontier = se::multires::ofusion::isFrontier(tree, block, vox);
+        if(frontier){
+            counter++;
+                      // std::cout <<"free "<< vox.format(InLine)<<std::endl;
+
+          }
+        }
+
+
+        if(free)
+          free_counter ++;
+        if(x==y && x >0 && y >0 && x < size_-1 && y < size_-1 && z > 0 && z < size_ -1){
+          EXPECT_TRUE(frontier);
+
+        }else{
+          EXPECT_FALSE(frontier);
+        }
+      }
+    }
+  }
 }

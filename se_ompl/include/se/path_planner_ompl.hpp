@@ -73,8 +73,7 @@ class PathPlannerOmpl {
    * @param [in] start Start position for path planning. [m]
    * @param [in] goal Goal position for path planning. [m]
    */
-  bool setupPlanner(const Eigen::Vector3i &lower_bound,
-                        const Eigen::Vector3i &upper_bound);
+  bool setupPlanner(const Eigen::Vector3i &lower_bound, const Eigen::Vector3i &upper_bound);
   bool setStartGoal(const Eigen::Vector3i &start_v, const Eigen::Vector3i &goal_v);
 
   Path_v::Ptr getPathNotSimplified_v() { return path_not_simplified_v_; }
@@ -192,13 +191,13 @@ bool PathPlannerOmpl<FieldType>::setStartGoal(const Eigen::Vector3i &start_v,
   ss_->clear();
   if (!pcc_->isSphereSkeletonFree(start_v, safety_radius_v_)) {
     DLOG(INFO) << "\033[1;31mStart at " << start_v.format(InLine) << " is occupied "
-              << octree_ptr_->get(start_v).x << "\033[0m";
+               << octree_ptr_->get(start_v).x << "\033[0m";
 
   }
 
   if (!pcc_->isSphereSkeletonFreeCand(goal_v, safety_radius_v_)) {
     DLOG(INFO) << "\033[1;31mGoal at " << goal_v.format(InLine) << " is occupied "
-              << octree_ptr_->get(goal_v).x << "\033[0m";
+               << octree_ptr_->get(goal_v).x << "\033[0m";
 
   }
   // Set the start and goal states
@@ -228,7 +227,7 @@ bool PathPlannerOmpl<FieldType>::setStartGoal(const Eigen::Vector3i &start_v,
  */
 template<typename FieldType>
 bool PathPlannerOmpl<FieldType>::setupPlanner(const Eigen::Vector3i &lower_bound,
-  const Eigen::Vector3i &upper_bound) {
+                                              const Eigen::Vector3i &upper_bound) {
   DLOG(INFO) << "start setting up planner voxel based";
 //  ss_->clear();
   // TODO to be replaced
@@ -315,16 +314,16 @@ int PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
       // path.printAsMatrix(std::cout);
 
       // if (true) {
-        // std::cout << "Found solution" << std::endl;
-        // std::cout << "FINAL PATH: \n";
+      // std::cout << "Found solution" << std::endl;
+      // std::cout << "FINAL PATH: \n";
 //        path.printAsMatrix(myfile);
-        // path.printAsMatrix(std::cout);
+      // path.printAsMatrix(std::cout);
 //        myfile.close();
 
       // }
     } else {
       LOG(INFO) << "\033[1;31mONLY APPROXIMATE SOLUTION FOUND."
-                      ".\033[0m";
+                   ".\033[0m";
       // og::PathGeometric path = ompl_setup_.getSolutionPath();
       og::PathGeometric path = ss_->getSolutionPath();
       prunePath(path);
@@ -453,7 +452,7 @@ void PathPlannerOmpl<FieldType>::setSpaceBoundaries_m() {
   upper_bound_ = upper_bound_v_.cast<float>() * dim;
   bounds.setLow(0, lower_bound_v_.x() * dim - buffer_m);
   bounds.setLow(1, lower_bound_v_.y() * dim - buffer_m);
-  bounds.setLow(2,  ground_height_);
+  bounds.setLow(2, ground_height_);
   bounds.setHigh(0, upper_bound_v_.x() * dim + buffer_m);
   bounds.setHigh(1, upper_bound_v_.y() * dim + buffer_m);
   bounds.setHigh(2, ground_height_ + planning_params_.ceiling_height);
@@ -496,7 +495,8 @@ VecPose PathPlannerOmpl<FieldType>::getPathSegments_m() {
 
 template<typename FieldType>
 void PathPlannerOmpl<FieldType>::setInformedRrtStar() {
-  std::shared_ptr<og::InformedRRTstar> planner = aligned_shared<og::InformedRRTstar>(ss_->getSpaceInformation());
+  std::shared_ptr<og::InformedRRTstar>
+      planner = aligned_shared<og::InformedRRTstar>(ss_->getSpaceInformation());
   planner->setGoalBias(0.08);
   // planner->setRange(0.5);
   planner->setNumSamplingAttempts(50);
