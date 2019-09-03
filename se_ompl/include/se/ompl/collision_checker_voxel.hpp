@@ -74,7 +74,7 @@ class CollisionCheckerV {
 
   VecVec3i checkPointsAtVoxelLevel(const VecVec3i &point_list) const;
 
-  bool isCollisionFree(VecVec3i &points) const;
+  bool isCollisionFree(VecVec3i &point_list) const;
 
  private:
 
@@ -107,8 +107,8 @@ bool CollisionCheckerV<FieldType>::isVoxelFree(const Eigen::Vector3i &point_v) c
   se::Node<FieldType> *node = nullptr;
   se::VoxelBlock<FieldType> *block = nullptr;
   bool is_voxel_block;
-  if (point_v.x() < 0 || point_v.y() < 0 || point_v.z() < 0 || point_v.x() > octree_ptr_->size()
-      || point_v.y() > octree_ptr_->size() || point_v.z() > octree_ptr_->size()) {
+  if (point_v.x() < 0 || point_v.y() < 0 || point_v.z() < 0 || point_v.x() >= octree_ptr_->size()
+      || point_v.y() >= octree_ptr_->size() || point_v.z() >= octree_ptr_->size()) {
     return false;
   }
   octree_ptr_->fetch_octant(point_v.x(), point_v.y(), point_v.z(), node, is_voxel_block);
@@ -175,43 +175,43 @@ template<typename FieldType>
 VecVec3i CollisionCheckerV<FieldType>::checkPointsAtNodeLevel( mapvec3i &node_list,
                                                               const int node_level) const {
 
-  VecVec3i points;
+  VecVec3i uncleared_points;
   for (mapvec3i::iterator it_morton_code = node_list.begin(); it_morton_code != node_list.end();it_morton_code++) {
     if (!isNodeFree(it_morton_code->first, node_level)) {
       for (const auto &p : node_list[it_morton_code->first]) {
-        points.push_back(p);
+        uncleared_points.push_back(p);
       }
     }
   }
-  return points;
+  return uncleared_points;
 }
 
 template<typename FieldType>
 VecVec3i CollisionCheckerV<FieldType>::checkPointsAtVoxelLevel(const VecVec3i &point_list) const {
-  VecVec3i points = point_list;
-  for (VecVec3i::iterator it = points.begin(); it != points.end();) {
+  VecVec3i occupied_points = point_list;
+  for (VecVec3i::iterator it = occupied_points.begin(); it != occupied_points.end();) {
     // LOG(INFO)<< (*it).format(InLine)<< " "<< octree_ptr_->get(*it).x ;
     if (octree_ptr_->get(*it).x > THRESH_FREE_LOG)
-      return points;
+      return occupied_points;
     else
-      it = points.erase(it);
+      it = occupied_points.erase(it);
   }
-  return points;
+  return occupied_points;
 }
 
 template<typename FieldType>
-bool CollisionCheckerV<FieldType>::isCollisionFree(VecVec3i &points) const {
+bool CollisionCheckerV<FieldType>::isCollisionFree(VecVec3i &point_list) const {
   mapvec3i node_list;
   for (int i = 0; i <= octree_ptr_->leaf_level() - node_level_; i++) {
-    if (!points.empty()) {
-      node_list = getCollisionNodePointList(points, node_level_ + i);
-      points = checkPointsAtNodeLevel(node_list, node_level_ + i);
-      DLOG(INFO) << "size " << node_list.size() << " point size " << points.size() << " level "
+    if (!point_list.empty()) {
+      node_list = getCollisionNodePointList(point_list, node_level_ + i);
+      point_list = checkPointsAtNodeLevel(node_list, node_level_ + i);
+      DLOG(INFO) << "size " << node_list.size() << " point size " << point_list.size() << " level "
                  << node_level_ + i;
     }
   }
-  points = checkPointsAtVoxelLevel(points);
-  if (points.size() != 0)
+  point_list = checkPointsAtVoxelLevel(point_list);
+  if (point_list.size() != 0)
     return false;
 
   return true;
