@@ -152,7 +152,7 @@ class CandViewUnitTest : public ::testing::Test {
   virtual void SetUp() {
     tree_ = std::make_shared<se::Octree<OFusion> >();
     std::string
-        filename = "/home/anna/exploration_ws/src/supereight/se_shared/test/path_planning/frontier.bin";
+        filename = "/home/anna/exploration_ws/src/supereight/se_shared/test/path_planning/frontier_multires.bin";
     tree_->load(filename);
     std::cout << "file loaded" << std::endl;
     max_depth_ = log2(tree_->size());
@@ -165,18 +165,18 @@ class CandViewUnitTest : public ::testing::Test {
 
   }
 
-  map3i createMap3i(se::MemoryPool<se::VoxelBlock<OFusion> > &block_buffer) {
-    map3i morton_map;
+  set3i createMap3i(se::MemoryPool<se::VoxelBlock<OFusion> > &block_buffer) {
+    set3i morton_map;
     for (int i = 0; i < block_buffer.size(); i++) {
-      const Eigen::Vector3i block_coord = block_buffer[i]->coordinates();
+
       const key_t morton_code = block_buffer[i]->code_;
-      morton_map.emplace(morton_code, block_coord);
+      morton_map.emplace(morton_code);
     }
     return morton_map;
   }
   Volume<OFusion> volume_;
   std::shared_ptr<se::Octree<OFusion> > tree_;
-  map3i morton_code_;
+  set3i morton_code_;
   int max_depth_;
   int leaves_level_;
   float dim_;
@@ -283,7 +283,7 @@ TEST_F(CandViewUnitTest, GetRandCand){
  for(int i = 0 ; i < 4 ; i ++){
   int frontier_cluster_size = planner_config_.frontier_cluster_size;
   planner_config_.num_cand_views = num_sample[i];
-    se::exploration::CandidateView<OFusion>
+  se::exploration::CandidateView<OFusion>
       cand_view(volume_, planner_config_, collision_checker, dim_, config_, curr_pose, 0.1f, 12.1f);
     timings[0] = std::chrono::steady_clock::now();
   while(cand_view.getNumValidCandidates()<5){
@@ -332,4 +332,166 @@ TEST_F(CandViewUnitTest, AddSegments){
   LOG(INFO) << "samling dist " << planner_config_.max_rrt_edge_length<< " path size "<< path.size() << " progress time " << progress_time;
   EXPECT_EQ(path.size(), num_seg[i] );
 }
+}
+
+
+
+TEST_F(CandViewUnitTest, quaternion){
+  Eigen::Matrix4f curr_pose;
+  curr_pose << 1 , 0,0, 15.f ,0,1,0,12.f, 0,0,1,13.5f, 0,0,0,1;
+  const float max_yaw_rate =planner_config_.max_yaw_rate;
+  std::chrono::time_point<std::chrono::steady_clock> timings[2];
+  se::exploration::pose3D start;
+  start = {{50, 100, 75}, {0.1736f, 0.f, 0.f, 0.984807f}};
+  LOG(INFO)<< "yaw " << se::exploration::toEulerAngles(start.q).yaw*180/M_PI ;
+  se::exploration::pose3D end;
+  end = {{60, 120, 75}, {1.f, 0.f, 0.f, 0.f}};
+  float yaw_diff = se::exploration::toEulerAngles(end.q).yaw - se::exploration::toEulerAngles(start.q).yaw;
+  LOG(INFO) << "yaw diff " << yaw_diff *180/M_PI;
+  se::exploration::wrapYawRad(yaw_diff);
+  se::exploration::pose3D pose_tmp;
+  LOG(INFO)<< std::abs(yaw_diff)/max_yaw_rate << " " << max_yaw_rate *180 /M_PI;
+  for(int i = 0; i < std::abs(yaw_diff)/max_yaw_rate ;i++){
+    pose_tmp = end;
+    pose_tmp.q = start.q.slerp(i*max_yaw_rate/std::abs(yaw_diff), end.q);
+    LOG(INFO)<< "intermediate yaw "<< se::exploration::toEulerAngles(pose_tmp.q).yaw *180/M_PI;
+  }
+  EXPECT_EQ(int(yaw_diff*180/M_PI), -160);
+}
+TEST_F(CandViewUnitTest, quaternionMinus){
+  Eigen::Matrix4f curr_pose;
+  curr_pose << 1 , 0,0, 15.f ,0,1,0,12.f, 0,0,1,13.5f, 0,0,0,1;
+  const float max_yaw_rate =planner_config_.max_yaw_rate;
+  std::chrono::time_point<std::chrono::steady_clock> timings[2];
+  se::exploration::pose3D start;
+  start = {{50, 100, 75}, {0.1736f, 0.f, 0.f, -0.984807f}};
+  LOG(INFO)<< "yaw " << se::exploration::toEulerAngles(start.q).yaw*180/M_PI ;
+  se::exploration::pose3D end;
+  end = {{60, 120, 75}, {1.f, 0.f, 0.f, 0.f}};
+  float yaw_diff = se::exploration::toEulerAngles(end.q).yaw - se::exploration::toEulerAngles(start.q).yaw;
+  LOG(INFO) << "yaw diff " << yaw_diff *180/M_PI;
+  se::exploration::wrapYawRad(yaw_diff);
+  se::exploration::pose3D pose_tmp;
+  LOG(INFO)<< std::abs(yaw_diff)/max_yaw_rate << " " << max_yaw_rate *180 /M_PI;
+  for(int i = 0; i < std::abs(yaw_diff)/max_yaw_rate ;i++){
+    pose_tmp = end;
+    pose_tmp.q = start.q.slerp(i*max_yaw_rate/std::abs(yaw_diff), end.q);
+    LOG(INFO)<< "intermediate yaw "<< se::exploration::toEulerAngles(pose_tmp.q).yaw *180/M_PI;
+  }
+  EXPECT_EQ(int(yaw_diff*180/M_PI), 160);
+}
+TEST_F(CandViewUnitTest, quaternionold){
+  Eigen::Matrix4f curr_pose;
+  curr_pose << 1 , 0,0, 15.f ,0,1,0,12.f, 0,0,1,13.5f, 0,0,0,1;
+  const float max_yaw_rate =planner_config_.max_yaw_rate;
+  std::chrono::time_point<std::chrono::steady_clock> timings[2];
+  se::exploration::pose3D start;
+  start = {{50, 100, 75}, {0.1736f, 0.f, 0.f, -0.984807f}};
+  LOG(INFO)<< "yaw " << se::exploration::toEulerAngles(start.q).yaw*180/M_PI ;
+  se::exploration::pose3D end;
+  end = {{60, 120, 75}, {1.f, 0.f, 0.f, 0.f}};
+  float yaw_diff = se::exploration::toEulerAngles(end.q).yaw - se::exploration::toEulerAngles(start.q).yaw;
+  LOG(INFO) << "yaw diff " << yaw_diff *180/M_PI;
+  se::exploration::wrapYawRad(yaw_diff);
+  se::exploration::pose3D pose_tmp;
+  if (yaw_diff >= 0) {
+
+    for (float dyaw = 0.0f; dyaw < yaw_diff; dyaw += max_yaw_rate) {
+      pose_tmp = end;
+      pose_tmp.q = se::exploration::toQuaternion(se::exploration::toEulerAngles(start.q).yaw + dyaw, 0.f, 0.f);
+      pose_tmp.q.normalize();
+      LOG(INFO)<< "intermediate yaw "<< se::exploration::toEulerAngles(pose_tmp.q).yaw *180/M_PI;
+
+    }
+  } else {
+
+    for (float dyaw = 0.0f; dyaw > yaw_diff; dyaw -= max_yaw_rate) {
+      pose_tmp = end;
+      pose_tmp.q = se::exploration::toQuaternion(se::exploration::toEulerAngles(start.q).yaw + dyaw, 0.f, 0.f);
+      pose_tmp.q.normalize();
+      LOG(INFO)<< "intermediate yaw "<< se::exploration::toEulerAngles(pose_tmp.q).yaw *180/M_PI;
+    }
+  }
+}
+
+TEST_F(CandViewUnitTest, quaternion2){
+  Eigen::Matrix4f curr_pose;
+  curr_pose << 1 , 0,0, 15.f ,0,1,0,12.f, 0,0,1,13.5f, 0,0,0,1;
+  const float max_yaw_rate =planner_config_.max_yaw_rate;
+  std::chrono::time_point<std::chrono::steady_clock> timings[2];
+  se::exploration::pose3D start;
+  start = {{50, 100, 75}, {-0.707168f, 0.f, 0.f, 0.707168f}};
+  LOG(INFO)<< "yaw " << se::exploration::toEulerAngles(start.q).yaw*180/M_PI ;
+  se::exploration::pose3D end;
+  end = {{60, 120, 75}, {1.f, 0.f, 0.f, 0.f}};
+  float yaw_diff = se::exploration::toEulerAngles(end.q).yaw - se::exploration::toEulerAngles(start.q).yaw;
+  LOG(INFO) << "yaw diff " << yaw_diff *180/M_PI;
+  se::exploration::wrapYawRad(yaw_diff);
+  se::exploration::pose3D pose_tmp;
+  LOG(INFO)<< std::abs(yaw_diff)/max_yaw_rate << " " << max_yaw_rate *180 /M_PI;
+  for(int i = 1; i < std::abs(yaw_diff)/max_yaw_rate ;i++){
+    pose_tmp = end;
+    pose_tmp.q = start.q.slerp(i*max_yaw_rate/std::abs(yaw_diff), end.q);
+    LOG(INFO)<< "intermediate yaw "<< se::exploration::toEulerAngles(pose_tmp.q).yaw *180/M_PI;
+  }
+ EXPECT_EQ(int(yaw_diff*180/M_PI), 90);
+}
+
+TEST_F(CandViewUnitTest, quaternion2Minus){
+  Eigen::Matrix4f curr_pose;
+  curr_pose << 1 , 0,0, 15.f ,0,1,0,12.f, 0,0,1,13.5f, 0,0,0,1;
+  const float max_yaw_rate =planner_config_.max_yaw_rate;
+  std::chrono::time_point<std::chrono::steady_clock> timings[2];
+  se::exploration::pose3D start;
+  start = {{50, 100, 75}, {-0.707168f, 0.f, 0.f, -0.707168f}}; // -270
+  LOG(INFO)<< "yaw " << se::exploration::toEulerAngles(start.q).yaw*180/M_PI ;
+  se::exploration::pose3D end;
+  end = {{60, 120, 75}, {1.f, 0.f, 0.f, 0.f}};
+  float yaw_diff = se::exploration::toEulerAngles(end.q).yaw - se::exploration::toEulerAngles(start.q).yaw;
+  LOG(INFO) << "yaw diff " << yaw_diff *180/M_PI;
+  se::exploration::wrapYawRad(yaw_diff);
+  se::exploration::pose3D pose_tmp;
+  LOG(INFO)<< std::abs(yaw_diff)/max_yaw_rate << " " << max_yaw_rate *180 /M_PI;
+  for(int i = 1; i < std::abs(yaw_diff)/max_yaw_rate ;i++){
+    pose_tmp = end;
+    pose_tmp.q = start.q.slerp(i*max_yaw_rate/std::abs(yaw_diff), end.q);
+    LOG(INFO)<< "intermediate yaw "<< se::exploration::toEulerAngles(pose_tmp.q).yaw *180/M_PI;
+  }
+  EXPECT_EQ(int(yaw_diff*180/M_PI), -90);
+}
+
+
+TEST_F(CandViewUnitTest, fusePath){
+  Eigen::Matrix4f curr_pose;
+  curr_pose << 1 , 0,0, 15.f ,0,1,0,12.f, 0,0,1,13.5f, 0,0,0,1;
+  const float max_yaw_rate =planner_config_.max_yaw_rate;
+  std::chrono::time_point<std::chrono::steady_clock> timings[2];
+  auto collision_checker =
+    aligned_shared<se::exploration::CollisionCheckerV<OFusion> >(tree_, planner_config_);
+  se::exploration::CandidateView<OFusion>
+    cand_view(volume_, planner_config_, collision_checker, dim_, config_, curr_pose, 0.1f, 12.1f);
+
+
+  se::exploration::pose3D start;
+  start = {{50, 100, 75}, {-0.707168f, 0.f, 0.f, -0.707168f}}; // -270
+  LOG(INFO)<< "yaw " << se::exploration::toEulerAngles(start.q).yaw*180/M_PI ;
+  se::exploration::pose3D end;
+  end = {{60, 120, 75}, {1.f, 0.f, 0.f, 0.f}};
+
+  float yaw_diff = se::exploration::toEulerAngles(end.q).yaw - se::exploration::toEulerAngles(start.q).yaw;
+  LOG(INFO) << "yaw diff " << yaw_diff *180/M_PI;
+  se::exploration::wrapYawRad(yaw_diff);
+  se::exploration::pose3D pose_tmp;
+
+  VecPose path_tmp = cand_view.addPathSegments(start, end);
+  LOG(INFO)<< "path size " << path_tmp.size();
+  VecPose yaw_path = cand_view.getYawPath(start, end);
+  LOG(INFO)<< "yaw path size  "<< yaw_path.size();
+
+  VecPose fused = cand_view.fusePath(path_tmp, yaw_path);
+
+  for(auto path : fused){
+    LOG(INFO) << path.p.format(InLine) << " " <<  se::exploration::toEulerAngles(path.q).yaw *180/M_PI;
+  }
+  EXPECT_EQ(int(yaw_diff*180/M_PI), -90);
 }

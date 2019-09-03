@@ -239,7 +239,7 @@ static inline bool boundHeight(int &h, const float h_max, const float h_min, con
 
 static inline void wrapYawRad(float &yaw_diff) {
 
-  if (yaw_diff < M_PI)
+  if (yaw_diff < -M_PI)
     yaw_diff += 2 * M_PI;
   if (yaw_diff >= M_PI)
     yaw_diff -= 2 * M_PI;

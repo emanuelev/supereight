@@ -487,7 +487,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 
       set3i *copy_frontier_blocks = frontier_blocks;
       bool update_frontier_map = (frame % integration_rate) == 0;
-      updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
+      // updateFrontierMap(volume_, frontier_map_, copy_frontier_blocks, update_frontier_map);
+      insertBlocksToMap(frontier_map_, frontier_blocks);
       // int map_size_before = free_map_.size();
       insertBlocksToMap(free_map_, free_blocks);
 
@@ -531,8 +532,6 @@ int DenseSLAMSystem::planning(VecPose &path,
         // std::cout << "map bounds " << lower_map_bound_v_ << " " << upper_map_bound_v_;
       }
   float step = volume_dimension_.x() / volume_resolution_.x();
-  VecCandidate candidates;
-  Candidate best_candidate;
   int exploration_done =  se::exploration::getExplorationPath(discrete_vol_ptr_,
                                       volume_,
                                       frontier_map_,
@@ -545,9 +544,7 @@ int DenseSLAMSystem::planning(VecPose &path,
                                       upper_map_bound_v_,
                                       init_pose_(2),
                                       path,
-                                      cand_views,
-                                      candidates,
-                                      best_candidate
+                                      cand_views
                                       );
 
   return exploration_done;

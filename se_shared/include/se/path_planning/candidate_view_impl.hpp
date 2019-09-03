@@ -439,6 +439,7 @@ VecPose CandidateView<T>::fusePath( VecPose &path_tmp,  VecPose &yaw_path){
       if (i < yaw_path.size()) {
         path_tmp[i].q = yaw_path[i].q;
       } else {
+        DLOG(INFO)<< "last yaw "<< toEulerAngles(yaw_path[yaw_path.size() - 1].q).yaw *180/M_PI;
         path_tmp[i].q = yaw_path[yaw_path.size() - 1].q;
       }
     }
@@ -459,24 +460,14 @@ VecPose CandidateView<T>::getYawPath(const pose3D &start,
   wrapYawRad(yaw_diff);
   // LOG(INFO) << "[interpolateYaw] yaw diff " << yaw_diff ;
   // interpolate yaw
-  if (yaw_diff >= 0) {
-    for (float dyaw = 0.0f; dyaw < yaw_diff; dyaw += max_yaw_rate) {
-      pose_tmp = goal;
-      pose_tmp.q = toQuaternion(toEulerAngles(start.q).yaw + dyaw, 0.f, 0.f);
-      pose_tmp.q.normalize();
-//      std::cout << "[IY] yaw " << toEulerAngles(start.q).yaw + dyaw << std::endl;
-      path.push_back(pose_tmp);
-    }
-  } else {
-
-    for (float dyaw = 0.0f; dyaw > yaw_diff; dyaw -= max_yaw_rate) {
-      pose_tmp = goal;
-      pose_tmp.q = toQuaternion(toEulerAngles(start.q).yaw + dyaw, 0.f, 0.f);
-      pose_tmp.q.normalize();
-//      std::cout << "[IY] yaw " << toEulerAngles(start.q).yaw + dyaw << std::endl;
-      path.push_back(pose_tmp);
-    }
+  for(int i = 0; i < std::abs(yaw_diff)/max_yaw_rate ;i++){
+    pose_tmp = goal;
+    pose_tmp.q = start.q.slerp(i*max_yaw_rate/std::abs(yaw_diff), goal.q);
+    DLOG(INFO)<< "intermediate yaw "<< toEulerAngles(pose_tmp.q).yaw *180/M_PI;
+    pose_tmp.q.normalize();
+    path.push_back(pose_tmp);
   }
+
   path.push_back(goal);
   return path;
 }
