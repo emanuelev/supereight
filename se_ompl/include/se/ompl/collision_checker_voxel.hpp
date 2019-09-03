@@ -129,7 +129,7 @@ bool CollisionCheckerV<FieldType>::isVoxelFree(const Eigen::Vector3i &point_v) c
   } else {
     const unsigned int
         id = se::child_id(node->code_, octree_ptr_->leaf_level(), octree_ptr_->max_level());
-    auto &data = node->parent()->value_[id];
+    const auto &data = node->parent()->value_[id];
     if (data.x <= THRESH_FREE_LOG) {
       // const Eigen::Vector3i pos = se::keyops::`decode(node->code_);
       // LOG(INFO) << "collision at node "
@@ -157,12 +157,12 @@ bool CollisionCheckerV<FieldType>::isNodeFree(const key_t morton_code, const int
     }
 
   } else {
-    Eigen::Vector3i coord = se::keyops::decode(morton_code);
+    const Eigen::Vector3i coord = se::keyops::decode(morton_code);
     node = octree_ptr_->fetch_octant(coord.x(), coord.y(), coord.z(), node_level_);
     const unsigned int id = se::child_id(morton_code, node_level_, octree_ptr_->max_level());
-    auto &data = node->parent()->value_[id];
+    const auto &data = node->parent()->value_[id];
     // LOG(INFO) << "Node morton " << morton_code << " level "<< node_level<<" prob "<< data.x << " state " << data.st;
-    if (data.x < THRESH_FREE_LOG) {
+    if (data.x <= THRESH_FREE_LOG) {
       return true;
     } else {
       return false;
@@ -172,19 +172,15 @@ bool CollisionCheckerV<FieldType>::isNodeFree(const key_t morton_code, const int
 }
 
 template<typename FieldType>
-VecVec3i CollisionCheckerV<FieldType>::checkPointsAtNodeLevel(mapvec3i &node_list,
+VecVec3i CollisionCheckerV<FieldType>::checkPointsAtNodeLevel( mapvec3i &node_list,
                                                               const int node_level) const {
 
   VecVec3i points;
-  for (mapvec3i::iterator it_morton_code = node_list.begin(); it_morton_code != node_list.end();) {
-    if (isNodeFree(it_morton_code->first, node_level)) {
-      it_morton_code = node_list.erase(it_morton_code);
-      // LOG(INFO)<< "erase ";
-    } else {
-      for (auto p : node_list[it_morton_code->first]) {
+  for (mapvec3i::iterator it_morton_code = node_list.begin(); it_morton_code != node_list.end();it_morton_code++) {
+    if (!isNodeFree(it_morton_code->first, node_level)) {
+      for (const auto &p : node_list[it_morton_code->first]) {
         points.push_back(p);
       }
-      it_morton_code++;
     }
   }
   return points;

@@ -154,8 +154,9 @@ void PlanningHistoryManager<FieldType>::updateValidCandidates(const Eigen::Matri
 template<typename FieldType>
 int PlanningHistoryManager<FieldType>::useHistoryPath(const VecPose &path_short){
   Eigen::Vector3f dist_to_last_goal = path_short.back().p-path_history_.back().path.back().p;
+ int local_minima_radius= 1.2/voxel_dim_;
 // check if the end point is in the local minima area
-  if(dist_to_last_goal.norm() < planning_params_.local_minima_radius){
+  if(dist_to_last_goal.norm() < local_minima_radius){
     if(local_minima_counter_>= 2){
   // if the counter exceeds threshold, send old path back
       return 1;

@@ -10,7 +10,7 @@
 #include "se/config.h"
 #include "se/planner_config.h"
 #include "se/path_planning/exploration_utils.hpp"
-#include "se/path_planning/planning_history.hpp"
+// #include "se/path_planning/planning_history.hpp"
 #include "se/utils/memory_pool.hpp"
 
 #include "se/path_planner_ompl.hpp"
