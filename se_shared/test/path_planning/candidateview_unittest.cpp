@@ -475,20 +475,38 @@ TEST_F(CandViewUnitTest, fusePath){
   se::exploration::pose3D start;
   start = {{50, 100, 75}, {-0.707168f, 0.f, 0.f, -0.707168f}}; // -270
   LOG(INFO)<< "yaw " << se::exploration::toEulerAngles(start.q).yaw*180/M_PI ;
+  se::exploration::pose3D mid;
+  mid = {{60, 120, 75}, {1.f, 0.f, 0.f, 0.f}};
   se::exploration::pose3D end;
-  end = {{60, 120, 75}, {1.f, 0.f, 0.f, 0.f}};
+  end = {{40, 130, 75}, {0.1736f, 0.f, 0.f, -0.984807f}};
 
-  float yaw_diff = se::exploration::toEulerAngles(end.q).yaw - se::exploration::toEulerAngles(start.q).yaw;
+  float yaw_diff = se::exploration::toEulerAngles(mid.q).yaw - se::exploration::toEulerAngles(start.q).yaw;
   LOG(INFO) << "yaw diff " << yaw_diff *180/M_PI;
   se::exploration::wrapYawRad(yaw_diff);
-  se::exploration::pose3D pose_tmp;
 
-  VecPose path_tmp = cand_view.addPathSegments(start, end);
+
+  VecPose path_tmp = cand_view.addPathSegments(start, mid);
   LOG(INFO)<< "path size " << path_tmp.size();
-  VecPose yaw_path = cand_view.getYawPath(start, end);
+  VecPose yaw_path = cand_view.getYawPath(start, mid);
   LOG(INFO)<< "yaw path size  "<< yaw_path.size();
 
   VecPose fused = cand_view.fusePath(path_tmp, yaw_path);
+
+  for(auto path : fused){
+    LOG(INFO) << path.p.format(InLine) << " " <<  se::exploration::toEulerAngles(path.q).yaw *180/M_PI;
+  }
+
+   yaw_diff = se::exploration::toEulerAngles(end.q).yaw - se::exploration::toEulerAngles(mid.q).yaw;
+  LOG(INFO) << "yaw diff " << yaw_diff *180/M_PI;
+  se::exploration::wrapYawRad(yaw_diff);
+
+
+  path_tmp = cand_view.addPathSegments(mid, end);
+  LOG(INFO)<< "path size " << path_tmp.size();
+   yaw_path = cand_view.getYawPath(mid, end);
+  LOG(INFO)<< "yaw path size  "<< yaw_path.size();
+
+  fused = cand_view.fusePath(path_tmp, yaw_path);
 
   for(auto path : fused){
     LOG(INFO) << path.p.format(InLine) << " " <<  se::exploration::toEulerAngles(path.q).yaw *180/M_PI;

@@ -199,21 +199,24 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   // Candidate view generation
   CandidateView<T> candidate_view
       (volume, planning_config, collision_checker_v, res, config, pose, step, ground_height);
+
   int frontier_cluster_size = planning_config.frontier_cluster_size;
+  float robot_safety_radius = planning_config.robot_safety_radius;
+  int counter = 0;
   while (candidate_view.getNumValidCandidates() < 3) {
     DLOG(INFO) << "get candidates";
     candidate_view.getCandidateViews(frontier_map, frontier_cluster_size);
-    if (frontier_cluster_size >= 8) {
+    if (frontier_cluster_size >= 8 ) {
       frontier_cluster_size /= 2;
-    } else{
+    } else if(counter == 4 ){
+      LOG(INFO) << "no candidates ";
       path.push_back(start);
       return 1;
     }
+    counter++;
   }
 
 
-
-  // if (size > 1) {
 #pragma omp parallel for
   for (int i = 0; i < planning_config.num_cand_views; i++) {
 
@@ -234,15 +237,40 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
                                                              int>());
       candidate_view.candidates_[i].planning_solution_status = path_planned;
       DLOG(INFO) << "path planned " << path_planned;
-      if (path_planned < 0) {
+      if (path_planned < 0 ) {
+        Planning_Configuration planning_config_tmp = planning_config;
+        robot_safety_radius = planning_config.robot_safety_radius;
+        for(;robot_safety_radius>=0.3f ; robot_safety_radius-=0.2f){
+          planning_config_tmp.robot_safety_radius = robot_safety_radius;
+          LOG(INFO) << "robot_safety_radius "<< planning_config_tmp.robot_safety_radius;
+          path_planner_ompl_ptr = aligned_shared<PathPlannerOmpl<T> >(octree_ptr,
+                                                                       collision_checker,
+                                                                       planning_config_tmp,
+                                                                       ground_height);
+
+          setup_planner = path_planner_ompl_ptr->setupPlanner(lower_bound, upper_bound);
+
+          path_planned = path_planner_ompl_ptr->planPath(start.p.cast<int>(),
+                                                         candidate_view.candidates_[i].pose.p.template cast<
+                                                             int>());
+          candidate_view.candidates_[i].planning_solution_status = path_planned;
+          if(path_planned >0){
+            LOG(INFO) << "found a path for cand " << i;
+            break;
+          }else{
+            candidate_view.candidates_[i].path_length = (start.p - candidate_view.candidates_[i].pose.p).squaredNorm();
+            VecPose vec;
+            vec.push_back(candidate_view.candidates_[i].pose);
+            candidate_view.candidates_[i].path = vec;
+          }
+        }
         // voxel coord
-        candidate_view.candidates_[i].path_length =
-            (start.p - candidate_view.candidates_[i].pose.p).squaredNorm();
-        VecPose vec;
-        vec.push_back(candidate_view.candidates_[i].pose);
-        candidate_view.candidates_[i].path = vec;
-      } else {
+
+      }
+
+       if(path_planned>0) {
         // path_length[i] = path_planner_ompl_ptr->getPathLength();
+        LOG(INFO)<<" robot_safety_radius " << robot_safety_radius << " cand " << i ;
         valid_path = true;
         candidate_view.candidates_[i].path_length = path_planner_ompl_ptr->getPathLength();
 
@@ -250,7 +278,8 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
 
         // all_path[i] = vec;
         candidate_view.candidates_[i].path = vec;
-        if (path_planned == 2) {
+        //
+        if (path_planned == 2  ) {
           DLOG(INFO) << "cand changed from " << candidate_view.candidates_[i].pose.p.format(InLine)
                      << " to "
                      << candidate_view.candidates_[i].path[candidate_view.candidates_[i].path.size()

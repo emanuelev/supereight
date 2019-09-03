@@ -52,13 +52,18 @@ void CandidateView<T>::getCandidateViews( const set3i &frontier_blocks_map, cons
       DLOG(INFO) << " mapsize "<< frontier_voxels_map.size();
     }
   }
-
+  LOG(INFO) << " mapsize "<< frontier_voxels_map.size();
   // if (frontier_voxels_map.size() != frontier_blocks_map.size()) {
   //   return;
   // }
   // random candidate view generator
   std::random_device rd;
   std::default_random_engine generator(planning_config_.random_generator_seed);
+  if(planning_config_.random_generator_seed==0){
+    LOG(INFO)<<"using rand";
+    std::default_random_engine generator(rd());
+  }
+
   std::uniform_int_distribution<int> distribution_block(0, frontier_voxels_map.size() - 1);
 
 #pragma omp parallel for
@@ -70,9 +75,11 @@ void CandidateView<T>::getCandidateViews( const set3i &frontier_blocks_map, cons
     std::advance(it, rand_num);
     uint64_t rand_morton = it->first;
     DLOG(INFO) << "block number " << rand_num << " morton " << rand_morton << " map size " << frontier_voxels_map.size() ;
-    if (frontier_voxels_map[rand_morton].size() < frontier_cluster_size || frontier_voxels_map[rand_morton].size() ==0) {
-    DLOG(INFO) << " size "<< frontier_voxels_map[rand_morton].size()  << " "<<
-      frontier_cluster_size;
+    if (frontier_voxels_map[rand_morton].size() < frontier_cluster_size ||
+      frontier_voxels_map[rand_morton].size() ==0) {
+
+      DLOG(INFO) << " size "<< frontier_voxels_map[rand_morton].size()  << " "<<frontier_cluster_size;
+
       continue;
     }
     std::uniform_int_distribution<int>
