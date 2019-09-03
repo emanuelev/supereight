@@ -67,12 +67,10 @@ void updateFrontierMap(const Volume<T> &volume,
                        set3i *blocks,
                        const bool update_frontier_map) {
 
-  Eigen::Vector3i lowerbound;
-  Eigen::Vector3i upperbound;
   // check if the ones in the map
   // if (update_frontier_map) {
     // std::cout << "update frontier map " <<std::endl;
-    updateFrontierMap(volume, blocks_map);
+    // updateFrontierMap(volume, blocks_map);
   // }
 
   // insert new frontier blocks to map

@@ -187,10 +187,11 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
                        const Eigen::Vector3i &upper_bound,
                        const float ground_height,
                        VecPose &path,
-                       VecPose &cand_views,
-                       VecCandidate &candidates,
-                       Candidate &best_candidate) {
+                       VecPose &cand_views
+                       ) {
 
+  pose3D start = getCurrPose(pose, res);
+  bool valid_path = false;
   auto collision_checker_v = aligned_shared<CollisionCheckerV<T> >(octree_ptr, planning_config);
   // auto path_planner_ompl_ptr =
   // aligned_shared<PathPlannerOmpl<T> >(octree_ptr, collision_checker_v, planning_config);
@@ -199,16 +200,18 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
   CandidateView<T> candidate_view
       (volume, planning_config, collision_checker_v, res, config, pose, step, ground_height);
   int frontier_cluster_size = planning_config.frontier_cluster_size;
-  while (candidate_view.getNumValidCandidates() < 5) {
+  while (candidate_view.getNumValidCandidates() < 3) {
     DLOG(INFO) << "get candidates";
     candidate_view.getCandidateViews(frontier_map, frontier_cluster_size);
-    if (frontier_cluster_size > 8) {
+    if (frontier_cluster_size >= 8) {
       frontier_cluster_size /= 2;
+    } else{
+      path.push_back(start);
+      return 1;
     }
   }
 
-  pose3D start = getCurrPose(pose, res);
-  bool valid_path = false;
+
 
   // if (size > 1) {
 #pragma omp parallel for
@@ -287,10 +290,10 @@ int getExplorationPath(std::shared_ptr<Octree<T> > octree_ptr,
     // candidate_view.addPathSegments(planning_config.robot_safety_radius*2.5 ,best_cand_idx);
     // path_tmp = candidate_view.candidates_[best_cand_idx].path;
     path_tmp = candidate_view.getFinalPath(candidate_view.candidates_[best_cand_idx]);
-    best_candidate = candidate_view.candidates_[best_cand_idx];
+    // best_candidate = candidate_view.candidates_[best_cand_idx];
   } else {
     path_tmp = candidate_view.getFinalPath(candidate_view.curr_pose_);
-    best_candidate = candidate_view.curr_pose_;
+    // best_candidate = candidate_view.curr_pose_;
   }
   for (int i = 0; i <= planning_config.num_cand_views; i++) {
     if (candidate_view.candidates_[i].pose.p == Eigen::Vector3f(0, 0, 0)) {
