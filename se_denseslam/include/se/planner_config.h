@@ -67,10 +67,8 @@ struct Planning_Configuration {
   int frontier_cluster_size;
 
   PlannerType planner_type;
-  float ceiling_height;
-  float local_minima_radius;
 
-  float planner_dist_max;
+  float ceiling_height;
 
   float max_yaw_rate;
 
@@ -97,9 +95,7 @@ inline Planning_Configuration getDefaultPlanningConfig() {
   config.min_loop_for_termination = 10;
   config.frontier_cluster_size = 12;
   config.planner_type = kInformedRrtStar;
-  config.local_minima_radius = 1.f;
   config.ceiling_height = 3.0f;
-  config.planner_dist_max = 2.f;
   config.max_yaw_rate = 0.52;
   config.max_rrt_edge_length = 1.0f;
   config.yaw_optimization = true;

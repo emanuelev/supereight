@@ -431,7 +431,7 @@ struct frontier_update {
             Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(i * (side - 1), y, z);
             auto data = block->data(pix);
             if (data.st == voxel_state::kFree && isFrontier(map, block, pix)
-                && pix.z() > ground_height_v_ &&pix.z() < ground_height_v_ + ceiling_height_v_) {
+                && pix.z() > ground_height_v_ &&pix.z() <  ceiling_height_v_) {
 #pragma omp critical
               frontier_blocks_->insert(morton_code_child);
               data.st = voxel_state::kFrontier;
@@ -446,7 +446,7 @@ struct frontier_update {
             Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(x, j * (side - 1), z);
             auto data = block->data(pix);
             if (data.st == voxel_state::kFree && isFrontier(map, block, pix)
-                && pix.z() > ground_height_v_ && pix.z() < ground_height_v_ + ceiling_height_v_) {
+                && pix.z() > ground_height_v_ && pix.z() < ceiling_height_v_) {
 #pragma omp critical
               frontier_blocks_->insert(morton_code_child);
               data.st = voxel_state::kFrontier;
@@ -462,7 +462,7 @@ struct frontier_update {
             Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(x, y, k * (side - 1));
             auto data = block->data(pix);
             if (data.st == voxel_state::kFree && isFrontier(map, block, pix)
-               && pix.z() > ground_height_v_ && pix.z() < ground_height_v_ + ceiling_height_v_) {
+               && pix.z() > ground_height_v_ && pix.z() < ceiling_height_v_) {
 #pragma omp critical
               frontier_blocks_->insert(morton_code_child);
               data.st = voxel_state::kFrontier;
@@ -482,7 +482,7 @@ struct frontier_update {
             Eigen::Vector3i pix = block->coordinates() + Eigen::Vector3i(x, y, z);
             auto data = block->data(pix);
             if (data.st == voxel_state::kFree && isFrontier(map, block, pix)
-                && pix.z() > ground_height_v_ && pix.z() < ground_height_v_ + ceiling_height_v_) {
+                && pix.z() > ground_height_v_ && pix.z() < ceiling_height_v_) {
               frontier_blocks_->insert(morton_code_child);
               data.st = voxel_state::kFrontier;
               block->data(pix, 0, data);

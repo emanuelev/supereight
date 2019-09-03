@@ -478,8 +478,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
                                   getCameraMatrix(k),
                                   Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
                                   funct);
-      const int ceiling_height_v = planning_config_.ceiling_height/discrete_vol_ptr_->voxelDim();
-      const int ground_height_v = (init_pose_(0)+ 0.4f)/discrete_vol_ptr_->voxelDim();
+      const int ceiling_height_v = (init_pose_(2)+ planning_config_.ceiling_height)/discrete_vol_ptr_->voxelDim();
+      const int ground_height_v = (init_pose_(2)+ planning_config_.height_min)/discrete_vol_ptr_->voxelDim();
       se::multires::ofusion::integrate(*volume_._map_index, Tcw, K, voxelsize, Eigen::Vector3f::Constant(0.5),
                                        float_depth_, mu, frame, ceiling_height_v, ground_height_v, updated_blocks,free_blocks,
                                        frontier_blocks);
@@ -516,8 +516,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f &k,
 
 int DenseSLAMSystem::planning(VecPose &path,
                                VecPose &cand_views,
-                               mapvec3i *free_blocks,
-                               const float ground_height) {
+                               mapvec3i *free_blocks) {
   se::exploration::initNewPosition(pose_ * Tbc_,
                                    planning_config_,
                                    free_blocks,
@@ -544,7 +543,7 @@ int DenseSLAMSystem::planning(VecPose &path,
                                       pose_ * Tbc_,
                                       lower_map_bound_v_,
                                       upper_map_bound_v_,
-                                      ground_height,
+                                      init_pose_(2),
                                       path,
                                       cand_views,
                                       candidates,
