@@ -133,68 +133,7 @@ static inline float norm(float a, float b, float c, float d) {
  * @param  rot_mat rotation matrix.
  * @return Quaternion equivalent of the rotation matrix.
  */
-static Eigen::Quaternionf rot_mat_2_quat(const Eigen::Matrix3f &rot_mat) {
-  float r11 = rot_mat(0, 0);
-  float r12 = rot_mat(0, 1);
-  float r13 = rot_mat(0, 2);
-  float r21 = rot_mat(1, 0);
-  float r22 = rot_mat(1, 1);
-  float r23 = rot_mat(1, 2);
-  float r31 = rot_mat(2, 0);
-  float r32 = rot_mat(2, 1);
-  float r33 = rot_mat(2, 2);
-  float q0 = (r11 + r22 + r33 + 1.0f) / 4.0f;
-  float q1 = (r11 - r22 - r33 + 1.0f) / 4.0f;
-  float q2 = (-r11 + r22 - r33 + 1.0f) / 4.0f;
-  float q3 = (-r11 - r22 + r33 + 1.0f) / 4.0f;
-  if (q0 < 0.0f) {
-    q0 = 0.0f;
-  }
-  if (q1 < 0.0f) {
-    q1 = 0.0f;
-  }
-  if (q2 < 0.0f) {
-    q2 = 0.0f;
-  }
-  if (q3 < 0.0f) {
-    q3 = 0.0f;
-  }
-  q0 = std::sqrt(q0);
-  q1 = std::sqrt(q1);
-  q2 = std::sqrt(q2);
-  q3 = std::sqrt(q3);
-  if (q0 >= q1 && q0 >= q2 && q0 >= q3) {
-    q0 *= +1.0f;
-    q1 *= sgn(r32 - r23);
-    q2 *= sgn(r13 - r31);
-    q3 *= sgn(r21 - r12);
-  } else if (q1 >= q0 && q1 >= q2 && q1 >= q3) {
-    q0 *= sgn(r32 - r23);
-    q1 *= +1.0f;
-    q2 *= sgn(r21 + r12);
-    q3 *= sgn(r13 + r31);
-  } else if (q2 >= q0 && q2 >= q1 && q2 >= q3) {
-    q0 *= sgn(r13 - r31);
-    q1 *= sgn(r21 + r12);
-    q2 *= +1.0f;
-    q3 *= sgn(r32 + r23);
-  } else if (q3 >= q0 && q3 >= q1 && q3 >= q2) {
-    q0 *= sgn(r21 - r12);
-    q1 *= sgn(r31 + r13);
-    q2 *= sgn(r32 + r23);
-    q3 *= +1.0f;
-  } else {
-    printf("coding error\n");
-  }
-  float r = norm(q0, q1, q2, q3);
-  q0 /= r;
-  q1 /= r;
-  q2 /= r;
-  q3 /= r;
 
-  Eigen::Quaternionf quat(q0, q1, q2, q3);
-  return quat;
-}
 }
 }
 #endif

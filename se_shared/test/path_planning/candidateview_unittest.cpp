@@ -380,6 +380,9 @@ TEST_F(CandViewUnitTest, quaternionMinus){
   }
   EXPECT_EQ(int(yaw_diff*180/M_PI), 160);
 }
+
+
+
 TEST_F(CandViewUnitTest, quaternionold){
   Eigen::Matrix4f curr_pose;
   curr_pose << 1 , 0,0, 15.f ,0,1,0,12.f, 0,0,1,13.5f, 0,0,0,1;

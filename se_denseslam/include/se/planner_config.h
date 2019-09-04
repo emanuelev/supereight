@@ -23,7 +23,8 @@ struct Planning_Configuration {
   /**
    * distance [m] from frontier wall away. will be converted to voxel distance
    */
-  float robot_safety_radius;
+  float robot_safety_radius_max;
+  float robot_safety_radius_min;
 
   /**
    * horizontal field of view from gazebo model for depth sensor
@@ -82,7 +83,8 @@ struct Planning_Configuration {
 inline Planning_Configuration getDefaultPlanningConfig() {
   Planning_Configuration config;
   config.num_cand_views = 20;
-  config.robot_safety_radius = 0.5f;
+  config.robot_safety_radius_max = 0.9f;
+  config.robot_safety_radius_min = 0.5f;
   config.fov_hor = 120;
   config.dphi = 10;
   config.dtheta = 10;

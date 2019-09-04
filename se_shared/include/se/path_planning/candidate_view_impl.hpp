@@ -46,16 +46,17 @@ void CandidateView<T>::getCandidateViews( const set3i &frontier_blocks_map, cons
 
   for (const auto &frontier_block : frontier_blocks_map) {
     VecVec3i frontier_voxels = node_it.getFrontierVoxels(frontier_block);
-    DLOG(INFO) << "frontier voxel size "<< frontier_voxels.size();
     if(frontier_voxels.size()>0){
       frontier_voxels_map[frontier_block] = frontier_voxels;
-      DLOG(INFO) << " mapsize "<< frontier_voxels_map.size();
     }
   }
-  LOG(INFO) << " mapsize "<< frontier_voxels_map.size();
-  // if (frontier_voxels_map.size() != frontier_blocks_map.size()) {
-  //   return;
-  // }
+
+  if(frontier_voxels_map.size()==0){
+    candidates_.clear();
+    LOG(INFO)<<"No frontier voxels left. Exploration done.";
+    return;
+  }
+
   // random candidate view generator
   std::random_device rd;
   std::default_random_engine generator(planning_config_.random_generator_seed);
@@ -69,52 +70,35 @@ void CandidateView<T>::getCandidateViews( const set3i &frontier_blocks_map, cons
 #pragma omp parallel for
   for (int i = 0; i < num_sampling_; i++) {
     auto it = frontier_voxels_map.begin();
-
     const int rand_num = distribution_block(generator);
 
     std::advance(it, rand_num);
     uint64_t rand_morton = it->first;
-    DLOG(INFO) << "block number " << rand_num << " morton " << rand_morton << " map size " << frontier_voxels_map.size() ;
+
     if (frontier_voxels_map[rand_morton].size() < frontier_cluster_size ||
       frontier_voxels_map[rand_morton].size() ==0) {
-
-      DLOG(INFO) << " size "<< frontier_voxels_map[rand_morton].size()  << " "<<frontier_cluster_size;
-
       continue;
     }
+
     std::uniform_int_distribution<int>
         distribution_voxel(0, frontier_voxels_map[rand_morton].size() - 1);
     // random frontier voxel inside the the randomly chosen voxel block
     int rand_voxel = distribution_voxel(generator);
-    DLOG(INFO) << " rand voxel " << rand_voxel << " size " << frontier_voxels_map[rand_morton].size();
-    // VecVec3i frontier_voxelblock = frontier_voxels_map[rand_morton];
     Eigen::Vector3i candidate_frontier_voxel = frontier_voxels_map[rand_morton].at(rand_voxel);
-    DLOG(INFO) << "height_max " << planning_config_.height_max << " " << planning_config_.height_min << " "
-    << ground_height_ ;
-     DLOG(INFO) << "z "<< candidate_frontier_voxel.z();
     boundHeight(candidate_frontier_voxel.z(),
                     planning_config_.height_max + ground_height_,
                     planning_config_.height_min + ground_height_,
                     res_);
-    // DLOG(INFO) << "z "<< candidate_frontier_voxel.z();
-      // frontier_voxelblock = frontier_voxels_map[se::keyops::encode(candidate_frontier_voxel.x(),
-      //                                                              candidate_frontier_voxel.y(),
-      //                                                              candidate_frontier_voxel.z(),
-      //                                                              volume_._map_index->leaf_level(),
-      //                                                              volume_._map_index->max_level())];
 
-    // }
     bool is_free = pcc_->isSphereSkeletonFreeCand(candidate_frontier_voxel, static_cast<int>(
-        planning_config_.robot_safety_radius / res_));
+        planning_config_.robot_safety_radius_min / res_));
     if (is_free == 1) {
       candidates_[i].pose.p = candidate_frontier_voxel.cast<float>();
       num_cands_++;
-      DLOG(INFO) << " free voxel ";
     } else {
-      DLOG(INFO) << " not free ";
       candidates_[i].pose.p = Eigen::Vector3f(0, 0, 0);
     }
-    // candidates_[i].pose.p = candidate_frontier_voxel.cast<float>();
+
     DLOG(INFO) << "Cand voxel " << candidate_frontier_voxel.format(InLine);
   }
   return;
@@ -296,6 +280,8 @@ float CandidateView<T>::getIGWeight_tanh(const float tanh_range,
 
 template<typename T>
 void CandidateView<T>::calculateCandidateViewGain() {
+    float ig_sum = 0.f;
+    int cand_counter = 0;
 #pragma omp parallel for
   for (int i = 0; i < num_sampling_; i++) {
 
@@ -303,12 +289,21 @@ void CandidateView<T>::calculateCandidateViewGain() {
       // cand_counter++;
       continue;
     }
+
+    cand_counter++;
     float information_gain= getViewInformationGain(candidates_[i].pose);
     candidates_[i].information_gain = information_gain;
     DLOG(INFO) << information_gain;
+    ig_sum += candidates_[i].information_gain;
   }
   float information_gain =getViewInformationGain(curr_pose_.pose);
   curr_pose_.information_gain = information_gain;
+  ig_sum += curr_pose_.information_gain;
+  if (ig_sum / cand_counter < ig_target_) {
+    exploration_status_ = 1;
+    std::cout << "low information gain  " << ig_sum / cand_counter << std::endl;
+
+  }
 
 }
 
@@ -329,7 +324,7 @@ void CandidateView<T>::calculateUtility(Candidate &candidate) {
   // LOG(INFO) << "Cand coord" << candidate.pose.p.format(InLine) << "ig "
              // << candidate.information_gain << " t_yaw " << t_yaw << " t_path " << t_path
              // << " utility " << candidate.utility;
-  LOG(INFO) <<"IG: " << candidate.information_gain << ", t_yaw: " << t_yaw << ", t_path: " << t_path
+  DLOG(INFO) <<"IG: " << candidate.information_gain << ", t_yaw: " << t_yaw << ", t_path: " << t_path
              << ", utility: " << candidate.utility;
 }
 /**
@@ -343,13 +338,13 @@ int CandidateView<T>::getBestCandidate() {
   float max_utility = 0.0f;
   int best_cand_idx = 0;
   // TODO atomic counter for this
-  int cand_counter = 0;
+
 
   // TODO parametrize
   const float max_yaw_rate = 0.85; // [rad/s] lee position controller rotors control
   const float path_discount_factor = 0.3;
   const float ig_cost = 0.2;
-  float ig_sum = 0.f;
+
 
   // path cost = voxel *res[m/vox] / (v =1m/s) = time
 
@@ -358,11 +353,7 @@ int CandidateView<T>::getBestCandidate() {
   for (int i = 0; i < num_sampling_; i++) {
     if (candidates_[i].pose.p != Eigen::Vector3f(0, 0, 0)
         && candidates_[i].planning_solution_status >= 0) {
-
-      ig_sum += candidates_[i].information_gain;
       calculateUtility(candidates_[i]);
-
-      cand_counter++;
     }
   }
   // highest utility in the beginning
@@ -374,13 +365,8 @@ int CandidateView<T>::getBestCandidate() {
   // for(const auto& cand : candidates_){
   //   LOG(INFO)<< " cand path length " << cand.path_length ;
   // }
-  ig_sum += curr_pose_.information_gain;
-  calculateUtility(curr_pose_);
-  if (ig_sum / cand_counter < ig_target_) {
-    exploration_status_ = 1;
-    std::cout << "low information gain  " << ig_sum / cand_counter << std::endl;
 
-  }
+  calculateUtility(curr_pose_);
   return 0;
 }
 
@@ -390,6 +376,7 @@ VecPose CandidateView<T>::getFinalPath(Candidate &candidate ) {
   VecPose path;
 // first add points between paths
   if(candidate.path.size()>2 && planning_config_.yaw_optimization){
+    candidate.path[0]= curr_pose_.pose;
     for (int i = 1; i < candidate.path.size(); i++) {
 
       DLOG(INFO) << "segment start " << candidate.path[i - 1].p.format(InLine) << " end "

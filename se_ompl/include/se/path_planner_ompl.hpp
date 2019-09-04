@@ -165,7 +165,7 @@ PathPlannerOmpl<FieldType>::PathPlannerOmpl(const std::shared_ptr<Octree<FieldTy
 //    ss_(ob::StateSpacePtr(std::make_shared<ob::RealVectorStateSpace>(kDim))),
 {
   safety_radius_v_ =
-      static_cast<int>(planning_config.robot_safety_radius / octree_ptr_->voxelDim());
+      static_cast<int>(planning_config.robot_safety_radius_max / octree_ptr_->voxelDim());
   // Contstruct optimizing planner using RRT algorithm
   // set Planner
   DLOG(INFO) << "safety_radius_v_" << safety_radius_v_;
@@ -309,7 +309,7 @@ int PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
       prunePath(path);
 
       // Convert final path to Eigen
-      OmplToEigen::convertPath(path, path_, planning_params_.robot_safety_radius);
+      OmplToEigen::convertPath(path, path_, planning_params_.robot_safety_radius_min);
       // std::cout << "FINAL PATH: ";
       // path.printAsMatrix(std::cout);
 
@@ -346,7 +346,7 @@ int PathPlannerOmpl<FieldType>::planPath(const Eigen::Vector3i &start_v,
       //                 ob::PlannerData planner_data(ompl_setup_.getSpaceInformation());
       // ompl_setup_.getPlannerData(planner_data);
 
-      OmplToEigen::convertPath(path, path_, planning_params_.robot_safety_radius);
+      OmplToEigen::convertPath(path, path_, planning_params_.robot_safety_radius_min);
 
       // Start traversing the graph and find the node that gets the closest to the
       // actual goal point.

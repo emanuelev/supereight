@@ -75,7 +75,7 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
     Eigen::Vector3i start = OmplToEigen::convertState_v(*s1, dim_);
     Eigen::Vector3i ending = OmplToEigen::convertState_v(*s2, dim_);
     // LOG(INFO) << "start " << start.format(InLine) << "ending" << ending.format(InLine);
-    if (pcc_->isSegmentFlightCorridorSkeletonFree(start, ending, 0, robot_safety_radius_)) {
+    if (pcc_->isSegmentFlightCorridorSkeletonFree(start, ending, robot_safety_radius_)) {
       return true;
     }
     // std::cout<<"CHECKMOTION F"<<std::endl;
@@ -104,7 +104,7 @@ class MotionValidatorOccupancySkeleton : public ompl::base::MotionValidator {
 
       Eigen::Vector3i start = OmplToEigen::convertState_v(*test_prev, dim_);
       Eigen::Vector3i ending = OmplToEigen::convertState_v(*test, dim_);
-      if (!pcc_->isSegmentFlightCorridorSkeletonFree(start, ending, 0, robot_safety_radius_)) {
+      if (!pcc_->isSegmentFlightCorridorSkeletonFree(start, ending, robot_safety_radius_)) {
         lastValid.second = (double) (j - 1) / (double) nd;
         if (lastValid.first != nullptr)
           stateSpace_->interpolate(s1, s2, lastValid.second, lastValid.first);

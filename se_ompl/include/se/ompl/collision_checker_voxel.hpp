@@ -55,7 +55,6 @@ class CollisionCheckerV {
 
   bool isSegmentFlightCorridorSkeletonFree(const Eigen::Vector3i &start,
                                            const Eigen::Vector3i &end,
-                                           const int r_min,
                                            const int r_max) const;
 
   float getVoxelDim() const { return voxel_dim_; }
@@ -95,7 +94,7 @@ const Planning_Configuration &planning_config
 :
 octree_ptr_ (octree_ptr), planning_params_(planning_config) {
   voxel_dim_ = octree_ptr->voxelDim();
-  node_level_ = getNodeLevel(std::ceil(planning_params_.robot_safety_radius / voxel_dim_) * 2);
+  node_level_ = getNodeLevel(std::ceil(planning_params_.robot_safety_radius_min / voxel_dim_) * 2);
 
   DLOG(INFO) << "Collision Checker V setup";
   DLOG(INFO) << "node level " << node_level_;
@@ -314,7 +313,6 @@ bool CollisionCheckerV<FieldType>::isSphereSkeletonFree(const Eigen::Vector3i &p
 template<typename FieldType>
 bool CollisionCheckerV<FieldType>::isSegmentFlightCorridorSkeletonFree(const Eigen::Vector3i &start,
                                                                        const Eigen::Vector3i &end,
-                                                                       const int r_min_v,
                                                                        const int r_max_v) const {
 
   if (start == end)
