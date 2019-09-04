@@ -319,7 +319,7 @@ void CandidateView<T>::calculateUtility(Candidate &candidate) {
   wrapYawRad(yaw_diff);
   float t_yaw = fabs(yaw_diff / max_yaw_rate);
 
-  candidate.utility = candidate.information_gain / (t_yaw + t_path);
+  candidate.utility = candidate.information_gain / (t_yaw + t_path*planning_config_.path_cost);
 
   // LOG(INFO) << "Cand coord" << candidate.pose.p.format(InLine) << "ig "
              // << candidate.information_gain << " t_yaw " << t_yaw << " t_path " << t_path
@@ -337,14 +337,6 @@ int CandidateView<T>::getBestCandidate() {
 
   float max_utility = 0.0f;
   int best_cand_idx = 0;
-  // TODO atomic counter for this
-
-
-  // TODO parametrize
-  const float max_yaw_rate = 0.85; // [rad/s] lee position controller rotors control
-  const float path_discount_factor = 0.3;
-  const float ig_cost = 0.2;
-
 
   // path cost = voxel *res[m/vox] / (v =1m/s) = time
 

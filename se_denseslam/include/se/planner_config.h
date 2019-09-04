@@ -78,6 +78,8 @@ struct Planning_Configuration {
   bool yaw_optimization;
 
   int random_generator_seed;
+
+  int path_cost;
 };
 
 inline Planning_Configuration getDefaultPlanningConfig() {
@@ -102,6 +104,7 @@ inline Planning_Configuration getDefaultPlanningConfig() {
   config.max_rrt_edge_length = 1.0f;
   config.yaw_optimization = true;
   config.random_generator_seed = 13;
+  config.path_cost = 1;
   return config;
 }
 #endif //SUPEREIGHT_PLANNER_CONFIG_H
