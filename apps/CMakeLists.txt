@@ -77,7 +77,7 @@ function(add_version appname libraries)# includes)
          ${qt_srcs}
          ${ResourceSources}
          include/PowerMonitor.h
-         ../se_shared/perfstats.h)
+         ../shared/perfstats.h)
      SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
      SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
      set(CMAKE_AUTOMOC ON)
