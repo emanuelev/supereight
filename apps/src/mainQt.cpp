@@ -202,7 +202,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		Configuration *config, bool reset) {
 	static int frameOffset = 0;
 	static bool firstFrame = true;
-	bool tracked = false, integrated = false, raycasted = false;
+	bool tracked = false, integrated = false;
 	std::chrono::time_point<std::chrono::steady_clock> timings[7];
 	float3 pos;
 	int frame = 0;
@@ -281,7 +281,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 		timings[4] = std::chrono::steady_clock::now();
 
-		raycasted = pipeline->raycasting(camera, config->mu, frame);
+		pipeline->raycasting(camera, config->mu, frame);
 
 		timings[5] = std::chrono::steady_clock::now();
 	}

@@ -67,7 +67,7 @@ PowerMonitor::~PowerMonitor() {
 }
 
 float PowerMonitor::getPower(Sensor sensor) {
-	FILE *tmp;
+	FILE *tmp = nullptr;
 	float power;
 	if (sensingMethod == ODROID) {
 		switch (sensor) {
@@ -86,28 +86,28 @@ float PowerMonitor::getPower(Sensor sensor) {
 		}
 		if (tmp) {
 			rewind(tmp);
-			int res = fscanf(tmp, "%f\n", &power);
+			fscanf(tmp, "%f\n", &power);
 			return (power);
 		}
 	}
 
+    return (0);
 }
 
 int PowerMonitor::enableSensor(Sensor sensor) {
 	char enableFile[256];
 	FILE *tmp;
-	bool done = false;
 	for (int dn = 1; dn < 5; dn++) {
 		sprintf(enableFile, "/sys/bus/i2c/drivers/INA231/%d-00%d/enable", dn,
 				sensor);
 
-		if (tmp = fopen(enableFile, "a")) {
+		if ((tmp = fopen(enableFile, "a"))) {
 			fprintf(tmp, "1\n");
 			fclose(tmp);
 
 			sprintf(enableFile, "/sys/bus/i2c/drivers/INA231/%d-00%d/sensor_W",
 					dn, sensor);
-			if (tmp = fopen(enableFile, "r")) {
+			if ((tmp = fopen(enableFile, "r"))) {
 				switch (sensor) {
 				case SENSOR_A7:
 					powerA7 = tmp;

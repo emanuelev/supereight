@@ -81,7 +81,6 @@ size_t buildOctantList(HashType*              allocation_list,
 
 #ifdef _OPENMP
   std::atomic<unsigned int> voxel_count;
-  std::atomic<unsigned int> leaves_count;
 #else
   unsigned int voxel_count;
 #endif

@@ -27,13 +27,12 @@ DepthReader *createReader(Configuration *config, std::string filename) {
       && (filename.substr(filename.length() - 4, 4) == ".scf")) {
     std::cerr << "====== Opening scene configuration file " << filename
       << "\n";
-    bool newFile = false;
     std::string line;
     std::ifstream infile(filename.c_str());
     std::vector<std::string> path = splitString(filename, '/');
     std::string rpath = "";
     if (path.size() > 1)
-      for (int i = 0; i < path.size() - 1; i++)
+      for (unsigned i = 0; i < path.size() - 1; i++)
         rpath = rpath + path[i] + "/";
     while (std::getline(infile, line)) {
       if (line.substr(0, 1) != "#") {
@@ -150,7 +149,6 @@ DepthReader *createReader(Configuration *config, std::string filename) {
             filename = value;
             std::cout << "input-file: " << config->input_file
               << std::endl;
-            newFile = true;
             continue;
           }
         }

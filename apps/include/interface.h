@@ -667,7 +667,7 @@ class OpenNIDepthReader: public DepthReader {
         _inSize.x = depthMode.getResolutionX();
         _inSize.y = depthMode.getResolutionY();
 
-        if (colorMode.getResolutionX() != _inSize.x || colorMode.getResolutionY() != _inSize.y) {
+        if ((unsigned) colorMode.getResolutionX() != _inSize.x || (unsigned) colorMode.getResolutionY() != _inSize.y) {
           std::cout << "Incorrect rgb resolution: " << colorMode.getResolutionX() << " " << colorMode.getResolutionY() << std::endl;
           //exit(3);
           return;

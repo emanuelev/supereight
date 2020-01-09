@@ -7287,7 +7287,7 @@ QCPItemAnchor::QCPItemAnchor(QCustomPlot *parentPlot,
 
 QCPItemAnchor::~QCPItemAnchor() {
 	// unregister as parent at children:
-	QList<QCPItemPosition*> currentChildren(mChildren.toList());
+	QList<QCPItemPosition*> currentChildren(mChildren.values());
 	for (int i = 0; i < currentChildren.size(); ++i)
 		currentChildren.at(i)->setParentAnchor(0); // this acts back on this anchor and child removes itself from mChildren
 }
@@ -7384,7 +7384,7 @@ QCPItemPosition::~QCPItemPosition() {
 	// unregister as parent at children:
 	// Note: this is done in ~QCPItemAnchor again, but it's important QCPItemPosition does it itself, because only then
 	//       the setParentAnchor(0) call the correct QCPItemPosition::pixelPoint function instead of QCPItemAnchor::pixelPoint
-	QList<QCPItemPosition*> currentChildren(mChildren.toList());
+	QList<QCPItemPosition*> currentChildren(mChildren.values());
 	for (int i = 0; i < currentChildren.size(); ++i)
 		currentChildren.at(i)->setParentAnchor(0); // this acts back on this anchor and child removes itself from mChildren
 	// unregister as child in parent:

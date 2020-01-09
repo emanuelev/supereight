@@ -169,6 +169,8 @@ void Viewer::plotWaveSelectionChanged() {
 							}
 							plot->yAxis->setLabel("");
 							allowMixedPlot = WARNING;
+                        default:
+                            break;
 						}
 						*holdProcessing = false;
 						return;
@@ -595,7 +597,7 @@ bool Viewers::isStreamActive(int id) {
 
 void Viewers::menuAction(QAction *action) {
 	int lid = layout->indexOf(_currentViewer);
-	int row, col, rowSpan, colSpan, id;
+	int row, col, rowSpan, colSpan;
 	layout->getItemPosition(lid, &row, &col, &rowSpan, &colSpan);
 	//std::cerr <<"replacing Viewer itemAt "<<  row<< " " <<col << "\n";
 	//std::cerr <<"Dimension " << (int)(_currentViewer->sizePolicy().controlType()) << " " << "\n";
@@ -670,7 +672,7 @@ void Viewers::addDefConfig(int viewerID, QString name, bool enabled,
 void Viewers::setStatEntry(QString title, std::vector<const char *> entries,
 		bool enabled) {
 	QStringList visible;
-	for (int i = 0; i < entries.size(); i++) {
+	for (unsigned i = 0; i < entries.size(); i++) {
 		visible.push_back(entries[i]);
 		visible.push_back(enabled ? "1" : "0");
 	}
@@ -830,7 +832,6 @@ void Viewers::reLayout() {
 			layout->addWidget(widget, 2, 1, 1, 2);
 		}
 
-		int maxRow = layout->rowCount() - 1;
 		for (int row = layout->rowCount() - 1; row > 2; row--) {
 			item = layout->itemAtPosition(row, 0);
 			QWidget *widget = item->widget();
