@@ -33,15 +33,15 @@
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
-#include <se/utils/math_utils.h>
-#include <se/commons.h>
+#include <supereight/utils/math_utils.h>
+#include <supereight/denseslam/commons.h>
 #include <supereight/shared/timings.h>
 #include <tuple>
 
 #include <sophus/se3.hpp>
-#include <se/continuous/volume_template.hpp>
-#include <se/image/image.hpp>
-#include <se/ray_iterator.hpp>
+#include <supereight/denseslam/continuous/volume_template.hpp>
+#include <supereight/image/image.hpp>
+#include <supereight/ray_iterator.hpp>
 
 /* Raycasting implementations */ 
 #include "bfusion/rendering_impl.hpp"

@@ -11,13 +11,13 @@
 #define DEFAULT_PARAMETERS_H_
 
 #include <supereight/shared/str_utils.h>
-#include <se/utils/math_utils.h>
+#include <supereight/utils/math_utils.h>
 #include <vector>
 #include <sstream>
 #include <getopt.h>
 
-#include <se/constant_parameters.h>
-#include <se/config.h>
+#include <supereight/denseslam/constant_parameters.h>
+#include <supereight/denseslam/config.h>
 #include <Eigen/Dense>
 
 ////////////////////////// RUNTIME PARAMETERS //////////////////////

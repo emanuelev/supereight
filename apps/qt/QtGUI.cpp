@@ -8,10 +8,10 @@
  */
 
 #define EXTERNS TRUE
-#include <se/DenseSLAMSystem.h>
+#include <supereight/denseslam/DenseSLAMSystem.h>
 #include <stdlib.h>
 #include "interface.h"
-#include <se/config.h>
+#include <supereight/denseslam/config.h>
 #include <supereight/shared/perfstats.h>
 #include <PowerMonitor.h>
 

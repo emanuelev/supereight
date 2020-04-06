@@ -30,7 +30,7 @@
 #define VOLUME_H
 
 // Data types definitions
-#include <se/voxel_traits.hpp>
+#include <supereight/voxel_traits.hpp>
 
 /******************************************************************************
  *

@@ -59,8 +59,8 @@
 #include <vector>
 
 // Internal dependencies
-#include <se/utils/math_utils.h>
-#include <se/constant_parameters.h>
+#include <supereight/utils/math_utils.h>
+#include <supereight/denseslam/constant_parameters.h>
 
 //External dependencies
 #undef isnan

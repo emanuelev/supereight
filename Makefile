@@ -1,38 +1,38 @@
-all : 
+all:
 	mkdir -p build/
-	cd build/ && cmake -DCMAKE_BUILD_TYPE=Release \
+	cd build/ && cmake -GNinja -DCMAKE_BUILD_TYPE=Release \
 		$(CMAKE_ARGUMENTS) ..
-	$(MAKE) -C build  $(MFLAGS) $(SPECIFIC_TARGET)
+	ninja -C build $(SPECIFIC_TARGET)
 
 
 debug:
 	mkdir -p build/
 	mkdir -p build/logs/
-	cd build/ && cmake -DCMAKE_BUILD_TYPE=Debug \
+	cd build/ && cmake -GNinja -DCMAKE_BUILD_TYPE=Debug \
 		$(CMAKE_ARGUMENTS) ..
-	$(MAKE) -C build $(MFLAGS)
+	ninja -C build
 
-stats: 
+stats:
 	mkdir -p build/
 	mkdir -p build/logs/
-	cd build/ && cmake -DSTATS=ON ..
-	$(MAKE) -C build $(MFLAGS)
+	cd build/ && cmake -GNinja -DSTATS=ON ..
+	ninja -C build
 
 #### DATA SET GENERATION ####
 
-living_room_traj%_loop.raw : living_room_traj%_loop
+living_room_traj%_loop.raw: living_room_traj%_loop
 	if test -x ./build/thirdparty/scene2raw ; then echo "..." ; else echo "do make before"; false ; fi
 	./build/thirdparty/scene2raw living_room_traj$(*F)_loop living_room_traj$(*F)_loop.raw
 
-living_room_traj%_loop : 
+living_room_traj%_loop:
 	mkdir $@
 	cd $@ ; wget http://www.doc.ic.ac.uk/~ahanda/$@.tgz; tar xzf $@.tgz 
 
-livingRoom%.gt.freiburg : 
+livingRoom%.gt.freiburg:
 	echo  "Download ground truth trajectory..."
 	if test -x $@ ; then echo "Done" ; else wget http://www.doc.ic.ac.uk/~ahanda/VaFRIC/$@ ; fi
 
-live.log : 
+live.log:
 	./build/kfusion-qt-openmp $(live)
 
 demo-ofusion:
@@ -44,15 +44,15 @@ demo-kfusion:
 
 #### GENERAL GENERATION ####
 
-doc :
+doc:
 	doxygen
 
-clean :
+clean:
 	rm -rf build
-cleanall : 
+cleanall:
 	rm -rf build
 	rm -rf living_room_traj*_loop livingRoom*.gt.freiburg living_room_traj*_loop.raw
-	rm -f *.log 
+	rm -f *.log
 	rm -f doc
 
 

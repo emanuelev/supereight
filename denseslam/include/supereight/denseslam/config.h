@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <se/utils/math_utils.h>
+#include <supereight/utils/math_utils.h>
 #include <vector>
 #include <string>
 

@@ -33,11 +33,11 @@
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
-#include <se/utils/math_utils.h>
+#include <supereight/utils/math_utils.h>
 #include <supereight/shared/timings.h>
 
-#include <se/commons.h>
-#include <se/image/image.hpp>
+#include <supereight/denseslam/commons.h>
+#include <supereight/image/image.hpp>
 
 static inline Eigen::Matrix<float, 6, 6> makeJTJ(const Eigen::Matrix<float, 1, 21>& v) {
 	Eigen::Matrix<float, 6, 6> C = Eigen::Matrix<float, 6, 6>::Zero();

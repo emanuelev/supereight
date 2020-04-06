@@ -34,10 +34,10 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 #include <supereight/shared/timings.h>
-#include <se/utils/math_utils.h>
+#include <supereight/utils/math_utils.h>
 
 #include <functional>
-#include <se/image/image.hpp>
+#include <supereight/image/image.hpp>
 
 void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
 		const std::vector<float>& gaussian, float e_d, int r) {

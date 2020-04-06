@@ -33,8 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PLY_IO_HPP
 #include <fstream>
 #include <sstream>
-#include <se/octree.hpp>
-#include <se/node_iterator.hpp>
+#include <supereight/octree.hpp>
+#include <supereight/node_iterator.hpp>
 #include <Eigen/Dense>
 
 /*! \file */

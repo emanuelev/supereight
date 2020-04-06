@@ -7,7 +7,7 @@
 
  */
 
-#include <se/DenseSLAMSystem.h>
+#include <supereight/denseslam/DenseSLAMSystem.h>
 #include <interface.h>
 #include <default_parameters.h>
 #include <stdint.h>

@@ -34,11 +34,10 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <se/DenseSLAMSystem.h>
-#include <se/ray_iterator.hpp>
-#include <se/algorithms/meshing.hpp>
-#include <se/geometry/octree_collision.hpp>
-#include <se/vtk-io.h>
+#include <supereight/denseslam/DenseSLAMSystem.h>
+#include <supereight/ray_iterator.hpp>
+#include <supereight/algorithms/meshing.hpp>
+#include <supereight/geometry/octree_collision.hpp>
 #include <supereight/shared/timings.h>
 #include <supereight/shared/perfstats.h>
 #include "preprocessing.cpp"

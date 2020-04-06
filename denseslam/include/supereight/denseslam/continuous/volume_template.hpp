@@ -31,9 +31,9 @@
 
 #include <iostream>
 #include <memory>
-#include <se/voxel_traits.hpp>
-#include <se/utils/memory_pool.hpp>
-#include <se/octree.hpp>
+#include <supereight/voxel_traits.hpp>
+#include <supereight/utils/memory_pool.hpp>
+#include <supereight/octree.hpp>
 #include <type_traits>
 #include <cstring>
 #include <Eigen/Dense>

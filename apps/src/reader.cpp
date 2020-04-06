@@ -6,12 +6,11 @@
  This code is licensed under the MIT License.
 
  */
-// #include <DenseSLAMSystem.h>
 #include <supereight/shared/str_utils.h>
-#include <se/commons.h>
+#include <supereight/denseslam/commons.h>
 #include <interface.h>
-#include <se/constant_parameters.h>
-#include <se/config.h>
+#include <supereight/denseslam/constant_parameters.h>
+#include <supereight/denseslam/config.h>
 #include <stdint.h>
 #include <sstream>
 #include <string>

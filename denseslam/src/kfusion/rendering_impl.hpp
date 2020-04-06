@@ -28,7 +28,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * */
-#include <se/utils/math_utils.h>
+#include <supereight/utils/math_utils.h>
 #include <type_traits>
 
 inline Eigen::Vector4f raycast(const Volume<SDF>&     volume,

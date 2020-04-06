@@ -31,7 +31,7 @@
  * */
 #ifndef BFUSION_ALLOC_H
 #define BFUSION_ALLOC_H
-#include <se/utils/math_utils.h>
+#include <supereight/utils/math_utils.h>
 
 /* Compute step size based on distance travelled along the ray */
 static inline float compute_stepsize(const float dist_travelled,

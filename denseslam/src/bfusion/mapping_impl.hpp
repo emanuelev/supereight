@@ -32,10 +32,10 @@
 #ifndef BFUSION_MAPPING_HPP
 #define BFUSION_MAPPING_HPP
 
-#include <se/node.hpp>
-#include <se/functors/projective_functor.hpp>
-#include <se/constant_parameters.h>
-#include <se/image/image.hpp>
+#include <supereight/node.hpp>
+#include <supereight/functors/projective_functor.hpp>
+#include <supereight/denseslam/constant_parameters.h>
+#include <supereight/image/image.hpp>
 #include "bspline_lookup.cc"
 
 /**

@@ -30,7 +30,7 @@
  * */
 #ifndef KFUSION_MAPPING_HPP
 #define KFUSION_MAPPING_HPP
-#include <se/node.hpp>
+#include <supereight/node.hpp>
 
 struct sdf_update {
   const float* depth;

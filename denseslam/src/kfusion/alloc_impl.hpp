@@ -30,9 +30,9 @@
  * */
 #ifndef SDF_ALLOC_H
 #define SDF_ALLOC_H
-#include <se/utils/math_utils.h>
-#include <se/node.hpp>
-#include <se/utils/morton_utils.hpp>
+#include <supereight/utils/math_utils.h>
+#include <supereight/node.hpp>
+#include <supereight/utils/morton_utils.hpp>
 
 /*
  * \brief Given a depth map and camera matrix it computes the list of

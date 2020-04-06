@@ -29,7 +29,7 @@
 
 #ifndef UNIQUE_HPP
 #define UNIQUE_HPP
-#include <se/octant_ops.hpp>
+#include <supereight/octant_ops.hpp>
 
 namespace se {
 namespace algorithms {

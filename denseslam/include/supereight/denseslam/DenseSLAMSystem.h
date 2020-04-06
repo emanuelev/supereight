@@ -36,16 +36,16 @@
 #define _KERNELS_
 
 #include <cstdlib>
-#include <se/commons.h>
+#include <supereight/denseslam/commons.h>
 #include <iostream>
 #include <memory>
 #include <supereight/shared/perfstats.h>
 #include <supereight/shared/timings.h>
-#include <se/config.h>
-#include <se/octree.hpp>
-#include <se/image/image.hpp>
-#include "volume_traits.hpp"
-#include "continuous/volume_template.hpp"
+#include <supereight/denseslam/config.h>
+#include <supereight/octree.hpp>
+#include <supereight/image/image.hpp>
+#include <supereight/denseslam/volume_traits.hpp>
+#include <supereight/denseslam/continuous/volume_template.hpp>
 #include <Eigen/Dense>
 
 /*
