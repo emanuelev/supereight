@@ -133,8 +133,10 @@ function(add_version appname libraries)# includes)
 
 endfunction()
 
-find_package(GLUT   )
-find_package(OpenGL )
+set(OpenGL_GL_PREFERENCE GLVND)
+
+find_package(GLUT)
+find_package(OpenGL)
 find_package(OpenNI2)
 find_package(PkgConfig)
 find_package(Qt5Core)
