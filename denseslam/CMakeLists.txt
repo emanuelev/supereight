@@ -16,7 +16,6 @@ set(appname ${PROJECT_NAME})
 
 
 # ---- PREPARE COMMON DEPENDENCIES  ------------
-set(compile_flags  -Wall -Wextra -Wno-unknown-pragmas)
 set(libraries lodepng supereight-shared supereight-core)
 
 if (WITH_OPENMP AND OPENMP_FOUND)

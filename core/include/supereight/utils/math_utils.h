@@ -74,7 +74,7 @@ namespace se {
     template <typename Scalar>
     static inline Scalar sq(Scalar a) {
         return a*a;
-      };
+      }
 
     template <typename Scalar>
     static inline bool in(const Scalar v, const Scalar a, 
