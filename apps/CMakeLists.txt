@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(se-apps)
+project(supereight-apps)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
@@ -76,8 +76,7 @@ function(add_version appname libraries)# includes)
      set(qt_srcs
          ${qt_srcs}
          ${ResourceSources}
-         include/PowerMonitor.h
-         ../shared/perfstats.h)
+         include/PowerMonitor.h)
      SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
      SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
      set(CMAKE_AUTOMOC ON)
@@ -146,7 +145,7 @@ find_package(Qt5PrintSupport)
 
 # ---- PREPARE COMMON DEPENDENCIES  ------------ 
 
-set(common_libraries stdc++)
+set(common_libraries supereight-shared stdc++)
 foreach(appname ${BUILT_LIBS})
   add_version(${appname}
       "${common_libraries}")

@@ -10,7 +10,7 @@
 #ifndef DEFAULT_PARAMETERS_H_
 #define DEFAULT_PARAMETERS_H_
 
-#include <str_utils.h>
+#include <supereight/shared/str_utils.h>
 #include <se/utils/math_utils.h>
 #include <vector>
 #include <sstream>

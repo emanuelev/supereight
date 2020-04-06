@@ -33,7 +33,7 @@
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
-#include "timings.h"
+#include <supereight/shared/timings.h>
 #include <se/utils/math_utils.h>
 
 #include <functional>

@@ -7,7 +7,7 @@
 
  */
 // #include <DenseSLAMSystem.h>
-#include <str_utils.h>
+#include <supereight/shared/str_utils.h>
 #include <se/commons.h>
 #include <interface.h>
 #include <se/constant_parameters.h>

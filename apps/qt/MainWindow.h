@@ -16,7 +16,7 @@
 #include <QAction>
 #include <QCheckBox>
 #include <QSignalMapper>
-#include <perfstats.h>
+#include <supereight/shared/perfstats.h>
 #include <PowerMonitor.h>
 #include "OpenGLWidget.h"
 

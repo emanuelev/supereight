@@ -8,7 +8,7 @@
  */
 
 #include <stdio.h>
-#include <perfstats.h>
+#include <supereight/shared/perfstats.h>
 #include "PowerMonitor.h"
 
 PowerMonitor::PowerMonitor() {

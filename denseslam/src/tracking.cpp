@@ -34,7 +34,7 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 #include <se/utils/math_utils.h>
-#include "timings.h"
+#include <supereight/shared/timings.h>
 
 #include <se/commons.h>
 #include <se/image/image.hpp>

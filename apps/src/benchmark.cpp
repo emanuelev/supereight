@@ -23,7 +23,7 @@
 #include <sstream>
 #include <iomanip>
 #include <getopt.h>
-#include <perfstats.h>
+#include <supereight/shared/perfstats.h>
 
 PerfStats Stats;
 

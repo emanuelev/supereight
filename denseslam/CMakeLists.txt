@@ -1,13 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(se-denseslam)
-
-if(APPLE)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__APPLE__")
-endif(APPLE)
+project(supereight-denseslam)
 
 find_package(Eigen3 REQUIRED)
 find_package(Sophus REQUIRED)
+
 if(WITH_OPENMP)
   find_package(OpenMP)
   if(OPENMP_FOUND)
@@ -18,9 +15,9 @@ endif()
 set(appname ${PROJECT_NAME})
 
 
-# ---- PREPARE COMMON DEPENDENCIES  ------------ 
+# ---- PREPARE COMMON DEPENDENCIES  ------------
 set(compile_flags  -Wall -Wextra -Wno-unknown-pragmas)
-set(libraries lodepng se_shared se_core)
+set(libraries lodepng supereight-shared supereight-core)
 
 if (WITH_OPENMP AND OPENMP_FOUND)
     list(APPEND compile_flags ${OpenMP_CXX_FLAGS})
