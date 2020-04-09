@@ -41,7 +41,6 @@
 
 #include <supereight/denseslam/commons.h>
 #include <supereight/denseslam/config.h>
-#include <supereight/denseslam/continuous/volume_template.hpp>
 #include <supereight/denseslam/volume_traits.hpp>
 
 #include <supereight/image/image.hpp>
@@ -55,14 +54,12 @@
  */
 typedef SE_FIELD_TYPE FieldType;
 
-template<typename T>
-using Volume = VolumeTemplate<T, se::Octree>;
-
 class DenseSLAMSystem {
 private:
     Eigen::Vector2i computation_size_;
-    Eigen::Vector3f volume_dimension_;
-    Eigen::Vector3i volume_resolution_;
+
+    float volume_dimension_;
+    int volume_resolution_;
 
     std::vector<int> iterations_;
 
@@ -90,8 +87,7 @@ private:
 
     std::vector<se::key_t> allocation_list_;
 
-    std::shared_ptr<se::Octree<FieldType>> discrete_vol_ptr_;
-    Volume<FieldType> volume_;
+    std::shared_ptr<se::Octree<FieldType>> octree_;
 
     // intra-frame
     std::vector<float> reduction_output_;
@@ -276,9 +272,7 @@ public:
     /*
      * TODO Document this.
      */
-    void getMap(std::shared_ptr<se::Octree<FieldType>>& out) {
-        out = discrete_vol_ptr_;
-    }
+    void getMap(std::shared_ptr<se::Octree<FieldType>>& out) { out = octree_; }
 
     /*
      * TODO Document this.
@@ -360,14 +354,20 @@ public:
      *
      * \return A vector containing the x, y and z dimensions of the volume.
      */
-    Eigen::Vector3f getModelDimensions() { return (volume_dimension_); }
+    Eigen::Vector3f getModelDimensions() {
+        return Eigen::Vector3f{
+            volume_dimension_, volume_dimension_, volume_dimension_};
+    }
 
     /**
      * Get the resolution of the reconstructed volume in voxels.
      *
      * \return A vector containing the x, y and z resolution of the volume.
      */
-    Eigen::Vector3i getModelResolution() { return (volume_resolution_); }
+    Eigen::Vector3i getModelResolution() {
+        return Eigen::Vector3i{
+            volume_resolution_, volume_resolution_, volume_resolution_};
+    }
 
     /**
      * Get the resolution used when processing frames in the pipeline in

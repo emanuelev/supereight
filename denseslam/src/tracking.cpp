@@ -308,9 +308,9 @@ void trackKernel(TrackData* output, const se::Image<Eigen::Vector3f>& inVertex,
 
 bool updatePoseKernel(
     Eigen::Matrix4f& pose, const float* output, float icp_threshold) {
-    TICK();
-
     bool res = false;
+
+    TICK()
 
     Eigen::Map<const Eigen::Matrix<float, 8, 32, Eigen::RowMajor>> values(
         output);
@@ -321,7 +321,7 @@ bool updatePoseKernel(
 
     if (x.norm() < icp_threshold) res = true;
 
-    TOCK("updatePoseKernel", 1);
+    TOCK("updatePoseKernel", 1)
 
     return res;
 }
