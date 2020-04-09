@@ -54,7 +54,7 @@ inline Eigen::Vector4f raycast(const OctreeT<OFusion>& octree,
                 const Eigen::Vector3f pos = origin + direction * t;
                 const Eigen::Vector3i scaled_pos =
                     (pos * inverseVoxelSize).cast<int>();
-                voxel_traits<OFusion>::value_type data = octree.get_fine(
+                auto data = octree.get_fine(
                     scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
 
                 if (data.x > -100.f && data.y > 0.f) {

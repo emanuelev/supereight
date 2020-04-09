@@ -207,14 +207,14 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k,
     unsigned int allocated = 0;
     if (std::is_same<FieldType, SDF>::value) {
         allocated = buildAllocationList(allocation_list_.data(),
-            allocation_list_.capacity(), *octree_, pose_,
-            getCameraMatrix(k), float_depth_.data(), computation_size_,
-            volume_resolution_, voxelsize, 2 * mu);
+            allocation_list_.capacity(), *octree_, pose_, getCameraMatrix(k),
+            float_depth_.data(), computation_size_, volume_resolution_,
+            voxelsize, 2 * mu);
     } else if (std::is_same<FieldType, OFusion>::value) {
         allocated = buildOctantList(allocation_list_.data(),
-            allocation_list_.capacity(), *octree_, pose_,
-            getCameraMatrix(k), float_depth_.data(), computation_size_,
-            voxelsize, compute_stepsize, step_to_depth, mu);
+            allocation_list_.capacity(), *octree_, pose_, getCameraMatrix(k),
+            float_depth_.data(), computation_size_, voxelsize, compute_stepsize,
+            step_to_depth, mu);
     }
 
     octree_->allocate(allocation_list_.data(), allocated);
@@ -224,8 +224,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k,
             Eigen::Vector2i(computation_size_.x(), computation_size_.y()), mu,
             100);
 
-        se::functor::projective_map(*octree_,
-            Sophus::SE3f(pose_).inverse(), getCameraMatrix(k),
+        se::functor::projective_map(*octree_, Sophus::SE3f(pose_).inverse(),
+            getCameraMatrix(k),
             Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
             funct);
     } else if (std::is_same<FieldType, OFusion>::value) {
@@ -234,8 +234,8 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k,
             Eigen::Vector2i(computation_size_.x(), computation_size_.y()), mu,
             timestamp, voxelsize);
 
-        se::functor::projective_map(*octree_,
-            Sophus::SE3f(pose_).inverse(), getCameraMatrix(k),
+        se::functor::projective_map(*octree_, Sophus::SE3f(pose_).inverse(),
+            getCameraMatrix(k),
             Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
             funct);
     }
@@ -285,7 +285,7 @@ void DenseSLAMSystem::renderDepth(
 
 void DenseSLAMSystem::dump_mesh(const std::string filename) {
     std::vector<Triangle> mesh;
-    auto inside = [](const voxel_traits<FieldType>::value_type& val) {
+    auto inside = [](const auto& val) {
         // meshing::status code;
         // if(val.y == 0.f)
         //   code = meshing::status::UNKNOWN;
@@ -298,9 +298,7 @@ void DenseSLAMSystem::dump_mesh(const std::string filename) {
         return val.x < 0.f;
     };
 
-    auto select = [](const voxel_traits<FieldType>::value_type& val) {
-        return val.x;
-    };
+    auto select = [](const auto& val) { return val.x; };
 
     se::algorithms::marching_cube(*octree_, select, inside, mesh);
     writeVtkMesh(filename.c_str(), mesh);

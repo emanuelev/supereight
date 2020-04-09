@@ -37,7 +37,7 @@ inline Eigen::Vector4f raycast(const OctreeT<SDF>& octree,
     const Eigen::Vector3f& origin, const Eigen::Vector3f& direction,
     const float tnear, const float tfar, const float mu, const float step,
     const float largestep) {
-    auto select_depth      = [](const auto& val) { return val.x; };
+    auto select_depth            = [](const auto& val) { return val.x; };
     const float inverseVoxelSize = octree.size() / octree.dim();
 
     if (tnear < tfar) {
@@ -52,7 +52,7 @@ inline Eigen::Vector4f raycast(const OctreeT<SDF>& octree,
             for (; t < tfar; t += stepsize) {
                 const Eigen::Vector4i scaled_pos =
                     (inverseVoxelSize * position.homogeneous()).cast<int>();
-                voxel_traits<SDF>::value_type data = octree.get_fine(
+                auto data = octree.get_fine(
                     scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
 
                 if (data.y == 0) {
