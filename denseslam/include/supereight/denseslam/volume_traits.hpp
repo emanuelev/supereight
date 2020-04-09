@@ -1,5 +1,5 @@
 /*
- Copyright 2016 Emanuele Vespa, Imperial College London 
+ Copyright 2016 Emanuele Vespa, Imperial College London
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
@@ -24,7 +24,7 @@
  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef VOLUME_H
 #define VOLUME_H
@@ -36,25 +36,25 @@
  *
  * KFusion Truncated Signed Distance Function voxel traits
  *
-****************************************************************************/
+ ****************************************************************************/
 
 typedef struct {
-  float x;
-  float y;
+    float x;
+    float y;
 } SDF;
 
 template<>
 struct voxel_traits<SDF> {
-  typedef SDF value_type;
-  static inline value_type empty(){ return {1.f, -1.f}; }
-  static inline value_type initValue(){ return {1.f, 0.f}; }
+    typedef SDF value_type;
+    static inline value_type empty() { return {1.f, -1.f}; }
+    static inline value_type initValue() { return {1.f, 0.f}; }
 };
 
 /******************************************************************************
  *
  * Bayesian Fusion voxel traits and algorithm specificic defines
  *
-****************************************************************************/
+ ****************************************************************************/
 
 typedef struct {
     float x;
@@ -63,21 +63,21 @@ typedef struct {
 
 template<>
 struct voxel_traits<OFusion> {
-  typedef struct  {
-    float x;
-    double y;
-  } value_type;
-  static inline value_type empty(){ return {0.f, 0.f}; }
-  static inline value_type initValue(){ return {0.f, 0.f}; }
+    typedef struct {
+        float x;
+        double y;
+    } value_type;
+    static inline value_type empty() { return {0.f, 0.f}; }
+    static inline value_type initValue() { return {0.f, 0.f}; }
 };
 
 // Windowing parameters
-#define DELTA_T   1.f
+#define DELTA_T 1.f
 #define CAPITAL_T 4.f
 
 #define INTERP_THRESH 0.05f
 #define SURF_BOUNDARY 0.f
-#define TOP_CLAMP     1000.f
-#define BOTTOM_CLAMP  (-TOP_CLAMP)
+#define TOP_CLAMP 1000.f
+#define BOTTOM_CLAMP (-TOP_CLAMP)
 
 #endif

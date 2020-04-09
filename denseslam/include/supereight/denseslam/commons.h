@@ -332,8 +332,8 @@ inline void writeVtkMesh(const char* filename,
     int point_count    = 0;
     int triangle_count = 0;
 
-    bool hasPointData  = point_data != NULL;
-    bool hasCellData   = cell_data != NULL;
+    bool hasPointData = point_data != NULL;
+    bool hasCellData  = cell_data != NULL;
 
     for (unsigned int i = 0; i < mesh.size(); ++i) {
         const Triangle& t = mesh[i];
