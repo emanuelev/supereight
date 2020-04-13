@@ -16,7 +16,7 @@ set(appname ${PROJECT_NAME})
 
 
 # ---- PREPARE COMMON DEPENDENCIES  ------------
-set(libraries lodepng supereight-shared supereight-core)
+set(libraries lodepng supereight-shared supereight-core supereight-tracking)
 
 if (WITH_OPENMP AND OPENMP_FOUND)
     list(APPEND compile_flags ${OpenMP_CXX_FLAGS})

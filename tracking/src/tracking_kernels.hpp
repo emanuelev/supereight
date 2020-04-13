@@ -33,11 +33,15 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <supereight/image/image.hpp>
+
+#include <supereight/shared/perfstats.h>
 #include <supereight/shared/timings.h>
+#include <supereight/shared/commons.h>
+
 #include <supereight/utils/math_utils.h>
 
-#include <supereight/denseslam/commons.h>
-#include <supereight/image/image.hpp>
+#include <supereight/tracking/track_data.hpp>
 
 static inline Eigen::Matrix<float, 6, 6> makeJTJ(
     const Eigen::Matrix<float, 1, 21>& v) {
@@ -66,7 +70,75 @@ static inline Eigen::Matrix<float, 6, 1> solve(
         : Eigen::Matrix<float, 6, 1>::Constant(0.f);
 }
 
-void new_reduce(int blockIndex, float* out, TrackData* J,
+void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
+    const se::Image<float>& depth, const Eigen::Matrix4f& invK) {
+    TICK();
+    int x, y;
+#pragma omp parallel for shared(vertex), private(x, y)
+    for (y = 0; y < depth.height(); y++) {
+        for (x = 0; x < depth.width(); x++) {
+            if (depth[x + y * depth.width()] > 0) {
+                vertex[x + y * depth.width()] = (depth[x + y * depth.width()] *
+                    invK * Eigen::Vector4f(x, y, 1.f, 0.f))
+                                                    .head<3>();
+            } else {
+                vertex[x + y * depth.width()] = Eigen::Vector3f::Constant(0);
+            }
+        }
+    }
+    TOCK("depth2vertexKernel", imageSize.x * imageSize.y);
+}
+
+template<bool NegY>
+void vertex2normalKernel(
+    se::Image<Eigen::Vector3f>& out, const se::Image<Eigen::Vector3f>& in) {
+    TICK();
+    int x, y;
+    int width  = in.width();
+    int height = in.height();
+#pragma omp parallel for shared(out), private(x, y)
+    for (y = 0; y < height; y++) {
+        for (x = 0; x < width; x++) {
+            const Eigen::Vector3f center = in[x + width * y];
+            if (center.z() == 0.f) {
+                out[x + y * width].x() = INVALID;
+                continue;
+            }
+
+            const Eigen::Vector2i pleft =
+                Eigen::Vector2i(std::max(int(x) - 1, 0), y);
+            const Eigen::Vector2i pright =
+                Eigen::Vector2i(std::min(x + 1, (int) width - 1), y);
+
+            // Swapped to match the left-handed coordinate system of ICL-NUIM
+            Eigen::Vector2i pup, pdown;
+            if (NegY) {
+                pup   = Eigen::Vector2i(x, std::max(int(y) - 1, 0));
+                pdown = Eigen::Vector2i(x, std::min(y + 1, ((int) height) - 1));
+            } else {
+                pdown = Eigen::Vector2i(x, std::max(int(y) - 1, 0));
+                pup   = Eigen::Vector2i(x, std::min(y + 1, ((int) height) - 1));
+            }
+
+            const Eigen::Vector3f left  = in[pleft.x() + width * pleft.y()];
+            const Eigen::Vector3f right = in[pright.x() + width * pright.y()];
+            const Eigen::Vector3f up    = in[pup.x() + width * pup.y()];
+            const Eigen::Vector3f down  = in[pdown.x() + width * pdown.y()];
+
+            if (left.z() == 0 || right.z() == 0 || up.z() == 0 ||
+                down.z() == 0) {
+                out[x + y * width].x() = INVALID;
+                continue;
+            }
+            const Eigen::Vector3f dxv = right - left;
+            const Eigen::Vector3f dyv = up - down;
+            out[x + y * width]        = dxv.cross(dyv).normalized();
+        }
+    }
+    TOCK("vertex2normalKernel", width * height);
+}
+
+void new_reduce(int blockIndex, float* out, se::TrackData* J,
     const Eigen::Vector2i& Jsize, const Eigen::Vector2i& size) {
     float* sums = out + blockIndex * 32;
 
@@ -113,7 +185,7 @@ void new_reduce(int blockIndex, float* out, TrackData* J,
 
     for (int y = blockIndex; y < size.y(); y += 8) {
         for (int x = 0; x < size.x(); x++) {
-            const TrackData& row = J[(x + y * Jsize.x())]; // ...
+            const se::TrackData& row = J[(x + y * Jsize.x())]; // ...
             if (row.result < 1) {
                 // accesses sums[28..31]
                 /*(sums+28)[1]*/ sums29 += row.result == -4 ? 1 : 0;
@@ -204,7 +276,7 @@ void new_reduce(int blockIndex, float* out, TrackData* J,
     sums[31] = sums31;
 }
 
-void reduceKernel(float* out, TrackData* J, const Eigen::Vector2i& Jsize,
+void reduceKernel(float* out, se::TrackData* J, const Eigen::Vector2i& Jsize,
     const Eigen::Vector2i& size) {
     TICK();
 
@@ -218,7 +290,8 @@ void reduceKernel(float* out, TrackData* J, const Eigen::Vector2i& Jsize,
     TOCK("reduceKernel", 512);
 }
 
-void trackKernel(TrackData* output, const se::Image<Eigen::Vector3f>& inVertex,
+void trackKernel(se::TrackData* output,
+    const se::Image<Eigen::Vector3f>& inVertex,
     const se::Image<Eigen::Vector3f>& inNormal,
     const se::Image<Eigen::Vector3f>& refVertex,
     const se::Image<Eigen::Vector3f>& refNormal, const Eigen::Matrix4f& Ttrack,
@@ -238,7 +311,7 @@ void trackKernel(TrackData* output, const se::Image<Eigen::Vector3f>& inVertex,
             pixel.x() = pixelx;
             pixel.y() = pixely;
 
-            TrackData& row = output[pixel.x() + pixel.y() * refSize.x()];
+            se::TrackData& row = output[pixel.x() + pixel.y() * refSize.x()];
 
             if (inNormal[pixel.x() + pixel.y() * inSize.x()].x() == INVALID) {
                 row.result = -1;
@@ -341,4 +414,99 @@ bool checkPoseKernel(Eigen::Matrix4f& pose, Eigen::Matrix4f& oldPose,
     }
 
     return true;
+}
+
+void halfSampleRobustImageKernel(se::Image<float>& out,
+    const se::Image<float>& in, const float e_d, const int r) {
+    if ((in.width() / out.width() != 2) || (in.height() / out.height() != 2)) {
+        std::cerr << "Invalid ratio." << std::endl;
+        exit(1);
+    }
+    TICK();
+    int y;
+#pragma omp parallel for shared(out), private(y)
+    for (y = 0; y < out.height(); y++) {
+        for (int x = 0; x < out.width(); x++) {
+            Eigen::Vector2i pixel             = Eigen::Vector2i(x, y);
+            const Eigen::Vector2i centerPixel = 2 * pixel;
+
+            float sum = 0.0f;
+            float t   = 0.0f;
+            const float center =
+                in[centerPixel.x() + centerPixel.y() * in.width()];
+            for (int i = -r + 1; i <= r; ++i) {
+                for (int j = -r + 1; j <= r; ++j) {
+                    Eigen::Vector2i cur = centerPixel + Eigen::Vector2i(j, i);
+                    se::math::clamp(cur, Eigen::Vector2i::Constant(0),
+                        Eigen::Vector2i(
+                            2 * out.width() - 1, 2 * out.height() - 1));
+                    float current = in[cur.x() + cur.y() * in.width()];
+                    if (fabsf(current - center) < e_d) {
+                        sum += 1.0f;
+                        t += current;
+                    }
+                }
+            }
+            out[pixel.x() + pixel.y() * out.width()] = t / sum;
+        }
+    }
+    TOCK("halfSampleRobustImageKernel", outSize.x * outSize.y);
+}
+
+void renderTrackKernel(unsigned char* out, const se::TrackData* data,
+    const Eigen::Vector2i& outSize) {
+    TICK();
+
+    int y;
+#pragma omp parallel for shared(out), private(y)
+    for (y = 0; y < outSize.y(); y++)
+        for (int x = 0; x < outSize.x(); x++) {
+            const int pos = x + outSize.x() * y;
+            const int idx = pos * 4;
+            switch (data[pos].result) {
+            case 1:
+                out[idx + 0] = 128;
+                out[idx + 1] = 128;
+                out[idx + 2] = 128;
+                out[idx + 3] = 0;
+                break;
+            case -1:
+                out[idx + 0] = 0;
+                out[idx + 1] = 0;
+                out[idx + 2] = 0;
+                out[idx + 3] = 0;
+                break;
+            case -2:
+                out[idx + 0] = 255;
+                out[idx + 1] = 0;
+                out[idx + 2] = 0;
+                out[idx + 3] = 0;
+                break;
+            case -3:
+                out[idx + 0] = 0;
+                out[idx + 1] = 255;
+                out[idx + 2] = 0;
+                out[idx + 3] = 0;
+                break;
+            case -4:
+                out[idx + 0] = 0;
+                out[idx + 1] = 0;
+                out[idx + 2] = 255;
+                out[idx + 3] = 0;
+                break;
+            case -5:
+                out[idx + 0] = 255;
+                out[idx + 1] = 255;
+                out[idx + 2] = 0;
+                out[idx + 3] = 0;
+                break;
+            default:
+                out[idx + 0] = 255;
+                out[idx + 1] = 128;
+                out[idx + 2] = 128;
+                out[idx + 3] = 0;
+                break;
+            }
+        }
+    TOCK("renderTrackKernel", outSize.x * outSize.y);
 }

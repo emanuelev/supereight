@@ -7,9 +7,9 @@
 
  */
 #include <supereight/shared/str_utils.h>
-#include <supereight/denseslam/commons.h>
+#include <supereight/shared/commons.h>
 #include <interface.h>
-#include <supereight/denseslam/constant_parameters.h>
+#include <supereight/shared/constant_parameters.h>
 #include <supereight/denseslam/config.h>
 #include <stdint.h>
 #include <sstream>

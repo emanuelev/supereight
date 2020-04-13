@@ -33,7 +33,7 @@
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <supereight/denseslam/commons.h>
+#include <supereight/shared/commons.h>
 #include <supereight/shared/timings.h>
 #include <supereight/utils/math_utils.h>
 #include <tuple>
@@ -151,64 +151,6 @@ void renderDepthKernel(unsigned char* out, float* depth,
         }
     }
     TOCK("renderDepthKernel", depthSize.x * depthSize.y);
-}
-
-void renderTrackKernel(
-    unsigned char* out, const TrackData* data, const Eigen::Vector2i& outSize) {
-    TICK();
-
-    int y;
-#pragma omp parallel for shared(out), private(y)
-    for (y = 0; y < outSize.y(); y++)
-        for (int x = 0; x < outSize.x(); x++) {
-            const int pos = x + outSize.x() * y;
-            const int idx = pos * 4;
-            switch (data[pos].result) {
-            case 1:
-                out[idx + 0] = 128;
-                out[idx + 1] = 128;
-                out[idx + 2] = 128;
-                out[idx + 3] = 0;
-                break;
-            case -1:
-                out[idx + 0] = 0;
-                out[idx + 1] = 0;
-                out[idx + 2] = 0;
-                out[idx + 3] = 0;
-                break;
-            case -2:
-                out[idx + 0] = 255;
-                out[idx + 1] = 0;
-                out[idx + 2] = 0;
-                out[idx + 3] = 0;
-                break;
-            case -3:
-                out[idx + 0] = 0;
-                out[idx + 1] = 255;
-                out[idx + 2] = 0;
-                out[idx + 3] = 0;
-                break;
-            case -4:
-                out[idx + 0] = 0;
-                out[idx + 1] = 0;
-                out[idx + 2] = 255;
-                out[idx + 3] = 0;
-                break;
-            case -5:
-                out[idx + 0] = 255;
-                out[idx + 1] = 255;
-                out[idx + 2] = 0;
-                out[idx + 3] = 0;
-                break;
-            default:
-                out[idx + 0] = 255;
-                out[idx + 1] = 128;
-                out[idx + 2] = 128;
-                out[idx + 3] = 0;
-                break;
-            }
-        }
-    TOCK("renderTrackKernel", outSize.x * outSize.y);
 }
 
 template<typename FieldType, template<typename> class OctreeT>

@@ -39,7 +39,8 @@
 #include <iostream>
 #include <memory>
 
-#include <supereight/denseslam/commons.h>
+#include <supereight/shared/commons.h>
+
 #include <supereight/denseslam/config.h>
 #include <supereight/denseslam/volume_traits.hpp>
 
@@ -48,6 +49,8 @@
 
 #include <supereight/shared/perfstats.h>
 #include <supereight/shared/timings.h>
+
+#include <supereight/tracking/tracker.hpp>
 
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
@@ -61,18 +64,6 @@ private:
     float volume_dimension_;
     int volume_resolution_;
 
-    std::vector<int> iterations_;
-
-    bool tracked_;
-    bool integrated_;
-
-    Eigen::Matrix4f pose_;
-    Eigen::Matrix4f old_pose_;
-    Eigen::Matrix4f raycast_pose_;
-
-    Eigen::Matrix4f* viewPose_;
-    Eigen::Vector3f init_pose_;
-
     float mu_;
 
     bool need_render_ = false;
@@ -84,20 +75,17 @@ private:
     // inter-frame
     se::Image<Eigen::Vector3f> vertex_;
     se::Image<Eigen::Vector3f> normal_;
+    Eigen::Matrix4f raycast_pose_;
+    Eigen::Matrix4f* view_pose_ = nullptr;
 
     std::vector<se::key_t> allocation_list_;
 
     std::shared_ptr<se::Octree<FieldType>> octree_;
 
-    // intra-frame
-    std::vector<float> reduction_output_;
-    std::vector<se::Image<float>> scaled_depth_;
-
-    std::vector<se::Image<Eigen::Vector3f>> input_vertex_;
-    std::vector<se::Image<Eigen::Vector3f>> input_normal_;
-
     se::Image<float> float_depth_;
-    std::vector<TrackData> tracking_result_;
+    se::Image<float> float_depth_filtered_;
+
+    se::Tracker tracker_;
 
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -274,16 +262,6 @@ public:
      */
     void getMap(std::shared_ptr<se::Octree<FieldType>>& out) { out = octree_; }
 
-    /*
-     * TODO Document this.
-     */
-    bool getTracked() { return (tracked_); }
-
-    /*
-     * TODO Document this.
-     */
-    bool getIntegrated() { return (integrated_); }
-
     /**
      * Get the current camera position.
      *
@@ -293,9 +271,14 @@ public:
         // std::cerr << "InitPose =" << _initPose.x << "," << _initPose.y  <<","
         // << _initPose.z << "    "; std::cerr << "pose =" << pose.data[0].w <<
         // "," << pose.data[1].w  <<"," << pose.data[2].w << "    ";
-        float xt = pose_(0, 3) - init_pose_.x();
-        float yt = pose_(1, 3) - init_pose_.y();
-        float zt = pose_(2, 3) - init_pose_.z();
+
+        Eigen::Matrix4f pose     = tracker_.getPose();
+        Eigen::Vector3f init_pos = getInitPos();
+
+        float xt = pose(0, 3) - init_pos.x();
+        float yt = pose(1, 3) - init_pos.y();
+        float zt = pose(2, 3) - init_pos.z();
+
         return Eigen::Vector3f(xt, yt, zt);
     }
 
@@ -304,14 +287,16 @@ public:
      *
      * \return A vector containing the x, y and z coordinates of the camera.
      */
-    Eigen::Vector3f getInitPos() { return init_pose_; }
+    Eigen::Vector3f getInitPos() {
+        return tracker_.getInitPose().block<3, 1>(0, 3);
+    }
 
     /**
      * Get the current camera pose.
      *
      * \return The current camera pose encoded in a 4x4 matrix.
      */
-    Eigen::Matrix4f getPose() { return pose_; }
+    Eigen::Matrix4f getPose() { return tracker_.getPose(); }
 
     /**
      * Set the current camera pose.
@@ -321,24 +306,16 @@ public:
      *
      * \param[in] pose The desired camera pose encoded in a 4x4 matrix.
      */
-    void setPose(const Eigen::Matrix4f pose) {
-        pose_ = pose;
-        pose_.block<3, 1>(0, 3) += init_pose_;
-    }
+    void setPose(const Eigen::Matrix4f pose) { tracker_.setPose(pose); }
 
     /**
      * Set the camera pose used to render the 3D reconstruction.
      *
      * \param[in] value The desired camera pose encoded in a 4x4 matrix.
      */
-    void setViewPose(Eigen::Matrix4f* value = NULL) {
-        if (value == NULL) {
-            viewPose_    = &pose_;
-            need_render_ = false;
-        } else {
-            viewPose_    = value;
-            need_render_ = true;
-        }
+    void setViewPose(Eigen::Matrix4f* value = nullptr) {
+        view_pose_   = value;
+        need_render_ = value == nullptr;
     }
 
     /**
@@ -347,7 +324,9 @@ public:
      *
      * \return The current camera pose encoded in a 4x4 matrix.
      */
-    Eigen::Matrix4f* getViewPose() { return (viewPose_); }
+    Eigen::Matrix4f getViewPose() {
+        return view_pose_ == nullptr ? tracker_.getPose() : *view_pose_;
+    }
 
     /**
      * Get the dimensions of the reconstructed volume in meters.

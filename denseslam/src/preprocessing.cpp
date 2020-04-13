@@ -86,74 +86,6 @@ void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
     TOCK("bilateralFilterKernel", width * height);
 }
 
-void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
-    const se::Image<float>& depth, const Eigen::Matrix4f& invK) {
-    TICK();
-    int x, y;
-#pragma omp parallel for shared(vertex), private(x, y)
-    for (y = 0; y < depth.height(); y++) {
-        for (x = 0; x < depth.width(); x++) {
-            if (depth[x + y * depth.width()] > 0) {
-                vertex[x + y * depth.width()] = (depth[x + y * depth.width()] *
-                    invK * Eigen::Vector4f(x, y, 1.f, 0.f))
-                                                    .head<3>();
-            } else {
-                vertex[x + y * depth.width()] = Eigen::Vector3f::Constant(0);
-            }
-        }
-    }
-    TOCK("depth2vertexKernel", imageSize.x * imageSize.y);
-}
-
-template<bool NegY>
-void vertex2normalKernel(
-    se::Image<Eigen::Vector3f>& out, const se::Image<Eigen::Vector3f>& in) {
-    TICK();
-    int x, y;
-    int width  = in.width();
-    int height = in.height();
-#pragma omp parallel for shared(out), private(x, y)
-    for (y = 0; y < height; y++) {
-        for (x = 0; x < width; x++) {
-            const Eigen::Vector3f center = in[x + width * y];
-            if (center.z() == 0.f) {
-                out[x + y * width].x() = INVALID;
-                continue;
-            }
-
-            const Eigen::Vector2i pleft =
-                Eigen::Vector2i(std::max(int(x) - 1, 0), y);
-            const Eigen::Vector2i pright =
-                Eigen::Vector2i(std::min(x + 1, (int) width - 1), y);
-
-            // Swapped to match the left-handed coordinate system of ICL-NUIM
-            Eigen::Vector2i pup, pdown;
-            if (NegY) {
-                pup   = Eigen::Vector2i(x, std::max(int(y) - 1, 0));
-                pdown = Eigen::Vector2i(x, std::min(y + 1, ((int) height) - 1));
-            } else {
-                pdown = Eigen::Vector2i(x, std::max(int(y) - 1, 0));
-                pup   = Eigen::Vector2i(x, std::min(y + 1, ((int) height) - 1));
-            }
-
-            const Eigen::Vector3f left  = in[pleft.x() + width * pleft.y()];
-            const Eigen::Vector3f right = in[pright.x() + width * pright.y()];
-            const Eigen::Vector3f up    = in[pup.x() + width * pup.y()];
-            const Eigen::Vector3f down  = in[pdown.x() + width * pdown.y()];
-
-            if (left.z() == 0 || right.z() == 0 || up.z() == 0 ||
-                down.z() == 0) {
-                out[x + y * width].x() = INVALID;
-                continue;
-            }
-            const Eigen::Vector3f dxv = right - left;
-            const Eigen::Vector3f dyv = up - down;
-            out[x + y * width]        = dxv.cross(dyv).normalized();
-        }
-    }
-    TOCK("vertex2normalKernel", width * height);
-}
-
 void mm2metersKernel(se::Image<float>& out, const unsigned short* in,
     const Eigen::Vector2i& inputSize) {
     TICK();
@@ -181,41 +113,4 @@ void mm2metersKernel(se::Image<float>& out, const unsigned short* in,
                 in[x * ratio + inputSize.x() * y * ratio] / 1000.0f;
         }
     TOCK("mm2metersKernel", outSize.x * outSize.y);
-}
-
-void halfSampleRobustImageKernel(se::Image<float>& out,
-    const se::Image<float>& in, const float e_d, const int r) {
-    if ((in.width() / out.width() != 2) || (in.height() / out.height() != 2)) {
-        std::cerr << "Invalid ratio." << std::endl;
-        exit(1);
-    }
-    TICK();
-    int y;
-#pragma omp parallel for shared(out), private(y)
-    for (y = 0; y < out.height(); y++) {
-        for (int x = 0; x < out.width(); x++) {
-            Eigen::Vector2i pixel             = Eigen::Vector2i(x, y);
-            const Eigen::Vector2i centerPixel = 2 * pixel;
-
-            float sum = 0.0f;
-            float t   = 0.0f;
-            const float center =
-                in[centerPixel.x() + centerPixel.y() * in.width()];
-            for (int i = -r + 1; i <= r; ++i) {
-                for (int j = -r + 1; j <= r; ++j) {
-                    Eigen::Vector2i cur = centerPixel + Eigen::Vector2i(j, i);
-                    se::math::clamp(cur, Eigen::Vector2i::Constant(0),
-                        Eigen::Vector2i(
-                            2 * out.width() - 1, 2 * out.height() - 1));
-                    float current = in[cur.x() + cur.y() * in.width()];
-                    if (fabsf(current - center) < e_d) {
-                        sum += 1.0f;
-                        t += current;
-                    }
-                }
-            }
-            out[pixel.x() + pixel.y() * out.width()] = t / sum;
-        }
-    }
-    TOCK("halfSampleRobustImageKernel", outSize.x * outSize.y);
 }

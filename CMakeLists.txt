@@ -12,6 +12,8 @@ add_subdirectory(tools)
 # Build se_denseslam lib
 option(WITH_OPENMP "Compile with OpenMP" ON)
 
+add_subdirectory(tracking)
+
 set(BUILT_LIBS "")
 add_subdirectory(denseslam)
 add_subdirectory(apps)

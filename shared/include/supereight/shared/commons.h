@@ -50,7 +50,7 @@
 #include <vector>
 
 // Internal dependencies
-#include <supereight/denseslam/constant_parameters.h>
+#include <supereight/shared/constant_parameters.h>
 #include <supereight/utils/math_utils.h>
 
 #define INVALID -2
@@ -248,11 +248,6 @@ typedef struct Triangle {
 
 } Triangle;
 
-struct TrackData {
-    int result;
-    float error;
-    float J[6];
-};
 
 inline Eigen::Matrix4f getCameraMatrix(const Eigen::Vector4f& k) {
     Eigen::Matrix4f K;
@@ -275,23 +270,6 @@ inline Eigen::Matrix4f getInverseCameraMatrix(const Eigen::Vector4f& k) {
 //}
 
 static const float epsilon = 0.0000001;
-
-inline void compareTrackData(
-    std::string str, TrackData* l, TrackData* r, unsigned int size) {
-    for (unsigned int i = 0; i < size; i++) {
-        if (std::abs(l[i].error - r[i].error) > epsilon) {
-            std::cout << "Error into " << str << " at " << i << std::endl;
-            std::cout << "l.error =  " << l[i].error << std::endl;
-            std::cout << "r.error =  " << r[i].error << std::endl;
-        }
-
-        if (std::abs(l[i].result - r[i].result) > epsilon) {
-            std::cout << "Error into " << str << " at " << i << std::endl;
-            std::cout << "l.result =  " << l[i].result << std::endl;
-            std::cout << "r.result =  " << r[i].result << std::endl;
-        }
-    }
-}
 
 inline void compareFloat(
     std::string str, float* l, float* r, unsigned int size) {
