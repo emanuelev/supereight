@@ -885,7 +885,7 @@ void Octree<T, BufferT>::getActiveBlockList(
 template<typename T, template<typename> typename BufferT>
 void Octree<T, BufferT>::getAllocatedBlockList(
     Node<T>*, std::vector<VoxelBlock<T>*>& blocklist) {
-    for (unsigned int i = 0; i < block_buffer_.used(); ++i) {
+    for (int i = 0; i < block_buffer_.used(); ++i) {
         blocklist.push_back(block_buffer_[i]);
     }
 }

@@ -13,6 +13,7 @@ add_subdirectory(tools)
 option(WITH_OPENMP "Compile with OpenMP" ON)
 
 add_subdirectory(tracking)
+add_subdirectory(backend)
 
 set(BUILT_LIBS "")
 add_subdirectory(denseslam)
