@@ -51,10 +51,11 @@
  * \param voxelSize spacing between two consegutive voxels, in metric space
  * \param band maximum extent of the allocating region, per ray
  */
-template<typename FieldType, template<typename> class OctreeT,
+template<typename FieldType, template<typename> typename BufferT,
+    template<typename, template<typename> typename> class OctreeT,
     typename HashType>
 unsigned int buildAllocationList(HashType* allocationList, size_t reserved,
-    OctreeT<FieldType>& map_index, const Eigen::Matrix4f& pose,
+    OctreeT<FieldType, BufferT>& map_index, const Eigen::Matrix4f& pose,
     const Eigen::Matrix4f& K, const float* depthmap,
     const Eigen::Vector2i& imageSize, const unsigned int size,
     const float voxelSize, const float band) {

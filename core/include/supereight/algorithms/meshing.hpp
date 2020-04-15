@@ -34,6 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <supereight/algorithms/edge_tables.h>
 #include <supereight/octree.hpp>
 
+#include <mutex>
+
 namespace se {
 namespace meshing {
 enum status : uint8_t {
@@ -120,10 +122,10 @@ inline void gather_points(const se::VoxelBlock<FieldType>* cached,
     points[7] = cached->data(Eigen::Vector3i(x, y + 1, z + 1));
 }
 
-template<typename FieldType, template<typename FieldT> class MapT,
-    typename PointT>
-inline void gather_points(const MapT<FieldType>& volume, PointT points[8],
-    const int x, const int y, const int z) {
+template<typename FieldType, template<typename> typename BufferT,
+    template<typename, template<typename> typename> class MapT, typename PointT>
+inline void gather_points(const MapT<FieldType, BufferT>& volume,
+    PointT points[8], const int x, const int y, const int z) {
     points[0] = volume.get_fine(x, y, z);
     points[1] = volume.get_fine(x + 1, y, z);
     points[2] = volume.get_fine(x + 1, y, z + 1);
@@ -134,9 +136,10 @@ inline void gather_points(const MapT<FieldType>& volume, PointT points[8],
     points[7] = volume.get_fine(x, y + 1, z + 1);
 }
 
-template<typename FieldType, template<typename FieldT> class MapT,
+template<typename FieldType, template<typename> typename BufferT,
+    template<typename, template<typename> typename> class MapT,
     typename InsidePredicate>
-uint8_t compute_index(const MapT<FieldType>& volume,
+uint8_t compute_index(const MapT<FieldType, BufferT>& volume,
     const se::VoxelBlock<FieldType>* cached, InsidePredicate inside,
     const unsigned x, const unsigned y, const unsigned z) {
     unsigned int blockSize = se::VoxelBlock<FieldType>::side;
@@ -144,7 +147,7 @@ uint8_t compute_index(const MapT<FieldType>& volume,
         ((y % blockSize == blockSize - 1) << 1) |
         ((z % blockSize) == blockSize - 1);
 
-    typename MapT<FieldType>::value_type points[8];
+    typename MapT<FieldType, BufferT>::value_type points[8];
     if (!local)
         gather_points(cached, points, x, y, z);
     else
@@ -183,9 +186,9 @@ inline bool checkVertex(const Eigen::Vector3f v, const int dim) {
 
 namespace algorithms {
 
-template<typename FieldType, typename FieldSelector, typename InsidePredicate,
-    typename TriangleType>
-void marching_cube(Octree<FieldType>& volume, FieldSelector select,
+template<typename FieldType, template<typename> typename BufferT,
+    typename FieldSelector, typename InsidePredicate, typename TriangleType>
+void marching_cube(Octree<FieldType, BufferT>& volume, FieldSelector select,
     InsidePredicate inside, std::vector<TriangleType>& triangles) {
     using namespace meshing;
 

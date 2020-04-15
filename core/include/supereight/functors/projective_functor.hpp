@@ -41,19 +41,21 @@
 
 namespace se {
 namespace functor {
-template<typename FieldType, template<typename FieldT> class MapT,
+template<typename FieldType, template<typename> typename BufferT,
+    template<typename, template<typename> typename> class MapT,
     typename UpdateF>
 class projective_functor {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    projective_functor(MapT<FieldType>& map, UpdateF f, const Sophus::SE3f& Tcw,
-        const Eigen::Matrix4f& K, const Eigen::Vector2i framesize)
+    projective_functor(MapT<FieldType, BufferT>& map, UpdateF f,
+        const Sophus::SE3f& Tcw, const Eigen::Matrix4f& K,
+        const Eigen::Vector2i framesize)
         : _map(map), _function(f), _Tcw(Tcw), _K(K), _frame_size(framesize) {}
 
     void build_active_list() {
         using namespace std::placeholders;
         /* Retrieve the active list */
-        const se::MemoryPool<se::VoxelBlock<FieldType>>& block_array =
+        const BufferT<se::VoxelBlock<FieldType>>& block_array =
             _map.getBlockBuffer();
 
         /* Predicates definition */
@@ -165,7 +167,7 @@ public:
     }
 
 private:
-    MapT<FieldType>& _map;
+    MapT<FieldType, BufferT>& _map;
     UpdateF _function;
     Sophus::SE3f _Tcw;
     Eigen::Matrix4f _K;
@@ -173,11 +175,12 @@ private:
     std::vector<se::VoxelBlock<FieldType>*> _active_list;
 };
 
-template<typename FieldType, template<typename FieldT> class MapT,
+template<typename FieldType, template<typename> typename BufferT,
+    template<typename, template<typename> typename> class MapT,
     typename UpdateF>
-void projective_map(MapT<FieldType>& map, const Sophus::SE3f& Tcw,
+void projective_map(MapT<FieldType, BufferT>& map, const Sophus::SE3f& Tcw,
     const Eigen::Matrix4f& K, const Eigen::Vector2i framesize, UpdateF funct) {
-    projective_functor<FieldType, MapT, UpdateF> it(
+    projective_functor<FieldType, BufferT, MapT, UpdateF> it(
         map, funct, Tcw, K, framesize);
     it.apply();
 }

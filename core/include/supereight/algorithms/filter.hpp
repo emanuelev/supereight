@@ -29,7 +29,6 @@
 
 #include "../node.hpp"
 #include "../utils/math_utils.h"
-#include "../utils/memory_pool.hpp"
 #include "../utils/morton_utils.hpp"
 
 namespace se {
@@ -69,9 +68,10 @@ bool satisfies(const ValueType& el, P predicate, Ps... others) {
 }
 
 #ifdef _OPENMP
-template<typename BlockType, typename... Predicates>
-void filter(std::vector<BlockType*>& out,
-    const se::MemoryPool<BlockType>& block_array, Predicates... ps) {
+template<typename BlockType, template<typename> typename BufferT,
+    typename... Predicates>
+void filter(std::vector<BlockType*>& out, const BufferT<BlockType>& block_array,
+    Predicates... ps) {
     std::vector<BlockType*> temp;
     int num_elem = block_array.size();
     temp.resize(num_elem);
@@ -113,9 +113,10 @@ void filter(std::vector<BlockType*>& out,
 }
 
 #else
-template<typename BlockType, typename... Predicates>
-void filter(std::vector<BlockType*>& out,
-    const se::MemoryPool<BlockType>& block_array, Predicates... ps) {
+template<typename BlockType, template<typename> typename BufferT,
+    typename... Predicates>
+void filter(std::vector<BlockType*>& out, const BufferT<BlockType>& block_array,
+    Predicates... ps) {
     for (unsigned int i = 0; i < block_array.size(); ++i) {
         if (satisfies(block_array[i], ps...)) { out.push_back(block_array[i]); }
     }

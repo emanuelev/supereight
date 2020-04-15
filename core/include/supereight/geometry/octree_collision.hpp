@@ -100,8 +100,9 @@ collision_status collides_with(const se::VoxelBlock<FieldType>* block,
  * \param test function that takes a voxel and returns a collision_status value
  */
 
-template<typename FieldType, typename TestVoxelF>
-collision_status collides_with(const Octree<FieldType>& map,
+template<typename FieldType, template<typename> typename BufferT,
+    typename TestVoxelF>
+collision_status collides_with(const Octree<FieldType, BufferT>& map,
     const Eigen::Vector3i bbox, const Eigen::Vector3i side, TestVoxelF test) {
     typedef struct stack_entry {
         se::Node<FieldType>* node_ptr;
@@ -110,7 +111,7 @@ collision_status collides_with(const Octree<FieldType>& map,
         typename se::Node<FieldType>::value_type parent_val;
     } stack_entry;
 
-    stack_entry stack[Octree<FieldType>::max_depth * 8 + 1];
+    stack_entry stack[Octree<FieldType, BufferT>::max_depth * 8 + 1];
     size_t stack_idx = 0;
 
     se::Node<FieldType>* node = map.root();

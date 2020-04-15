@@ -84,7 +84,7 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
         gaussian_[i] = expf(-(x * x) / (2 * delta * delta));
     }
 
-    octree_ = std::make_shared<se::Octree<FieldType>>();
+    octree_ = std::make_shared<se::Octree<FieldType, se::MemoryPool>>();
     octree_->init(volume_resolution_, volume_dimension_);
 }
 

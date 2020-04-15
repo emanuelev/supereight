@@ -46,8 +46,9 @@
 #include "bfusion/rendering_impl.hpp"
 #include "kfusion/rendering_impl.hpp"
 
-template<typename FieldType, template<typename> class OctreeT>
-void raycastKernel(const OctreeT<FieldType>& octree,
+template<typename FieldType, template<typename> typename BufferT,
+    template<typename, template<typename> typename> class OctreeT>
+void raycastKernel(const OctreeT<FieldType, BufferT>& octree,
     se::Image<Eigen::Vector3f>& vertex, se::Image<Eigen::Vector3f>& normal,
     const Eigen::Matrix4f& view, const float nearPlane, const float farPlane,
     const float mu, const float step, const float largestep) {
@@ -62,7 +63,7 @@ void raycastKernel(const OctreeT<FieldType>& octree,
                 (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f))
                     .normalized();
             const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
-            se::ray_iterator<FieldType> ray(
+            se::ray_iterator<FieldType, BufferT> ray(
                 octree, transl, dir, nearPlane, farPlane);
             ray.next();
             const float t_min =
@@ -153,8 +154,9 @@ void renderDepthKernel(unsigned char* out, float* depth,
     TOCK("renderDepthKernel", depthSize.x * depthSize.y);
 }
 
-template<typename FieldType, template<typename> class OctreeT>
-void renderVolumeKernel(const OctreeT<FieldType>& octree,
+template<typename FieldType, template<typename> typename BufferT,
+    template<typename, template<typename> typename> class OctreeT>
+void renderVolumeKernel(const OctreeT<FieldType, BufferT>& octree,
     unsigned char* out, // RGBW packed
     const Eigen::Vector2i& depthSize, const Eigen::Matrix4f& view,
     const float nearPlane, const float farPlane, const float mu,
@@ -176,7 +178,7 @@ void renderVolumeKernel(const OctreeT<FieldType>& octree,
                     (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f))
                         .normalized();
                 const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
-                se::ray_iterator<FieldType> ray(
+                se::ray_iterator<FieldType, BufferT> ray(
                     octree, transl, dir, nearPlane, farPlane);
                 ray.next();
                 const float t_min = ray.tmin(); /* Get distance to the first

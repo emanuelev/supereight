@@ -69,10 +69,10 @@ static inline float __int_as_float(int value) {
     return u.f;
 }
 
-template<typename T>
+template<typename T, template<typename> typename BufferT>
 class se::ray_iterator {
 public:
-    ray_iterator(const Octree<T>& m, const Eigen::Vector3f& origin,
+    ray_iterator(const Octree<T, BufferT>& m, const Eigen::Vector3f& origin,
         const Eigen::Vector3f& direction, float nearPlane, float farPlane)
         : map_(m) {
         pos_        = Eigen::Vector3f(1.0f, 1.0f, 1.0f);
@@ -81,7 +81,8 @@ public:
         child_      = NULL;
         scale_exp2_ = 0.5f;
         scale_      = CAST_STACK_DEPTH - 1;
-        min_scale_  = CAST_STACK_DEPTH - log2(m.size_ / Octree<T>::blockSide);
+        min_scale_ =
+            CAST_STACK_DEPTH - log2(m.size_ / Octree<T, BufferT>::blockSide);
         static const float epsilon = exp2f(-log2(map_.size_));
         voxelSize_                 = map_.dim_ / map_.size_;
         state_                     = INIT;
@@ -293,7 +294,7 @@ private:
 
     typedef enum STATE { INIT, ADVANCE, FINISHED } STATE;
 
-    const Octree<T>& map_;
+    const Octree<T, BufferT>& map_;
     float voxelSize_;
     Eigen::Vector3f origin_;
     Eigen::Vector3f direction_;

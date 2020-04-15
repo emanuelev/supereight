@@ -17,6 +17,8 @@
 
 #include <Eigen/Dense>
 
+#include <sys/stat.h>
+
 #include <getopt.h>
 #include <sstream>
 #include <vector>
@@ -274,7 +276,7 @@ Configuration parseArgs(unsigned int argc, char** argv) {
             // std::cerr << "update quaternion rotation to " <<
             // config.initial_pose_quant.x() << ","
             //<< config.initial_pose_quant.y() << "," <<
-            //config.initial_pose_quant.z() << ","
+            // config.initial_pose_quant.z() << ","
             //<< config.initial_pose_quant.w() << std::endl;
             break;
         }

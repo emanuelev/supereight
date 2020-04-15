@@ -55,10 +55,11 @@ static inline int step_to_depth(
     return static_cast<int>(floorf(std::log2f(voxel_size / step)) + max_depth);
 }
 
-template<typename FieldType, template<typename> class OctreeT,
+template<typename FieldType, template<typename> typename BufferT,
+    template<typename, template<typename> typename> class OctreeT,
     typename HashType, typename StepF, typename DepthF>
 size_t buildOctantList(HashType* allocation_list, size_t reserved,
-    OctreeT<FieldType>& map_index, const Eigen::Matrix4f& T_wc,
+    OctreeT<FieldType, BufferT>& map_index, const Eigen::Matrix4f& T_wc,
     const Eigen::Matrix4f& K, const float* depth_map,
     const Eigen::Vector2i& image_size, const float voxel_size,
     StepF compute_stepsize, DepthF step_to_depth, const float noise_factor) {
@@ -68,7 +69,7 @@ size_t buildOctantList(HashType* allocation_list, size_t reserved,
     const int size                 = map_index.size();
     const int max_depth            = log2(size);
     const int leaves_depth =
-        max_depth - se::math::log2_const(OctreeT<FieldType>::blockSide);
+        max_depth - se::math::log2_const(OctreeT<FieldType, BufferT>::blockSide);
 
 #ifdef _OPENMP
     std::atomic<unsigned int> voxel_count;

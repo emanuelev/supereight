@@ -33,8 +33,9 @@
 #include <supereight/utils/math_utils.h>
 #include <type_traits>
 
-template<template<typename> class OctreeT>
-inline Eigen::Vector4f raycast(const OctreeT<OFusion>& octree,
+template<template<typename> typename BufferT,
+    template<typename, template<typename> typename> class OctreeT>
+inline Eigen::Vector4f raycast(const OctreeT<OFusion, BufferT>& octree,
     const Eigen::Vector3f& origin, const Eigen::Vector3f& direction,
     const float tnear, const float tfar, const float, const float step,
     const float) {

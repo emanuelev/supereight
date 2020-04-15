@@ -47,20 +47,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <supereight/octree_defines.h>
 
 #include <supereight/utils/math_utils.h>
-#include <supereight/utils/memory_pool.hpp>
 #include <supereight/utils/morton_utils.hpp>
 
 #include <supereight/voxel_traits.hpp>
 
 namespace se {
 
-template<typename T>
+template<typename T, template<typename> typename BufferT>
 class ray_iterator;
 
-template<typename T>
+template<typename T, template<typename> typename BufferT>
 class node_iterator;
 
-template<typename T>
+template<typename T, template<typename> typename BufferT>
 class Octree {
 public:
     typedef voxel_traits<T> traits_type;
@@ -165,8 +164,8 @@ public:
      * blocks, false to retrieve all allocated blocks.
      */
     void getBlockList(std::vector<VoxelBlock<T>*>& blocklist, bool active);
-    MemoryPool<VoxelBlock<T>>& getBlockBuffer() { return block_buffer_; };
-    MemoryPool<Node<T>>& getNodesBuffer() { return nodes_buffer_; };
+    BufferT<VoxelBlock<T>>& getBlockBuffer() { return block_buffer_; };
+    BufferT<Node<T>>& getNodesBuffer() { return nodes_buffer_; };
     /*! \brief Computes the morton code of the block containing voxel
      * at coordinates (x,y,z)
      * \param x x coordinate in interval [0, size]
@@ -212,11 +211,11 @@ private:
     int size_;
     float dim_;
     int max_level_;
-    MemoryPool<VoxelBlock<T>> block_buffer_;
-    MemoryPool<Node<T>> nodes_buffer_;
+    BufferT<VoxelBlock<T>> block_buffer_;
+    BufferT<Node<T>> nodes_buffer_;
 
-    friend class ray_iterator<T>;
-    friend class node_iterator<T>;
+    friend class ray_iterator<T, BufferT>;
+    friend class node_iterator<T, BufferT>;
 
     // Allocation specific variables
     key_t* keys_at_level_;
@@ -245,8 +244,8 @@ private:
     void deallocateTree() { deleteNode(&root_); }
 };
 
-template<typename T>
-inline typename Octree<T>::value_type Octree<T>::get(
+template<typename T, template<typename> typename BufferT>
+inline typename Octree<T, BufferT>::value_type Octree<T, BufferT>::get(
     const Eigen::Vector3f& p, VoxelBlock<T>* cached) const {
     const Eigen::Vector3i pos =
         (p.homogeneous() * Eigen::Vector4f::Constant(size_ / dim_))
@@ -279,8 +278,8 @@ inline typename Octree<T>::value_type Octree<T>::get(
     return static_cast<VoxelBlock<T>*>(n)->data(pos);
 }
 
-template<typename T>
-inline void Octree<T>::set(
+template<typename T, template<typename> typename BufferT>
+inline void Octree<T, BufferT>::set(
     const int x, const int y, const int z, const value_type val) {
     Node<T>* n = root_;
     if (!n) { return; }
@@ -295,8 +294,8 @@ inline void Octree<T>::set(
     static_cast<VoxelBlock<T>*>(n)->data(Eigen::Vector3i(x, y, z), val);
 }
 
-template<typename T>
-inline typename Octree<T>::value_type Octree<T>::get(
+template<typename T, template<typename> typename BufferT>
+inline typename Octree<T, BufferT>::value_type Octree<T, BufferT>::get(
     const int x, const int y, const int z) const {
     Node<T>* n = root_;
     if (!n) { return init_val(); }
@@ -313,8 +312,8 @@ inline typename Octree<T>::value_type Octree<T>::get(
     return static_cast<VoxelBlock<T>*>(n)->data(Eigen::Vector3i(x, y, z));
 }
 
-template<typename T>
-inline typename Octree<T>::value_type Octree<T>::get_fine(
+template<typename T, template<typename> typename BufferT>
+inline typename Octree<T, BufferT>::value_type Octree<T, BufferT>::get_fine(
     const int x, const int y, const int z) const {
     Node<T>* n = root_;
     if (!n) { return init_val(); }
@@ -331,8 +330,8 @@ inline typename Octree<T>::value_type Octree<T>::get_fine(
     return static_cast<VoxelBlock<T>*>(n)->data(Eigen::Vector3i(x, y, z));
 }
 
-template<typename T>
-inline typename Octree<T>::value_type Octree<T>::get(
+template<typename T, template<typename> typename BufferT>
+inline typename Octree<T, BufferT>::value_type Octree<T, BufferT>::get(
     const int x, const int y, const int z, VoxelBlock<T>* cached) const {
     if (cached != NULL) {
         const Eigen::Vector3i pos   = Eigen::Vector3i(x, y, z);
@@ -357,8 +356,8 @@ inline typename Octree<T>::value_type Octree<T>::get(
     return static_cast<VoxelBlock<T>*>(n)->data(Eigen::Vector3i(x, y, z));
 }
 
-template<typename T>
-void Octree<T>::deleteNode(Node<T>** node) {
+template<typename T, template<typename> typename BufferT>
+void Octree<T, BufferT>::deleteNode(Node<T>** node) {
     if (*node) {
         for (int i = 0; i < 8; i++) {
             if ((*node)->child(i)) { deleteNode(&(*node)->child(i)); }
@@ -370,8 +369,8 @@ void Octree<T>::deleteNode(Node<T>** node) {
     }
 }
 
-template<typename T>
-void Octree<T>::init(int size, float dim) {
+template<typename T, template<typename> typename BufferT>
+void Octree<T, BufferT>::init(int size, float dim) {
     size_      = size;
     dim_       = dim;
     max_level_ = log2(size);
@@ -383,8 +382,8 @@ void Octree<T>::init(int size, float dim) {
     std::memset(keys_at_level_, 0, reserved_);
 }
 
-template<typename T>
-inline VoxelBlock<T>* Octree<T>::fetch(
+template<typename T, template<typename> typename BufferT>
+inline VoxelBlock<T>* Octree<T, BufferT>::fetch(
     const int x, const int y, const int z) const {
     Node<T>* n = root_;
     if (!n) { return NULL; }
@@ -398,8 +397,8 @@ inline VoxelBlock<T>* Octree<T>::fetch(
     return static_cast<VoxelBlock<T>*>(n);
 }
 
-template<typename T>
-inline Node<T>* Octree<T>::fetch_octant(
+template<typename T, template<typename> typename BufferT>
+inline Node<T>* Octree<T, BufferT>::fetch_octant(
     const int x, const int y, const int z, const int depth) const {
     Node<T>* n = root_;
     if (!n) { return NULL; }
@@ -413,8 +412,8 @@ inline Node<T>* Octree<T>::fetch_octant(
     return n;
 }
 
-template<typename T>
-Node<T>* Octree<T>::insert(
+template<typename T, template<typename> typename BufferT>
+Node<T>* Octree<T, BufferT>::insert(
     const int x, const int y, const int z, const int depth) {
     // Make sure we have enough space on buffers
     const int leaves_level = max_level_ - math::log2_const(blockSide);
@@ -468,14 +467,14 @@ Node<T>* Octree<T>::insert(
     return n;
 }
 
-template<typename T>
-VoxelBlock<T>* Octree<T>::insert(const int x, const int y, const int z) {
+template<typename T, template<typename> typename BufferT>
+VoxelBlock<T>* Octree<T, BufferT>::insert(const int x, const int y, const int z) {
     return static_cast<VoxelBlock<T>*>(insert(x, y, z, max_level_));
 }
 
-template<typename T>
+template<typename T, template<typename> typename BufferT>
 template<typename FieldSelector>
-float Octree<T>::interp(
+float Octree<T, BufferT>::interp(
     const Eigen::Vector3f& pos, FieldSelector select) const {
     const Eigen::Vector3i base   = math::floorf(pos).cast<int>();
     const Eigen::Vector3f factor = math::fracf(pos);
@@ -495,8 +494,8 @@ float Octree<T>::interp(
             factor(2));
 }
 
-template<typename T>
-Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos) const {
+template<typename T, template<typename> typename BufferT>
+Eigen::Vector3f Octree<T, BufferT>::grad(const Eigen::Vector3f& pos) const {
     Eigen::Vector3i base   = Eigen::Vector3i(math::floorf(pos).cast<int>());
     Eigen::Vector3f factor = math::fracf(pos);
     Eigen::Vector3i lower_lower = (base - Eigen::Vector3i::Constant(1))
@@ -612,9 +611,9 @@ Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos) const {
     return (0.5f * dim_ / size_) * gradient;
 }
 
-template<typename T>
+template<typename T, template<typename> typename BufferT>
 template<typename FieldSelector>
-Eigen::Vector3f Octree<T>::grad(
+Eigen::Vector3f Octree<T, BufferT>::grad(
     const Eigen::Vector3f& pos, FieldSelector select) const {
     Eigen::Vector3i base   = Eigen::Vector3i(math::floorf(pos).cast<int>());
     Eigen::Vector3f factor = math::fracf(pos);
@@ -734,13 +733,13 @@ Eigen::Vector3f Octree<T>::grad(
     return (0.5f * dim_ / size_) * gradient;
 }
 
-template<typename T>
-int Octree<T>::leavesCount() {
+template<typename T, template<typename> typename BufferT>
+int Octree<T, BufferT>::leavesCount() {
     return leavesCountRecursive(root_);
 }
 
-template<typename T>
-int Octree<T>::leavesCountRecursive(Node<T>* n) {
+template<typename T, template<typename> typename BufferT>
+int Octree<T, BufferT>::leavesCountRecursive(Node<T>* n) {
     if (!n) return 0;
 
     if (n->isLeaf()) { return 1; }
@@ -752,13 +751,13 @@ int Octree<T>::leavesCountRecursive(Node<T>* n) {
     return sum;
 }
 
-template<typename T>
-int Octree<T>::nodeCount() {
+template<typename T, template<typename> typename BufferT>
+int Octree<T, BufferT>::nodeCount() {
     return nodeCountRecursive(root_);
 }
 
-template<typename T>
-int Octree<T>::nodeCountRecursive(Node<T>* node) {
+template<typename T, template<typename> typename BufferT>
+int Octree<T, BufferT>::nodeCountRecursive(Node<T>* node) {
     if (!node) { return 0; }
 
     int n = 1;
@@ -768,8 +767,8 @@ int Octree<T>::nodeCountRecursive(Node<T>* node) {
     return n;
 }
 
-template<typename T>
-void Octree<T>::reserveBuffers(const int n) {
+template<typename T, template<typename> typename BufferT>
+void Octree<T, BufferT>::reserveBuffers(const int n) {
     if (n > reserved_) {
         // std::cout << "Reserving " << n << " entries in allocation buffers" <<
         // std::endl;
@@ -780,8 +779,8 @@ void Octree<T>::reserveBuffers(const int n) {
     block_buffer_.reserve(n);
 }
 
-template<typename T>
-bool Octree<T>::allocate(key_t* keys, int num_elem) {
+template<typename T, template<typename> typename BufferT>
+bool Octree<T, BufferT>::allocate(key_t* keys, int num_elem) {
 #if defined(_OPENMP) && !defined(__clang__)
     __gnu_parallel::sort(keys, keys + num_elem);
 #else
@@ -805,8 +804,8 @@ bool Octree<T>::allocate(key_t* keys, int num_elem) {
     return success;
 }
 
-template<typename T>
-bool Octree<T>::allocate_level(key_t* keys, int num_tasks, int target_level) {
+template<typename T, template<typename> typename BufferT>
+bool Octree<T, BufferT>::allocate_level(key_t* keys, int num_tasks, int target_level) {
     int leaves_level = max_level_ - log2(blockSide);
     nodes_buffer_.reserve(num_tasks);
 
@@ -847,8 +846,8 @@ bool Octree<T>::allocate_level(key_t* keys, int num_tasks, int target_level) {
     return true;
 }
 
-template<typename T>
-void Octree<T>::getBlockList(
+template<typename T, template<typename> typename BufferT>
+void Octree<T, BufferT>::getBlockList(
     std::vector<VoxelBlock<T>*>& blocklist, bool active) {
     Node<T>* n = root_;
     if (!n) return;
@@ -858,8 +857,8 @@ void Octree<T>::getBlockList(
         getAllocatedBlockList(n, blocklist);
 }
 
-template<typename T>
-void Octree<T>::getActiveBlockList(
+template<typename T, template<typename> typename BufferT>
+void Octree<T, BufferT>::getActiveBlockList(
     Node<T>* n, std::vector<VoxelBlock<T>*>& blocklist) {
     using tNode = Node<T>;
     if (!n) return;
@@ -881,16 +880,16 @@ void Octree<T>::getActiveBlockList(
     }
 }
 
-template<typename T>
-void Octree<T>::getAllocatedBlockList(
+template<typename T, template<typename> typename BufferT>
+void Octree<T, BufferT>::getAllocatedBlockList(
     Node<T>*, std::vector<VoxelBlock<T>*>& blocklist) {
     for (unsigned int i = 0; i < block_buffer_.size(); ++i) {
         blocklist.push_back(block_buffer_[i]);
     }
 }
 
-template<typename T>
-void Octree<T>::save(const std::string& filename) {
+template<typename T, template<typename> typename BufferT>
+void Octree<T, BufferT>::save(const std::string& filename) {
     std::ofstream os(filename, std::ios::binary);
     os.write(reinterpret_cast<char*>(&size_), sizeof(size_));
     os.write(reinterpret_cast<char*>(&dim_), sizeof(dim_));
@@ -904,8 +903,8 @@ void Octree<T>::save(const std::string& filename) {
     for (size_t i = 0; i < n; ++i) internal::serialise(os, *block_buffer_[i]);
 }
 
-template<typename T>
-void Octree<T>::load(const std::string& filename) {
+template<typename T, template<typename> typename BufferT>
+void Octree<T, BufferT>::load(const std::string& filename) {
     std::cout << "Loading octree from disk... " << filename << std::endl;
     std::ifstream is(filename, std::ios::binary);
     int size;

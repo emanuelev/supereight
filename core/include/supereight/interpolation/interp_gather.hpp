@@ -100,9 +100,10 @@ inline void gather_2(const se::VoxelBlock<FieldType>* block,
     return;
 }
 
-template<typename FieldType, template<typename FieldT> class MapIndex,
+template<typename FieldType, template<typename> typename BufferT,
+    template<typename, template<typename> typename> class MapT,
     class FieldSelector>
-inline void gather_points(const MapIndex<FieldType>& fetcher,
+inline void gather_points(const MapT<FieldType, BufferT>& fetcher,
     const Eigen::Vector3i& base, FieldSelector select, float points[8]) {
     unsigned int blockSize = se::VoxelBlock<FieldType>::side;
     unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) |

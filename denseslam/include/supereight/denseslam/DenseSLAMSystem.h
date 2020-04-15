@@ -46,6 +46,7 @@
 
 #include <supereight/image/image.hpp>
 #include <supereight/octree.hpp>
+#include <supereight/utils/memory_pool.hpp>
 
 #include <supereight/shared/perfstats.h>
 #include <supereight/shared/timings.h>
@@ -80,7 +81,7 @@ private:
 
     std::vector<se::key_t> allocation_list_;
 
-    std::shared_ptr<se::Octree<FieldType>> octree_;
+    std::shared_ptr<se::Octree<FieldType, se::MemoryPool>> octree_;
 
     se::Image<float> float_depth_;
     se::Image<float> float_depth_filtered_;
@@ -260,7 +261,11 @@ public:
     /*
      * TODO Document this.
      */
-    void getMap(std::shared_ptr<se::Octree<FieldType>>& out) { out = octree_; }
+    void getMap(std::shared_ptr<se::Octree<FieldType, se::MemoryPool>>& out) {
+        out = octree_;
+    }
+
+    void saveMap(const std::string& filename) { octree_->save(filename); }
 
     /**
      * Get the current camera position.

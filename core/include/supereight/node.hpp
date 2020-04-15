@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "io/se_serialise.hpp"
 #include "octree_defines.h"
 #include "utils/math_utils.h"
-#include "utils/memory_pool.hpp"
 #include "voxel_traits.hpp"
 #include <atomic>
 #include <time.h>
