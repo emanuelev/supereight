@@ -375,7 +375,7 @@ void Octree<T, BufferT>::init(int size, float dim) {
     dim_       = dim;
     max_level_ = log2(size);
     nodes_buffer_.reserve(1);
-    root_          = nodes_buffer_.acquire_block();
+    root_          = nodes_buffer_.acquire();
     root_->side_   = size;
     reserved_      = 1024;
     keys_at_level_ = new key_t[reserved_];
@@ -427,7 +427,7 @@ Node<T>* Octree<T, BufferT>::insert(
     Node<T>* n = root_;
     // Should not happen if octree has been initialised properly
     if (!n) {
-        root_        = nodes_buffer_.acquire_block();
+        root_        = nodes_buffer_.acquire();
         root_->code_ = 0;
         root_->side_ = size_;
         n            = root_;
@@ -446,14 +446,14 @@ Node<T>* Octree<T, BufferT>::insert(
         if (!tmp) {
             const key_t prefix = keyops::code(key) & MASK[d + shift];
             if (edge == blockSide) {
-                tmp = block_buffer_.acquire_block();
+                tmp = block_buffer_.acquire();
                 static_cast<VoxelBlock<T>*>(tmp)->coordinates(
                     Eigen::Vector3i(unpack_morton(prefix)));
                 static_cast<VoxelBlock<T>*>(tmp)->active(true);
                 static_cast<VoxelBlock<T>*>(tmp)->code_ = prefix | d;
                 n->children_mask_ = n->children_mask_ | (1 << childid);
             } else {
-                tmp               = nodes_buffer_.acquire_block();
+                tmp               = nodes_buffer_.acquire();
                 tmp->code_        = prefix | d;
                 tmp->side_        = edge;
                 n->children_mask_ = n->children_mask_ | (1 << childid);
@@ -468,7 +468,8 @@ Node<T>* Octree<T, BufferT>::insert(
 }
 
 template<typename T, template<typename> typename BufferT>
-VoxelBlock<T>* Octree<T, BufferT>::insert(const int x, const int y, const int z) {
+VoxelBlock<T>* Octree<T, BufferT>::insert(
+    const int x, const int y, const int z) {
     return static_cast<VoxelBlock<T>*>(insert(x, y, z, max_level_));
 }
 
@@ -805,7 +806,8 @@ bool Octree<T, BufferT>::allocate(key_t* keys, int num_elem) {
 }
 
 template<typename T, template<typename> typename BufferT>
-bool Octree<T, BufferT>::allocate_level(key_t* keys, int num_tasks, int target_level) {
+bool Octree<T, BufferT>::allocate_level(
+    key_t* keys, int num_tasks, int target_level) {
     int leaves_level = max_level_ - log2(blockSide);
     nodes_buffer_.reserve(num_tasks);
 
@@ -824,7 +826,7 @@ bool Octree<T, BufferT>::allocate_level(key_t* keys, int num_tasks, int target_l
 
             if (!(*n)) {
                 if (level == leaves_level) {
-                    *n          = block_buffer_.acquire_block();
+                    *n          = block_buffer_.acquire();
                     (*n)->side_ = edge;
                     static_cast<VoxelBlock<T>*>(*n)->coordinates(
                         Eigen::Vector3i(unpack_morton(myKey)));
@@ -833,7 +835,7 @@ bool Octree<T, BufferT>::allocate_level(key_t* keys, int num_tasks, int target_l
                     parent->children_mask_ =
                         parent->children_mask_ | (1 << index);
                 } else {
-                    *n          = nodes_buffer_.acquire_block();
+                    *n          = nodes_buffer_.acquire();
                     (*n)->code_ = myKey | level;
                     (*n)->side_ = edge;
                     parent->children_mask_ =
@@ -883,7 +885,7 @@ void Octree<T, BufferT>::getActiveBlockList(
 template<typename T, template<typename> typename BufferT>
 void Octree<T, BufferT>::getAllocatedBlockList(
     Node<T>*, std::vector<VoxelBlock<T>*>& blocklist) {
-    for (unsigned int i = 0; i < block_buffer_.size(); ++i) {
+    for (unsigned int i = 0; i < block_buffer_.used(); ++i) {
         blocklist.push_back(block_buffer_[i]);
     }
 }
@@ -894,11 +896,11 @@ void Octree<T, BufferT>::save(const std::string& filename) {
     os.write(reinterpret_cast<char*>(&size_), sizeof(size_));
     os.write(reinterpret_cast<char*>(&dim_), sizeof(dim_));
 
-    size_t n = nodes_buffer_.size();
+    size_t n = nodes_buffer_.used();
     os.write(reinterpret_cast<char*>(&n), sizeof(size_t));
     for (size_t i = 0; i < n; ++i) internal::serialise(os, *nodes_buffer_[i]);
 
-    n = block_buffer_.size();
+    n = block_buffer_.used();
     os.write(reinterpret_cast<char*>(&n), sizeof(size_t));
     for (size_t i = 0; i < n; ++i) internal::serialise(os, *block_buffer_[i]);
 }

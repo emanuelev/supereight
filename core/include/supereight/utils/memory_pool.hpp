@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <atomic>
 #include <iostream>
-#include <mutex>
 #include <vector>
 
 namespace se {
@@ -51,7 +50,7 @@ public:
         for (auto&& i : pages_) { delete[] i; }
     }
 
-    size_t size() const { return current_block_; };
+    size_t used() const { return current_block_; };
 
     BlockType* operator[](const size_t i) const {
         const int page_idx = i / pagesize_;
@@ -64,7 +63,7 @@ public:
         if (requires_realloc) expand(n);
     }
 
-    BlockType* acquire_block() {
+    BlockType* acquire() {
         // Fetch-add returns the value before increment
         int current        = current_block_.fetch_add(1);
         const int page_idx = current / pagesize_;
