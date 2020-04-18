@@ -52,11 +52,8 @@
 #include <supereight/shared/timings.h>
 
 #include <supereight/tracking/tracker.hpp>
+#include <supereight/backend/backend.hpp>
 
-/*
- * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
- */
-typedef SE_FIELD_TYPE FieldType;
 
 class DenseSLAMSystem {
 private:
@@ -81,7 +78,7 @@ private:
 
     std::vector<se::key_t> allocation_list_;
 
-    std::shared_ptr<se::Octree<FieldType, se::MemoryPoolCPU>> octree_;
+    std::shared_ptr<se::Octree<se::FieldType, se::MemoryPoolCPU>> octree_;
 
     se::Image<float> float_depth_;
     se::Image<float> float_depth_filtered_;

@@ -84,7 +84,7 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
         gaussian_[i] = expf(-(x * x) / (2 * delta * delta));
     }
 
-    octree_ = std::make_shared<se::Octree<FieldType, se::MemoryPoolCPU>>();
+    octree_ = std::make_shared<se::Octree<se::FieldType, se::MemoryPoolCPU>>();
     octree_->init(volume_resolution_, volume_dimension_);
 }
 
@@ -130,18 +130,18 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k,
 
     float voxelsize = volume_dimension_ / volume_resolution_;
     int num_vox_per_pix =
-        volume_dimension_ / ((se::VoxelBlock<FieldType>::side) * voxelsize);
+        volume_dimension_ / ((se::VoxelBlock<se::FieldType>::side) * voxelsize);
     size_t total =
         num_vox_per_pix * computation_size_.x() * computation_size_.y();
     allocation_list_.reserve(total);
 
     unsigned int allocated = 0;
-    if (std::is_same<FieldType, SDF>::value) {
+    if (std::is_same<se::FieldType, SDF>::value) {
         allocated = buildAllocationList(allocation_list_.data(),
             allocation_list_.capacity(), *octree_, tracker_.getPose(),
             getCameraMatrix(k), float_depth_.data(), computation_size_,
             volume_resolution_, voxelsize, 2 * mu);
-    } else if (std::is_same<FieldType, OFusion>::value) {
+    } else if (std::is_same<se::FieldType, OFusion>::value) {
         allocated = buildOctantList(allocation_list_.data(),
             allocation_list_.capacity(), *octree_, tracker_.getPose(),
             getCameraMatrix(k), float_depth_.data(), computation_size_,
@@ -150,7 +150,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k,
 
     octree_->allocate(allocation_list_.data(), allocated);
 
-    if (std::is_same<FieldType, SDF>::value) {
+    if (std::is_same<se::FieldType, SDF>::value) {
         struct sdf_update funct(float_depth_.data(),
             Eigen::Vector2i(computation_size_.x(), computation_size_.y()), mu,
             100);
@@ -159,7 +159,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k,
             Sophus::SE3f(tracker_.getPose()).inverse(), getCameraMatrix(k),
             Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
             funct);
-    } else if (std::is_same<FieldType, OFusion>::value) {
+    } else if (std::is_same<se::FieldType, OFusion>::value) {
         float timestamp = (1.f / 30.f) * frame;
         struct bfusion_update funct(float_depth_.data(),
             Eigen::Vector2i(computation_size_.x(), computation_size_.y()), mu,

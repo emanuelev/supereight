@@ -1,4 +1,14 @@
 cmake_minimum_required(VERSION 3.10)
 
-add_library(supereight-backend INTERFACE)
-target_include_directories(supereight-backend INTERFACE include)
+project(supereight-backend)
+
+set(BACKEND_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(BUILT_BACKENDS "")
+
+set(FIELD_TYPES SDF OFusion)
+
+if(SE_BACKEND_OPENMP)
+    add_subdirectory(src/openmp)
+endif()
+
+set(BUILT_BACKENDS ${BUILT_BACKENDS} PARENT_SCOPE)
