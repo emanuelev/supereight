@@ -42,18 +42,14 @@
 #include <supereight/shared/commons.h>
 
 #include <supereight/denseslam/config.h>
-#include <supereight/denseslam/volume_traits.hpp>
 
 #include <supereight/image/image.hpp>
-#include <supereight/octree.hpp>
-#include <supereight/backend/memory_pool_cpu.hpp>
 
 #include <supereight/shared/perfstats.h>
 #include <supereight/shared/timings.h>
 
-#include <supereight/tracking/tracker.hpp>
 #include <supereight/backend/backend.hpp>
-
+#include <supereight/tracking/tracker.hpp>
 
 class DenseSLAMSystem {
 private:
@@ -76,14 +72,11 @@ private:
     Eigen::Matrix4f raycast_pose_;
     Eigen::Matrix4f* view_pose_ = nullptr;
 
-    std::vector<se::key_t> allocation_list_;
-
-    std::shared_ptr<se::Octree<se::FieldType, se::MemoryPoolCPU>> octree_;
-
     se::Image<float> float_depth_;
     se::Image<float> float_depth_filtered_;
 
     se::Tracker tracker_;
+    se::Backend backend_;
 
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -251,7 +244,9 @@ public:
      */
     void renderDepth(unsigned char* out, const Eigen::Vector2i& outputSize);
 
-    void saveMap(const std::string& filename) { octree_->save(filename); }
+    // TODO
+    // void saveMap(const std::string& filename) { octree_->save(filename); }
+    void saveMap(const std::string& filename) {}
 
     //
     // Getters

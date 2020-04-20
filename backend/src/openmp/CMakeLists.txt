@@ -5,6 +5,8 @@ project(supereight-backend)
 find_package(Eigen3 REQUIRED)
 find_package(Sophus REQUIRED)
 
+set(libraries supereight-shared supereight-core)
+
 list(APPEND compile_flags ${OpenMP_CXX_FLAGS})
 list(APPEND libraries ${OpenMP_CXX_FLAGS})
 
