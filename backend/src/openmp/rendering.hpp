@@ -36,6 +36,8 @@
 
 #pragma once
 
+#include "../common/field_impls.hpp"
+
 #include <supereight/shared/commons.h>
 #include <supereight/shared/timings.h>
 #include <supereight/shared/perfstats.h>
@@ -45,8 +47,6 @@
 #include <sophus/se3.hpp>
 #include <supereight/image/image.hpp>
 #include <supereight/ray_iterator.hpp>
-
-#include "../common/fields.hpp"
 
 template<typename FieldType, template<typename> typename BufferT,
     template<typename, template<typename> typename> class OctreeT>

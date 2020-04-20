@@ -29,11 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef _VOXEL_TRAITS_
-#define _VOXEL_TRAITS_
-#include "utils/math_utils.h"
+#pragma once
 
-template<class VoxelTraits>
+template<typename T>
 struct voxel_traits {};
-
-#endif

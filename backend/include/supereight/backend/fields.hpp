@@ -26,50 +26,13 @@
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef VOLUME_H
-#define VOLUME_H
 
-// Data types definitions
+#pragma once
+
+#include "fields/sdf.hpp"
+#include "fields/ofusion.hpp"
+
 #include <supereight/voxel_traits.hpp>
-
-/******************************************************************************
- *
- * KFusion Truncated Signed Distance Function voxel traits
- *
- ****************************************************************************/
-
-typedef struct {
-    float x;
-    float y;
-} SDF;
-
-template<>
-struct voxel_traits<SDF> {
-    typedef SDF value_type;
-    static inline value_type empty() { return {1.f, -1.f}; }
-    static inline value_type initValue() { return {1.f, 0.f}; }
-};
-
-/******************************************************************************
- *
- * Bayesian Fusion voxel traits and algorithm specificic defines
- *
- ****************************************************************************/
-
-typedef struct {
-    float x;
-    double y;
-} OFusion;
-
-template<>
-struct voxel_traits<OFusion> {
-    typedef struct {
-        float x;
-        double y;
-    } value_type;
-    static inline value_type empty() { return {0.f, 0.f}; }
-    static inline value_type initValue() { return {0.f, 0.f}; }
-};
 
 // Windowing parameters
 #define DELTA_T 1.f
@@ -79,5 +42,3 @@ struct voxel_traits<OFusion> {
 #define SURF_BOUNDARY 0.f
 #define TOP_CLAMP 1000.f
 #define BOTTOM_CLAMP (-TOP_CLAMP)
-
-#endif

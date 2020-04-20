@@ -33,7 +33,7 @@
 #ifndef BFUSION_MAPPING_HPP
 #define BFUSION_MAPPING_HPP
 
-#include "bspline_lookup.cc"
+#include "bspline_lookup.hpp"
 
 #include <supereight/functors/projective_functor.hpp>
 #include <supereight/image/image.hpp>

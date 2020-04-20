@@ -1,4 +1,4 @@
-#include "../common/fields.hpp"
+#include "../common/field_impls.hpp"
 #include "rendering.hpp"
 
 #include <supereight/backend/backend_openmp.hpp>
