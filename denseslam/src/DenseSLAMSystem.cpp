@@ -145,7 +145,7 @@ void DenseSLAMSystem::renderDepth(
         out, float_depth_.data(), outputSize, nearPlane, farPlane);
 }
 
-void DenseSLAMSystem::dump_mesh(const std::string filename) {
+void DenseSLAMSystem::dump_mesh(const std::string) {
     /*
     std::vector<Triangle> mesh;
     auto inside = [](const auto& val) {

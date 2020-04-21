@@ -16,37 +16,24 @@ void Backend::allocate_(const Image<float>& depth, const Eigen::Vector4f& k,
 
     allocation_list_.reserve(total);
 
-    unsigned int allocated = 0;
-    if (std::is_same<FieldType, SDF>::value) {
-        allocated = buildAllocationList(allocation_list_.data(),
-            allocation_list_.capacity(), octree_, pose, getCameraMatrix(k),
-            depth.data(), computation_size, octree_.size(), voxel_size, 2 * mu);
-    } else if (std::is_same<FieldType, OFusion>::value) {
-        allocated = buildOctantList(allocation_list_.data(),
-            allocation_list_.capacity(), octree_, pose, getCameraMatrix(k),
-            depth.data(), computation_size, voxel_size, compute_stepsize,
-            step_to_depth, mu);
-    }
+    int allocated = voxel_traits<FieldType>::buildAllocationList(
+        allocation_list_.data(), allocation_list_.capacity(), octree_, pose,
+        getCameraMatrix(k), depth.data(), computation_size, mu);
 
     octree_.allocate(allocation_list_.data(), allocated);
 }
 
 void Backend::update_(const Image<float>& depth, const Sophus::SE3f& Tcw,
-    const Eigen::Vector4f& k, const Eigen::Vector2i& computation_size,
-    float mu, int frame) {
+    const Eigen::Vector4f& k, const Eigen::Vector2i& computation_size, float mu,
+    int frame) {
     float voxel_size = octree_.dim() / octree_.size();
-    if (std::is_same<se::FieldType, SDF>::value) {
-        sdf_update funct(depth.data(), computation_size, mu, 100);
-        se::functor::projective_map(
-            octree_, Tcw, getCameraMatrix(k), computation_size, funct);
-    } else if (std::is_same<se::FieldType, OFusion>::value) {
-        float timestamp = (1.f / 30.f) * frame;
-        bfusion_update funct(
-            depth.data(), computation_size, mu, timestamp, voxel_size);
+    float timestamp  = (1.f / 30.f) * frame;
 
-        se::functor::projective_map(
-            octree_, Tcw, getCameraMatrix(k), computation_size, funct);
-    }
+    voxel_traits<FieldType>::update_func_type funct(
+        depth.data(), computation_size, mu, timestamp, voxel_size);
+
+    se::functor::projective_map(
+        octree_, Tcw, getCameraMatrix(k), computation_size, funct);
 }
 
 void Backend::raycast_(Image<Eigen::Vector3f>& vertex,

@@ -29,12 +29,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  * */
+#pragma once
+
+#include <supereight/backend/fields.hpp>
 #include <supereight/utils/math_utils.h>
 #include <type_traits>
 
-template<template<typename> typename BufferT,
-    template<typename, template<typename> typename> class OctreeT>
-inline Eigen::Vector4f raycast(const OctreeT<SDF, BufferT>& octree,
+namespace se {
+
+template<typename OctreeT>
+Eigen::Vector4f voxel_traits<SDF>::raycast(const OctreeT& octree,
     const Eigen::Vector3f& origin, const Eigen::Vector3f& direction,
     const float tnear, const float tfar, const float mu, const float step,
     const float largestep) {
@@ -87,3 +91,5 @@ inline Eigen::Vector4f raycast(const OctreeT<SDF, BufferT>& octree,
 
     return Eigen::Vector4f::Constant(0);
 }
+
+} // namespace se

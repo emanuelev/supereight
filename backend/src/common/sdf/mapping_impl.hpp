@@ -29,43 +29,38 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  * */
-#ifndef KFUSION_MAPPING_HPP
-#define KFUSION_MAPPING_HPP
+
+#pragma once
+
 #include <supereight/node.hpp>
 
-struct sdf_update {
-    const float* depth;
-    Eigen::Vector2i depthSize;
-    float mu;
-    int maxweight;
+namespace se {
 
-    sdf_update(
-        const float* d, const Eigen::Vector2i& framesize, float m, int mw)
-        : depth(d), depthSize(framesize), mu(m), maxweight(mw){};
+sdf_update::sdf_update(
+    const float* d, const Eigen::Vector2i& framesize, float m, float, float)
+    : depth(d), depthSize(framesize), mu(m) {}
 
-    template<typename DataHandlerT>
-    void operator()(DataHandlerT& handler, const Eigen::Vector3i&,
-        const Eigen::Vector3f& pos, const Eigen::Vector2f& pixel) {
-        const Eigen::Vector2i px = pixel.cast<int>();
-        const float depthSample  = depth[px.x() + depthSize.x() * px.y()];
-        // Return on invalid depth measurement
-        if (depthSample <= 0) return;
+template<typename DataHandlerT>
+void sdf_update::operator()(DataHandlerT& handler, const Eigen::Vector3i&,
+    const Eigen::Vector3f& pos, const Eigen::Vector2f& pixel) {
+    const Eigen::Vector2i px = pixel.cast<int>();
+    const float depthSample  = depth[px.x() + depthSize.x() * px.y()];
+    // Return on invalid depth measurement
+    if (depthSample <= 0) return;
 
-        // Update the TSDF
-        const float diff = (depthSample - pos.z()) *
-            std::sqrt(1 + se::math::sq(pos.x() / pos.z()) +
-                se::math::sq(pos.y() / pos.z()));
-        if (diff > -mu) {
-            const float sdf = fminf(1.f, diff / mu);
-            auto data       = handler.get();
-            data.x =
-                se::math::clamp((static_cast<float>(data.y) * data.x + sdf) /
-                        (static_cast<float>(data.y) + 1.f),
-                    -1.f, 1.f);
-            data.y = fminf(data.y + 1, maxweight);
-            handler.set(data);
-        }
+    // Update the TSDF
+    const float diff = (depthSample - pos.z()) *
+        std::sqrt(1 + se::math::sq(pos.x() / pos.z()) +
+            se::math::sq(pos.y() / pos.z()));
+    if (diff > -mu) {
+        const float sdf = fminf(1.f, diff / mu);
+        auto data       = handler.get();
+        data.x = se::math::clamp((static_cast<float>(data.y) * data.x + sdf) /
+                (static_cast<float>(data.y) + 1.f),
+            -1.f, 1.f);
+        data.y = fminf(data.y + 1, maxweight);
+        handler.set(data);
     }
-};
+}
 
-#endif
+} // namespace se

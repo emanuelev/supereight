@@ -31,5 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+namespace se {
+
 template<typename T>
 struct voxel_traits {};
+
+} // namespace se

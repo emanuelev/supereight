@@ -30,9 +30,13 @@
  *
  *
  * */
-#ifndef BFUSION_ALLOC_H
-#define BFUSION_ALLOC_H
+
+#pragma once
+
+#include <supereight/backend/fields.hpp>
 #include <supereight/utils/math_utils.h>
+
+namespace se {
 
 /* Compute step size based on distance travelled along the ray */
 static inline float compute_stepsize(
@@ -55,21 +59,19 @@ static inline int step_to_depth(
     return static_cast<int>(floorf(std::log2f(voxel_size / step)) + max_depth);
 }
 
-template<typename FieldType, template<typename> typename BufferT,
-    template<typename, template<typename> typename> class OctreeT,
-    typename HashType, typename StepF, typename DepthF>
-size_t buildOctantList(HashType* allocation_list, size_t reserved,
-    OctreeT<FieldType, BufferT>& map_index, const Eigen::Matrix4f& T_wc,
+template<typename OctreeT, typename HashType>
+int voxel_traits<OFusion>::buildAllocationList(HashType* allocation_list,
+    size_t reserved, const OctreeT& octree, const Eigen::Matrix4f& pose,
     const Eigen::Matrix4f& K, const float* depth_map,
-    const Eigen::Vector2i& image_size, const float voxel_size,
-    StepF compute_stepsize, DepthF step_to_depth, const float noise_factor) {
+    const Eigen::Vector2i& image_size, float noise_factor) {
+    const float voxel_size         = octree.dim() / octree.size();
     const float inverse_voxel_size = 1.f / voxel_size;
     Eigen::Matrix4f inv_K          = K.inverse();
-    const Eigen::Matrix4f inv_P    = T_wc * inv_K;
-    const int size                 = map_index.size();
+    const Eigen::Matrix4f inv_P    = pose * inv_K;
+    const int size                 = octree.size();
     const int max_depth            = log2(size);
     const int leaves_depth =
-        max_depth - se::math::log2_const(OctreeT<FieldType, BufferT>::blockSide);
+        max_depth - se::math::log2_const(OctreeT::blockSide);
 
 #ifdef _OPENMP
     std::atomic<unsigned int> voxel_count;
@@ -77,7 +79,7 @@ size_t buildOctantList(HashType* allocation_list, size_t reserved,
     unsigned int voxel_count;
 #endif
 
-    const Eigen::Vector3f camera_pos = T_wc.topRightCorner<3, 1>();
+    const Eigen::Vector3f camera_pos = pose.topRightCorner<3, 1>();
     voxel_count                      = 0;
 #pragma omp parallel for
     for (int y = 0; y < image_size.y(); ++y) {
@@ -110,15 +112,15 @@ size_t buildOctantList(HashType* allocation_list, size_t reserved,
                     (voxel_scaled.z() < size) && (voxel_scaled.x() >= 0) &&
                     (voxel_scaled.y() >= 0) && (voxel_scaled.z() >= 0)) {
                     const Eigen::Vector3i voxel = voxel_scaled.cast<int>();
-                    auto node_ptr               = map_index.fetch_octant(
+                    auto node_ptr               = octree.fetch_octant(
                         voxel.x(), voxel.y(), voxel.z(), tree_depth);
                     if (!node_ptr) {
-                        HashType k       = map_index.hash(voxel.x(), voxel.y(),
+                        HashType k       = octree.hash(voxel.x(), voxel.y(),
                             voxel.z(), std::min(tree_depth, leaves_depth));
                         unsigned int idx = voxel_count++;
                         if (idx < reserved) { allocation_list[idx] = k; }
                     } else if (tree_depth >= leaves_depth) {
-                        static_cast<se::VoxelBlock<FieldType>*>(node_ptr)
+                        static_cast<typename OctreeT::block_type*>(node_ptr)
                             ->active(true);
                     }
                 }
@@ -133,4 +135,5 @@ size_t buildOctantList(HashType* allocation_list, size_t reserved,
     }
     return (size_t) voxel_count >= reserved ? reserved : (size_t) voxel_count;
 }
-#endif
+
+} // namespace se

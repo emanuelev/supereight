@@ -62,8 +62,12 @@ class node_iterator;
 template<typename T, template<typename> typename BufferT>
 class Octree {
 public:
-    typedef voxel_traits<T> traits_type;
-    typedef typename traits_type::value_type value_type;
+    using traits_type = voxel_traits<T>;
+    using value_type  = typename traits_type::value_type;
+
+    using node_type  = Node<T>;
+    using block_type = VoxelBlock<T>;
+
     value_type empty() const { return traits_type::empty(); }
     value_type init_val() const { return traits_type::initValue(); }
 
@@ -172,13 +176,13 @@ public:
      * \param y y coordinate in interval [0, size]
      * \param z z coordinate in interval [0, size]
      */
-    key_t hash(const int x, const int y, const int z) {
+    key_t hash(const int x, const int y, const int z) const {
         const int scale =
             max_level_ - math::log2_const(blockSide); // depth of blocks
         return keyops::encode(x, y, z, scale, max_level_);
     }
 
-    key_t hash(const int x, const int y, const int z, key_t scale) {
+    key_t hash(const int x, const int y, const int z, key_t scale) const {
         return keyops::encode(x, y, z, scale, max_level_);
     }
 

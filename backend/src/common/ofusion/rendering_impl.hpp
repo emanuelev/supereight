@@ -30,12 +30,16 @@
  *
  * */
 
+#pragma once
+
+#include <supereight/backend/fields.hpp>
 #include <supereight/utils/math_utils.h>
 #include <type_traits>
 
-template<template<typename> typename BufferT,
-    template<typename, template<typename> typename> class OctreeT>
-inline Eigen::Vector4f raycast(const OctreeT<OFusion, BufferT>& octree,
+namespace se {
+
+template<typename OctreeT>
+Eigen::Vector4f voxel_traits<OFusion>::raycast(const OctreeT& octree,
     const Eigen::Vector3f& origin, const Eigen::Vector3f& direction,
     const float tnear, const float tfar, const float, const float step,
     const float) {
@@ -80,3 +84,5 @@ inline Eigen::Vector4f raycast(const OctreeT<OFusion, BufferT>& octree,
 
     return Eigen::Vector4f::Constant(0);
 }
+
+} // namespace se

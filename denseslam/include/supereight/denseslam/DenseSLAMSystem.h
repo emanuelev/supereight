@@ -191,7 +191,7 @@ public:
     /*
      * TODO Document this.
      */
-    void dump_mesh(const std::string filename);
+    void dump_mesh(const std::string);
 
     /**
      * Render the current 3D reconstruction.
@@ -246,7 +246,7 @@ public:
 
     // TODO
     // void saveMap(const std::string& filename) { octree_->save(filename); }
-    void saveMap(const std::string& filename) {}
+    void saveMap(const std::string&) {}
 
     //
     // Getters

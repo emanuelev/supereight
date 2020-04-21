@@ -39,14 +39,16 @@
 #include "../common/field_impls.hpp"
 
 #include <supereight/shared/commons.h>
-#include <supereight/shared/timings.h>
 #include <supereight/shared/perfstats.h>
+#include <supereight/shared/timings.h>
 #include <supereight/utils/math_utils.h>
 #include <tuple>
 
 #include <sophus/se3.hpp>
 #include <supereight/image/image.hpp>
 #include <supereight/ray_iterator.hpp>
+
+namespace se {
 
 template<typename FieldType, template<typename> typename BufferT,
     template<typename, template<typename> typename> class OctreeT>
@@ -71,8 +73,8 @@ static void raycastKernel(const OctreeT<FieldType, BufferT>& octree,
             const float t_min =
                 ray.tcmin(); /* Get distance to the first intersected block */
             const Eigen::Vector4f hit = t_min > 0.f
-                ? raycast(octree, transl, dir, t_min, ray.tmax(), mu, step,
-                      largestep)
+                ? voxel_traits<FieldType>::raycast(octree, transl, dir, t_min,
+                      ray.tmax(), mu, step, largestep)
                 : Eigen::Vector4f::Constant(0.f);
             if (hit.w() > 0.0) {
                 vertex[x + y * vertex.width()] = hit.head<3>();
@@ -88,10 +90,11 @@ static void raycastKernel(const OctreeT<FieldType, BufferT>& octree,
                         Eigen::Vector3f(INVALID, 0, 0);
                 } else {
                     // Invert normals if SDF
+                    if (voxel_traits<FieldType>::invert_normals)
+                        surfNorm *= -1.f;
+
                     normal[pos.x() + pos.y() * normal.width()] =
-                        std::is_same<FieldType, SDF>::value
-                        ? (-1.f * surfNorm).normalized()
-                        : surfNorm.normalized();
+                        surfNorm.normalized();
                 }
             } else {
                 vertex[pos.x() + pos.y() * vertex.width()] =
@@ -132,18 +135,18 @@ static void renderVolumeKernel(const OctreeT<FieldType, BufferT>& octree,
                 ray.next();
                 const float t_min = ray.tmin(); /* Get distance to the first
                                                    intersected block */
-                hit = t_min > 0.f ? raycast(octree, transl, dir, t_min,
-                                        ray.tmax(), mu, step, largestep)
-                                  : Eigen::Vector4f::Constant(0.f);
+                hit = t_min > 0.f
+                    ? voxel_traits<FieldType>::raycast(octree, transl, dir,
+                          t_min, ray.tmax(), mu, step, largestep)
+                    : Eigen::Vector4f::Constant(0.f);
                 if (hit.w() > 0) {
                     test     = hit.head<3>() * octree.size() / octree.dim();
                     surfNorm = octree.grad(
                         test, [](const auto& val) { return val.x; });
 
                     // Invert normals if SDF
-                    surfNorm = std::is_same<FieldType, SDF>::value
-                        ? -1.f * surfNorm
-                        : surfNorm;
+                    if (voxel_traits<FieldType>::invert_normals)
+                        surfNorm *= -1.f;
                 } else {
                     surfNorm = Eigen::Vector3f(INVALID, 0, 0);
                 }
@@ -174,3 +177,5 @@ static void renderVolumeKernel(const OctreeT<FieldType, BufferT>& octree,
     }
     TOCK("renderVolumeKernel", depthSize.x * depthSize.y);
 }
+
+} // namespace se

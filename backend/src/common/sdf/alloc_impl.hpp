@@ -29,39 +29,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  * */
-#ifndef SDF_ALLOC_H
-#define SDF_ALLOC_H
+#pragma once
+
 #include <supereight/node.hpp>
 #include <supereight/utils/math_utils.h>
 #include <supereight/utils/morton_utils.hpp>
 
-/*
- * \brief Given a depth map and camera matrix it computes the list of
- * voxels intersected but not allocated by the rays around the measurement m in
- * a region comprised between m +/- band.
- * \param allocationList output list of keys corresponding to voxel blocks to
- * be allocated
- * \param reserved allocated size of allocationList
- * \param map_index indexing structure used to index voxel blocks
- * \param pose camera extrinsics matrix
- * \param K camera intrinsics matrix
- * \param depthmap input depth map
- * \param imageSize dimensions of depthmap
- * \param size discrete extent of the map, in number of voxels
- * \param voxelSize spacing between two consegutive voxels, in metric space
- * \param band maximum extent of the allocating region, per ray
- */
-template<typename FieldType, template<typename> typename BufferT,
-    template<typename, template<typename> typename> class OctreeT,
-    typename HashType>
-unsigned int buildAllocationList(HashType* allocationList, size_t reserved,
-    OctreeT<FieldType, BufferT>& map_index, const Eigen::Matrix4f& pose,
-    const Eigen::Matrix4f& K, const float* depthmap,
-    const Eigen::Vector2i& imageSize, const unsigned int size,
-    const float voxelSize, const float band) {
-    const float inverseVoxelSize = 1 / voxelSize;
+namespace se {
+
+template<typename OctreeT, typename HashType>
+int voxel_traits<SDF>::buildAllocationList(HashType* allocation_list,
+    size_t reserved, const OctreeT& octree, const Eigen::Matrix4f& pose,
+    const Eigen::Matrix4f& K, const float* depth_map,
+    const Eigen::Vector2i& image_size, float mu) {
+    const float band               = mu * 2;
+    const float voxel_size         = octree.dim() / octree.size();
+    const float inverse_voxel_size = 1.f / voxel_size;
+    const int size                 = octree.size();
     const unsigned block_scale =
-        log2(size) - se::math::log2_const(se::VoxelBlock<FieldType>::side);
+        log2(size) - se::math::log2_const(OctreeT::blockSide);
 
     Eigen::Matrix4f invK        = K.inverse();
     const Eigen::Matrix4f kPose = pose * invK;
@@ -73,13 +59,13 @@ unsigned int buildAllocationList(HashType* allocationList, size_t reserved,
 #endif
 
     const Eigen::Vector3f camera = pose.topRightCorner<3, 1>();
-    const int numSteps           = ceil(band * inverseVoxelSize);
+    const int numSteps           = ceil(band * inverse_voxel_size);
     voxelCount                   = 0;
 #pragma omp parallel for
-    for (int y = 0; y < imageSize.y(); ++y) {
-        for (int x = 0; x < imageSize.x(); ++x) {
-            if (depthmap[x + y * imageSize.x()] == 0) continue;
-            const float depth           = depthmap[x + y * imageSize.x()];
+    for (int y = 0; y < image_size.y(); ++y) {
+        for (int x = 0; x < image_size.x(); ++x) {
+            if (depth_map[x + y * image_size.x()] == 0) continue;
+            const float depth           = depth_map[x + y * image_size.x()];
             Eigen::Vector3f worldVertex = (kPose *
                 Eigen::Vector3f((x + 0.5f) * depth, (y + 0.5f) * depth, depth)
                     .homogeneous())
@@ -94,19 +80,18 @@ unsigned int buildAllocationList(HashType* allocationList, size_t reserved,
             Eigen::Vector3f voxelPos = origin;
             for (int i = 0; i < numSteps; i++) {
                 Eigen::Vector3f voxelScaled =
-                    (voxelPos * inverseVoxelSize).array().floor();
+                    (voxelPos * inverse_voxel_size).array().floor();
                 if ((voxelScaled.x() < size) && (voxelScaled.y() < size) &&
                     (voxelScaled.z() < size) && (voxelScaled.x() >= 0) &&
                     (voxelScaled.y() >= 0) && (voxelScaled.z() >= 0)) {
-                    voxel = voxelScaled.cast<int>();
-                    se::VoxelBlock<FieldType>* n =
-                        map_index.fetch(voxel.x(), voxel.y(), voxel.z());
+                    voxel  = voxelScaled.cast<int>();
+                    auto n = octree.fetch(voxel.x(), voxel.y(), voxel.z());
                     if (!n) {
-                        HashType k = map_index.hash(
+                        HashType k = octree.hash(
                             voxel.x(), voxel.y(), voxel.z(), block_scale);
                         unsigned int idx = voxelCount++;
                         if (idx < reserved) {
-                            allocationList[idx] = k;
+                            allocation_list[idx] = k;
                         } else {
                             break;
                         }
@@ -122,4 +107,4 @@ unsigned int buildAllocationList(HashType* allocationList, size_t reserved,
     return written >= reserved ? reserved : written;
 }
 
-#endif
+} // namespace se

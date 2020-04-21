@@ -29,16 +29,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  * */
-
-#ifndef BFUSION_MAPPING_HPP
-#define BFUSION_MAPPING_HPP
+#pragma once
 
 #include "bspline_lookup.hpp"
 
+#include <supereight/backend/fields.hpp>
 #include <supereight/functors/projective_functor.hpp>
 #include <supereight/image/image.hpp>
 #include <supereight/node.hpp>
 #include <supereight/shared/constant_parameters.h>
+
+namespace se {
 
 /**
  * Perform bilinear interpolation on a depth image. See
@@ -145,44 +146,37 @@ static inline float applyWindow(
  * Struct to hold the data and perform the update of the map from a single
  * depth frame.
  */
-struct bfusion_update {
-    const float* depth;
-    Eigen::Vector2i depthSize;
-    float noiseFactor;
-    float timestamp;
-    float voxelsize;
+bfusion_update::bfusion_update(const float* d, const Eigen::Vector2i& framesize,
+    float n, float t, float vs)
+    : depth(d), depthSize(framesize), noiseFactor(n), timestamp(t),
+      voxelsize(vs) {}
 
-    bfusion_update(const float* d, const Eigen::Vector2i& framesize, float n,
-        float t, float vs)
-        : depth(d), depthSize(framesize), noiseFactor(n), timestamp(t),
-          voxelsize(vs){};
+template<typename DataHandlerT>
+void bfusion_update::operator()(DataHandlerT& handler, const Eigen::Vector3i&,
+    const Eigen::Vector3f& pos, const Eigen::Vector2f& pixel) {
+    const Eigen::Vector2i px = pixel.cast<int>();
+    const float depthSample  = depth[px.x() + depthSize.x() * px.y()];
+    // Return on invalid depth measurement
+    if (depthSample <= 0) return;
 
-    template<typename DataHandlerT>
-    void operator()(DataHandlerT& handler, const Eigen::Vector3i&,
-        const Eigen::Vector3f& pos, const Eigen::Vector2f& pixel) {
-        const Eigen::Vector2i px = pixel.cast<int>();
-        const float depthSample  = depth[px.x() + depthSize.x() * px.y()];
-        // Return on invalid depth measurement
-        if (depthSample <= 0) return;
+    // Compute the occupancy probability for the current measurement.
+    const float diff = (pos.z() - depthSample);
+    float sigma      = se::math::clamp(
+        noiseFactor * se::math::sq(pos.z()), 2 * voxelsize, 0.05f);
+    float sample = H(diff / sigma, pos.z());
+    if (sample == 0.5f) return;
+    sample = se::math::clamp(sample, 0.03f, 0.97f);
 
-        // Compute the occupancy probability for the current measurement.
-        const float diff = (pos.z() - depthSample);
-        float sigma      = se::math::clamp(
-            noiseFactor * se::math::sq(pos.z()), 2 * voxelsize, 0.05f);
-        float sample = H(diff / sigma, pos.z());
-        if (sample == 0.5f) return;
-        sample = se::math::clamp(sample, 0.03f, 0.97f);
+    auto data = handler.get();
 
-        auto data = handler.get();
+    // Update the occupancy probability
+    const double delta_t = timestamp - data.y;
+    data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
+    data.x =
+        se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
+    data.y = timestamp;
 
-        // Update the occupancy probability
-        const double delta_t = timestamp - data.y;
-        data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
-        data.x = se::math::clamp(
-            updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
-        data.y = timestamp;
+    handler.set(data);
+}
 
-        handler.set(data);
-    }
-};
-#endif
+} // namespace se
