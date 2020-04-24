@@ -21,9 +21,9 @@ public:
     }
 
     void reserve(int n) {
-        if (n + used() <= capacity()) return;
+        if (n <= capacity()) return;
 
-        int num_pages = (n + used() - capacity() + page_size_ - 1) / page_size_;
+        int num_pages = (n - capacity() + page_size_ - 1) / page_size_;
         for (int i = 0; i < num_pages; ++i) {
             pages_.push_back(
                 static_cast<T*>(std::calloc(sizeof(T), page_size_)));

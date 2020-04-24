@@ -422,10 +422,10 @@ Node<T>* Octree<T, BufferT>::insert(
     // Make sure we have enough space on buffers
     const int leaves_level = max_level_ - math::log2_const(blockSide);
     if (depth >= leaves_level) {
-        block_buffer_.reserve(1);
-        nodes_buffer_.reserve(leaves_level);
+        block_buffer_.reserve(block_buffer_.used() + 1);
+        nodes_buffer_.reserve(nodes_buffer_.used() + leaves_level);
     } else {
-        nodes_buffer_.reserve(depth);
+        nodes_buffer_.reserve(nodes_buffer_.used() + depth);
     }
 
     Node<T>* n = root_;
@@ -781,7 +781,7 @@ void Octree<T, BufferT>::reserveBuffers(const int n) {
         keys_at_level_ = new key_t[n];
         reserved_      = n;
     }
-    block_buffer_.reserve(n);
+    block_buffer_.reserve(block_buffer_.used() + n);
 }
 
 template<typename T, template<typename> typename BufferT>
@@ -813,7 +813,7 @@ template<typename T, template<typename> typename BufferT>
 bool Octree<T, BufferT>::allocate_level(
     key_t* keys, int num_tasks, int target_level) {
     int leaves_level = max_level_ - log2(blockSide);
-    nodes_buffer_.reserve(num_tasks);
+    nodes_buffer_.reserve(nodes_buffer_.used() + num_tasks);
 
 #pragma omp parallel for
     for (int i = 0; i < num_tasks; i++) {
@@ -925,7 +925,7 @@ void Octree<T, BufferT>::load(const std::string& filename) {
 
     size_t n = 0;
     is.read(reinterpret_cast<char*>(&n), sizeof(size_t));
-    nodes_buffer_.reserve(n);
+    nodes_buffer_.reserve(nodes_buffer_.used() + n);
     std::cout << "Reading " << n << " nodes " << std::endl;
     for (size_t i = 0; i < n; ++i) {
         Node<T> tmp;
