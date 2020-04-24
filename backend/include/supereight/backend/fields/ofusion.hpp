@@ -39,7 +39,7 @@ struct voxel_traits<OFusion> {
     static inline value_type initValue() { return {0.f, 0.f}; }
 
     template<typename OctreeT, typename HashType>
-    static int buildAllocationList(HashType* allocation_list, size_t reserved,
+    static int buildAllocationList(HashType* allocation_list, int reserved,
         const OctreeT& octree, const Eigen::Matrix4f& pose,
         const Eigen::Matrix4f& K, const float* depth_map,
         const Eigen::Vector2i& image_size, float noise_factor);

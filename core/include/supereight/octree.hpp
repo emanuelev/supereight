@@ -186,6 +186,11 @@ public:
         return keyops::encode(x, y, z, scale, max_level_);
     }
 
+    bool inBounds(const Eigen::Vector3f& pos) const {
+        return pos.x() < size() && pos.y() < size() && pos.z() < size() &&
+            pos.x() >= 0 && pos.y() >= 0 && pos.z() >= 0;
+    }
+
     /*! \brief allocate a set of voxel blocks via their positional key
      * \param keys collection of voxel block keys to be allocated (i.e. their
      * morton number)

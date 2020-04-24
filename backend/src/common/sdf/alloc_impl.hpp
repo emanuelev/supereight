@@ -38,73 +38,83 @@
 namespace se {
 
 template<typename OctreeT, typename HashType>
+static void buildAllocationList_SDF(HashType* allocation_list, int reserved,
+    std::atomic<int>& voxel_count, const OctreeT& octree,
+    const Eigen::Vector3f& world_vertex, const Eigen::Vector3f& direction,
+    const Eigen::Vector3f& camera_pos, float depth_sample, int max_depth,
+    int block_depth, float voxel_size, float inverse_voxel_size, float mu) {
+    const float band             = mu * 2;
+    const Eigen::Vector3f origin = world_vertex - (band * 0.5f) * direction;
+    const int num_steps          = ceil(band * inverse_voxel_size);
+    const Eigen::Vector3f step   = (direction * band) / num_steps;
+
+    Eigen::Vector3f voxel_pos = origin;
+    for (int i = 0; i < num_steps; i++) {
+        Eigen::Vector3f voxel_scaled =
+            (voxel_pos * inverse_voxel_size).array().floor();
+        if (octree.inBounds(voxel_scaled)) {
+            auto voxel     = voxel_scaled.cast<int>();
+            auto block_ptr = octree.fetch(voxel.x(), voxel.y(), voxel.z());
+
+            if (!block_ptr) {
+                HashType k =
+                    octree.hash(voxel.x(), voxel.y(), voxel.z(), block_depth);
+                int idx = voxel_count++;
+
+                if (idx < reserved) {
+                    allocation_list[idx] = k;
+                } else {
+                    break;
+                }
+            } else {
+                block_ptr->active(true);
+            }
+        }
+
+        voxel_pos += step;
+    }
+}
+
+template<typename OctreeT, typename HashType>
 int voxel_traits<SDF>::buildAllocationList(HashType* allocation_list,
-    size_t reserved, const OctreeT& octree, const Eigen::Matrix4f& pose,
+    int reserved, const OctreeT& octree, const Eigen::Matrix4f& pose,
     const Eigen::Matrix4f& K, const float* depth_map,
     const Eigen::Vector2i& image_size, float mu) {
-    const float band               = mu * 2;
+    const Eigen::Matrix4f inv_P = pose * K.inverse();
+
+    const int max_depth = log2(octree.size());
+    const int block_depth =
+        log2(octree.size()) - se::math::log2_const(OctreeT::blockSide);
+
     const float voxel_size         = octree.dim() / octree.size();
     const float inverse_voxel_size = 1.f / voxel_size;
-    const int size                 = octree.size();
-    const unsigned block_scale =
-        log2(size) - se::math::log2_const(OctreeT::blockSide);
 
-    Eigen::Matrix4f invK        = K.inverse();
-    const Eigen::Matrix4f kPose = pose * invK;
+    std::atomic<int> voxel_count;
 
-#ifdef _OPENMP
-    std::atomic<unsigned int> voxelCount;
-#else
-    unsigned int voxelCount;
-#endif
-
-    const Eigen::Vector3f camera = pose.topRightCorner<3, 1>();
-    const int numSteps           = ceil(band * inverse_voxel_size);
-    voxelCount                   = 0;
+    const Eigen::Vector3f camera_pos = pose.topRightCorner<3, 1>();
+    voxel_count                      = 0;
 #pragma omp parallel for
     for (int y = 0; y < image_size.y(); ++y) {
         for (int x = 0; x < image_size.x(); ++x) {
-            if (depth_map[x + y * image_size.x()] == 0) continue;
-            const float depth           = depth_map[x + y * image_size.x()];
-            Eigen::Vector3f worldVertex = (kPose *
-                Eigen::Vector3f((x + 0.5f) * depth, (y + 0.5f) * depth, depth)
+            const float depth_sample = depth_map[x + y * image_size.x()];
+            if (depth_sample == 0) continue;
+
+            Eigen::Vector3f world_vertex = (inv_P *
+                Eigen::Vector3f((x + 0.5f) * depth_sample,
+                    (y + 0.5f) * depth_sample, depth_sample)
                     .homogeneous())
-                                              .head<3>();
+                                               .head<3>();
+            Eigen::Vector3f direction =
+                (camera_pos - world_vertex).normalized();
 
-            Eigen::Vector3f direction = (camera - worldVertex).normalized();
-            const Eigen::Vector3f origin =
-                worldVertex - (band * 0.5f) * direction;
-            const Eigen::Vector3f step = (direction * band) / numSteps;
-
-            Eigen::Vector3i voxel;
-            Eigen::Vector3f voxelPos = origin;
-            for (int i = 0; i < numSteps; i++) {
-                Eigen::Vector3f voxelScaled =
-                    (voxelPos * inverse_voxel_size).array().floor();
-                if ((voxelScaled.x() < size) && (voxelScaled.y() < size) &&
-                    (voxelScaled.z() < size) && (voxelScaled.x() >= 0) &&
-                    (voxelScaled.y() >= 0) && (voxelScaled.z() >= 0)) {
-                    voxel  = voxelScaled.cast<int>();
-                    auto n = octree.fetch(voxel.x(), voxel.y(), voxel.z());
-                    if (!n) {
-                        HashType k = octree.hash(
-                            voxel.x(), voxel.y(), voxel.z(), block_scale);
-                        unsigned int idx = voxelCount++;
-                        if (idx < reserved) {
-                            allocation_list[idx] = k;
-                        } else {
-                            break;
-                        }
-                    } else {
-                        n->active(true);
-                    }
-                }
-                voxelPos += step;
-            }
+            buildAllocationList_SDF(allocation_list, reserved, voxel_count,
+                octree, world_vertex, direction, camera_pos, depth_sample,
+                max_depth, block_depth, voxel_size, inverse_voxel_size, mu);
         }
     }
-    const unsigned int written = voxelCount;
-    return written >= reserved ? reserved : written;
+
+    int final_count = voxel_count;
+    return final_count >= reserved ? reserved : final_count;
 }
 
 } // namespace se

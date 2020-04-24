@@ -13,7 +13,10 @@ public:
     }
 
     int used() const { return used_; }
+
     int capacity() const { return capacity_; }
+
+    void clear() { used_ = 0; }
 
     T* acquire() {
         int idx = used_.fetch_add(1);
