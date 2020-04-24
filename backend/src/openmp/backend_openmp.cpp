@@ -1,5 +1,5 @@
 #include "../common/field_impls.hpp"
-#include "rendering.hpp"
+#include "kernels.hpp"
 
 #include <supereight/backend/backend_openmp.hpp>
 #include <supereight/functors/projective_functor.hpp>
@@ -16,8 +16,9 @@ void Backend::allocate_(const Image<float>& depth, const Eigen::Vector4f& k,
 
     allocation_list_.reserve(total);
 
-    int allocated = voxel_traits<FieldType>::buildAllocationList(
-        allocation_list_.data(), allocation_list_.capacity(), octree_, pose,
+    int allocated;
+    buildAllocationListKernel(allocation_list_.data(),
+        allocation_list_.capacity(), allocated, octree_, pose,
         getCameraMatrix(k), depth.data(), computation_size, mu);
 
     octree_.allocate(allocation_list_.data(), allocated);

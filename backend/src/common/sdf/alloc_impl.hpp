@@ -38,8 +38,8 @@
 namespace se {
 
 template<typename OctreeT, typename HashType>
-static void buildAllocationList_SDF(HashType* allocation_list, int reserved,
-    std::atomic<int>& voxel_count, const OctreeT& octree,
+void voxel_traits<SDF>::buildAllocationList(HashType* allocation_list,
+    int reserved, std::atomic<int>& voxel_count, const OctreeT& octree,
     const Eigen::Vector3f& world_vertex, const Eigen::Vector3f& direction,
     const Eigen::Vector3f& camera_pos, float depth_sample, int max_depth,
     int block_depth, float voxel_size, float inverse_voxel_size, float mu) {
@@ -73,48 +73,6 @@ static void buildAllocationList_SDF(HashType* allocation_list, int reserved,
 
         voxel_pos += step;
     }
-}
-
-template<typename OctreeT, typename HashType>
-int voxel_traits<SDF>::buildAllocationList(HashType* allocation_list,
-    int reserved, const OctreeT& octree, const Eigen::Matrix4f& pose,
-    const Eigen::Matrix4f& K, const float* depth_map,
-    const Eigen::Vector2i& image_size, float mu) {
-    const Eigen::Matrix4f inv_P = pose * K.inverse();
-
-    const int max_depth = log2(octree.size());
-    const int block_depth =
-        log2(octree.size()) - se::math::log2_const(OctreeT::blockSide);
-
-    const float voxel_size         = octree.dim() / octree.size();
-    const float inverse_voxel_size = 1.f / voxel_size;
-
-    std::atomic<int> voxel_count;
-
-    const Eigen::Vector3f camera_pos = pose.topRightCorner<3, 1>();
-    voxel_count                      = 0;
-#pragma omp parallel for
-    for (int y = 0; y < image_size.y(); ++y) {
-        for (int x = 0; x < image_size.x(); ++x) {
-            const float depth_sample = depth_map[x + y * image_size.x()];
-            if (depth_sample == 0) continue;
-
-            Eigen::Vector3f world_vertex = (inv_P *
-                Eigen::Vector3f((x + 0.5f) * depth_sample,
-                    (y + 0.5f) * depth_sample, depth_sample)
-                    .homogeneous())
-                                               .head<3>();
-            Eigen::Vector3f direction =
-                (camera_pos - world_vertex).normalized();
-
-            buildAllocationList_SDF(allocation_list, reserved, voxel_count,
-                octree, world_vertex, direction, camera_pos, depth_sample,
-                max_depth, block_depth, voxel_size, inverse_voxel_size, mu);
-        }
-    }
-
-    int final_count = voxel_count;
-    return final_count >= reserved ? reserved : final_count;
 }
 
 } // namespace se

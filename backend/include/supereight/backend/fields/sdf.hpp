@@ -38,10 +38,11 @@ struct voxel_traits<SDF> {
     static value_type initValue() { return {1.f, 0.f}; }
 
     template<typename OctreeT, typename HashType>
-    static int buildAllocationList(HashType* allocation_list, int reserved,
-        const OctreeT& octree, const Eigen::Matrix4f& pose,
-        const Eigen::Matrix4f& K, const float* depth_map,
-        const Eigen::Vector2i& image_size, float mu);
+    static void buildAllocationList(HashType* allocation_list, int reserved,
+        std::atomic<int>& voxel_count, const OctreeT& octree,
+        const Eigen::Vector3f& world_vertex, const Eigen::Vector3f& direction,
+        const Eigen::Vector3f& camera_pos, float depth_sample, int max_depth,
+        int block_depth, float voxel_size, float inverse_voxel_size, float mu);
 
     template<typename OctreeT>
     static Eigen::Vector4f raycast(const OctreeT& octree,
