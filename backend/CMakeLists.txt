@@ -11,4 +11,8 @@ if(SE_BACKEND_OPENMP)
     add_subdirectory(src/openmp)
 endif()
 
+if(SE_BACKEND_CUDA)
+    add_subdirectory(src/cuda)
+endif()
+
 set(BUILT_BACKENDS ${BUILT_BACKENDS} PARENT_SCOPE)

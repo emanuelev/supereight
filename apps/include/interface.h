@@ -24,7 +24,12 @@
 #include <time.h>
 #include <supereight/shared/str_utils.h>
 #include <Eigen/Dense>
+
+#ifdef SE_CUDA_VF
+#include <vector_functions.h>
+#else
 #include <thirdparty/cutil_math.h>
+#endif
 
 #include "sys/stat.h"
 
@@ -799,7 +804,7 @@ class OpenNIDepthReader: public DepthReader {
     } 
 
     uint2 getinputSize() {
-      return make_uint2(0);
+      return make_uint2(0, 0);
     }
 
     void restart() {

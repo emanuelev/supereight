@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <cstring>
+#include <queue>
 
 #if defined(_OPENMP) && !defined(__clang__)
 #include <parallel/algorithm>
