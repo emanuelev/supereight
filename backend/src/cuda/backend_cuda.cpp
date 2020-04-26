@@ -1,8 +1,10 @@
 #include "../common/field_impls.hpp"
 #include "kernels.hpp"
+#include "projective_functor.hpp"
 
 #include <supereight/backend/backend.hpp>
-#include <supereight/functors/projective_functor.hpp>
+
+#include <cuda_runtime.h>
 
 namespace se {
 
@@ -14,6 +16,16 @@ void Backend::allocate_(const Image<float>& depth, const Eigen::Vector4f& k,
     size_t total =
         num_vox_per_pix * computation_size.x() * computation_size.y();
 
+    if (depth_ == nullptr || depth_size_ != computation_size) {
+        depth_size_ = computation_size;
+        cudaMallocManaged(
+            &depth_, sizeof(float) * depth_size_.x() * depth_size_.y());
+    }
+
+    cudaMemcpy(depth_, depth.data(),
+        sizeof(float) * depth_size_.x() * depth_size_.y(),
+        cudaMemcpyHostToDevice);
+
     allocation_list_.reserve(total);
 
     int allocated;
@@ -24,14 +36,14 @@ void Backend::allocate_(const Image<float>& depth, const Eigen::Vector4f& k,
     octree_.allocate(allocation_list_.data(), allocated);
 }
 
-void Backend::update_(const Image<float>& depth, const Sophus::SE3f& Tcw,
+void Backend::update_(const Image<float>&, const Sophus::SE3f& Tcw,
     const Eigen::Vector4f& k, const Eigen::Vector2i& computation_size, float mu,
     int frame) {
     float voxel_size = octree_.dim() / octree_.size();
     float timestamp  = (1.f / 30.f) * frame;
 
     voxel_traits<FieldType>::update_func_type funct(
-        depth.data(), computation_size, mu, timestamp, voxel_size);
+        depth_, computation_size, mu, timestamp, voxel_size);
 
     se::functor::projective_map(
         octree_, Tcw, getCameraMatrix(k), computation_size, funct);

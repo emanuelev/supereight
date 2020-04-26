@@ -28,19 +28,22 @@
 
 */
 
-#ifndef PROJECTIVE_FUNCTOR_HPP
-#define PROJECTIVE_FUNCTOR_HPP
-#include <functional>
-#include <vector>
+#pragma once
 
-#include "../algorithms/filter.hpp"
-#include "../functors/data_handler.hpp"
-#include "../node.hpp"
-#include "../utils/math_utils.h"
+#include "kernels.hpp"
+
+#include <supereight/algorithms/filter.hpp>
+#include <supereight/functors/data_handler.hpp>
+#include <supereight/node.hpp>
+#include <supereight/utils/math_utils.h>
+
+#include <functional>
 #include <sophus/se3.hpp>
+#include <vector>
 
 namespace se {
 namespace functor {
+
 template<typename FieldType, template<typename> typename BufferT,
     template<typename, template<typename> typename> class MapT,
     typename UpdateF>
@@ -51,70 +54,6 @@ public:
         const Sophus::SE3f& Tcw, const Eigen::Matrix4f& K,
         const Eigen::Vector2i framesize)
         : _map(map), _function(f), _Tcw(Tcw), _K(K), _frame_size(framesize) {}
-
-    void build_active_list() {
-        using namespace std::placeholders;
-        /* Retrieve the active list */
-        const BufferT<se::VoxelBlock<FieldType>>& block_array =
-            _map.getBlockBuffer();
-
-        /* Predicates definition */
-        const Eigen::Matrix4f Tcw = _Tcw.matrix();
-        const float voxel_size    = _map.dim() / _map.size();
-        auto in_frustum_predicate =
-            std::bind(algorithms::in_frustum<se::VoxelBlock<FieldType>>, _1,
-                voxel_size, _K * Tcw, _frame_size);
-        auto is_active_predicate = [](const se::VoxelBlock<FieldType>* b) {
-            return b->active();
-        };
-
-        algorithms::filter(_active_list, block_array, is_active_predicate,
-            in_frustum_predicate);
-    }
-
-    void update_block(
-        se::VoxelBlock<FieldType>* block, const float voxel_size) {
-        const Eigen::Vector3i blockCoord = block->coordinates();
-        const Eigen::Vector3f delta =
-            _Tcw.rotationMatrix() * Eigen::Vector3f(voxel_size, 0, 0);
-        const Eigen::Vector3f cameraDelta = _K.topLeftCorner<3, 3>() * delta;
-        bool is_visible                   = false;
-
-        unsigned int y, z, blockSide;
-        blockSide          = se::VoxelBlock<FieldType>::side;
-        unsigned int ylast = blockCoord(1) + blockSide;
-        unsigned int zlast = blockCoord(2) + blockSide;
-
-        for (z = blockCoord(2); z < zlast; ++z)
-            for (y = blockCoord(1); y < ylast; ++y) {
-                Eigen::Vector3i pix   = Eigen::Vector3i(blockCoord(0), y, z);
-                Eigen::Vector3f start = _Tcw *
-                    Eigen::Vector3f((pix(0)) * voxel_size,
-                        (pix(1)) * voxel_size, (pix(2)) * voxel_size);
-                Eigen::Vector3f camerastart = _K.topLeftCorner<3, 3>() * start;
-#pragma omp simd
-                for (unsigned int x = 0; x < blockSide; ++x) {
-                    pix(0) = x + blockCoord(0);
-                    const Eigen::Vector3f camera_voxel =
-                        camerastart + (x * cameraDelta);
-                    const Eigen::Vector3f pos = start + (x * delta);
-                    if (pos(2) < 0.0001f) continue;
-
-                    const float inverse_depth = 1.f / camera_voxel(2);
-                    const Eigen::Vector2f pixel =
-                        Eigen::Vector2f(camera_voxel(0) * inverse_depth + 0.5f,
-                            camera_voxel(1) * inverse_depth + 0.5f);
-                    if (pixel(0) < 0.5f || pixel(0) > _frame_size(0) - 1.5f ||
-                        pixel(1) < 0.5f || pixel(1) > _frame_size(1) - 1.5f)
-                        continue;
-                    is_visible = true;
-
-                    VoxelBlockHandler<FieldType> handler = {block, pix};
-                    _function(handler, pix, pos, pixel);
-                }
-            }
-        block->active(is_visible);
-    }
 
     void update_node(se::Node<FieldType>* node, const float voxel_size) {
         const Eigen::Vector3i voxel =
@@ -149,17 +88,11 @@ public:
     }
 
     void apply() {
-        build_active_list();
-        const float voxel_size = _map.dim() / _map.size();
-        size_t list_size       = _active_list.size();
-#pragma omp parallel for
-        for (unsigned int i = 0; i < list_size; ++i) {
-            update_block(_active_list[i], voxel_size);
-        }
-        _active_list.clear();
+        updateBlocks(_map, _function, _Tcw, _K, _frame_size);
 
-        auto& nodes_list = _map.getNodesBuffer();
-        list_size        = nodes_list.used();
+        const float voxel_size = _map.dim() / _map.size();
+        auto& nodes_list       = _map.getNodesBuffer();
+        list_size              = nodes_list.used();
 #pragma omp parallel for
         for (unsigned int i = 0; i < list_size; ++i) {
             update_node(nodes_list[i], voxel_size);
@@ -184,6 +117,6 @@ void projective_map(MapT<FieldType, BufferT>& map, const Sophus::SE3f& Tcw,
         map, funct, Tcw, K, framesize);
     it.apply();
 }
+
 } // namespace functor
 } // namespace se
-#endif

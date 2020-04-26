@@ -50,6 +50,10 @@
 
 namespace se {
 
+template<typename OctreeT, typename UpdateFuncT>
+void updateBlocks(OctreeT octree, UpdateFuncT func, Sophus::SE3f Tcw,
+    Eigen::Matrix4f K, Eigen::Vector2i frame_size);
+
 template<typename OctreeT, typename HashType>
 static void buildAllocationListKernel(HashType* allocation_list, int reserved,
     int& allocation_count, const OctreeT& octree, const Eigen::Matrix4f& pose,

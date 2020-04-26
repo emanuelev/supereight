@@ -14,6 +14,9 @@ public:
 private:
     std::vector<se::key_t> allocation_list_;
 
+    float* depth_ = nullptr;
+    Eigen::Vector2i depth_size_;
+
     void allocate_(const Image<float>& depth, const Eigen::Vector4f& k,
         const Eigen::Matrix4f& pose, const Eigen::Vector2i& computation_size,
         float mu) override;

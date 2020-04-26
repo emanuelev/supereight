@@ -1,8 +1,8 @@
 #include "../common/field_impls.hpp"
 #include "kernels.hpp"
+#include "projective_functor.hpp"
 
 #include <supereight/backend/backend.hpp>
-#include <supereight/functors/projective_functor.hpp>
 
 namespace se {
 

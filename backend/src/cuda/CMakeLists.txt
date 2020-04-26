@@ -10,17 +10,17 @@ find_package(Sophus      REQUIRED)
 
 set(libraries CUDA::cudart supereight-shared supereight-core)
 
-if(SE_OPENMP)
-    list(APPEND compile_flags ${OpenMP_CXX_FLAGS})
-    list(APPEND libraries ${OpenMP_CXX_FLAGS})
-endif()
+#if(SE_OPENMP)
+#    list(APPEND compile_flags ${OpenMP_CXX_FLAGS})
+#    list(APPEND libraries ${OpenMP_CXX_FLAGS})
+#endif()
 
 foreach(FIELD_TYPE ${FIELD_TYPES})
     string(TOLOWER ${FIELD_TYPE} FIELD_TYPE_NAME)
 
     set(library_name ${PROJECT_NAME}-cuda-${FIELD_TYPE_NAME})
 
-    add_library(${library_name} STATIC backend_cuda.cpp)
+    add_library(${library_name} STATIC backend_cuda.cpp kernels.cu)
 
     target_include_directories(${library_name} PUBLIC ${BACKEND_INCLUDE_DIR}
         ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
