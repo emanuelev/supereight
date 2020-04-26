@@ -5,8 +5,6 @@
 
 namespace se {
 
-using FieldType = SE_FIELD_TYPE;
-
 template<typename Derived, template<typename> class BufferT>
 class BackendBase {
 public:

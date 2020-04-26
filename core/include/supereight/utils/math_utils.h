@@ -30,6 +30,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #ifndef SE_MATH_HELPER_H
 #define SE_MATH_HELPER_H
+
+#include <supereight/shared/commons.h>
+
 #include <Eigen/Dense>
 #include <cmath>
 #include <iostream>
@@ -56,32 +59,39 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace se {
 namespace math {
 template<typename T>
+SE_DEVICE_FUNC
 static inline T fracf(const T& v) {
     return v - v.array().floor().matrix();
 }
 
 template<typename T>
+SE_DEVICE_FUNC
 static inline T floorf(const T& v) {
     return v.array().floor();
 }
 
 template<typename T>
+SE_DEVICE_FUNC
 static inline T fabs(const T& v) {
     return v.cwiseAbs();
 }
 
 template<typename Scalar>
+SE_DEVICE_FUNC
 static inline Scalar sq(Scalar a) {
     return a * a;
 }
 
 template<typename Scalar>
+SE_DEVICE_FUNC
 static inline bool in(const Scalar v, const Scalar a, const Scalar b) {
     return v >= a && v <= b;
 }
 
+SE_DEVICE_FUNC
 constexpr int log2_const(int n) { return (n < 2 ? 0 : 1 + log2_const(n / 2)); }
 
+SE_DEVICE_FUNC
 static inline Eigen::Matrix4f toMatrix4f(const Eigen::Vector3f& trans) {
     Eigen::Matrix4f se3_mat;
     se3_mat << 1.f, 0.f, 0.f, trans.x(), 0.f, 1.f, 0.f, trans.y(), 0.f, 0.f,
@@ -90,19 +100,14 @@ static inline Eigen::Matrix4f toMatrix4f(const Eigen::Vector3f& trans) {
 }
 
 template<typename T>
+SE_DEVICE_FUNC
 static inline typename std::enable_if<std::is_arithmetic<T>::value, T>::type
     clamp(const T& f, const T& a, const T& b) {
     return std::max(a, std::min(f, b));
 }
 
-static inline void clamp(Eigen::Ref<Eigen::VectorXf> res,
-    const Eigen::Ref<const Eigen::VectorXf> a,
-    const Eigen::Ref<Eigen::VectorXf> b) {
-    res = (res.array() < a.array()).select(a, res);
-    res = (res.array() >= b.array()).select(b, res);
-}
-
 template<typename R, typename A, typename B>
+SE_DEVICE_FUNC
 static inline void clamp(Eigen::MatrixBase<R>& res,
     const Eigen::MatrixBase<A>& a, const Eigen::MatrixBase<B>& b) {
     res = res.array().max(a.array());

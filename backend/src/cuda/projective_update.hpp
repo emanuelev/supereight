@@ -1,4 +1,11 @@
 /*
+
+ Copyright (c) 2014 University of Edinburgh, Imperial College, University of
+ Manchester. Developed in the PAMELA project, EPSRC Programme Grant EP/K008730/1
+
+ This code is licensed under the MIT License.
+
+
  Copyright 2016 Emanuele Vespa, Imperial College London
 
  Redistribution and use in source and binary forms, with or without
@@ -29,22 +36,17 @@
 
 #pragma once
 
-#include "fields/ofusion.hpp"
-#include "fields/sdf.hpp"
+#include <supereight/backend/fields.hpp>
+#include <supereight/backend/memory_pool_cuda.hpp>
 
-#include <supereight/voxel_traits.hpp>
+#include <Eigen/Dense>
+#include <sophus/se3.hpp>
 
 namespace se {
 
-using FieldType = SE_FIELD_TYPE;
+void projectiveUpdate(Octree<FieldType, MemoryPoolCUDA>& octree,
+    voxel_traits<FieldType>::update_func_type& func, Sophus::SE3f Tcw,
+    Eigen::Matrix4f K, Eigen::Vector2i frame_size);
 
-}
 
-// Windowing parameters
-#define DELTA_T 1.f
-#define CAPITAL_T 4.f
-
-#define INTERP_THRESH 0.05f
-#define SURF_BOUNDARY 0.f
-#define TOP_CLAMP 1000.f
-#define BOTTOM_CLAMP (-TOP_CLAMP)
+} // namespace se

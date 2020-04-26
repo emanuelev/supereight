@@ -1,6 +1,7 @@
 #include "../common/field_impls.hpp"
+
 #include "kernels.hpp"
-#include "projective_functor.hpp"
+#include "projective_update.hpp"
 
 #include <supereight/backend/backend.hpp>
 
@@ -42,11 +43,10 @@ void Backend::update_(const Image<float>&, const Sophus::SE3f& Tcw,
     float voxel_size = octree_.dim() / octree_.size();
     float timestamp  = (1.f / 30.f) * frame;
 
-    voxel_traits<FieldType>::update_func_type funct(
+    voxel_traits<FieldType>::update_func_type func(
         depth_, computation_size, mu, timestamp, voxel_size);
 
-    se::functor::projective_map(
-        octree_, Tcw, getCameraMatrix(k), computation_size, funct);
+    projectiveUpdate(octree_, func, Tcw, getCameraMatrix(k), computation_size);
 }
 
 void Backend::raycast_(Image<Eigen::Vector3f>& vertex,

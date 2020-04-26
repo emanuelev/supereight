@@ -42,8 +42,8 @@
 namespace se {
 namespace functor {
 
-template<typename FieldType, template<typename> typename BufferT,
-    template<typename, template<typename> typename> class MapT,
+template<typename FieldType, template<typename> class BufferT,
+    template<typename, template<typename> class> class MapT,
     typename UpdateF>
 class projective_functor {
 public:
@@ -176,8 +176,8 @@ private:
     std::vector<se::VoxelBlock<FieldType>*> _active_list;
 };
 
-template<typename FieldType, template<typename> typename BufferT,
-    template<typename, template<typename> typename> class MapT,
+template<typename FieldType, template<typename> class BufferT,
+    template<typename, template<typename> class> class MapT,
     typename UpdateF>
 void projective_map(MapT<FieldType, BufferT>& map, const Sophus::SE3f& Tcw,
     const Eigen::Matrix4f& K, const Eigen::Vector2i framesize, UpdateF funct) {

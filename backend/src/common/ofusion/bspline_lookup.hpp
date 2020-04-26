@@ -32,7 +32,12 @@
 
 #pragma once
 
+#include <supereight/shared/commons.h>
+
+SE_DEVICE_VAR
 static const float bspline_num_samples  = 1000;
+
+SE_DEVICE_VAR
 static const float bspline_lookup[1000] = {0.0, 4.51352704507e-09,
     3.61082163605e-08, 1.21865230217e-07, 2.88865730884e-07, 5.64190880633e-07,
     9.74921841735e-07, 1.54813977646e-06, 2.31092584707e-06, 3.29036121585e-06,

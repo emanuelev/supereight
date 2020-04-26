@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "octree_defines.h"
 #include "utils/math_utils.h"
 #include "voxel_traits.hpp"
+
+#include <supereight/shared/commons.h>
+
 #include <atomic>
 #include <time.h>
 
@@ -45,7 +48,11 @@ class Node {
 public:
     typedef voxel_traits<T> traits_type;
     typedef typename traits_type::value_type value_type;
+
+    SE_DEVICE_FUNC
     value_type empty() const { return traits_type::empty(); }
+
+    SE_DEVICE_FUNC
     value_type init_val() const { return traits_type::initValue(); }
 
     value_type value_[8];
@@ -53,6 +60,7 @@ public:
     unsigned int side_;
     unsigned char children_mask_;
 
+    SE_DEVICE_FUNC
     Node() {
         code_          = 0;
         side_          = 0;
@@ -63,14 +71,18 @@ public:
         }
     }
 
+    SE_DEVICE_FUNC
     virtual ~Node(){};
 
+    SE_DEVICE_FUNC
     Node*& child(const int x, const int y, const int z) {
         return child_ptr_[x + y * 2 + z * 4];
     };
 
+    SE_DEVICE_FUNC
     Node*& child(const int offset) { return child_ptr_[offset]; }
 
+    SE_DEVICE_FUNC
     virtual bool isLeaf() { return false; }
 
 protected:
@@ -89,30 +101,50 @@ public:
     static constexpr unsigned int side   = BLOCK_SIDE;
     static constexpr unsigned int sideSq = side * side;
 
+    SE_DEVICE_FUNC
     static constexpr value_type empty() { return traits_type::empty(); }
+
+    SE_DEVICE_FUNC
     static constexpr value_type initValue() { return traits_type::initValue(); }
 
+    SE_DEVICE_FUNC
     VoxelBlock() {
         coordinates_ = Eigen::Vector3i::Constant(0);
         for (unsigned int i = 0; i < side * sideSq; i++)
             voxel_block_[i] = initValue();
     }
 
+    SE_DEVICE_FUNC
     bool isLeaf() { return true; }
 
+    SE_DEVICE_FUNC
     Eigen::Vector3i coordinates() const { return coordinates_; }
+
+    SE_DEVICE_FUNC
     void coordinates(const Eigen::Vector3i& c) { coordinates_ = c; }
 
+    SE_DEVICE_FUNC
     value_type data(const Eigen::Vector3i& pos) const;
+
+    SE_DEVICE_FUNC
     void data(const Eigen::Vector3i& pos, const value_type& value);
 
+    SE_DEVICE_FUNC
     value_type data(const int i) const;
+
+    SE_DEVICE_FUNC
     void data(const int i, const value_type& value);
 
+    SE_DEVICE_FUNC
     void active(const bool a) { active_ = a; }
+
+    SE_DEVICE_FUNC
     bool active() const { return active_; }
 
+    SE_DEVICE_FUNC
     value_type* getBlockRawPtr() { return voxel_block_; }
+
+    SE_DEVICE_FUNC
     static constexpr int size() { return sizeof(VoxelBlock<T>); }
 
 private:

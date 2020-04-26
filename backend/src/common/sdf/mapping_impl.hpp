@@ -36,13 +36,14 @@
 
 namespace se {
 
-sdf_update::sdf_update(
+inline sdf_update::sdf_update(
     const float* d, const Eigen::Vector2i& framesize, float m, float, float)
     : depth(d), depthSize(framesize), mu(m) {}
 
 template<typename DataHandlerT>
-void sdf_update::operator()(DataHandlerT& handler, const Eigen::Vector3i&,
-    const Eigen::Vector3f& pos, const Eigen::Vector2f& pixel) {
+inline void sdf_update::operator()(DataHandlerT& handler,
+    const Eigen::Vector3i&, const Eigen::Vector3f& pos,
+    const Eigen::Vector2f& pixel) {
     const Eigen::Vector2i px = pixel.cast<int>();
     const float depthSample  = depth[px.x() + depthSize.x() * px.y()];
     // Return on invalid depth measurement

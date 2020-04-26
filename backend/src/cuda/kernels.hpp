@@ -42,17 +42,16 @@
 #include <supereight/shared/perfstats.h>
 #include <supereight/shared/timings.h>
 #include <supereight/utils/math_utils.h>
-#include <tuple>
 
-#include <sophus/se3.hpp>
 #include <supereight/image/image.hpp>
 #include <supereight/ray_iterator.hpp>
 
-namespace se {
+#include <supereight/backend/memory_pool_cuda.hpp>
 
-template<typename OctreeT, typename UpdateFuncT>
-void updateBlocks(OctreeT octree, UpdateFuncT func, Sophus::SE3f Tcw,
-    Eigen::Matrix4f K, Eigen::Vector2i frame_size);
+#include <Eigen/Dense>
+#include <sophus/se3.hpp>
+
+namespace se {
 
 template<typename OctreeT, typename HashType>
 static void buildAllocationListKernel(HashType* allocation_list, int reserved,
@@ -99,8 +98,8 @@ static void buildAllocationListKernel(HashType* allocation_list, int reserved,
     allocation_count = final_count >= reserved ? reserved : final_count;
 }
 
-template<typename FieldType, template<typename> typename BufferT,
-    template<typename, template<typename> typename> class OctreeT>
+template<typename FieldType, template<typename> class BufferT,
+    template<typename, template<typename> class> class OctreeT>
 static void raycastKernel(const OctreeT<FieldType, BufferT>& octree,
     se::Image<Eigen::Vector3f>& vertex, se::Image<Eigen::Vector3f>& normal,
     const Eigen::Matrix4f& view, const float nearPlane, const float farPlane,
@@ -155,8 +154,8 @@ static void raycastKernel(const OctreeT<FieldType, BufferT>& octree,
     TOCK("raycastKernel", inputSize.x * inputSize.y);
 }
 
-template<typename FieldType, template<typename> typename BufferT,
-    template<typename, template<typename> typename> class OctreeT>
+template<typename FieldType, template<typename> class BufferT,
+    template<typename, template<typename> class> class OctreeT>
 static void renderVolumeKernel(const OctreeT<FieldType, BufferT>& octree,
     unsigned char* out, // RGBW packed
     const Eigen::Vector2i& depthSize, const Eigen::Matrix4f& view,

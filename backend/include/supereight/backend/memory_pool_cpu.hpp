@@ -42,9 +42,9 @@ public:
     }
 
 private:
-    static constexpr int page_size_ = 4 * 4096 / sizeof(T);
+    static constexpr int page_size_ = 64 * 4096 / sizeof(T);
 
-    std::atomic<int> used_ = 0;
+    std::atomic<int> used_ = {0};
     int capacity_          = 0;
 
     std::vector<T*> pages_;

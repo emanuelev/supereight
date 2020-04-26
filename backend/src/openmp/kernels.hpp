@@ -95,8 +95,8 @@ static void buildAllocationListKernel(HashType* allocation_list, int reserved,
     allocation_count = final_count >= reserved ? reserved : final_count;
 }
 
-template<typename FieldType, template<typename> typename BufferT,
-    template<typename, template<typename> typename> class OctreeT>
+template<typename FieldType, template<typename> class BufferT,
+    template<typename, template<typename> class> class OctreeT>
 static void raycastKernel(const OctreeT<FieldType, BufferT>& octree,
     se::Image<Eigen::Vector3f>& vertex, se::Image<Eigen::Vector3f>& normal,
     const Eigen::Matrix4f& view, const float nearPlane, const float farPlane,
@@ -151,8 +151,8 @@ static void raycastKernel(const OctreeT<FieldType, BufferT>& octree,
     TOCK("raycastKernel", inputSize.x * inputSize.y);
 }
 
-template<typename FieldType, template<typename> typename BufferT,
-    template<typename, template<typename> typename> class OctreeT>
+template<typename FieldType, template<typename> class BufferT,
+    template<typename, template<typename> class> class OctreeT>
 static void renderVolumeKernel(const OctreeT<FieldType, BufferT>& octree,
     unsigned char* out, // RGBW packed
     const Eigen::Vector2i& depthSize, const Eigen::Matrix4f& view,

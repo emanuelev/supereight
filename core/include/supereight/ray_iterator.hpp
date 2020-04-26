@@ -47,7 +47,7 @@
  *
  *****************************************************************************/
 
-static inline int __float_as_int(float value) {
+static inline int __float_as_int_h(float value) {
     union float_as_int {
         float f;
         int i;
@@ -58,7 +58,7 @@ static inline int __float_as_int(float value) {
     return u.i;
 }
 
-static inline float __int_as_float(int value) {
+static inline float __int_as_float_h(int value) {
     union int_as_float {
         int i;
         float f;
@@ -69,7 +69,7 @@ static inline float __int_as_float(int value) {
     return u.f;
 }
 
-template<typename T, template<typename> typename BufferT>
+template<typename T, template<typename> class BufferT>
 class se::ray_iterator {
 public:
     ray_iterator(const Octree<T, BufferT>& m, const Eigen::Vector3f& origin,
@@ -165,22 +165,22 @@ public:
 
             unsigned int differing_bits = 0;
             if ((step_mask & 1) != 0)
-                differing_bits |= __float_as_int(pos_(0)) ^
-                    __float_as_int(pos_(0) + scale_exp2_);
+                differing_bits |= __float_as_int_h(pos_(0)) ^
+                    __float_as_int_h(pos_(0) + scale_exp2_);
             if ((step_mask & 2) != 0)
-                differing_bits |= __float_as_int(pos_(1)) ^
-                    __float_as_int(pos_(1) + scale_exp2_);
+                differing_bits |= __float_as_int_h(pos_(1)) ^
+                    __float_as_int_h(pos_(1) + scale_exp2_);
             if ((step_mask & 4) != 0)
-                differing_bits |= __float_as_int(pos_(2)) ^
-                    __float_as_int(pos_(2) + scale_exp2_);
+                differing_bits |= __float_as_int_h(pos_(2)) ^
+                    __float_as_int_h(pos_(2) + scale_exp2_);
 
             // Get the scale at which the two differs. Here's there are
             // different subtlelties related to how fp are stored. MIND BLOWN:
             // differing bit (i.e. the MSB) extracted using the exponent part of
             // the fp representation.
-            scale_ = (__float_as_int((float) differing_bits) >> 23) -
+            scale_ = (__float_as_int_h((float) differing_bits) >> 23) -
                 127; // position of the highest bit
-            scale_exp2_ = __int_as_float((scale_ - CAST_STACK_DEPTH + 127)
+            scale_exp2_ = __int_as_float_h((scale_ - CAST_STACK_DEPTH + 127)
                 << 23); // exp2f(scale - s_max)
             struct stack_entry& e = stack[scale_];
             parent_               = e.parent;
@@ -188,12 +188,12 @@ public:
 
             // Round cube position and extract child slot index.
 
-            int shx = __float_as_int(pos_(0)) >> scale_;
-            int shy = __float_as_int(pos_(1)) >> scale_;
-            int shz = __float_as_int(pos_(2)) >> scale_;
-            pos_(0) = __int_as_float(shx << scale_);
-            pos_(1) = __int_as_float(shy << scale_);
-            pos_(2) = __int_as_float(shz << scale_);
+            int shx = __float_as_int_h(pos_(0)) >> scale_;
+            int shy = __float_as_int_h(pos_(1)) >> scale_;
+            int shz = __float_as_int_h(pos_(2)) >> scale_;
+            pos_(0) = __int_as_float_h(shx << scale_);
+            pos_(1) = __int_as_float_h(shy << scale_);
+            pos_(2) = __int_as_float_h(shz << scale_);
             idx_    = (shx & 1) | ((shy & 1) << 1) | ((shz & 1) << 2);
 
             h_     = 0.0f;

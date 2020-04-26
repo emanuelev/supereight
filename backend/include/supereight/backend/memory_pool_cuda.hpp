@@ -1,19 +1,23 @@
 #pragma once
 
-#include <cuda_runtime.h>
+#include <supereight/shared/commons.h>
 
-#include <atomic>
-#include <cstdlib>
-#include <vector>
+#include <cuda_runtime.h>
 
 namespace se {
 
 template<typename T>
 class MemoryPoolCUDA {
 public:
-    ~MemoryPoolCUDA() {
-        for (auto page : pages_) std::free(page);
-    }
+    SE_DEVICE_FUNC
+    MemoryPoolCUDA() { cudaMallocManaged(&buffer_, capacity_ * sizeof(T)); };
+
+    SE_DEVICE_FUNC
+    MemoryPoolCUDA(const MemoryPoolCUDA& other)
+        : used_{other.used_}, buffer_{other.buffer_} {}
+
+    SE_DEVICE_FUNC
+    ~MemoryPoolCUDA() {}
 
     int used() const { return used_; }
 
@@ -21,38 +25,22 @@ public:
 
     void clear() { used_ = 0; }
 
+    SE_DEVICE_FUNC
     T* acquire() {
-        int idx = used_.fetch_add(1);
+        int idx = used_++;
         return (*this)[idx];
     }
 
-    void reserve(int n) {
-        if (n <= capacity()) return;
+    void reserve(int) {}
 
-        int num_pages = (n - capacity() + page_size_ - 1) / page_size_;
-        for (int i = 0; i < num_pages; ++i) {
-            T* page;
-            cudaMallocManaged(&page, sizeof(T) * page_size_);
-
-            pages_.push_back(page);
-            capacity_ += page_size_;
-        }
-    }
-
-    T* operator[](int i) const {
-        int page   = i / page_size_;
-        int offset = i % page_size_;
-
-        return pages_[page] + offset;
-    }
+    SE_DEVICE_FUNC
+    T* operator[](int i) const { return buffer_ + i; }
 
 private:
-    static constexpr int page_size_ = 4 * 4096 / sizeof(T);
+    constexpr static int capacity_ = 36728;
+    int used_                      = 0;
 
-    std::atomic<int> used_ = 0;
-    int capacity_          = 0;
-
-    std::vector<T*> pages_;
+    T* buffer_;
 };
 
 } // namespace se

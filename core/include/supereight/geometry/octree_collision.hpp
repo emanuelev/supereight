@@ -100,7 +100,7 @@ collision_status collides_with(const se::VoxelBlock<FieldType>* block,
  * \param test function that takes a voxel and returns a collision_status value
  */
 
-template<typename FieldType, template<typename> typename BufferT,
+template<typename FieldType, template<typename> class BufferT,
     typename TestVoxelF>
 collision_status collides_with(const Octree<FieldType, BufferT>& map,
     const Eigen::Vector3i bbox, const Eigen::Vector3i side, TestVoxelF test) {

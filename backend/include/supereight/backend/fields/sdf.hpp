@@ -1,5 +1,6 @@
 #pragma once
 
+#include <supereight/shared/commons.h>
 #include <supereight/voxel_traits.hpp>
 
 #include <Eigen/Dense>
@@ -19,12 +20,14 @@ struct sdf_update {
     float mu;
     int maxweight = 100;
 
+    SE_DEVICE_FUNC
     sdf_update(const float* d, const Eigen::Vector2i& framesize, float m, float,
         float);
 
     template<typename DataHandlerT>
-    void operator()(DataHandlerT& handler, const Eigen::Vector3i&,
-        const Eigen::Vector3f& pos, const Eigen::Vector2f& pixel);
+    SE_DEVICE_FUNC void operator()(DataHandlerT& handler,
+        const Eigen::Vector3i&, const Eigen::Vector3f& pos,
+        const Eigen::Vector2f& pixel);
 };
 
 template<>
@@ -34,18 +37,21 @@ struct voxel_traits<SDF> {
 
     static constexpr bool invert_normals = true;
 
+    SE_DEVICE_FUNC
     static value_type empty() { return {1.f, -1.f}; }
+
+    SE_DEVICE_FUNC
     static value_type initValue() { return {1.f, 0.f}; }
 
     template<typename OctreeT, typename HashType>
-    static void buildAllocationList(HashType* allocation_list, int reserved,
-        std::atomic<int>& voxel_count, const OctreeT& octree,
+    SE_DEVICE_FUNC static void buildAllocationList(HashType* allocation_list,
+        int reserved, std::atomic<int>& voxel_count, const OctreeT& octree,
         const Eigen::Vector3f& world_vertex, const Eigen::Vector3f& direction,
         const Eigen::Vector3f& camera_pos, float depth_sample, int max_depth,
         int block_depth, float voxel_size, float inverse_voxel_size, float mu);
 
     template<typename OctreeT>
-    static Eigen::Vector4f raycast(const OctreeT& octree,
+    SE_DEVICE_FUNC static Eigen::Vector4f raycast(const OctreeT& octree,
         const Eigen::Vector3f& origin, const Eigen::Vector3f& direction,
         const float tnear, const float tfar, const float mu, const float step,
         const float largestep);

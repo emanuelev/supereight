@@ -60,12 +60,12 @@ static inline int step_to_depth(
 }
 
 template<typename OctreeT, typename HashType>
-void voxel_traits<OFusion>::buildAllocationList(HashType* allocation_list,
-    int reserved, std::atomic<int>& voxel_count, const OctreeT& octree,
-    const Eigen::Vector3f& world_vertex, const Eigen::Vector3f& direction,
-    const Eigen::Vector3f& camera_pos, float depth_sample, int max_depth,
-    int block_depth, float voxel_size, float inverse_voxel_size,
-    float noise_factor) {
+inline void voxel_traits<OFusion>::buildAllocationList(
+    HashType* allocation_list, int reserved, std::atomic<int>& voxel_count,
+    const OctreeT& octree, const Eigen::Vector3f& world_vertex,
+    const Eigen::Vector3f& direction, const Eigen::Vector3f& camera_pos,
+    float depth_sample, int max_depth, int block_depth, float voxel_size,
+    float inverse_voxel_size, float noise_factor) {
     int cur_depth   = max_depth;
     float step_size = voxel_size;
 

@@ -32,8 +32,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MORTON_UTILS_HPP
 #include "../octree_defines.h"
 #include "math_utils.h"
+
+#include <supereight/shared/commons.h>
+
 #include <cstdint>
 
+SE_DEVICE_FUNC
 inline uint64_t expand(unsigned long long value) {
     uint64_t x = value & 0x1fffff;
     x          = (x | x << 32) & 0x1f00000000ffff;
@@ -44,6 +48,7 @@ inline uint64_t expand(unsigned long long value) {
     return x;
 }
 
+SE_DEVICE_FUNC
 inline uint64_t compact(uint64_t value) {
     uint64_t x = value & 0x1249249249249249;
     x          = (x | x >> 2) & 0x10c30c30c30c30c3;
@@ -54,11 +59,13 @@ inline uint64_t compact(uint64_t value) {
     return x;
 }
 
+SE_DEVICE_FUNC
 inline Eigen::Vector3i unpack_morton(uint64_t code) {
     return Eigen::Vector3i(
         compact(code >> 0ull), compact(code >> 1ull), compact(code >> 2ull));
 }
 
+SE_DEVICE_FUNC
 inline uint64_t compute_morton(uint64_t x, uint64_t y, uint64_t z) {
     uint64_t code = 0;
 
@@ -70,6 +77,7 @@ inline uint64_t compute_morton(uint64_t x, uint64_t y, uint64_t z) {
     return code;
 }
 
+SE_DEVICE_FUNC
 static inline void compute_prefix(const se::key_t* in, se::key_t* out,
     unsigned int num_keys, const se::key_t mask) {
 #pragma omp parallel for

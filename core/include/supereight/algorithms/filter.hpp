@@ -31,25 +31,38 @@
 #include "../utils/math_utils.h"
 #include "../utils/morton_utils.hpp"
 
+#include <supereight/shared/commons.h>
+
 namespace se {
 namespace algorithms {
 
 template<typename VoxelBlockType>
-static inline bool in_frustum(const VoxelBlockType* v, float voxelSize,
-    const Eigen::Matrix4f& camera, const Eigen::Vector2i& frameSize) {
-    const int side = VoxelBlockType::side;
-    const static Eigen::Matrix<int, 4, 8> offsets =
-        (Eigen::Matrix<int, 4, 8>() << 0, side, 0, side, 0, side, 0, side, 0, 0,
-            side, side, 0, 0, side, side, 0, 0, 0, 0, side, side, side, side, 0,
-            0, 0, 0, 0, 0, 0, 0)
-            .finished();
+SE_DEVICE_FUNC static inline bool in_frustum(const VoxelBlockType* v,
+    float voxelSize, const Eigen::Matrix4f& camera,
+    const Eigen::Vector2i& frameSize) {
+    constexpr static int side = VoxelBlockType::side;
+
+    // clang-format off
+
+    constexpr static int offset_data[] = {
+         0,    side, 0,    side, 0,    side, 0,    side,
+         0,    0,    side, side, 0,    0,    side, side,
+         0,    0,    0,    0,    side, side, side, side,
+         0,    0,    0,    0,    0,    0,    0,    0
+    };
+
+    const auto offsets = Eigen::Matrix<int, 4, 8>{offset_data};
+
+    // clang-format on
 
     Eigen::Matrix<float, 4, 8> v_camera = camera *
         Eigen::Vector4f(voxelSize, voxelSize, voxelSize, 1.f).asDiagonal() *
         (offsets.colwise() + v->coordinates().homogeneous())
             .template cast<float>();
+
     v_camera.row(0).array() /= v_camera.row(2).array();
     v_camera.row(1).array() /= v_camera.row(2).array();
+
     return ((v_camera.row(0).array() >= 0.f &&
                 v_camera.row(0).array() < frameSize.x()) &&
         (v_camera.row(1).array() >= 0.f &&
@@ -58,17 +71,17 @@ static inline bool in_frustum(const VoxelBlockType* v, float voxelSize,
 }
 
 template<typename ValueType, typename P>
-bool satisfies(const ValueType& el, P predicate) {
+SE_DEVICE_FUNC bool satisfies(const ValueType& el, P predicate) {
     return predicate(el);
 }
 
 template<typename ValueType, typename P, typename... Ps>
-bool satisfies(const ValueType& el, P predicate, Ps... others) {
+SE_DEVICE_FUNC bool satisfies(const ValueType& el, P predicate, Ps... others) {
     return predicate(el) || satisfies(el, others...);
 }
 
 #ifdef _OPENMP
-template<typename BlockType, template<typename> typename BufferT,
+template<typename BlockType, template<typename> class BufferT,
     typename... Predicates>
 void filter(std::vector<BlockType*>& out, const BufferT<BlockType>& block_array,
     Predicates... ps) {
@@ -113,7 +126,7 @@ void filter(std::vector<BlockType*>& out, const BufferT<BlockType>& block_array,
 }
 
 #else
-template<typename BlockType, template<typename> typename BufferT,
+template<typename BlockType, template<typename> class BufferT,
     typename... Predicates>
 void filter(std::vector<BlockType*>& out, const BufferT<BlockType>& block_array,
     Predicates... ps) {

@@ -49,7 +49,9 @@ namespace se {
  * should be computed.
  * \return The value of the interpolated depth at proj.
  */
-float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
+SE_DEVICE_FUNC
+inline float interpDepth(
+    const se::Image<float>& depth, const Eigen::Vector2f& proj) {
     // https://en.wikipedia.org/wiki/Bilinear_interpolation
 
     // Pixels version
@@ -94,6 +96,7 @@ float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
  * \param[in] t Where to compute the value of the spline at.
  * \return The value of the spline.
  */
+SE_DEVICE_FUNC
 static inline float bspline_memoized(float t) {
     float value                  = 0.f;
     constexpr float inverseRange = 1 / 6.f;
@@ -116,6 +119,7 @@ static inline float bspline_memoized(float t) {
  * \param[in]
  * \return The occupancy probability.
  */
+SE_DEVICE_FUNC
 static inline float H(const float val, const float) {
     const float Q_1 = bspline_memoized(val);
     const float Q_2 = bspline_memoized(val - 3);
@@ -126,6 +130,7 @@ static inline float H(const float val, const float) {
  * Perform a log-odds update of the occupancy probability. This implements
  * equations (8) and (9) from \cite VespaRAL18.
  */
+SE_DEVICE_FUNC
 static inline float updateLogs(const float prior, const float sample) {
     return (prior + log2(sample / (1.f - sample)));
 }
@@ -134,6 +139,7 @@ static inline float updateLogs(const float prior, const float sample) {
  * Weight the occupancy by the time since the last update, acting as a
  * forgetting factor. This implements equation (10) from \cite VespaRAL18.
  */
+SE_DEVICE_FUNC
 static inline float applyWindow(
     const float occupancy, const float, const float delta_t, const float tau) {
     float fraction = 1.f / (1.f + (delta_t / tau));
@@ -145,14 +151,15 @@ static inline float applyWindow(
  * Struct to hold the data and perform the update of the map from a single
  * depth frame.
  */
-bfusion_update::bfusion_update(const float* d, const Eigen::Vector2i& framesize,
-    float n, float t, float vs)
+inline bfusion_update::bfusion_update(const float* d,
+    const Eigen::Vector2i& framesize, float n, float t, float vs)
     : depth(d), depthSize(framesize), noiseFactor(n), timestamp(t),
       voxelsize(vs) {}
 
 template<typename DataHandlerT>
-void bfusion_update::operator()(DataHandlerT& handler, const Eigen::Vector3i&,
-    const Eigen::Vector3f& pos, const Eigen::Vector2f& pixel) {
+inline void bfusion_update::operator()(DataHandlerT& handler,
+    const Eigen::Vector3i&, const Eigen::Vector3f& pos,
+    const Eigen::Vector2f& pixel) {
     const Eigen::Vector2i px = pixel.cast<int>();
     const float depthSample  = depth[px.x() + depthSize.x() * px.y()];
     // Return on invalid depth measurement

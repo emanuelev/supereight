@@ -32,6 +32,9 @@
 #include "octree_defines.h"
 #include "utils/math_utils.h"
 #include "utils/morton_utils.hpp"
+
+#include <supereight/shared/commons.h>
+
 #include <Eigen/Dense>
 #include <bitset>
 #include <iostream>
@@ -39,16 +42,20 @@
 namespace se {
 namespace keyops {
 
+EIGEN_DEVICE_FUNC
 inline se::key_t code(const se::key_t key) { return key & ~SCALE_MASK; }
 
+EIGEN_DEVICE_FUNC
 inline int level(const se::key_t key) { return key & SCALE_MASK; }
 
+EIGEN_DEVICE_FUNC
 inline se::key_t encode(const int x, const int y, const int z, const int level,
     const int max_depth) {
     const int offset = MAX_BITS - max_depth + level - 1;
     return (compute_morton(x, y, z) & MASK[offset] & ~SCALE_MASK) | level;
 }
 
+EIGEN_DEVICE_FUNC
 inline Eigen::Vector3i decode(const se::key_t key) {
     return unpack_morton(key & ~SCALE_MASK);
 }
@@ -57,6 +64,7 @@ inline Eigen::Vector3i decode(const se::key_t key) {
 /*
  * Algorithm 5 of p4est paper: https://epubs.siam.org/doi/abs/10.1137/100791634
  */
+EIGEN_DEVICE_FUNC
 inline Eigen::Vector3i face_neighbour(const se::key_t o,
     const unsigned int face, const unsigned int l,
     const unsigned int max_depth) {
@@ -74,6 +82,7 @@ inline Eigen::Vector3i face_neighbour(const se::key_t o,
  * \param ancestor
  * \param max_depth max depth of the tree on which the octant lives
  */
+EIGEN_DEVICE_FUNC
 inline bool descendant(
     se::key_t octant, se::key_t ancestor, const int max_depth) {
     const int level = se::keyops::level(ancestor);
@@ -88,6 +97,7 @@ inline bool descendant(
  * \param octant
  * \param max_depth max depth of the tree on which the octant lives
  */
+EIGEN_DEVICE_FUNC
 inline se::key_t parent(const se::key_t& octant, const int max_depth) {
     const int level = se::keyops::level(octant) - 1;
     const int idx   = MAX_BITS - max_depth + level - 1;
@@ -100,6 +110,7 @@ inline se::key_t parent(const se::key_t& octant, const int max_depth) {
  * \param level of octant
  * \param max_depth max depth of the tree on which the octant lives
  */
+EIGEN_DEVICE_FUNC
 inline int child_id(se::key_t octant, const int level, const int max_depth) {
     int shift = max_depth - level;
     octant    = se::keyops::code(octant) >> shift * 3;
@@ -113,6 +124,7 @@ inline int child_id(se::key_t octant, const int level, const int max_depth) {
  * \param level of octant
  * \param max_depth max depth of the tree on which the octant lives
  */
+EIGEN_DEVICE_FUNC
 inline Eigen::Vector3i far_corner(
     const se::key_t octant, const int level, const int max_depth) {
     const unsigned int side           = 1 << (max_depth - level);
@@ -132,6 +144,7 @@ inline Eigen::Vector3i far_corner(
  * \param level of octant
  * \param max_depth max depth of the tree on which the octant lives
  */
+EIGEN_DEVICE_FUNC
 inline void exterior_neighbours(se::key_t result[7], const se::key_t octant,
     const int level, const int max_depth) {
     const int idx       = child_id(octant, level, max_depth);
@@ -173,7 +186,7 @@ inline void exterior_neighbours(se::key_t result[7], const se::key_t octant,
  * \param level level of the octant
  * \param max_depth max depth of the tree on which the octant lives
  */
-
+EIGEN_DEVICE_FUNC
 static inline void one_neighbourhood(Eigen::Ref<Eigen::Matrix<int, 4, 6>> res,
     const Eigen::Vector3i& octant, const int level, const int max_depth) {
     const Eigen::Vector3i base = octant;
@@ -198,7 +211,7 @@ static inline void one_neighbourhood(Eigen::Ref<Eigen::Matrix<int, 4, 6>> res,
  * \param octant octant key
  * \param max_depth max depth of the tree on which the octant lives
  */
-
+EIGEN_DEVICE_FUNC
 static inline void one_neighbourhood(Eigen::Ref<Eigen::Matrix<int, 4, 6>> res,
     const se::key_t octant, const int max_depth) {
     one_neighbourhood(
@@ -212,6 +225,7 @@ static inline void one_neighbourhood(Eigen::Ref<Eigen::Matrix<int, 4, 6>> res,
  * \param octant
  * \param max_depth max depth of the tree on which the octant lives
  */
+EIGEN_DEVICE_FUNC
 inline void siblings(
     se::key_t result[8], const se::key_t octant, const int max_depth) {
     const int level   = (octant & SCALE_MASK);

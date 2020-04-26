@@ -100,8 +100,8 @@ inline void gather_2(const se::VoxelBlock<FieldType>* block,
     return;
 }
 
-template<typename FieldType, template<typename> typename BufferT,
-    template<typename, template<typename> typename> class MapT,
+template<typename FieldType, template<typename> class BufferT,
+    template<typename, template<typename> class> class MapT,
     class FieldSelector>
 inline void gather_points(const MapT<FieldType, BufferT>& fetcher,
     const Eigen::Vector3i& base, FieldSelector select, float points[8]) {

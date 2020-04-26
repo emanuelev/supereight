@@ -49,6 +49,14 @@
 #include <sys/stat.h>
 #include <vector>
 
+#if defined(__CUDACC__)
+#define SE_DEVICE_FUNC __host__ __device__
+#define SE_DEVICE_VAR  __device__
+#else
+#define SE_DEVICE_FUNC
+#define SE_DEVICE_VAR
+#endif
+
 // Internal dependencies
 #include <supereight/shared/constant_parameters.h>
 #include <supereight/utils/math_utils.h>
@@ -170,15 +178,17 @@ typedef struct Triangle {
 
         surface_area = -1.f;
     }
+    /*
+        inline bool iszero(const Eigen::Vector3f& v) {
+            return !(v.array() == 0).all();
+        }
 
-    inline bool iszero(const Eigen::Vector3f& v) {
-        return !(v.array() == 0).all();
-    }
-
-    inline bool valid() {
-        return !(
-            iszero(vertexes[0]) && iszero(vertexes[1]) && iszero(vertexes[2]));
-    }
+        inline bool valid() {
+            return !(
+                iszero(vertexes[0]) && iszero(vertexes[1]) &&
+       iszero(vertexes[2]));
+        }
+    */
 
     inline void compute_normal() {
         normal = (vertexes[1] - vertexes[0]).cross(vertexes[2] - vertexes[1]);
@@ -247,7 +257,6 @@ typedef struct Triangle {
     }
 
 } Triangle;
-
 
 inline Eigen::Matrix4f getCameraMatrix(const Eigen::Vector4f& k) {
     Eigen::Matrix4f K;

@@ -38,7 +38,7 @@
 namespace se {
 
 template<typename OctreeT>
-Eigen::Vector4f voxel_traits<SDF>::raycast(const OctreeT& octree,
+inline Eigen::Vector4f voxel_traits<SDF>::raycast(const OctreeT& octree,
     const Eigen::Vector3f& origin, const Eigen::Vector3f& direction,
     const float tnear, const float tfar, const float mu, const float step,
     const float largestep) {

@@ -38,7 +38,7 @@
 namespace se {
 
 template<typename OctreeT, typename HashType>
-void voxel_traits<SDF>::buildAllocationList(HashType* allocation_list,
+inline void voxel_traits<SDF>::buildAllocationList(HashType* allocation_list,
     int reserved, std::atomic<int>& voxel_count, const OctreeT& octree,
     const Eigen::Vector3f& world_vertex, const Eigen::Vector3f& direction,
     const Eigen::Vector3f&, float, int, int block_depth, float,

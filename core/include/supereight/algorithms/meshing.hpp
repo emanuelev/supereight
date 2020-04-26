@@ -122,8 +122,8 @@ inline void gather_points(const se::VoxelBlock<FieldType>* cached,
     points[7] = cached->data(Eigen::Vector3i(x, y + 1, z + 1));
 }
 
-template<typename FieldType, template<typename> typename BufferT,
-    template<typename, template<typename> typename> class MapT, typename PointT>
+template<typename FieldType, template<typename> class BufferT,
+    template<typename, template<typename> class> class MapT, typename PointT>
 inline void gather_points(const MapT<FieldType, BufferT>& volume,
     PointT points[8], const int x, const int y, const int z) {
     points[0] = volume.get_fine(x, y, z);
@@ -136,8 +136,8 @@ inline void gather_points(const MapT<FieldType, BufferT>& volume,
     points[7] = volume.get_fine(x, y + 1, z + 1);
 }
 
-template<typename FieldType, template<typename> typename BufferT,
-    template<typename, template<typename> typename> class MapT,
+template<typename FieldType, template<typename> class BufferT,
+    template<typename, template<typename> class> class MapT,
     typename InsidePredicate>
 uint8_t compute_index(const MapT<FieldType, BufferT>& volume,
     const se::VoxelBlock<FieldType>* cached, InsidePredicate inside,
@@ -186,7 +186,7 @@ inline bool checkVertex(const Eigen::Vector3f v, const float dim) {
 
 namespace algorithms {
 
-template<typename FieldType, template<typename> typename BufferT,
+template<typename FieldType, template<typename> class BufferT,
     typename FieldSelector, typename InsidePredicate, typename TriangleType>
 void marching_cube(Octree<FieldType, BufferT>& volume, FieldSelector select,
     InsidePredicate inside, std::vector<TriangleType>& triangles) {

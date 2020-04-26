@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace se {
 
-template<typename T, template<typename> typename BufferT>
+template<typename T, template<typename> class BufferT>
 class node_iterator {
 public:
     node_iterator(const Octree<T, BufferT>& m) : map_(m) {
