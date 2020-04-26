@@ -5,7 +5,7 @@ project(supereight)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 add_compile_options(-std=c++17 -march=native -fdiagnostics-color=always
-  -Wall -Wextra -pedantic -Wno-unknown-pragmas)
+    -Wall -Wextra -pedantic -Wno-unknown-pragmas -Wno-c99-extensions)
 
 find_package(OpenMP)
 

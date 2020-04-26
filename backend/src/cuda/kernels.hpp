@@ -66,12 +66,14 @@ static void buildAllocationListKernel(HashType* allocation_list, int reserved,
 
     std::atomic<int> voxel_count;
 
+    Eigen::Vector2i computation_size = image_size;
+
     const Eigen::Vector3f camera_pos = pose.topRightCorner<3, 1>();
     voxel_count                      = 0;
 #pragma omp parallel for
-    for (int y = 0; y < image_size.y(); ++y) {
-        for (int x = 0; x < image_size.x(); ++x) {
-            const float depth_sample = depth_map[x + y * image_size.x()];
+    for (int y = 0; y < computation_size.y(); ++y) {
+        for (int x = 0; x < computation_size.x(); ++x) {
+            const float depth_sample = depth_map[x + y * computation_size.x()];
             if (depth_sample == 0) continue;
 
             Eigen::Vector3f world_vertex = (inv_P *

@@ -78,7 +78,7 @@ void filter(std::vector<BlockType*>& out, const BufferT<BlockType>& block_array,
 
     int* thread_start = new int[omp_get_max_threads()];
     int* thread_end   = new int[omp_get_max_threads()];
-    int spawn_threads;
+    int spawn_threads = -1;
 #pragma omp parallel
     {
         int threadid    = omp_get_thread_num();

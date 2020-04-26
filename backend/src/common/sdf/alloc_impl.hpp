@@ -41,8 +41,8 @@ template<typename OctreeT, typename HashType>
 void voxel_traits<SDF>::buildAllocationList(HashType* allocation_list,
     int reserved, std::atomic<int>& voxel_count, const OctreeT& octree,
     const Eigen::Vector3f& world_vertex, const Eigen::Vector3f& direction,
-    const Eigen::Vector3f& camera_pos, float depth_sample, int max_depth,
-    int block_depth, float voxel_size, float inverse_voxel_size, float mu) {
+    const Eigen::Vector3f&, float, int, int block_depth, float,
+    float inverse_voxel_size, float mu) {
     const float band             = mu * 2;
     const Eigen::Vector3f origin = world_vertex - (band * 0.5f) * direction;
     const int num_steps          = ceil(band * inverse_voxel_size);
