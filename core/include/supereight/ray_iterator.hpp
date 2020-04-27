@@ -28,10 +28,12 @@
    POSSIBILITY OF SUCH DAMAGE.
 
 */
-#ifndef SE_RAY_ITERATOR_HPP
-#define SE_RAY_ITERATOR_HPP
+#pragma once
+
+#include <supereight/octree.hpp>
+#include <supereight/shared/commons.h>
+
 #include "Eigen/Dense"
-#include "octree.hpp"
 
 /*****************************************************************************
  *
@@ -47,6 +49,9 @@
  *
  *****************************************************************************/
 
+namespace se {
+
+SE_DEVICE_FUNC
 static inline int __float_as_int_h(float value) {
     union float_as_int {
         float f;
@@ -58,6 +63,7 @@ static inline int __float_as_int_h(float value) {
     return u.i;
 }
 
+SE_DEVICE_FUNC
 static inline float __int_as_float_h(int value) {
     union int_as_float {
         int i;
@@ -70,8 +76,9 @@ static inline float __int_as_float_h(int value) {
 }
 
 template<typename T, template<typename> class BufferT>
-class se::ray_iterator {
+class ray_iterator {
 public:
+    SE_DEVICE_FUNC
     ray_iterator(const Octree<T, BufferT>& m, const Eigen::Vector3f& origin,
         const Eigen::Vector3f& direction, float nearPlane, float farPlane)
         : map_(m) {
@@ -83,9 +90,9 @@ public:
         scale_      = CAST_STACK_DEPTH - 1;
         min_scale_ =
             CAST_STACK_DEPTH - log2(m.size_ / Octree<T, BufferT>::blockSide);
-        static const float epsilon = exp2f(-log2(map_.size_));
-        voxelSize_                 = map_.dim_ / map_.size_;
-        state_                     = INIT;
+        const float epsilon = exp2f(-log2(map_.size_));
+        voxelSize_          = map_.dim_ / map_.size_;
+        state_              = INIT;
 
         for (int i = 0; i < CAST_STACK_DEPTH; ++i) stack[i] = {0, 0, 0};
 
@@ -141,6 +148,7 @@ public:
     /*
      * Advance the ray.
      */
+    SE_DEVICE_FUNC
     inline void advance_ray() {
         int step_mask = 0;
 
@@ -204,6 +212,7 @@ public:
     /*
      * Descend the hiararchy and compute the next child position.
      */
+    SE_DEVICE_FUNC
     inline void descend() {
         float tv_max             = fminf(t_max_, tc_max_);
         float half               = scale_exp2_ * 0.5f;
@@ -234,7 +243,7 @@ public:
     /*
      * Returns the next leaf along the ray direction.
      */
-
+    SE_DEVICE_FUNC
     VoxelBlock<T>* next() {
         if (state_ == ADVANCE)
             advance_ray();
@@ -265,24 +274,28 @@ public:
      * \brief Returns the minimum distance in meters to be travelled along
      * the ray to intersect the voxel cube.
      */
+    SE_DEVICE_FUNC
     float tmin() { return t_min_init_ * map_.dim_; }
 
     /*
      * \brief Returns the minimum distance in meters to be travelled along
      * the ray to exit the voxel cube.
      */
+    SE_DEVICE_FUNC
     float tmax() { return t_max_init_ * map_.dim_; }
 
     /*
      * \brief Returns the minimum distance in meters to be travelled along
      * the ray to reach the currently intersected leaf.
      */
+    SE_DEVICE_FUNC
     float tcmin() { return t_min_ * map_.dim_; }
 
     /*
      * \brief Returns the minimum distance in meters to be travelled along
      * the ray to exit the currently intersected grid.
      */
+    SE_DEVICE_FUNC
     float tcmax() { return tc_max_ * map_.dim_; }
 
 private:
@@ -296,27 +309,38 @@ private:
 
     const Octree<T, BufferT>& map_;
     float voxelSize_;
+
     Eigen::Vector3f origin_;
     Eigen::Vector3f direction_;
     Eigen::Vector3f t_coef_;
     Eigen::Vector3f t_bias_;
+
     struct stack_entry stack[CAST_STACK_DEPTH];
+
     Node<T>* parent_;
     Node<T>* child_;
+
     int idx_;
     Eigen::Vector3f pos_;
+
     int scale;
     int min_scale_;
+
     float scale_exp2_;
     float t_min_;
     float t_min_init_;
     float t_max_;
     float t_max_init_;
     float tc_max_;
+
     Eigen::Vector3f t_corner_;
+
     float h_;
+
     int octant_mask_;
     int scale_;
+
     STATE state_;
 };
-#endif
+
+} // namespace se

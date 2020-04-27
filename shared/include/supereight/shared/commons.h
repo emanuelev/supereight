@@ -49,9 +49,10 @@
 #include <sys/stat.h>
 #include <vector>
 
+
 #if defined(__CUDACC__)
 #define SE_DEVICE_FUNC __host__ __device__
-#define SE_DEVICE_VAR  __device__
+#define SE_DEVICE_VAR __device__
 #else
 #define SE_DEVICE_FUNC
 #define SE_DEVICE_VAR

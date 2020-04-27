@@ -100,62 +100,6 @@ static void buildAllocationListKernel(HashType* allocation_list, int reserved,
 
 template<typename FieldType, template<typename> class BufferT,
     template<typename, template<typename> class> class OctreeT>
-static void raycastKernel(const OctreeT<FieldType, BufferT>& octree,
-    se::Image<Eigen::Vector3f>& vertex, se::Image<Eigen::Vector3f>& normal,
-    const Eigen::Matrix4f& view, const float nearPlane, const float farPlane,
-    const float mu, const float step, const float largestep) {
-    TICK();
-    int y;
-#pragma omp parallel for shared(normal, vertex), private(y)
-    for (y = 0; y < vertex.height(); y++)
-#pragma omp simd
-        for (int x = 0; x < vertex.width(); x++) {
-            Eigen::Vector2i pos(x, y);
-            const Eigen::Vector3f dir =
-                (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f))
-                    .normalized();
-            const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
-            se::ray_iterator<FieldType, BufferT> ray(
-                octree, transl, dir, nearPlane, farPlane);
-            ray.next();
-            const float t_min =
-                ray.tcmin(); /* Get distance to the first intersected block */
-            const Eigen::Vector4f hit = t_min > 0.f
-                ? voxel_traits<FieldType>::raycast(octree, transl, dir, t_min,
-                      ray.tmax(), mu, step, largestep)
-                : Eigen::Vector4f::Constant(0.f);
-            if (hit.w() > 0.0) {
-                vertex[x + y * vertex.width()] = hit.head<3>();
-
-                const float inverseVoxelSize = octree.size() / octree.dim();
-                Eigen::Vector3f surfNorm =
-                    octree.grad(inverseVoxelSize * hit.head<3>(),
-                        [](const auto& val) { return val.x; });
-
-                if (surfNorm.norm() == 0) {
-                    // normal[pos] = normalize(surfNorm); // APN added
-                    normal[pos.x() + pos.y() * normal.width()] =
-                        Eigen::Vector3f(INVALID, 0, 0);
-                } else {
-                    // Invert normals if SDF
-                    if (voxel_traits<FieldType>::invert_normals)
-                        surfNorm *= -1.f;
-
-                    normal[pos.x() + pos.y() * normal.width()] =
-                        surfNorm.normalized();
-                }
-            } else {
-                vertex[pos.x() + pos.y() * vertex.width()] =
-                    Eigen::Vector3f::Constant(0);
-                normal[pos.x() + pos.y() * normal.width()] =
-                    Eigen::Vector3f(INVALID, 0, 0);
-            }
-        }
-    TOCK("raycastKernel", inputSize.x * inputSize.y);
-}
-
-template<typename FieldType, template<typename> class BufferT,
-    template<typename, template<typename> class> class OctreeT>
 static void renderVolumeKernel(const OctreeT<FieldType, BufferT>& octree,
     unsigned char* out, // RGBW packed
     const Eigen::Vector2i& depthSize, const Eigen::Matrix4f& view,
@@ -216,7 +160,7 @@ static void renderVolumeKernel(const OctreeT<FieldType, BufferT>& octree,
                 out[idx + 2] = col.z();
                 out[idx + 3] = 0;
             } else {
-                out[idx + 0] = 0;
+                out[idx + 0] = 255;
                 out[idx + 1] = 0;
                 out[idx + 2] = 0;
                 out[idx + 3] = 0;

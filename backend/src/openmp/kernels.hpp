@@ -213,7 +213,7 @@ static void renderVolumeKernel(const OctreeT<FieldType, BufferT>& octree,
                 out[idx + 2] = col.z();
                 out[idx + 3] = 0;
             } else {
-                out[idx + 0] = 0;
+                out[idx + 0] = 255;
                 out[idx + 1] = 0;
                 out[idx + 2] = 0;
                 out[idx + 3] = 0;

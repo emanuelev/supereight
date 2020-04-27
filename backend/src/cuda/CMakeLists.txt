@@ -20,7 +20,8 @@ foreach(FIELD_TYPE ${FIELD_TYPES})
 
     set(library_name ${PROJECT_NAME}-cuda-${FIELD_TYPE_NAME})
 
-    add_library(${library_name} STATIC backend_cuda.cpp projective_update.cu)
+    add_library(${library_name} STATIC backend_cuda.cpp
+        projective_update.cu raycast.cu)
 
     target_include_directories(${library_name} PUBLIC ${BACKEND_INCLUDE_DIR}
         ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})

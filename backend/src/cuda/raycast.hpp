@@ -41,12 +41,12 @@
 #include <supereight/octree.hpp>
 
 #include <Eigen/Dense>
-#include <sophus/se3.hpp>
 
 namespace se {
 
-void projectiveUpdate(Octree<FieldType, MemoryPoolCUDA>& octree,
-    voxel_traits<FieldType>::update_func_type& func, Sophus::SE3f Tcw,
-    Eigen::Matrix4f K, Eigen::Vector2i frame_size);
+void raycast(const Octree<FieldType, MemoryPoolCUDA>& octree,
+    Eigen::Vector3f* vertex, Eigen::Vector3f* normal,
+    Eigen::Vector2i frame_size, Eigen::Matrix4f view, Eigen::Vector2f planes,
+    float mu, float step);
 
 } // namespace se

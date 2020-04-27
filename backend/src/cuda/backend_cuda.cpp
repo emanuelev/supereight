@@ -2,6 +2,8 @@
 
 #include "kernels.hpp"
 #include "projective_update.hpp"
+#include "raycast.hpp"
+#include "util.hpp"
 
 #include <supereight/backend/backend.hpp>
 
@@ -19,13 +21,13 @@ void Backend::allocate_(const Image<float>& depth, const Eigen::Vector4f& k,
 
     if (depth_ == nullptr || depth_size_ != computation_size) {
         depth_size_ = computation_size;
-        cudaMallocManaged(
-            &depth_, sizeof(float) * depth_size_.x() * depth_size_.y());
+
+        if (depth_ != nullptr) safeCall(cudaFree(depth_));
+        safeCall(cudaMalloc(&depth_, sizeof(float) * depth_size_.prod()));
     }
 
-    cudaMemcpy(depth_, depth.data(),
-        sizeof(float) * depth_size_.x() * depth_size_.y(),
-        cudaMemcpyHostToDevice);
+    safeCall(cudaMemcpy(depth_, depth.data(),
+        sizeof(float) * depth_size_.prod(), cudaMemcpyHostToDevice));
 
     allocation_list_.reserve(total);
 
@@ -46,16 +48,34 @@ void Backend::update_(const Image<float>&, const Sophus::SE3f& Tcw,
     voxel_traits<FieldType>::update_func_type func(
         depth_, computation_size, mu, timestamp, voxel_size);
 
-    projectiveUpdate(octree_, func, Tcw, getCameraMatrix(k), computation_size);
+    se::projectiveUpdate(
+        octree_, func, Tcw, getCameraMatrix(k), computation_size);
 }
 
 void Backend::raycast_(Image<Eigen::Vector3f>& vertex,
     Image<Eigen::Vector3f>& normal, const Eigen::Vector4f& k,
     const Eigen::Matrix4f& pose, float mu) {
-    float step = octree_.dim() / octree_.size();
+    if (normal.dim() != vertex.dim()) return;
+    int size = sizeof(Eigen::Vector3f) * normal.dim().prod();
 
-    raycastKernel(octree_, vertex, normal, pose * getInverseCameraMatrix(k),
-        nearPlane, farPlane, mu, step, step * BLOCK_SIDE);
+    if (vertex_ == nullptr || normal_ == nullptr ||
+        frame_size_ != normal.dim()) {
+        frame_size_ = normal.dim();
+
+        if (vertex_ != nullptr) safeCall(cudaFree(vertex_));
+        if (normal_ != nullptr) safeCall(cudaFree(normal_));
+
+        safeCall(cudaMalloc(&vertex_, size));
+        safeCall(cudaMalloc(&normal_, size));
+    }
+
+    float step = octree_.dim() / octree_.size();
+    se::raycast(octree_, vertex_, normal_, frame_size_,
+        pose * getInverseCameraMatrix(k), Eigen::Vector2f(nearPlane, farPlane),
+        mu, step);
+
+    safeCall(cudaMemcpy(vertex.data(), vertex_, size, cudaMemcpyDeviceToHost));
+    safeCall(cudaMemcpy(normal.data(), normal_, size, cudaMemcpyDeviceToHost));
 }
 
 void Backend::render_(unsigned char* out, const Eigen::Vector2i& output_size,

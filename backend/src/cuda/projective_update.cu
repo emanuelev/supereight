@@ -1,7 +1,11 @@
-#include "kernels.hpp"
+#include "../common/field_impls.hpp"
+#include "projective_update.hpp"
+#include "util.hpp"
 
 #include <supereight/algorithms/filter.hpp>
 #include <supereight/functors/data_handler.hpp>
+
+#include <cuda_runtime.h>
 
 namespace se {
 
@@ -18,9 +22,13 @@ __global__ static void updateBlocksKernel(OctreeT octree, UpdateFuncT func,
     float voxel_size = octree.dim() / octree.size();
 
     if (!block->active()) return;
+
+    // TODO: investigate
+    /*
     if (!algorithms::in_frustum<OctreeT::block_type>(
             block, voxel_size, K * Tcw.matrix(), frame_size))
         return;
+    */
 
     const Eigen::Vector3i blockCoord = block->coordinates();
     const Eigen::Vector3f delta =
@@ -116,8 +124,9 @@ static void updateBlocks(Octree<FieldType, MemoryPoolCUDA>& octree,
 
     updateBlocksKernel<<<(num_elem + 255) / 256, 256>>>(
         octree, func, Tcw, K, frame_size, num_elem);
+    safeCall(cudaPeekAtLastError());
 
-    cudaDeviceSynchronize();
+    safeCall(cudaDeviceSynchronize());
 }
 
 static void updateNodes(Octree<FieldType, MemoryPoolCUDA>& octree,
@@ -128,8 +137,9 @@ static void updateNodes(Octree<FieldType, MemoryPoolCUDA>& octree,
 
     updateNodesKernel<<<(num_elem + 255) / 256, 256>>>(
         octree, func, Tcw, K, frame_size, num_elem);
+    safeCall(cudaPeekAtLastError());
 
-    cudaDeviceSynchronize();
+    safeCall(cudaDeviceSynchronize());
 }
 
 void projectiveUpdate(Octree<FieldType, MemoryPoolCUDA>& octree,

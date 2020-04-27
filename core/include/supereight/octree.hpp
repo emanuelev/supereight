@@ -167,8 +167,8 @@ public:
      * \return signed distance function value at voxel position (x, y, z)
      */
     template<typename FieldSelect>
-    SE_DEVICE_FUNC
-    float interp(const Eigen::Vector3f& pos, FieldSelect f) const;
+    SE_DEVICE_FUNC float interp(
+        const Eigen::Vector3f& pos, FieldSelect f) const;
 
     /*! \brief Compute the gradient at voxel position  (x,y,z)
      * \param pos three-dimensional coordinates in which each component belongs
@@ -179,8 +179,7 @@ public:
     Eigen::Vector3f grad(const Eigen::Vector3f& pos) const;
 
     template<typename FieldSelect>
-    SE_DEVICE_FUNC
-    Eigen::Vector3f grad(
+    SE_DEVICE_FUNC Eigen::Vector3f grad(
         const Eigen::Vector3f& pos, FieldSelect selector) const;
 
     /*! \brief Get the list of allocated block. If the active switch is set to
@@ -261,8 +260,11 @@ private:
     int reserved_;
 
     // Private implementation of cached methods
+    SE_DEVICE_FUNC
     value_type get(
         const int x, const int y, const int z, VoxelBlock<T>* cached) const;
+
+    SE_DEVICE_FUNC
     value_type get(const Eigen::Vector3f& pos, VoxelBlock<T>* cached) const;
 
     // Parallel allocation of a given tree level for a set of input keys.
@@ -850,7 +852,7 @@ bool Octree<T, BufferT>::allocate_level(
     int leaves_level = max_level_ - log2(blockSide);
     nodes_buffer_.reserve(nodes_buffer_.used() + num_tasks);
 
-#pragma omp parallel for
+// #pragma omp parallel for
     for (int i = 0; i < num_tasks; i++) {
         Node<T>** n = &root_;
         key_t myKey = keyops::code(keys[i]);

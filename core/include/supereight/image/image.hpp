@@ -1,9 +1,11 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
-#include <Eigen/StdVector>
 #include <cassert>
 #include <vector>
+
+#include <Eigen/Dense>
+#include <Eigen/StdVector>
 
 namespace se {
 
@@ -30,6 +32,11 @@ public:
     }
 
     std::size_t size() const { return width_ * height_; };
+
+    Eigen::Vector2i dim() const {
+        return Eigen::Vector2i(width(), height());
+    }
+
     int width() const { return width_; };
     int height() const { return height_; };
 

@@ -31,18 +31,20 @@
 #define INTERP_GATHER_H
 #include "../node.hpp"
 
+#include <supereight/shared/commons.h>
+
 namespace se {
 
 /*
  * Interpolation's point gather offsets
  */
 
-static const Eigen::Vector3i interp_offsets[8] = {{0, 0, 0}, {1, 0, 0},
-    {0, 1, 0}, {1, 1, 0}, {0, 0, 1}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1}};
-
 template<typename FieldType, typename FieldSelector>
-inline void gather_local(const se::VoxelBlock<FieldType>* block,
+SE_DEVICE_FUNC inline void gather_local(const se::VoxelBlock<FieldType>* block,
     const Eigen::Vector3i& base, FieldSelector select, float points[8]) {
+    const Eigen::Vector3i interp_offsets[8] = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0},
+        {1, 1, 0}, {0, 0, 1}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1}};
+
     if (!block) {
         points[0] = select(se::VoxelBlock<FieldType>::empty());
         points[1] = select(se::VoxelBlock<FieldType>::empty());
@@ -67,9 +69,12 @@ inline void gather_local(const se::VoxelBlock<FieldType>* block,
 }
 
 template<typename FieldType, typename FieldSelector>
-inline void gather_4(const se::VoxelBlock<FieldType>* block,
+SE_DEVICE_FUNC inline void gather_4(const se::VoxelBlock<FieldType>* block,
     const Eigen::Vector3i& base, FieldSelector select,
     const unsigned int offsets[4], float points[8]) {
+    const Eigen::Vector3i interp_offsets[8] = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0},
+        {1, 1, 0}, {0, 0, 1}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1}};
+
     if (!block) {
         points[offsets[0]] = select(se::VoxelBlock<FieldType>::empty());
         points[offsets[1]] = select(se::VoxelBlock<FieldType>::empty());
@@ -86,9 +91,12 @@ inline void gather_4(const se::VoxelBlock<FieldType>* block,
 }
 
 template<typename FieldType, typename FieldSelector>
-inline void gather_2(const se::VoxelBlock<FieldType>* block,
+SE_DEVICE_FUNC inline void gather_2(const se::VoxelBlock<FieldType>* block,
     const Eigen::Vector3i& base, FieldSelector select,
     const unsigned int offsets[2], float points[8]) {
+    const Eigen::Vector3i interp_offsets[8] = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0},
+        {1, 1, 0}, {0, 0, 1}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1}};
+
     if (!block) {
         points[offsets[0]] = select(se::VoxelBlock<FieldType>::empty());
         points[offsets[1]] = select(se::VoxelBlock<FieldType>::empty());
@@ -103,8 +111,12 @@ inline void gather_2(const se::VoxelBlock<FieldType>* block,
 template<typename FieldType, template<typename> class BufferT,
     template<typename, template<typename> class> class MapT,
     class FieldSelector>
-inline void gather_points(const MapT<FieldType, BufferT>& fetcher,
-    const Eigen::Vector3i& base, FieldSelector select, float points[8]) {
+SE_DEVICE_FUNC inline void gather_points(
+    const MapT<FieldType, BufferT>& fetcher, const Eigen::Vector3i& base,
+    FieldSelector select, float points[8]) {
+    const Eigen::Vector3i interp_offsets[8] = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0},
+        {1, 1, 0}, {0, 0, 1}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1}};
+
     unsigned int blockSize = se::VoxelBlock<FieldType>::side;
     unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) |
         ((base(1) % blockSize == blockSize - 1) << 1) |
