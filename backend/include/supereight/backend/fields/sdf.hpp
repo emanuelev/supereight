@@ -43,12 +43,12 @@ struct voxel_traits<SDF> {
     SE_DEVICE_FUNC
     static value_type initValue() { return {1.f, 0.f}; }
 
-    template<typename OctreeT, typename HashType>
+    template<typename OctreeT, typename HashType, typename IncF>
     SE_DEVICE_FUNC static void buildAllocationList(HashType* allocation_list,
-        int reserved, std::atomic<int>& voxel_count, const OctreeT& octree,
+        int reserved, IncF get_idx, const OctreeT& octree,
         const Eigen::Vector3f& world_vertex, const Eigen::Vector3f& direction,
-        const Eigen::Vector3f& camera_pos, float depth_sample, int max_depth,
-        int block_depth, float voxel_size, float inverse_voxel_size, float mu);
+        const Eigen::Vector3f&, float, int, int block_depth, float,
+        float inverse_voxel_size, float mu);
 
     template<typename OctreeT>
     SE_DEVICE_FUNC static Eigen::Vector4f raycast(const OctreeT& octree,

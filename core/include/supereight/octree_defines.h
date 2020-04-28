@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define OCTREE_CONFIG_H
 
 #include "utils/math_utils.h"
+
+#include <supereight/shared/commons.h>
+
 #include <cstdint>
 
 namespace se {
@@ -57,7 +60,9 @@ constexpr se::key_t SCALE_MASK =
    }
  *
 */
-constexpr uint64_t MASK[] = {0x7000000000000000, 0x7e00000000000000,
+
+SE_DEVICE_VAR
+static const uint64_t MASK[] = {0x7000000000000000, 0x7e00000000000000,
     0x7fc0000000000000, 0x7ff8000000000000, 0x7fff000000000000,
     0x7fffe00000000000, 0x7ffffc0000000000, 0x7fffff8000000000,
     0x7ffffff000000000, 0x7ffffffe00000000, 0x7fffffffc0000000,

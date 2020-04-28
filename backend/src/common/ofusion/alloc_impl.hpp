@@ -34,11 +34,13 @@
 #pragma once
 
 #include <supereight/backend/fields.hpp>
+#include <supereight/shared/commons.h>
 #include <supereight/utils/math_utils.h>
 
 namespace se {
 
 /* Compute step size based on distance travelled along the ray */
+SE_DEVICE_FUNC
 static inline float compute_step_size(
     const float dist_travelled, const float band, const float voxel_size) {
     float new_step_size;
@@ -54,14 +56,15 @@ static inline float compute_step_size(
 }
 
 /* Compute octree level given a step size */
+SE_DEVICE_FUNC
 static inline int step_to_depth(
     const float step, const int max_depth, const float voxel_size) {
     return static_cast<int>(floorf(std::log2f(voxel_size / step)) + max_depth);
 }
 
-template<typename OctreeT, typename HashType>
+template<typename OctreeT, typename HashType, typename IncF>
 inline void voxel_traits<OFusion>::buildAllocationList(
-    HashType* allocation_list, int reserved, std::atomic<int>& voxel_count,
+    HashType* allocation_list, int reserved, IncF get_idx,
     const OctreeT& octree, const Eigen::Vector3f& world_vertex,
     const Eigen::Vector3f& direction, const Eigen::Vector3f& camera_pos,
     float depth_sample, int max_depth, int block_depth, float voxel_size,
@@ -89,7 +92,7 @@ inline void voxel_traits<OFusion>::buildAllocationList(
             if (!node_ptr) {
                 HashType k = octree.hash(voxel.x(), voxel.y(), voxel.z(),
                     std::min(cur_depth, block_depth));
-                int idx    = voxel_count++;
+                int idx    = get_idx();
 
                 if (idx < reserved) { allocation_list[idx] = k; }
             } else if (cur_depth >= block_depth) {

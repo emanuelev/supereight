@@ -37,9 +37,9 @@
 
 namespace se {
 
-template<typename OctreeT, typename HashType>
+template<typename OctreeT, typename HashType, typename IncF>
 inline void voxel_traits<SDF>::buildAllocationList(HashType* allocation_list,
-    int reserved, std::atomic<int>& voxel_count, const OctreeT& octree,
+    int reserved, IncF get_idx, const OctreeT& octree,
     const Eigen::Vector3f& world_vertex, const Eigen::Vector3f& direction,
     const Eigen::Vector3f&, float, int, int block_depth, float,
     float inverse_voxel_size, float mu) {
@@ -59,7 +59,7 @@ inline void voxel_traits<SDF>::buildAllocationList(HashType* allocation_list,
             if (!block_ptr) {
                 HashType k =
                     octree.hash(voxel.x(), voxel.y(), voxel.z(), block_depth);
-                int idx = voxel_count++;
+                int idx = get_idx();
 
                 if (idx < reserved) {
                     allocation_list[idx] = k;

@@ -53,51 +53,6 @@
 
 namespace se {
 
-template<typename OctreeT, typename HashType>
-static void buildAllocationListKernel(HashType* allocation_list, int reserved,
-    int& allocation_count, const OctreeT& octree, const Eigen::Matrix4f& pose,
-    const Eigen::Matrix4f& K, const float* depth_map,
-    const Eigen::Vector2i& image_size, float mu) {
-    const Eigen::Matrix4f inv_P = pose * K.inverse();
-
-    const int max_depth = log2(octree.size());
-    const int block_depth =
-        log2(octree.size()) - se::math::log2_const(OctreeT::blockSide);
-
-    const float voxel_size         = octree.dim() / octree.size();
-    const float inverse_voxel_size = 1.f / voxel_size;
-
-    std::atomic<int> voxel_count;
-
-    Eigen::Vector2i computation_size = image_size;
-
-    const Eigen::Vector3f camera_pos = pose.topRightCorner<3, 1>();
-    voxel_count                      = 0;
-#pragma omp parallel for
-    for (int y = 0; y < computation_size.y(); ++y) {
-        for (int x = 0; x < computation_size.x(); ++x) {
-            const float depth_sample = depth_map[x + y * computation_size.x()];
-            if (depth_sample == 0) continue;
-
-            Eigen::Vector3f world_vertex = (inv_P *
-                Eigen::Vector3f((x + 0.5f) * depth_sample,
-                    (y + 0.5f) * depth_sample, depth_sample)
-                    .homogeneous())
-                                               .head<3>();
-            Eigen::Vector3f direction =
-                (camera_pos - world_vertex).normalized();
-
-            voxel_traits<typename OctreeT::value_type>::buildAllocationList(
-                allocation_list, reserved, voxel_count, octree, world_vertex,
-                direction, camera_pos, depth_sample, max_depth, block_depth,
-                voxel_size, inverse_voxel_size, mu);
-        }
-    }
-
-    int final_count  = voxel_count;
-    allocation_count = final_count >= reserved ? reserved : final_count;
-}
-
 template<typename FieldType, template<typename> class BufferT,
     template<typename, template<typename> class> class OctreeT>
 static void renderVolumeKernel(const OctreeT<FieldType, BufferT>& octree,

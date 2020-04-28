@@ -1,5 +1,6 @@
 #pragma once
 
+#include <supereight/backend/cuda_util.hpp>
 #include <supereight/shared/commons.h>
 
 #include <cuda_runtime.h>
@@ -10,7 +11,9 @@ template<typename T>
 class MemoryPoolCUDA {
 public:
     SE_DEVICE_FUNC
-    MemoryPoolCUDA() { cudaMallocManaged(&buffer_, capacity_ * sizeof(T)); };
+    MemoryPoolCUDA() {
+        safeCall(cudaMallocManaged(&buffer_, capacity_ * sizeof(T)));
+    };
 
     SE_DEVICE_FUNC
     MemoryPoolCUDA(const MemoryPoolCUDA& other)

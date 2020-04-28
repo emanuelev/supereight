@@ -1,6 +1,7 @@
 #pragma once
 
 #include <supereight/backend/backend.hpp>
+#include <supereight/backend/buffer_cuda.hpp>
 #include <supereight/backend/memory_pool_cuda.hpp>
 
 #include <supereight/octree.hpp>
@@ -12,14 +13,19 @@ public:
     Backend(int size, float dim) : BackendBase(size, dim) {}
 
 private:
-    std::vector<se::key_t> allocation_list_;
+    BufferCUDA<se::key_t> allocation_list_;
+    int* allocation_list_used_ = nullptr;
 
-    float* depth_ = nullptr;
-    Eigen::Vector2i depth_size_;
+    BufferCUDA<se::key_t> keys_at_level_;
+    int* keys_at_level_used_ = nullptr;
 
-    Eigen::Vector3f* vertex_ = nullptr;
-    Eigen::Vector3f* normal_ = nullptr;
-    Eigen::Vector2i frame_size_;
+    int* node_buffer_used_  = nullptr;
+    int* block_buffer_used_ = nullptr;
+
+    BufferCUDA<float> depth_;
+
+    BufferCUDA<Eigen::Vector3f> vertex_;
+    BufferCUDA<Eigen::Vector3f> normal_;
 
     void allocate_(const Image<float>& depth, const Eigen::Vector4f& k,
         const Eigen::Matrix4f& pose, const Eigen::Vector2i& computation_size,

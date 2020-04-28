@@ -1,7 +1,7 @@
 #include "../common/field_impls.hpp"
 #include "raycast.hpp"
-#include "util.hpp"
 
+#include <supereight/backend/cuda_util.hpp>
 #include <supereight/ray_iterator.hpp>
 
 #include <cuda_runtime.h>
@@ -30,12 +30,6 @@ __global__ static void raycastKernel(OctreeT octree, Eigen::Vector3f* vertex,
         ? voxel_traits<FieldType>::raycast(octree, transl, dir, t_min,
               ray.tmax(), mu, step, step * BLOCK_SIDE)
         : Eigen::Vector4f::Constant(0.f);
-/*
-    if (x == 160 && y == 120) {
-        printf("t_min = %f; hit = %f, %f, %f, %f\n",
-                t_min, hit.x(), hit.y(), hit.z(), hit.w());
-    }
-*/
 
     if (hit.w() > 0.0) {
         vertex[x + y * frame_size.x()] = hit.head<3>();

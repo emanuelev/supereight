@@ -1,7 +1,7 @@
 #pragma once
 
-#include <supereight/voxel_traits.hpp>
 #include <supereight/shared/commons.h>
+#include <supereight/voxel_traits.hpp>
 
 #include <Eigen/Dense>
 
@@ -44,9 +44,9 @@ struct voxel_traits<OFusion> {
     SE_DEVICE_FUNC
     static inline value_type initValue() { return {0.f, 0.f}; }
 
-    template<typename OctreeT, typename HashType>
+    template<typename OctreeT, typename HashType, typename IncF>
     SE_DEVICE_FUNC static void buildAllocationList(HashType* allocation_list,
-        int reserved, std::atomic<int>& voxel_count, const OctreeT& octree,
+        int reserved, IncF get_idx, const OctreeT& octree,
         const Eigen::Vector3f& world_vertex, const Eigen::Vector3f& direction,
         const Eigen::Vector3f& camera_pos, float depth_sample, int max_depth,
         int block_depth, float voxel_size, float inverse_voxel_size,

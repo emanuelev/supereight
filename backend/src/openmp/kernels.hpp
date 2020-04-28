@@ -64,12 +64,12 @@ static void buildAllocationListKernel(HashType* allocation_list, int reserved,
     const float voxel_size         = octree.dim() / octree.size();
     const float inverse_voxel_size = 1.f / voxel_size;
 
-    std::atomic<int> voxel_count;
+    std::atomic<int> voxel_count = {0};
+    auto* voxel_count_ptr        = &voxel_count;
+    auto get_idx = [=]() { return voxel_count_ptr->fetch_add(1); };
 
     Eigen::Vector2i computation_size = image_size;
-
     const Eigen::Vector3f camera_pos = pose.topRightCorner<3, 1>();
-    voxel_count                      = 0;
 #pragma omp parallel for
     for (int y = 0; y < computation_size.y(); ++y) {
         for (int x = 0; x < computation_size.x(); ++x) {
@@ -85,7 +85,7 @@ static void buildAllocationListKernel(HashType* allocation_list, int reserved,
                 (camera_pos - world_vertex).normalized();
 
             voxel_traits<typename OctreeT::value_type>::buildAllocationList(
-                allocation_list, reserved, voxel_count, octree, world_vertex,
+                allocation_list, reserved, get_idx, octree, world_vertex,
                 direction, camera_pos, depth_sample, max_depth, block_depth,
                 voxel_size, inverse_voxel_size, mu);
         }
