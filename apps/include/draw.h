@@ -14,9 +14,6 @@
     #include <GL/glut.h>
 #endif
 
-#define WIDTH 1024
-#define HEIGHT 768
-
 template<typename T> struct gl;
 
 template<> struct gl<unsigned char> {
@@ -81,31 +78,35 @@ void drawthem(A* scene1, B* scene2, C* scene3, D* scene4, E*,
 		lastsize = size_s2;
 		glutInit(&g, &t);
 		glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-		glutInitWindowSize(320 * 2, 240 * 2);
+		glutInitWindowSize(640 * 2, 480 * 2);
 		// glutInitWindowPosition(100, 100);
 
-		glutCreateWindow("Kfusion Display");
+		glutCreateWindow("Supereight");
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 		glMatrixMode(GL_PROJECTION);
 
-		gluOrtho2D(0.0, (GLfloat) 640, 0.0, (GLfloat) 480);
+		gluOrtho2D(0.0, (GLfloat) 640 * 2, 0.0, (GLfloat) 480 * 2);
 		glMatrixMode(GL_MODELVIEW);
 
 	}
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glRasterPos2i(0, 480);
-	glPixelZoom(320.0 / size_s1.x, -240.0 / size_s1.y);
+	glRasterPos2i(0, 960);
+	glPixelZoom(640.0 / size_s1.x, -480.0 / size_s1.y);
 	glDrawPixels(size_s1.x, size_s1.y, gl<A>::format, gl<A>::type, scene1);
-	glRasterPos2i(320, 480);
-	glPixelZoom(320.0 / size_s2.x, -240.0 / size_s2.y);
+
+	glRasterPos2i(640, 960);
+	glPixelZoom(640.0 / size_s2.x, -480.0 / size_s2.y);
 	glDrawPixels(size_s2.x, size_s2.y, gl<B>::format, gl<B>::type, scene2);
-	glRasterPos2i(0, 240);
-	glPixelZoom(320.0 / size_s3.x, -240.0 / size_s3.y);
+
+	glRasterPos2i(0, 480);
+	glPixelZoom(640.0 / size_s3.x, -480.0 / size_s3.y);
 	glDrawPixels(size_s3.x, size_s3.y, gl<C>::format, gl<C>::type, scene3);
-	glRasterPos2i(320, 240);
-	glPixelZoom(320.0 / size_s4.x, -240.0 / size_s4.y);
+
+	glRasterPos2i(640, 480);
+	glPixelZoom(640.0 / size_s4.x, -480.0 / size_s4.y);
 	glDrawPixels(size_s4.x, size_s4.y, gl<D>::format, gl<D>::type, scene4);
+
 	glutSwapBuffers();
 
 }
