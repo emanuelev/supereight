@@ -26,7 +26,7 @@ struct bfusion_update {
         float t, float vs);
 
     template<typename DataHandlerT>
-    SE_DEVICE_FUNC void operator()(DataHandlerT& handler,
+    SE_DEVICE_ONLY_FUNC void operator()(DataHandlerT& handler,
         const Eigen::Vector3i&, const Eigen::Vector3f& pos,
         const Eigen::Vector2f& pixel);
 };

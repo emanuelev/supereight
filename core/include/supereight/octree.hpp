@@ -150,7 +150,7 @@ public:
      * \param z z coordinate in interval [0, size]
      * \param depth target insertion level
      */
-    SE_DEVICE_FUNC
+    SE_DEVICE_ONLY_FUNC
     Node<T>* insert(const int x, const int y, const int z, const int depth);
 
     /*! \brief Insert the octant (x,y,z) at maximum resolution. Not thread safe.
@@ -158,7 +158,7 @@ public:
      * \param y y coordinate in interval [0, size]
      * \param z z coordinate in interval [0, size]
      */
-    SE_DEVICE_FUNC
+    SE_DEVICE_ONLY_FUNC
     VoxelBlock<T>* insert(const int x, const int y, const int z);
 
     /*! \brief Interp voxel value at voxel position  (x,y,z)
@@ -202,14 +202,14 @@ public:
      * \param y y coordinate in interval [0, size]
      * \param z z coordinate in interval [0, size]
      */
-    SE_DEVICE_FUNC
+    SE_DEVICE_ONLY_FUNC
     key_t hash(const int x, const int y, const int z) const {
         const int scale =
             max_level_ - math::log2_const(blockSide); // depth of blocks
         return keyops::encode(x, y, z, scale, max_level_);
     }
 
-    SE_DEVICE_FUNC
+    SE_DEVICE_ONLY_FUNC
     key_t hash(const int x, const int y, const int z, key_t scale) const {
         return keyops::encode(x, y, z, scale, max_level_);
     }
@@ -225,9 +225,13 @@ public:
      * morton number)
      * \param number of keys in the keys array
      */
+    SE_DEVICE_ONLY_FUNC
     bool allocate(key_t* keys, int num_elem);
 
+    SE_DEVICE_ONLY_FUNC
     void save(const std::string& filename);
+
+    SE_DEVICE_ONLY_FUNC
     void load(const std::string& filename);
 
     /*! \brief Counts the number of blocks allocated
@@ -454,6 +458,7 @@ inline Node<T>* Octree<T, BufferT>::fetch_octant(
 }
 
 template<typename T, template<typename> class BufferT>
+SE_DEVICE_ONLY_FUNC
 Node<T>* Octree<T, BufferT>::insert(
     const int x, const int y, const int z, const int depth) {
     // Make sure we have enough space on buffers
@@ -509,6 +514,7 @@ Node<T>* Octree<T, BufferT>::insert(
 }
 
 template<typename T, template<typename> class BufferT>
+SE_DEVICE_ONLY_FUNC
 VoxelBlock<T>* Octree<T, BufferT>::insert(
     const int x, const int y, const int z) {
     return static_cast<VoxelBlock<T>*>(insert(x, y, z, max_level_));
@@ -822,6 +828,7 @@ void Octree<T, BufferT>::reserveBuffers(const int n) {
 }
 
 template<typename T, template<typename> class BufferT>
+SE_DEVICE_ONLY_FUNC
 bool Octree<T, BufferT>::allocate(key_t* keys, int num_elem) {
 #if defined(_OPENMP) && !defined(__clang__)
     __gnu_parallel::sort(keys, keys + num_elem);
@@ -932,6 +939,7 @@ void Octree<T, BufferT>::getAllocatedBlockList(
 }
 
 template<typename T, template<typename> class BufferT>
+SE_DEVICE_ONLY_FUNC
 void Octree<T, BufferT>::save(const std::string& filename) {
     std::ofstream os(filename, std::ios::binary);
     os.write(reinterpret_cast<char*>(&size_), sizeof(size_));
@@ -947,6 +955,7 @@ void Octree<T, BufferT>::save(const std::string& filename) {
 }
 
 template<typename T, template<typename> class BufferT>
+SE_DEVICE_ONLY_FUNC
 void Octree<T, BufferT>::load(const std::string& filename) {
     std::cout << "Loading octree from disk... " << filename << std::endl;
     std::ifstream is(filename, std::ios::binary);

@@ -21,14 +21,10 @@ __global__ static void updateBlocksKernel(OctreeT octree, UpdateFuncT func,
 
     float voxel_size = octree.dim() / octree.size();
 
-    if (!block->active()) return;
-
-    // TODO: investigate
-    /*
-    if (!algorithms::in_frustum<OctreeT::block_type>(
+    if (!block->active() &&
+        !algorithms::in_frustum<OctreeT::block_type>(
             block, voxel_size, K * Tcw.matrix(), frame_size))
         return;
-    */
 
     const Eigen::Vector3i blockCoord = block->coordinates();
     const Eigen::Vector3f delta =

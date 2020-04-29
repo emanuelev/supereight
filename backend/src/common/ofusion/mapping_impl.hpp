@@ -96,7 +96,7 @@ inline float interpDepth(
  * \param[in] t Where to compute the value of the spline at.
  * \return The value of the spline.
  */
-SE_DEVICE_FUNC
+SE_DEVICE_ONLY_FUNC
 static inline float bspline_memoized(float t) {
     float value                  = 0.f;
     constexpr float inverseRange = 1 / 6.f;
@@ -119,7 +119,7 @@ static inline float bspline_memoized(float t) {
  * \param[in]
  * \return The occupancy probability.
  */
-SE_DEVICE_FUNC
+SE_DEVICE_ONLY_FUNC
 static inline float H(const float val, const float) {
     const float Q_1 = bspline_memoized(val);
     const float Q_2 = bspline_memoized(val - 3);
@@ -157,6 +157,7 @@ inline bfusion_update::bfusion_update(const float* d,
       voxelsize(vs) {}
 
 template<typename DataHandlerT>
+SE_DEVICE_ONLY_FUNC
 inline void bfusion_update::operator()(DataHandlerT& handler,
     const Eigen::Vector3i&, const Eigen::Vector3f& pos,
     const Eigen::Vector2f& pixel) {

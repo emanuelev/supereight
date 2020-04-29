@@ -48,7 +48,7 @@ inline se::key_t code(const se::key_t key) { return key & ~SCALE_MASK; }
 SE_DEVICE_FUNC
 inline int level(const se::key_t key) { return key & SCALE_MASK; }
 
-SE_DEVICE_FUNC
+SE_DEVICE_ONLY_FUNC
 inline se::key_t encode(const int x, const int y, const int z, const int level,
     const int max_depth) {
     const int offset = MAX_BITS - max_depth + level - 1;
@@ -82,7 +82,7 @@ inline Eigen::Vector3i face_neighbour(const se::key_t o,
  * \param ancestor
  * \param max_depth max depth of the tree on which the octant lives
  */
-SE_DEVICE_FUNC
+SE_DEVICE_ONLY_FUNC
 inline bool descendant(
     se::key_t octant, se::key_t ancestor, const int max_depth) {
     const int level = se::keyops::level(ancestor);
@@ -97,7 +97,7 @@ inline bool descendant(
  * \param octant
  * \param max_depth max depth of the tree on which the octant lives
  */
-SE_DEVICE_FUNC
+SE_DEVICE_ONLY_FUNC
 inline se::key_t parent(const se::key_t& octant, const int max_depth) {
     const int level = se::keyops::level(octant) - 1;
     const int idx   = MAX_BITS - max_depth + level - 1;
@@ -144,7 +144,7 @@ inline Eigen::Vector3i far_corner(
  * \param level of octant
  * \param max_depth max depth of the tree on which the octant lives
  */
-SE_DEVICE_FUNC
+SE_DEVICE_ONLY_FUNC
 inline void exterior_neighbours(se::key_t result[7], const se::key_t octant,
     const int level, const int max_depth) {
     const int idx       = child_id(octant, level, max_depth);
@@ -225,7 +225,7 @@ static inline void one_neighbourhood(Eigen::Ref<Eigen::Matrix<int, 4, 6>> res,
  * \param octant
  * \param max_depth max depth of the tree on which the octant lives
  */
-SE_DEVICE_FUNC
+SE_DEVICE_ONLY_FUNC
 inline void siblings(
     se::key_t result[8], const se::key_t octant, const int max_depth) {
     const int level   = (octant & SCALE_MASK);
