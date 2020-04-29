@@ -121,8 +121,6 @@ static void updateBlocks(Octree<FieldType, MemoryPoolCUDA>& octree,
     updateBlocksKernel<<<(num_elem + 255) / 256, 256>>>(
         octree, func, Tcw, K, frame_size, num_elem);
     safeCall(cudaPeekAtLastError());
-
-    safeCall(cudaDeviceSynchronize());
 }
 
 static void updateNodes(Octree<FieldType, MemoryPoolCUDA>& octree,
@@ -134,8 +132,6 @@ static void updateNodes(Octree<FieldType, MemoryPoolCUDA>& octree,
     updateNodesKernel<<<(num_elem + 255) / 256, 256>>>(
         octree, func, Tcw, K, frame_size, num_elem);
     safeCall(cudaPeekAtLastError());
-
-    safeCall(cudaDeviceSynchronize());
 }
 
 void projectiveUpdate(Octree<FieldType, MemoryPoolCUDA>& octree,

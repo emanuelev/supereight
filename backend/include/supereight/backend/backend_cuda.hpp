@@ -27,6 +27,11 @@ private:
     BufferCUDA<Eigen::Vector3f> vertex_;
     BufferCUDA<Eigen::Vector3f> normal_;
 
+    BufferCUDA<Eigen::Vector<unsigned char, 4>> render_out_;
+
+    Eigen::Vector2i raycast_dim_;
+    Eigen::Matrix4f raycast_view_;
+
     void allocate_(const Image<float>& depth, const Eigen::Vector4f& k,
         const Eigen::Matrix4f& pose, const Eigen::Vector2i& computation_size,
         float mu);

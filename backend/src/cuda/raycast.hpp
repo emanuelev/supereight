@@ -49,4 +49,8 @@ void raycast(const Octree<FieldType, MemoryPoolCUDA>& octree,
     Eigen::Vector2i frame_size, Eigen::Matrix4f view, Eigen::Vector2f planes,
     float mu, float step);
 
+void render(Eigen::Vector<unsigned char, 4>* out, Eigen::Vector2i output_size,
+    Eigen::Vector3f* vertex, Eigen::Vector3f* normal, Eigen::Vector3f light,
+    Eigen::Vector3f ambient);
+
 } // namespace se

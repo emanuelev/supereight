@@ -60,7 +60,6 @@ int buildAllocationList(BufferAccessorCUDA<se::key_t> allocation_list,
     buildAllocationListKernel<<<blocks, threads>>>(
         allocation_list, octree, voxel_count, pose, K, depth, frame_size, mu);
     safeCall(cudaPeekAtLastError());
-
     safeCall(cudaDeviceSynchronize());
 
     int final_count = *voxel_count;
