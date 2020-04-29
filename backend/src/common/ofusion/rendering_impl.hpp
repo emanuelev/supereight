@@ -46,40 +46,37 @@ inline Eigen::Vector4f voxel_traits<OFusion>::raycast(const OctreeT& octree,
     auto select_occupancy        = [](const auto& val) { return val.x; };
     const float inverseVoxelSize = octree.size() / octree.dim();
 
-    if (tnear < tfar) {
-        float t        = tnear;
-        float stepsize = step;
-        float f_t      = octree.interp(
-            inverseVoxelSize * (origin + direction * t), select_occupancy);
-        float f_tt = 0;
+    if (tnear >= tfar) return Eigen::Vector4f::Constant(0);
 
-        // if we are not already in it
-        if (f_t <= SURF_BOUNDARY) {
-            for (; t < tfar; t += stepsize) {
-                const Eigen::Vector3f pos = origin + direction * t;
-                const Eigen::Vector3i scaled_pos =
-                    (pos * inverseVoxelSize).cast<int>();
-                auto data = octree.get_fine(
-                    scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
+    float t        = tnear;
+    float stepsize = step;
+    float f_t      = octree.interp(
+        inverseVoxelSize * (origin + direction * t), select_occupancy);
+    float f_tt = 0;
 
-                if (data.x > -100.f && data.y > 0.f) {
-                    f_tt = octree.interp(
-                        inverseVoxelSize * (origin + direction * t),
-                        select_occupancy);
-                }
+    if (f_t > SURF_BOUNDARY) return Eigen::Vector4f::Constant(0);
 
-                if (f_tt > SURF_BOUNDARY) break;
-                f_t = f_tt;
-            }
+    for (; t < tfar; t += stepsize) {
+        const Eigen::Vector3f pos        = origin + direction * t;
+        const Eigen::Vector3i scaled_pos = (pos * inverseVoxelSize).cast<int>();
+        auto data =
+            octree.get_fine(scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
 
-            if (f_tt > SURF_BOUNDARY) {
-                // got it, calculate accurate intersection
-                t = t - stepsize * (f_tt - SURF_BOUNDARY) / (f_tt - f_t);
-                Eigen::Vector4f res = (origin + direction * t).homogeneous();
-                res.w()             = t;
-                return res;
-            }
+        if (data.x > -100.f && data.y > 0.f) {
+            f_tt = octree.interp(
+                inverseVoxelSize * (origin + direction * t), select_occupancy);
         }
+
+        if (f_tt > SURF_BOUNDARY) break;
+        f_t = f_tt;
+    }
+
+    if (f_tt > SURF_BOUNDARY) {
+        // got it, calculate accurate intersection
+        t = t - stepsize * (f_tt - SURF_BOUNDARY) / (f_tt - f_t);
+        Eigen::Vector4f res = (origin + direction * t).homogeneous();
+        res.w()             = t;
+        return res;
     }
 
     return Eigen::Vector4f::Constant(0);

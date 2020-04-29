@@ -31,24 +31,26 @@ __global__ static void raycastKernel(OctreeT octree, Eigen::Vector3f* vertex,
               ray.tmax(), mu, step, step * BLOCK_SIDE)
         : Eigen::Vector4f::Constant(0.f);
 
-    if (hit.w() > 0.0) {
-        vertex[x + y * frame_size.x()] = hit.head<3>();
-
-        const float inverseVoxelSize = octree.size() / octree.dim();
-        Eigen::Vector3f surfNorm = octree.grad(inverseVoxelSize * hit.head<3>(),
-            [](const auto& val) { return val.x; });
-
-        if (surfNorm.norm() == 0) {
-            normal[x + y * frame_size.x()] = Eigen::Vector3f(INVALID, 0, 0);
-        } else {
-            // Invert normals if SDF
-            if (voxel_traits<FieldType>::invert_normals) surfNorm *= -1.f;
-            normal[x + y * frame_size.x()] = surfNorm.normalized();
-        }
-    } else {
+    if (hit.w() <= 0.0) {
         vertex[x + y * frame_size.x()] = Eigen::Vector3f::Constant(0);
         normal[x + y * frame_size.x()] = Eigen::Vector3f(INVALID, 0, 0);
+        return;
     }
+
+    vertex[x + y * frame_size.x()] = hit.head<3>();
+
+    const float inverseVoxelSize = octree.size() / octree.dim();
+    Eigen::Vector3f surfNorm = octree.grad(inverseVoxelSize * hit.head<3>(),
+        [](const auto& val) { return val.x; });
+
+    if (surfNorm.norm() == 0) {
+        normal[x + y * frame_size.x()] = Eigen::Vector3f(INVALID, 0, 0);
+        return;
+    }
+
+    // Invert normals if SDF
+    if (voxel_traits<FieldType>::invert_normals) surfNorm *= -1.f;
+    normal[x + y * frame_size.x()] = surfNorm.normalized();
 }
 
 __global__ static void renderKernel(Eigen::Vector<unsigned char, 4>* out,

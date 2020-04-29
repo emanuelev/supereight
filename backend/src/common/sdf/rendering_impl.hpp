@@ -45,48 +45,47 @@ inline Eigen::Vector4f voxel_traits<SDF>::raycast(const OctreeT& octree,
     auto select_depth            = [](const auto& val) { return val.x; };
     const float inverseVoxelSize = octree.size() / octree.dim();
 
-    if (tnear < tfar) {
-        // first walk with largesteps until we found a hit
-        float t                  = tnear;
-        float stepsize           = largestep;
-        Eigen::Vector3f position = origin + direction * t;
-        float f_t  = octree.interp(inverseVoxelSize * position, select_depth);
-        float f_tt = 0;
-        if (f_t > 0) { // ups, if we were already in it, then don't render
-                       // anything here
-            for (; t < tfar; t += stepsize) {
-                const Eigen::Vector4i scaled_pos =
-                    (inverseVoxelSize * position.homogeneous()).cast<int>();
-                auto data = octree.get_fine(
-                    scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
+    if (tnear >= tfar) return Eigen::Vector4f::Constant(0);
 
-                if (data.y == 0) {
-                    stepsize = largestep;
-                    position += stepsize * direction;
-                    continue;
-                }
+    // first walk with largesteps until we found a hit
+    float t                  = tnear;
+    float stepsize           = largestep;
+    Eigen::Vector3f position = origin + direction * t;
+    float f_t  = octree.interp(inverseVoxelSize * position, select_depth);
+    float f_tt = 0;
 
-                f_tt = data.x;
-                if (f_tt <= 0.1 && f_tt >= -0.5f) {
-                    f_tt = octree.interp(
-                        inverseVoxelSize * position, select_depth);
-                }
+    if (f_t <= 0) return Eigen::Vector4f::Constant(0);
 
-                if (f_tt < 0) // got it, jump out of inner loop
-                    break;
+    for (; t < tfar; t += stepsize) {
+        const Eigen::Vector4i scaled_pos =
+            (inverseVoxelSize * position.homogeneous()).cast<int>();
+        auto data =
+            octree.get_fine(scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
 
-                stepsize = fmaxf(f_tt * mu, step);
-                position += stepsize * direction;
-                f_t = f_tt;
-            }
-
-            if (f_tt < 0) { // got it, calculate accurate intersection
-                t                   = t + stepsize * f_tt / (f_t - f_tt);
-                Eigen::Vector4f res = (origin + direction * t).homogeneous();
-                res.w()             = t;
-                return res;
-            }
+        if (data.y == 0) {
+            stepsize = largestep;
+            position += stepsize * direction;
+            continue;
         }
+
+        f_tt = data.x;
+        if (f_tt <= 0.1 && f_tt >= -0.5f) {
+            f_tt = octree.interp(inverseVoxelSize * position, select_depth);
+        }
+
+        if (f_tt < 0) // got it, jump out of inner loop
+            break;
+
+        stepsize = fmaxf(f_tt * mu, step);
+        position += stepsize * direction;
+        f_t = f_tt;
+    }
+
+    if (f_tt < 0) { // got it, calculate accurate intersection
+        t                   = t + stepsize * f_tt / (f_t - f_tt);
+        Eigen::Vector4f res = (origin + direction * t).homogeneous();
+        res.w()             = t;
+        return res;
     }
 
     return Eigen::Vector4f::Constant(0);
