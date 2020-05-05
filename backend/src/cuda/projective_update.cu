@@ -118,6 +118,8 @@ static void updateBlocks(Octree<FieldType, MemoryPoolCUDA>& octree,
     auto& block_buffer = octree.getBlockBuffer();
     int num_elem       = block_buffer.used();
 
+    if (num_elem < 1) return;
+
     updateBlocksKernel<<<(num_elem + 255) / 256, 256>>>(
         octree, func, Tcw, K, frame_size, num_elem);
     safeCall(cudaPeekAtLastError());
@@ -128,6 +130,8 @@ static void updateNodes(Octree<FieldType, MemoryPoolCUDA>& octree,
     Eigen::Matrix4f K, Eigen::Vector2i frame_size) {
     auto& node_buffer = octree.getNodesBuffer();
     int num_elem      = node_buffer.used();
+
+    if (num_elem < 1) return;
 
     updateNodesKernel<<<(num_elem + 255) / 256, 256>>>(
         octree, func, Tcw, K, frame_size, num_elem);
