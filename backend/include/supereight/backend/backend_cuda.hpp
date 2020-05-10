@@ -19,6 +19,8 @@ private:
     BufferCUDA<se::key_t> keys_at_level_;
     int* keys_at_level_used_ = nullptr;
 
+    BufferCUDA<std::uint8_t> allocation_temp_storage_;
+
     int* node_buffer_used_  = nullptr;
     int* block_buffer_used_ = nullptr;
 

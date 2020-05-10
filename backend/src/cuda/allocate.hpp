@@ -51,4 +51,9 @@ int buildAllocationList(BufferAccessorCUDA<se::key_t> allocation_list,
     BufferAccessorCUDA<float> depth, const Eigen::Vector2i& frame_size,
     float mu);
 
+void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
+    BufferAccessorCUDA<se::key_t> allocation_list, int allocation_list_used,
+    BufferCUDA<se::key_t>& keys_at_level, int* keys_at_level_used,
+    BufferCUDA<std::uint8_t>& temp_storage);
+
 } // namespace se

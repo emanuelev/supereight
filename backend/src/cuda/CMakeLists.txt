@@ -5,6 +5,8 @@ project(supereight-backend)
 enable_language(CUDA)
 
 find_package(CUDAToolkit REQUIRED)
+find_package(CUB         REQUIRED)
+
 find_package(Eigen3      REQUIRED)
 find_package(Sophus      REQUIRED)
 
@@ -24,7 +26,7 @@ foreach(FIELD_TYPE ${FIELD_TYPES})
         allocate.cu projective_update.cu raycast.cu)
 
     target_include_directories(${library_name} PUBLIC ${BACKEND_INCLUDE_DIR}
-        ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
+        ${CUB_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
     target_compile_options(${library_name} PUBLIC ${compile_flags})
     target_link_libraries(${library_name} ${libraries})
 

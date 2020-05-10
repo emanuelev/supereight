@@ -161,6 +161,15 @@ public:
     SE_DEVICE_ONLY_FUNC
     VoxelBlock<T>* insert(const int x, const int y, const int z);
 
+    /*! \brief Insert the octant (x,y,z). Allocates exactly one octant, requires
+     * parents to be allocated. Thread safe.
+     * \param x x coordinate in interval [0, size]
+     * \param y y coordinate in interval [0, size]
+     * \param z z coordinate in interval [0, size]
+     */
+    SE_DEVICE_ONLY_FUNC
+    void insert_one(const key_t key);
+
     /*! \brief Interp voxel value at voxel position  (x,y,z)
      * \param pos three-dimensional coordinates in which each component belongs
      * to the interval [0, size]
@@ -233,6 +242,9 @@ public:
 
     SE_DEVICE_ONLY_FUNC
     void load(const std::string& filename);
+
+    SE_DEVICE_FUNC
+    int maxLevel() const { return max_level_; }
 
     /*! \brief Counts the number of blocks allocated
      * \return number of voxel blocks allocated
@@ -458,8 +470,7 @@ inline Node<T>* Octree<T, BufferT>::fetch_octant(
 }
 
 template<typename T, template<typename> class BufferT>
-SE_DEVICE_ONLY_FUNC
-Node<T>* Octree<T, BufferT>::insert(
+SE_DEVICE_ONLY_FUNC Node<T>* Octree<T, BufferT>::insert(
     const int x, const int y, const int z, const int depth) {
     // Make sure we have enough space on buffers
     const int leaves_level = max_level_ - math::log2_const(blockSide);
@@ -514,8 +525,7 @@ Node<T>* Octree<T, BufferT>::insert(
 }
 
 template<typename T, template<typename> class BufferT>
-SE_DEVICE_ONLY_FUNC
-VoxelBlock<T>* Octree<T, BufferT>::insert(
+SE_DEVICE_ONLY_FUNC VoxelBlock<T>* Octree<T, BufferT>::insert(
     const int x, const int y, const int z) {
     return static_cast<VoxelBlock<T>*>(insert(x, y, z, max_level_));
 }
@@ -815,6 +825,8 @@ int Octree<T, BufferT>::nodeCountRecursive(Node<T>* node) {
     return n;
 }
 
+#include <bitset>
+
 template<typename T, template<typename> class BufferT>
 void Octree<T, BufferT>::reserveBuffers(const int n) {
     if (n > reserved_) {
@@ -828,13 +840,18 @@ void Octree<T, BufferT>::reserveBuffers(const int n) {
 }
 
 template<typename T, template<typename> class BufferT>
-SE_DEVICE_ONLY_FUNC
-bool Octree<T, BufferT>::allocate(key_t* keys, int num_elem) {
+SE_DEVICE_ONLY_FUNC bool Octree<T, BufferT>::allocate(
+    key_t* keys, int num_elem) {
 #if defined(_OPENMP) && !defined(__clang__)
     __gnu_parallel::sort(keys, keys + num_elem);
 #else
     std::sort(keys, keys + num_elem);
 #endif
+    key_t* unique_keys = new key_t[num_elem];
+    std::memcpy(unique_keys, keys, num_elem * sizeof(key_t));
+    key_t* end = std::unique(unique_keys, unique_keys + num_elem);
+    std::cout << "num_elem: " << num_elem
+              << ", num unique: " << end - unique_keys << "\n";
 
     num_elem = algorithms::filter_ancestors(keys, num_elem, max_level_);
     reserveBuffers(num_elem);
@@ -848,7 +865,8 @@ bool Octree<T, BufferT>::allocate(key_t* keys, int num_elem) {
         const key_t mask = MASK[level + shift] | SCALE_MASK;
         compute_prefix(keys, keys_at_level_, num_elem, mask);
         last_elem = algorithms::unique_multiscale(keys_at_level_, num_elem);
-        success   = allocate_level(keys_at_level_, last_elem, level);
+        std::cout << "unique at level " << level << ": " << last_elem << "\n";
+        success = allocate_level(keys_at_level_, last_elem, level);
     }
     return success;
 }
@@ -859,7 +877,7 @@ bool Octree<T, BufferT>::allocate_level(
     int leaves_level = max_level_ - log2(blockSide);
     nodes_buffer_.reserve(nodes_buffer_.used() + num_tasks);
 
-// #pragma omp parallel for
+    // #pragma omp parallel for
     for (int i = 0; i < num_tasks; i++) {
         Node<T>** n = &root_;
         key_t myKey = keyops::code(keys[i]);
@@ -894,6 +912,46 @@ bool Octree<T, BufferT>::allocate_level(
         }
     }
     return true;
+}
+
+template<typename T, template<typename> class BufferT>
+SE_DEVICE_ONLY_FUNC void Octree<T, BufferT>::insert_one(const key_t key) {
+    Node<T>** node = &root_;
+
+    key_t code       = keyops::code(key);
+    int target_level = keyops::level(key);
+
+    int leaves_level = max_level_ - log2(BLOCK_SIDE);
+    int edge         = size_ / 2;
+
+    for (int level = 1; level <= target_level - 1; ++level) {
+        int index = child_id(code, level, max_level_);
+        node      = &(*node)->child(index);
+
+        edge /= 2;
+    }
+
+    int index       = child_id(code, target_level, max_level_);
+    Node<T>* parent = *node;
+    node            = &(*node)->child(index);
+
+    // Already allocated?!
+    if (*node) return;
+
+    if (target_level == leaves_level) {
+        *node       = block_buffer_.acquire();
+        auto* block = static_cast<VoxelBlock<T>*>(*node);
+
+        block->coordinates(Eigen::Vector3i(unpack_morton(code)));
+        block->active(true);
+    } else {
+        *node = nodes_buffer_.acquire();
+    }
+
+    (*node)->code_ = code | target_level;
+    (*node)->side_ = edge;
+
+    parent->children_mask_ = parent->children_mask_ | (1 << index);
 }
 
 template<typename T, template<typename> class BufferT>
@@ -939,8 +997,7 @@ void Octree<T, BufferT>::getAllocatedBlockList(
 }
 
 template<typename T, template<typename> class BufferT>
-SE_DEVICE_ONLY_FUNC
-void Octree<T, BufferT>::save(const std::string& filename) {
+SE_DEVICE_ONLY_FUNC void Octree<T, BufferT>::save(const std::string& filename) {
     std::ofstream os(filename, std::ios::binary);
     os.write(reinterpret_cast<char*>(&size_), sizeof(size_));
     os.write(reinterpret_cast<char*>(&dim_), sizeof(dim_));
@@ -955,8 +1012,7 @@ void Octree<T, BufferT>::save(const std::string& filename) {
 }
 
 template<typename T, template<typename> class BufferT>
-SE_DEVICE_ONLY_FUNC
-void Octree<T, BufferT>::load(const std::string& filename) {
+SE_DEVICE_ONLY_FUNC void Octree<T, BufferT>::load(const std::string& filename) {
     std::cout << "Loading octree from disk... " << filename << std::endl;
     std::ifstream is(filename, std::ios::binary);
     int size;

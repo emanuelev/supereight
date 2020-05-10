@@ -13,30 +13,24 @@ class BufferAccessorCUDA;
 template<typename T>
 class BufferCUDA {
 public:
-    SE_DEVICE_FUNC
     BufferCUDA(){};
 
-    SE_DEVICE_FUNC
-    BufferCUDA(int size) : size_{size} {
+    BufferCUDA(std::size_t size) : size_{size} {
         safeCall(cudaMallocManaged(&buffer_, size_ * sizeof(T)));
     };
 
-    SE_DEVICE_FUNC
     BufferCUDA(const BufferCUDA&& other)
         : buffer_{other.buffer_}, size_{other.size_} {}
 
     BufferCUDA(const BufferCUDA&) = delete;
 
-    SE_DEVICE_FUNC
     ~BufferCUDA() { safeCall(cudaFree(buffer_)); }
 
-    SE_DEVICE_FUNC
     BufferAccessorCUDA<T> accessor() {
         return BufferAccessorCUDA<T>(buffer_, size_);
     }
 
-    SE_DEVICE_FUNC
-    void resize(int n) {
+    void resize(std::size_t n) {
         if (size_ == n) return;
 
         size_ = n;
@@ -45,12 +39,11 @@ public:
         safeCall(cudaMallocManaged(&buffer_, size_ * sizeof(T)));
     }
 
-    SE_DEVICE_FUNC
-    int size() const { return size_; }
+    std::size_t size() const { return size_; }
 
 private:
-    T* buffer_ = nullptr;
-    int size_  = 0;
+    T* buffer_        = nullptr;
+    std::size_t size_ = 0;
 };
 
 template<typename T>
@@ -59,20 +52,24 @@ public:
     BufferAccessorCUDA() = delete;
 
     SE_DEVICE_FUNC
-    int size() const { return size_; }
+    std::size_t size() const { return size_; }
 
     SE_DEVICE_FUNC
     T* data() const { return buffer_; }
 
     SE_DEVICE_FUNC
-    T* operator[](int i) const { return buffer_ + i; }
+    const T& operator[](std::size_t i) const { return buffer_[i]; }
+
+    SE_DEVICE_FUNC
+    T& operator[](std::size_t i) { return buffer_[i]; }
 
 private:
     SE_DEVICE_FUNC
-    BufferAccessorCUDA(T* buffer, int size) : buffer_{buffer}, size_{size} {}
+    BufferAccessorCUDA(T* buffer, std::size_t size)
+        : buffer_{buffer}, size_{size} {}
 
     T* buffer_;
-    int size_;
+    std::size_t size_;
 
     friend class BufferCUDA<T>;
 };

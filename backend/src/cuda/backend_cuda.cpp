@@ -27,13 +27,17 @@ void Backend::allocate_(const Image<float>& depth, const Eigen::Vector4f& k,
     if (allocation_list_used_ == nullptr)
         safeCall(cudaMallocManaged(&allocation_list_used_, sizeof(int)));
 
+    if (keys_at_level_used_ == nullptr)
+        safeCall(cudaMallocManaged(&keys_at_level_used_, sizeof(int)));
+
     allocation_list_.resize(total);
 
-    int allocated = se::buildAllocationList(allocation_list_.accessor(),
-        octree_, allocation_list_used_, pose, getCameraMatrix(k),
-        depth_.accessor(), computation_size, mu);
+    int used = se::buildAllocationList(allocation_list_.accessor(), octree_,
+        allocation_list_used_, pose, getCameraMatrix(k), depth_.accessor(),
+        computation_size, mu);
 
-    octree_.allocate(allocation_list_.accessor().data(), allocated);
+    se::allocate(octree_, allocation_list_.accessor(), used, keys_at_level_,
+        keys_at_level_used_, allocation_temp_storage_);
 }
 
 void Backend::update_(const Image<float>&, const Sophus::SE3f& Tcw,

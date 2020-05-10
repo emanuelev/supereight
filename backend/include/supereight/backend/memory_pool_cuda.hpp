@@ -11,7 +11,10 @@ template<typename T>
 class MemoryPoolCUDA {
 public:
     SE_DEVICE_FUNC
-    MemoryPoolCUDA(){};
+    MemoryPoolCUDA() {
+        safeCall(cudaMallocManaged(&used_, sizeof(int)));
+        *used_ = 0;
+    };
 
     SE_DEVICE_FUNC
     MemoryPoolCUDA(const MemoryPoolCUDA&) = default;
@@ -19,15 +22,22 @@ public:
     SE_DEVICE_FUNC
     ~MemoryPoolCUDA() {}
 
-    int used() const { return used_; }
+    SE_DEVICE_FUNC
+    int used() const { return *used_; }
 
     int capacity() const { return capacity_; }
 
-    void clear() { used_ = 0; }
-
     SE_DEVICE_FUNC
+    void clear() { *used_ = 0; }
+
+    SE_DEVICE_ONLY_FUNC
     T* acquire() {
-        int idx = used_++;
+#ifdef __CUDACC__
+        int idx = atomicAdd(used_, 1);
+#else
+        int idx = (*used_)++;
+#endif
+
         return (*this)[idx];
     }
 
@@ -76,7 +86,7 @@ private:
     static constexpr int page_size_ = 32 * 4096 / sizeof(T);
 
     int capacity_ = 0;
-    int used_     = 0;
+    int* used_    = nullptr;
 
     T** page_table_ = nullptr;
 
