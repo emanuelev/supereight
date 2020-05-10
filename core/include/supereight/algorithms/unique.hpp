@@ -48,6 +48,7 @@ inline int unique(T* keys, int num_keys) {
 }
 
 template<typename KeyT>
+SE_DEVICE_ONLY_FUNC
 inline int filter_ancestors(KeyT* keys, int num_keys, const int max_depth) {
     int e = 0;
     for (int i = 0; i < num_keys; ++i) {

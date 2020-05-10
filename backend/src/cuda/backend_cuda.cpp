@@ -36,6 +36,8 @@ void Backend::allocate_(const Image<float>& depth, const Eigen::Vector4f& k,
         allocation_list_used_, pose, getCameraMatrix(k), depth_.accessor(),
         computation_size, mu);
 
+    // octree_.allocate(allocation_list_.accessor().data(), used);
+
     se::allocate(octree_, allocation_list_.accessor(), used, keys_at_level_,
         keys_at_level_used_, allocation_temp_storage_);
 }

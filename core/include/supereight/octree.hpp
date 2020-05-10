@@ -474,12 +474,15 @@ SE_DEVICE_ONLY_FUNC Node<T>* Octree<T, BufferT>::insert(
     const int x, const int y, const int z, const int depth) {
     // Make sure we have enough space on buffers
     const int leaves_level = max_level_ - math::log2_const(blockSide);
+
+    /*
     if (depth >= leaves_level) {
         block_buffer_.reserve(block_buffer_.used() + 1);
         nodes_buffer_.reserve(nodes_buffer_.used() + leaves_level);
     } else {
         nodes_buffer_.reserve(nodes_buffer_.used() + depth);
     }
+    */
 
     Node<T>* n = root_;
     // Should not happen if octree has been initialised properly

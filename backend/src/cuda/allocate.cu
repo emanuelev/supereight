@@ -1,6 +1,7 @@
 #include "../common/field_impls.hpp"
 #include "allocate.hpp"
 
+#include <supereight/algorithms/unique.hpp>
 #include <supereight/backend/cuda_util.hpp>
 
 #include <cub/cub.cuh>
@@ -68,6 +69,26 @@ __global__ static void allocateLevelKernel(OctreeT octree,
     octree.insert_one(keys_at_level[idx]);
 }
 
+template<typename OctreeT>
+__global__ static void allocateSequentialKernel(OctreeT octree,
+    BufferAccessorCUDA<se::key_t> allocation_list, int num_elem) {
+    for (int i = 0; i < num_elem; ++i) {
+        se::key_t key = allocation_list[i];
+
+        int level           = keyops::level(key);
+        Eigen::Vector3i pos = keyops::decode(key);
+
+        octree.insert(pos.x(), pos.y(), pos.z(), level);
+    }
+}
+
+__global__ static void filterAncestorsKernel(
+    BufferAccessorCUDA<se::key_t> allocation_list, int allocation_list_used,
+    int max_level, int* num_elem) {
+    *num_elem = algorithms::filter_ancestors(
+        allocation_list.data(), allocation_list_used, max_level);
+}
+
 int buildAllocationList(BufferAccessorCUDA<se::key_t> allocation_list,
     const Octree<FieldType, MemoryPoolCUDA>& octree, int* voxel_count,
     const Eigen::Matrix4f& pose, const Eigen::Matrix4f& K,
@@ -99,55 +120,54 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
     using time_pt = std::chrono::time_point<clock>;
     using ms      = std::chrono::duration<double, std::milli>;
 
-    time_pt timings[5];
-    timings[0] = clock::now();
+    auto start = clock::now();
 
     if (allocation_list_used == 0) return;
 
-    // Calculate temp storage requirements
     std::size_t temp_storage_bytes = 0;
-    cub::DeviceRadixSort::SortKeys(nullptr, temp_storage_bytes,
-        allocation_list.data(), allocation_list.data(), allocation_list_used);
-    safeCall(cudaPeekAtLastError());
+    if (allocation_list_used > 100) {
+        // Calculate temp storage requirements
+        cub::DeviceRadixSort::SortKeys(nullptr, temp_storage_bytes,
+            allocation_list.data(), allocation_list.data(),
+            allocation_list_used);
+        safeCall(cudaPeekAtLastError());
 
-    if (temp_storage_bytes > temp_storage.size())
-        temp_storage.resize(temp_storage_bytes);
+        if (temp_storage_bytes > temp_storage.size()) {
+            std::cout << "resizing tmp storage\n";
+            temp_storage.resize(temp_storage_bytes);
+        }
 
-    // Sort
-    cub::DeviceRadixSort::SortKeys(
-        static_cast<void*>(temp_storage.accessor().data()), temp_storage_bytes,
-        allocation_list.data(), allocation_list.data(), allocation_list_used);
-    safeCall(cudaPeekAtLastError());
+        // Sort
+        cub::DeviceRadixSort::SortKeys(
+            static_cast<void*>(temp_storage.accessor().data()),
+            temp_storage_bytes, allocation_list.data(), allocation_list.data(),
+            allocation_list_used);
+        safeCall(cudaPeekAtLastError());
 
-    safeCall(cudaDeviceSynchronize());
-    timings[1] = clock::now();
+        if (allocation_list_used > 500) {
+            // Calculate temp storage requirements
+            cub::DeviceSelect::Unique(nullptr, temp_storage_bytes,
+                allocation_list.data(), allocation_list.data(),
+                keys_at_level_used, allocation_list_used);
+            safeCall(cudaPeekAtLastError());
 
-    // Calculate temp storage requirements
-    cub::DeviceSelect::Unique(nullptr, temp_storage_bytes,
-        allocation_list.data(), allocation_list.data(), keys_at_level_used,
-        allocation_list_used);
-    safeCall(cudaPeekAtLastError());
+            if (temp_storage_bytes > temp_storage.size())
+                temp_storage.resize(temp_storage_bytes);
 
-    if (temp_storage_bytes > temp_storage.size())
-        temp_storage.resize(temp_storage_bytes);
+            // Unique
+            cub::DeviceSelect::Unique(temp_storage.accessor().data(),
+                temp_storage_bytes, allocation_list.data(),
+                allocation_list.data(), keys_at_level_used,
+                allocation_list_used);
+            safeCall(cudaPeekAtLastError());
+        } else {
+            filterAncestorsKernel<<<1, 1>>>(allocation_list,
+                allocation_list_used, octree.maxLevel(), keys_at_level_used);
+        }
 
-    // Unique
-    cub::DeviceSelect::Unique(temp_storage.accessor().data(),
-        temp_storage_bytes, allocation_list.data(), allocation_list.data(),
-        keys_at_level_used, allocation_list_used);
-    safeCall(cudaPeekAtLastError());
-
-    safeCall(cudaDeviceSynchronize());
-    timings[2] = clock::now();
-
-    std::size_t num_unique = *keys_at_level_used;
-    if (num_unique > keys_at_level.size()) keys_at_level.resize(num_unique);
-
-    /*
-    std::cout << "--------------------------------------------------\n";
-    std::cout << "allocation_list_used: " << allocation_list_used
-              << ", num_unique: " << num_unique << "\n";
-    */
+        cudaMemcpy(&allocation_list_used, keys_at_level_used, sizeof(int),
+            cudaMemcpyDeviceToHost);
+    }
 
     auto& node_buffer  = octree.getNodesBuffer();
     auto& block_buffer = octree.getBlockBuffer();
@@ -155,11 +175,18 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
     int node_buffer_used  = node_buffer.used();
     int block_buffer_used = block_buffer.used();
 
+    node_buffer.reserve(
+        node_buffer_used + (allocation_list_used * octree.maxLevel()));
+    block_buffer.reserve(block_buffer_used + allocation_list_used);
+
+    allocateSequentialKernel<<<1, 1>>>(
+        octree, allocation_list, allocation_list_used);
+
+    /*
+    if (num_unique > keys_at_level.size()) keys_at_level.resize(num_unique);
+
     std::printf("nodes used: %d, blocks used: %d\n", node_buffer_used,
         block_buffer_used);
-
-    safeCall(cudaDeviceSynchronize());
-    timings[3] = clock::now();
 
     const int leaves_level = octree.maxLevel() - log2(BLOCK_SIDE);
     for (int level = 1; level <= leaves_level; ++level) {
@@ -190,12 +217,6 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
         safeCall(cudaDeviceSynchronize());
 
         int num_unique_at_level = *keys_at_level_used;
-
-        /*
-        std::cout << "unique at level " << level << ": " << num_unique_at_level
-                  << "\n";
-        */
-
         if (num_unique_at_level == 0) continue;
 
         if (level < leaves_level) {
@@ -215,22 +236,12 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
             octree, keys_at_level.accessor(), num_unique_at_level, level);
         safeCall(cudaPeekAtLastError());
     }
+    */
 
     safeCall(cudaDeviceSynchronize());
-    timings[4] = clock::now();
+    ms duration = clock::now() - start;
 
-    ms durations[5];
-
-    durations[0] = timings[1] - timings[0];
-    durations[1] = timings[2] - timings[1];
-    durations[2] = timings[3] - timings[2];
-    durations[3] = timings[4] - timings[3];
-    durations[4] = timings[4] - timings[0];
-
-    std::cout << "timings: " << durations[0].count() << " "
-              << durations[1].count() << " " << durations[2].count() << " "
-              << durations[3].count() << " total: " << durations[4].count()
-              << "\n";
+    std::cout << "total: " << duration.count() << "\n";
 }
 
 } // namespace se

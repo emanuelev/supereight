@@ -22,8 +22,12 @@ public:
     SE_DEVICE_FUNC
     ~MemoryPoolCUDA() {}
 
-    SE_DEVICE_FUNC
-    int used() const { return *used_; }
+    int used() const {
+        int used;
+        cudaMemcpy(&used, used_, sizeof(int), cudaMemcpyDeviceToHost);
+
+        return used;
+    }
 
     int capacity() const { return capacity_; }
 
