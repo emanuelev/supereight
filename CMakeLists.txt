@@ -9,6 +9,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wno-unknown-pra
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++14 --expt-relaxed-constexpr -Wall -Wextra -Wno-unknown-pragmas")
+set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -gencode arch=compute_61,code=sm_61")
+set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -gencode arch=compute_30,code=sm_30")
 
 find_package(OpenMP)
 

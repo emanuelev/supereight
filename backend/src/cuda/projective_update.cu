@@ -12,9 +12,9 @@
 namespace se {
 
 template<typename OctreeT, typename UpdateFuncT>
-__global__ static void updateBlocksKernel(OctreeT octree, UpdateFuncT func,
-    Sophus::SE3f Tcw, Eigen::Matrix4f K, Eigen::Vector2i frame_size,
-    int maxIdx) {
+__global__ static void __launch_bounds__(64)
+    updateBlocksKernel(OctreeT octree, UpdateFuncT func, Sophus::SE3f Tcw,
+        Eigen::Matrix4f K, Eigen::Vector2i frame_size, int maxIdx) {
     auto block_buffer = octree.getBlockBuffer();
     auto* block       = block_buffer[blockIdx.x];
 
