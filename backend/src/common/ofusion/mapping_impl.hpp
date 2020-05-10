@@ -157,9 +157,8 @@ inline bfusion_update::bfusion_update(const float* d,
       voxelsize(vs) {}
 
 template<typename DataHandlerT>
-SE_DEVICE_ONLY_FUNC
-inline void bfusion_update::operator()(DataHandlerT& handler,
-    const Eigen::Vector3i&, const Eigen::Vector3f& pos,
+SE_DEVICE_ONLY_FUNC inline void bfusion_update::operator()(
+    DataHandlerT& handler, const Eigen::Vector3i&, const Eigen::Vector3f& pos,
     const Eigen::Vector2f& pixel) {
     const Eigen::Vector2i px = pixel.cast<int>();
     const float depthSample  = depth[px.x() + depthSize.x() * px.y()];

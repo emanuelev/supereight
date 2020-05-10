@@ -43,8 +43,7 @@ namespace se {
 namespace functor {
 
 template<typename FieldType, template<typename> class BufferT,
-    template<typename, template<typename> class> class MapT,
-    typename UpdateF>
+    template<typename, template<typename> class> class MapT, typename UpdateF>
 class projective_functor {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -93,7 +92,7 @@ public:
                     Eigen::Vector3f((pix(0)) * voxel_size,
                         (pix(1)) * voxel_size, (pix(2)) * voxel_size);
                 Eigen::Vector3f camerastart = _K.topLeftCorner<3, 3>() * start;
-// #pragma omp simd
+                // #pragma omp simd
                 for (unsigned int x = 0; x < blockSide; ++x) {
                     pix(0) = x + blockCoord(0);
                     const Eigen::Vector3f camera_voxel =
@@ -126,7 +125,7 @@ public:
         Eigen::Vector3f base_cam    = _Tcw * (voxel_size * voxel.cast<float>());
         Eigen::Vector3f basepix_hom = _K.topLeftCorner<3, 3>() * base_cam;
 
-// #pragma omp simd
+        // #pragma omp simd
         for (int i = 0; i < 8; ++i) {
             const Eigen::Vector3i dir =
                 Eigen::Vector3i((i & 1) > 0, (i & 2) > 0, (i & 4) > 0);
@@ -177,8 +176,7 @@ private:
 };
 
 template<typename FieldType, template<typename> class BufferT,
-    template<typename, template<typename> class> class MapT,
-    typename UpdateF>
+    template<typename, template<typename> class> class MapT, typename UpdateF>
 void projective_map(MapT<FieldType, BufferT>& map, const Sophus::SE3f& Tcw,
     const Eigen::Matrix4f& K, const Eigen::Vector2i framesize, UpdateF funct) {
     projective_functor<FieldType, BufferT, MapT, UpdateF> it(

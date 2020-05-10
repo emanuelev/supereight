@@ -1,5 +1,6 @@
-#include "../common/field_impls.hpp"
 #include "raycast.hpp"
+
+#include "../common/field_impls.hpp"
 
 #include <supereight/backend/cuda_util.hpp>
 #include <supereight/ray_iterator.hpp>
@@ -25,10 +26,11 @@ __global__ static void raycastKernel(OctreeT octree, Eigen::Vector3f* vertex,
         octree, transl, dir, planes(0), planes(1));
     ray.next();
 
-    const float t_min         = ray.tcmin();
+    float t_min = ray.tcmin();
+
     const Eigen::Vector4f hit = t_min > 0.f
         ? voxel_traits<FieldType>::raycast(octree, transl, dir, t_min,
-              ray.tmax(), mu, step, step * BLOCK_SIDE)
+              planes(1), mu, step, step * BLOCK_SIDE)
         : Eigen::Vector4f::Constant(0.f);
 
     if (hit.w() <= 0.0) {
@@ -40,7 +42,7 @@ __global__ static void raycastKernel(OctreeT octree, Eigen::Vector3f* vertex,
     vertex[x + y * frame_size.x()] = hit.head<3>();
 
     const float inverseVoxelSize = octree.size() / octree.dim();
-    Eigen::Vector3f surfNorm = octree.grad(inverseVoxelSize * hit.head<3>(),
+    Eigen::Vector3f surfNorm     = octree.grad(inverseVoxelSize * hit.head<3>(),
         [](const auto& val) { return val.x; });
 
     if (surfNorm.norm() == 0) {

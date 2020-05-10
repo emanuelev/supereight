@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cuda_runtime.h>
+#include <iostream>
 
 #define safeCall(expr) safeCall_(expr, #expr, __FILE__, __LINE__)
 inline void safeCall_(

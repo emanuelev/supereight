@@ -132,10 +132,8 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
             allocation_list_used);
         safeCall(cudaPeekAtLastError());
 
-        if (temp_storage_bytes > temp_storage.size()) {
-            std::cout << "resizing tmp storage\n";
+        if (temp_storage_bytes > temp_storage.size())
             temp_storage.resize(temp_storage_bytes);
-        }
 
         // Sort
         cub::DeviceRadixSort::SortKeys(
@@ -241,7 +239,7 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
     safeCall(cudaDeviceSynchronize());
     ms duration = clock::now() - start;
 
-    std::cout << "total: " << duration.count() << "\n";
+    // std::cout << "total: " << duration.count() << "\n";
 }
 
 } // namespace se

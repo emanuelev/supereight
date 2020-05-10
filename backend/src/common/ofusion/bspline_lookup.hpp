@@ -35,7 +35,7 @@
 #include <supereight/shared/commons.h>
 
 SE_DEVICE_VAR
-static const float bspline_num_samples  = 1000;
+static const float bspline_num_samples = 1000;
 
 SE_DEVICE_VAR
 static const float bspline_lookup[1000] = {0.0, 4.51352704507e-09,

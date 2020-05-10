@@ -39,6 +39,11 @@ public:
         safeCall(cudaMallocManaged(&buffer_, size_ * sizeof(T)));
     }
 
+    void fill(std::uint8_t val) {
+        if (buffer_ == nullptr) return;
+        cudaMemset(buffer_, val, size_ * sizeof(T));
+    }
+
     std::size_t size() const { return size_; }
 
 private:
