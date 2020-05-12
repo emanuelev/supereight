@@ -5,23 +5,41 @@
 #include <supereight/algorithms/filter.hpp>
 #include <supereight/backend/cuda_util.hpp>
 #include <supereight/functors/data_handler.hpp>
+#include <supereight/functors/data_handler_cuda.hpp>
 
 #include <cub/cub.cuh>
 #include <cuda_runtime.h>
 
 namespace se {
 
+/*
+template<typename OctreeT>
+__global__ static void buildActiveList(
+    OctreeT octree, OctreeT::block_type* active_list, int* idx) {}
+*/
+
+template<typename OctreeT>
+__global__ static void updateBlockActiveKernel(OctreeT octree, Sophus::SE3f Tcw,
+    Eigen::Matrix4f K, Eigen::Vector2i frame_size, int max_idx) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= max_idx) return;
+
+    auto* block = octree.getBlockBuffer()[idx];
+    if (!block->active()) {
+        block->active(algorithms::in_frustum<OctreeT::block_type>(
+            block, octree.voxel_size(), K * Tcw.matrix(), frame_size));
+    }
+}
+
 template<typename OctreeT, typename UpdateFuncT>
 __global__ static void __launch_bounds__(64)
     updateBlocksKernel(OctreeT octree, UpdateFuncT func, Sophus::SE3f Tcw,
-        Eigen::Matrix4f K, Eigen::Vector2i frame_size, int maxIdx) {
-    auto block_buffer = octree.getBlockBuffer();
-    auto* block       = block_buffer[blockIdx.x];
+        Eigen::Matrix4f K, Eigen::Vector2i frame_size) {
+    auto* block = octree.getBlockBuffer()[blockIdx.x];
 
-    float voxel_size = octree.dim() / octree.size();
-    if (!block->active() &&
+    if (!block->active() /* &&
         !algorithms::in_frustum<OctreeT::block_type>(
-            block, voxel_size, K * Tcw.matrix(), frame_size))
+            block, octree.voxel_size(), K * Tcw.matrix(), frame_size)*/)
         return;
 
     typedef cub::BlockReduce<int, 64> BlockReduce;
@@ -29,7 +47,7 @@ __global__ static void __launch_bounds__(64)
 
     const Eigen::Vector3i blockCoord = block->coordinates();
     const Eigen::Vector3f delta =
-        Tcw.rotationMatrix() * Eigen::Vector3f(voxel_size, 0, 0);
+        Tcw.rotationMatrix() * Eigen::Vector3f(octree.voxel_size(), 0, 0);
     const Eigen::Vector3f cameraDelta = K.topLeftCorner<3, 3>() * delta;
 
     int num_visible = 0;
@@ -39,8 +57,8 @@ __global__ static void __launch_bounds__(64)
 
     Eigen::Vector3i pix   = Eigen::Vector3i(blockCoord(0), y, z);
     Eigen::Vector3f start = Tcw *
-        Eigen::Vector3f((pix(0)) * voxel_size, (pix(1)) * voxel_size,
-            (pix(2)) * voxel_size);
+        Eigen::Vector3f((pix(0)) * octree.voxel_size(),
+            (pix(1)) * octree.voxel_size(), (pix(2)) * octree.voxel_size());
     Eigen::Vector3f camerastart = K.topLeftCorner<3, 3>() * start;
 
     for (int x = 0; x < BLOCK_SIDE; ++x) {
@@ -60,7 +78,8 @@ __global__ static void __launch_bounds__(64)
 
         num_visible++;
 
-        VoxelBlockHandler<typename OctreeT::value_type> handler = {block, pix};
+        VoxelBlockHandlerCUDA<typename OctreeT::value_type> handler = {
+            block, pix};
         func(handler, pix, pos, pixel);
     }
 
@@ -150,15 +169,14 @@ __global__ static void updateNodesKernel(OctreeT octree, UpdateFuncT func,
     auto node_buffer = octree.getNodesBuffer();
     auto* node       = node_buffer[idx];
 
-    float voxel_size = octree.dim() / octree.size();
-
     const Eigen::Vector3i voxel = Eigen::Vector3i(unpack_morton(node->code_));
     const Eigen::Vector3f delta = Tcw.rotationMatrix() *
-        Eigen::Vector3f::Constant(0.5f * voxel_size * node->side_);
+        Eigen::Vector3f::Constant(0.5f * octree.voxel_size() * node->side_);
 
     const Eigen::Vector3f delta_c = K.topLeftCorner<3, 3>() * delta;
 
-    Eigen::Vector3f base_cam    = Tcw * (voxel_size * voxel.cast<float>());
+    Eigen::Vector3f base_cam =
+        Tcw * (octree.voxel_size() * voxel.cast<float>());
     Eigen::Vector3f basepix_hom = K.topLeftCorner<3, 3>() * base_cam;
 
     for (int i = 0; i < 8; ++i) {
@@ -193,8 +211,10 @@ static void updateBlocks(Octree<FieldType, MemoryPoolCUDA>& octree,
     dim3 threads(BLOCK_SIDE, BLOCK_SIDE);
     dim3 blocks(num_elem);
 
-    updateBlocksKernel<<<blocks, threads>>>(
-        octree, func, Tcw, K, frame_size, num_elem);
+    updateBlockActiveKernel<<<(num_elem + 255) / 256, 256>>>(
+        octree, Tcw, K, frame_size, num_elem);
+
+    updateBlocksKernel<<<blocks, threads>>>(octree, func, Tcw, K, frame_size);
     safeCall(cudaPeekAtLastError());
 }
 

@@ -127,6 +127,9 @@ public:
     value_type data(const Eigen::Vector3i& pos) const;
 
     SE_DEVICE_FUNC
+    value_type* data_ptr(const Eigen::Vector3i& pos);
+
+    SE_DEVICE_FUNC
     void data(const Eigen::Vector3i& pos, const value_type& value);
 
     SE_DEVICE_FUNC
@@ -165,6 +168,13 @@ inline typename VoxelBlock<T>::value_type VoxelBlock<T>::data(
     const value_type& data =
         voxel_block_[offset(0) + offset(1) * side + offset(2) * sideSq];
     return data;
+}
+
+template<typename T>
+inline typename VoxelBlock<T>::value_type* VoxelBlock<T>::data_ptr(
+    const Eigen::Vector3i& pos) {
+    Eigen::Vector3i offset = pos - coordinates_;
+    return &(voxel_block_[offset(0) + offset(1) * side + offset(2) * sideSq]);
 }
 
 template<typename T>

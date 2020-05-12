@@ -27,69 +27,30 @@
    POSSIBILITY OF SUCH DAMAGE.
 
 */
-#ifndef DATA_HANDLER_HPP
-#define DATA_HANDLER_HPP
+#pragma once
 
-#include "../node.hpp"
-#include "../utils/math_utils.h"
+#include <supereight/functors/data_handler.hpp>
 
-#include <supereight/shared/commons.h>
-
-template<typename SpecialisedHandlerT, typename NodeT>
-class DataHandlerBase {
-    SE_DEVICE_FUNC
-    typename NodeT::value_type get() {
-        return static_cast<SpecialisedHandlerT*>(this)->get();
-    }
-
-    SE_DEVICE_FUNC
-    void set(const typename NodeT::value_type& val) {
-        static_cast<SpecialisedHandlerT*>(this)->set(val);
-    }
-};
+#include <cub/cub.cuh>
 
 template<typename FieldType>
-class VoxelBlockHandler
-    : DataHandlerBase<VoxelBlockHandler<FieldType>, se::VoxelBlock<FieldType>> {
+class VoxelBlockHandlerCUDA : DataHandlerBase<VoxelBlockHandlerCUDA<FieldType>,
+                                  se::VoxelBlock<FieldType>> {
 public:
     SE_DEVICE_FUNC
-    VoxelBlockHandler(se::VoxelBlock<FieldType>* block, Eigen::Vector3i v)
+    VoxelBlockHandlerCUDA(se::VoxelBlock<FieldType>* block, Eigen::Vector3i v)
         : _ptr(block->data_ptr(v)) {}
 
     SE_DEVICE_FUNC
     typename se::VoxelBlock<FieldType>::value_type get() {
-        return *_ptr;
+        return cub::ThreadLoad<cub::LOAD_CA>(_ptr);
     }
 
     SE_DEVICE_FUNC
     void set(const typename se::VoxelBlock<FieldType>::value_type& val) {
-        *_ptr = val;
+        cub::ThreadStore<cub::STORE_WB>(_ptr, val);
     }
 
 private:
     typename se::VoxelBlock<FieldType>::value_type* _ptr;
 };
-
-template<typename FieldType>
-class NodeHandler
-    : DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType>> {
-public:
-    SE_DEVICE_FUNC
-    NodeHandler(se::Node<FieldType>* ptr, int i) : _node(ptr), _idx(i) {}
-
-    SE_DEVICE_FUNC
-    typename se::Node<FieldType>::value_type get() {
-        return _node->value_[_idx];
-    }
-
-    SE_DEVICE_FUNC
-    void set(const typename se::Node<FieldType>::value_type& val) {
-        _node->value_[_idx] = val;
-    }
-
-private:
-    se::Node<FieldType>* _node;
-    int _idx;
-};
-
-#endif

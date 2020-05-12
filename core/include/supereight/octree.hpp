@@ -104,6 +104,9 @@ public:
     inline float dim() const { return dim_; }
 
     SE_DEVICE_FUNC
+    inline float voxel_size() const { return voxel_size_; }
+
+    SE_DEVICE_FUNC
     inline Node<T>* root() const { return root_; }
 
     /*! \brief Retrieves voxel value at coordinates (x,y,z), if not present it
@@ -262,9 +265,13 @@ public:
 
 private:
     Node<T>* root_;
+
     int size_;
     float dim_;
+    float voxel_size_;
+
     int max_level_;
+
     BufferT<VoxelBlock<T>> block_buffer_;
     BufferT<Node<T>> nodes_buffer_;
 
@@ -430,11 +437,17 @@ template<typename T, template<typename> class BufferT>
 void Octree<T, BufferT>::init(int size, float dim) {
     size_      = size;
     dim_       = dim;
+
+    voxel_size_ = dim / size;
+
     max_level_ = log2(size);
     nodes_buffer_.reserve(1);
+
     root_          = nodes_buffer_.acquire();
     root_->side_   = size;
+
     reserved_      = 1024;
+
     keys_at_level_ = new key_t[reserved_];
     std::memset(keys_at_level_, 0, reserved_);
 }
