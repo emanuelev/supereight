@@ -9,7 +9,7 @@ namespace se {
 
 struct OFusion {
     float x;
-    double y;
+    float y;
 };
 
 struct bfusion_update {

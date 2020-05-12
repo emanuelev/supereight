@@ -176,7 +176,7 @@ SE_DEVICE_ONLY_FUNC inline void bfusion_update::operator()(
     auto data = handler.get();
 
     // Update the occupancy probability
-    const double delta_t = timestamp - data.y;
+    const float delta_t = timestamp - data.y;
     data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
     data.x =
         se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);

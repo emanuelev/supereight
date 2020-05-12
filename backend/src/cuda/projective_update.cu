@@ -45,26 +45,26 @@ __global__ static void __launch_bounds__(64)
     typedef cub::BlockReduce<int, 64> BlockReduce;
     __shared__ typename BlockReduce::TempStorage temp_storage;
 
-    const Eigen::Vector3i blockCoord = block->coordinates();
-    const Eigen::Vector3f delta =
+    const Eigen::Vector3i block_coord = block->coordinates();
+    const Eigen::Vector3f pos_delta =
         Tcw.rotationMatrix() * Eigen::Vector3f(octree.voxel_size(), 0, 0);
-    const Eigen::Vector3f cameraDelta = K.topLeftCorner<3, 3>() * delta;
+    const Eigen::Vector3f camera_delta = K.topLeftCorner<3, 3>() * pos_delta;
 
     int num_visible = 0;
 
-    int y = threadIdx.x + blockCoord(1);
-    int z = threadIdx.y + blockCoord(2);
+    int y = threadIdx.x + block_coord(1);
+    int z = threadIdx.y + block_coord(2);
 
-    Eigen::Vector3i pix   = Eigen::Vector3i(blockCoord(0), y, z);
+    Eigen::Vector3i pix   = Eigen::Vector3i(block_coord(0), y, z);
     Eigen::Vector3f start = Tcw *
-        Eigen::Vector3f((pix(0)) * octree.voxel_size(),
-            (pix(1)) * octree.voxel_size(), (pix(2)) * octree.voxel_size());
-    Eigen::Vector3f camerastart = K.topLeftCorner<3, 3>() * start;
+        Eigen::Vector3f(block_coord(0) * octree.voxel_size(),
+            y * octree.voxel_size(), z * octree.voxel_size());
+    Eigen::Vector3f camera_start = K.topLeftCorner<3, 3>() * start;
 
     for (int x = 0; x < BLOCK_SIDE; ++x) {
-        pix(0)                             = x + blockCoord(0);
-        const Eigen::Vector3f camera_voxel = camerastart + (x * cameraDelta);
-        const Eigen::Vector3f pos          = start + (x * delta);
+        pix(0)                             = x + block_coord(0);
+        const Eigen::Vector3f camera_voxel = camera_start + (x * camera_delta);
+        const Eigen::Vector3f pos          = start + (x * pos_delta);
         if (pos(2) < 0.0001f) continue;
 
         const float inverse_depth = 1.f / camera_voxel(2);
