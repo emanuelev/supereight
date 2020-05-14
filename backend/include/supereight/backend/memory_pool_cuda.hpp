@@ -7,6 +7,16 @@
 
 namespace se {
 
+#ifdef __CUDACC__
+template<typename T, unsigned S>
+__global__ void initPage(T* page) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= S) return;
+
+    page[idx] = T();
+}
+#endif
+
 template<typename T>
 class MemoryPoolCUDA {
 public:
@@ -71,6 +81,14 @@ public:
         for (std::size_t i = 0; i < num_pages; ++i) {
             T* new_page;
             safeCall(cudaMallocManaged(&new_page, page_size_ * sizeof(T)));
+
+#ifdef __CUDACC__
+            initPage<T, page_size_>
+                <<<(page_size_ + 255) / 256, 256>>>(new_page);
+#else
+            std::printf("warning: CPU init for CUDA memory pool page\n");
+            for (unsigned i = 0; i < page_size_; ++i) { new_page[i] = T(); }
+#endif
 
             safeCall(cudaMemcpy(page_table_ + page_table_used_, &new_page,
                 sizeof(T*), cudaMemcpyHostToDevice));

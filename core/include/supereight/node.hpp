@@ -165,9 +165,8 @@ template<typename T>
 inline typename VoxelBlock<T>::value_type VoxelBlock<T>::data(
     const Eigen::Vector3i& pos) const {
     Eigen::Vector3i offset = pos - coordinates_;
-    const value_type& data =
-        voxel_block_[offset(0) + offset(1) * side + offset(2) * sideSq];
-    return data;
+    const int idx          = offset(0) + offset(1) * side + offset(2) * sideSq;
+    return voxel_block_[idx];
 }
 
 template<typename T>

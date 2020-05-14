@@ -30,7 +30,7 @@ __global__ static void raycastKernel(OctreeT octree, Eigen::Vector3f* vertex,
 
     const Eigen::Vector4f hit = t_min > 0.f
         ? voxel_traits<FieldType>::raycast(octree, transl, dir, t_min,
-              planes(1), mu, step, step * BLOCK_SIDE)
+              ray.tmax(), mu, step, step * BLOCK_SIDE)
         : Eigen::Vector4f::Constant(0.f);
 
     if (hit.w() <= 0.0) {
