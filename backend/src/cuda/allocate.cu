@@ -123,6 +123,7 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
     auto start = clock::now();
 
     if (allocation_list_used == 0) return;
+    int num_unique = allocation_list_used;
 
     std::size_t temp_storage_bytes = 0;
     if (allocation_list_used > 100) {
@@ -163,8 +164,8 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
                 allocation_list_used, octree.maxLevel(), keys_at_level_used);
         }
 
-        cudaMemcpy(&allocation_list_used, keys_at_level_used, sizeof(int),
-            cudaMemcpyDeviceToHost);
+        safeCall(cudaMemcpy(&num_unique, keys_at_level_used, sizeof(int),
+            cudaMemcpyDeviceToHost));
     }
 
     auto& node_buffer  = octree.getNodesBuffer();
@@ -173,18 +174,27 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
     int node_buffer_used  = node_buffer.used();
     int block_buffer_used = block_buffer.used();
 
-    node_buffer.reserve(
-        node_buffer_used + (allocation_list_used * octree.maxLevel()));
-    block_buffer.reserve(block_buffer_used + allocation_list_used);
+    node_buffer.reserve(node_buffer_used + (num_unique * octree.maxLevel()));
+    block_buffer.reserve(block_buffer_used + num_unique);
 
-    allocateSequentialKernel<<<1, 1>>>(
-        octree, allocation_list, allocation_list_used);
+    // std::cout << "num_unique: " << num_unique << "; ";
+    if (num_unique < 600) {
+        allocateSequentialKernel<<<1, 1>>>(octree, allocation_list, num_unique);
 
-    /*
+        safeCall(cudaDeviceSynchronize());
+        ms duration = clock::now() - start;
+
+        // std::cout << "total: " << duration.count() << "\n";
+
+        return;
+    }
+
     if (num_unique > keys_at_level.size()) keys_at_level.resize(num_unique);
 
+    /*
     std::printf("nodes used: %d, blocks used: %d\n", node_buffer_used,
         block_buffer_used);
+    */
 
     const int leaves_level = octree.maxLevel() - log2(BLOCK_SIDE);
     for (int level = 1; level <= leaves_level; ++level) {
@@ -212,9 +222,9 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
             keys_at_level.accessor().data(), keys_at_level_used, num_unique);
         safeCall(cudaPeekAtLastError());
 
-        safeCall(cudaDeviceSynchronize());
-
-        int num_unique_at_level = *keys_at_level_used;
+        int num_unique_at_level;
+        safeCall(cudaMemcpy(&num_unique_at_level, keys_at_level_used,
+            sizeof(int), cudaMemcpyDeviceToHost));
         if (num_unique_at_level == 0) continue;
 
         if (level < leaves_level) {
@@ -234,7 +244,6 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
             octree, keys_at_level.accessor(), num_unique_at_level, level);
         safeCall(cudaPeekAtLastError());
     }
-    */
 
     safeCall(cudaDeviceSynchronize());
     ms duration = clock::now() - start;

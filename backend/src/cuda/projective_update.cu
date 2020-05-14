@@ -50,14 +50,14 @@ __global__ static void __launch_bounds__(64)
         Tcw.rotationMatrix() * Eigen::Vector3f(0, 0, octree.voxel_size());
     const Eigen::Vector3f camera_delta = K.topLeftCorner<3, 3>() * pos_delta;
 
-    int num_visible = 0;
-
-    int x = threadIdx.x + block_coord(0);
-    int y = threadIdx.y + block_coord(1);
+    const int x = threadIdx.x + block_coord(0);
+    const int y = threadIdx.y + block_coord(1);
 
     Eigen::Vector3i pix = Eigen::Vector3i(x, y, block_coord(2));
     Eigen::Vector3f pos = Tcw * (octree.voxel_size() * pix.cast<float>());
     Eigen::Vector3f camera_voxel = K.topLeftCorner<3, 3>() * pos;
+
+    int num_visible = 0;
 
     for (; pix(2) < block_coord(2) + BLOCK_SIDE; ++pix(2)) {
         if (pos(2) >= 0.0001f) {
@@ -66,15 +66,14 @@ __global__ static void __launch_bounds__(64)
                 Eigen::Vector2f(camera_voxel(0) * inverse_depth + 0.5f,
                     camera_voxel(1) * inverse_depth + 0.5f);
 
-            if (pixel(0) < 0.5f || pixel(0) > frame_size(0) - 1.5f ||
-                pixel(1) < 0.5f || pixel(1) > frame_size(1) - 1.5f)
-                continue;
+            if (pixel(0) >= 0.5f && pixel(0) <= frame_size(0) - 1.5f &&
+                pixel(1) >= 0.5f && pixel(1) <= frame_size(1) - 1.5f) {
+                num_visible++;
 
-            num_visible++;
-
-            VoxelBlockHandlerCUDA<typename OctreeT::value_type> handler = {
-                block, pix};
-            func(handler, pix, pos, pixel);
+                VoxelBlockHandlerCUDA<typename OctreeT::value_type> handler = {
+                    block, pix};
+                func(handler, pix, pos, pixel);
+            }
         }
 
         pos += pos_delta;
