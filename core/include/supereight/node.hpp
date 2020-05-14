@@ -153,7 +153,7 @@ public:
 private:
     VoxelBlock(const VoxelBlock&) = delete;
     Eigen::Vector3i coordinates_;
-    value_type voxel_block_[side * sideSq]; // Brick of data.
+    alignas(128) value_type voxel_block_[side * sideSq]; // Brick of data.
     bool active_;
 
     friend std::ofstream& internal::serialise<>(

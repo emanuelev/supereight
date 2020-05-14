@@ -32,6 +32,7 @@
 #include <supereight/functors/data_handler.hpp>
 
 #include <cub/cub.cuh>
+#include <cuda_runtime.h>
 
 template<typename FieldType>
 class VoxelBlockHandlerCUDA : DataHandlerBase<VoxelBlockHandlerCUDA<FieldType>,

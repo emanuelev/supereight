@@ -33,8 +33,9 @@ __global__ static void updateBlockActiveKernel(OctreeT octree, Sophus::SE3f Tcw,
 
 template<typename OctreeT, typename UpdateFuncT>
 __global__ static void __launch_bounds__(64, 32)
-    updateBlocksKernel(OctreeT octree, UpdateFuncT func, Sophus::SE3f Tcw,
-        Eigen::Matrix4f K, Eigen::Vector2i frame_size) {
+    updateBlocksKernel(OctreeT octree, UpdateFuncT func, const Sophus::SE3f Tcw,
+        const Eigen::Matrix4f K, const Eigen::Vector3f pos_delta,
+        const Eigen::Vector3f camera_delta, const Eigen::Vector2i frame_size) {
     auto* block = octree.getBlockBuffer()[blockIdx.x];
 
     if (!block->active() /* &&
@@ -46,9 +47,6 @@ __global__ static void __launch_bounds__(64, 32)
     __shared__ typename BlockReduce::TempStorage temp_storage;
 
     const Eigen::Vector3i block_coord = block->coordinates();
-    const Eigen::Vector3f pos_delta =
-        Tcw.rotationMatrix() * Eigen::Vector3f(0, 0, octree.voxel_size());
-    const Eigen::Vector3f camera_delta = K.topLeftCorner<3, 3>() * pos_delta;
 
     const int x = threadIdx.x + block_coord(0);
     const int y = threadIdx.y + block_coord(1);
@@ -70,8 +68,7 @@ __global__ static void __launch_bounds__(64, 32)
                 pixel(1) >= 0.5f && pixel(1) <= frame_size(1) - 1.5f) {
                 num_visible++;
 
-                VoxelBlockHandlerCUDA<typename OctreeT::value_type> handler = {
-                    block, pix};
+                VoxelBlockHandlerCUDA<FieldType> handler = {block, pix};
                 func(handler, pix, pos, pixel);
             }
         }
@@ -208,8 +205,14 @@ static void updateBlocks(Octree<FieldType, MemoryPoolCUDA>& octree,
 
     updateBlockActiveKernel<<<(num_elem + 255) / 256, 256>>>(
         octree, Tcw, K, frame_size, num_elem);
+    safeCall(cudaPeekAtLastError());
 
-    updateBlocksKernel<<<blocks, threads>>>(octree, func, Tcw, K, frame_size);
+    const Eigen::Vector3f pos_delta =
+        Tcw.rotationMatrix() * Eigen::Vector3f(0, 0, octree.voxel_size());
+    const Eigen::Vector3f camera_delta = K.topLeftCorner<3, 3>() * pos_delta;
+
+    updateBlocksKernel<<<blocks, threads>>>(
+        octree, func, Tcw, K, pos_delta, camera_delta, frame_size);
     safeCall(cudaPeekAtLastError());
 }
 

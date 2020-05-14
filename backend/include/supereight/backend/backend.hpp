@@ -51,6 +51,8 @@ protected:
 template<typename Derived, template<typename> class BufferT>
 BackendBase<Derived, BufferT>::BackendBase(int size, float dim) {
     octree_.init(size, dim);
+    std::printf("node size: %lu, block size: %lu\n", sizeof(Node<FieldType>),
+        sizeof(VoxelBlock<FieldType>));
 }
 
 template<typename Derived, template<typename> class BufferT>

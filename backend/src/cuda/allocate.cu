@@ -42,10 +42,10 @@ __global__ static void buildAllocationListKernel(
     Eigen::Vector3f direction = (camera_pos - world_vertex).normalized();
 
     auto get_idx = [=]() { return atomicAdd(voxel_count, 1); };
-    voxel_traits<typename OctreeT::value_type>::buildAllocationList(
-        allocation_list.data(), allocation_list.size(), get_idx, octree,
-        world_vertex, direction, camera_pos, depth_sample, max_depth,
-        block_depth, voxel_size, inverse_voxel_size, mu);
+    OctreeT::traits_type::buildAllocationList(allocation_list.data(),
+        allocation_list.size(), get_idx, octree, world_vertex, direction,
+        camera_pos, depth_sample, max_depth, block_depth, voxel_size,
+        inverse_voxel_size, mu);
 }
 
 __global__ static void keysToLevelKernel(BufferAccessorCUDA<se::key_t> out,
@@ -171,20 +171,26 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
     auto& node_buffer  = octree.getNodesBuffer();
     auto& block_buffer = octree.getBlockBuffer();
 
-    int node_buffer_used  = node_buffer.used();
-    int block_buffer_used = block_buffer.used();
-
-    node_buffer.reserve(node_buffer_used + (num_unique * octree.maxLevel()));
-    block_buffer.reserve(block_buffer_used + num_unique);
+    std::size_t node_buffer_used  = node_buffer.used();
+    std::size_t block_buffer_used = block_buffer.used();
 
     // std::cout << "num_unique: " << num_unique << "; ";
     if (num_unique < 600) {
+        node_buffer.reserve(
+            node_buffer_used + (num_unique * octree.maxLevel()));
+        block_buffer.reserve(block_buffer_used + num_unique);
+
         allocateSequentialKernel<<<1, 1>>>(octree, allocation_list, num_unique);
 
         safeCall(cudaDeviceSynchronize());
         ms duration = clock::now() - start;
 
         // std::cout << "total: " << duration.count() << "\n";
+        /*
+        std::printf("nodes used: %lu/%lu, blocks used: %lu/%lu\n",
+            node_buffer.used(), node_buffer.capacity(), block_buffer.used(),
+            block_buffer.capacity());
+        */
 
         return;
     }
@@ -192,8 +198,8 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
     if (num_unique > keys_at_level.size()) keys_at_level.resize(num_unique);
 
     /*
-    std::printf("nodes used: %d, blocks used: %d\n", node_buffer_used,
-        block_buffer_used);
+    std::printf("nodes used: %lu/%lu, blocks used: %lu/%lu\n", node_buffer.used(),
+        node_buffer.capacity(), block_buffer.used(), block_buffer.capacity());
     */
 
     const int leaves_level = octree.maxLevel() - log2(BLOCK_SIDE);

@@ -5,12 +5,13 @@
 
 #include <Eigen/Dense>
 
+#ifdef SE_CUDA_VF
+#include <cuda_runtime.h>
+#endif
+
 namespace se {
 
-struct SDF {
-    float x;
-    float y;
-};
+struct SDF {};
 
 struct sdf_update {
     const float* depth;
@@ -32,7 +33,15 @@ struct sdf_update {
 
 template<>
 struct voxel_traits<SDF> {
-    using value_type       = SDF;
+#ifdef SE_CUDA_VF
+    using value_type = float2;
+#else
+    using value_type = struct {
+        float x;
+        float y;
+    };
+#endif
+
     using update_func_type = sdf_update;
 
     static constexpr bool invert_normals = true;

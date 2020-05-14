@@ -5,12 +5,13 @@
 
 #include <Eigen/Dense>
 
+#ifdef SE_CUDA_VF
+#include <cuda_runtime.h>
+#endif
+
 namespace se {
 
-struct OFusion {
-    float x;
-    float y;
-};
+struct OFusion {};
 
 struct bfusion_update {
     const float* depth;
@@ -33,7 +34,15 @@ struct bfusion_update {
 
 template<>
 struct voxel_traits<OFusion> {
-    using value_type       = OFusion;
+#ifdef SE_CUDA_VF
+    using value_type = float2;
+#else
+    using value_type = struct {
+        float x;
+        float y;
+    };
+#endif
+
     using update_func_type = bfusion_update;
 
     static constexpr bool invert_normals = false;

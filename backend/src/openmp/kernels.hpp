@@ -84,10 +84,10 @@ static void buildAllocationListKernel(HashType* allocation_list, int reserved,
             Eigen::Vector3f direction =
                 (camera_pos - world_vertex).normalized();
 
-            voxel_traits<typename OctreeT::value_type>::buildAllocationList(
-                allocation_list, reserved, get_idx, octree, world_vertex,
-                direction, camera_pos, depth_sample, max_depth, block_depth,
-                voxel_size, inverse_voxel_size, mu);
+            OctreeT::traits_type::buildAllocationList(allocation_list, reserved,
+                get_idx, octree, world_vertex, direction, camera_pos,
+                depth_sample, max_depth, block_depth, voxel_size,
+                inverse_voxel_size, mu);
         }
     }
 

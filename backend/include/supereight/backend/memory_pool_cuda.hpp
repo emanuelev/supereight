@@ -12,7 +12,7 @@ class MemoryPoolCUDA {
 public:
     SE_DEVICE_FUNC
     MemoryPoolCUDA() {
-        safeCall(cudaMallocManaged(&used_, sizeof(int)));
+        safeCall(cudaMallocManaged(&used_, sizeof(std::size_t)));
         *used_ = 0;
     };
 
@@ -22,14 +22,14 @@ public:
     SE_DEVICE_FUNC
     ~MemoryPoolCUDA() {}
 
-    int used() const {
-        int used;
-        cudaMemcpy(&used, used_, sizeof(int), cudaMemcpyDeviceToHost);
+    std::size_t used() const {
+        std::size_t used;
+        cudaMemcpy(&used, used_, sizeof(std::size_t), cudaMemcpyDeviceToHost);
 
         return used;
     }
 
-    int capacity() const { return capacity_; }
+    std::size_t capacity() const { return capacity_; }
 
     SE_DEVICE_FUNC
     void clear() { *used_ = 0; }
@@ -37,20 +37,22 @@ public:
     SE_DEVICE_ONLY_FUNC
     T* acquire() {
 #ifdef __CUDACC__
-        int idx = atomicAdd(used_, 1);
+        static_assert(sizeof(std::size_t) == sizeof(long long unsigned));
+        std::size_t idx =
+            atomicAdd(reinterpret_cast<long long unsigned*>(used_), 1);
 #else
-        int idx = (*used_)++;
+        std::size_t idx = (*used_)++;
 #endif
 
         return (*this)[idx];
     }
 
-    void reserve(int n) {
+    void reserve(std::size_t n) {
         if (n <= capacity_) return;
-        int num_pages = (n - capacity() + page_size_ - 1) / page_size_;
+        std::size_t num_pages = (n - capacity() + page_size_ - 1) / page_size_;
 
         if (page_table_capacity_ < page_table_used_ + num_pages) {
-            int new_capacity = (page_table_used_ + num_pages) * 1.5;
+            std::size_t new_capacity = (page_table_used_ + num_pages) * 4;
 
             T** new_table;
             safeCall(cudaMallocManaged(&new_table, new_capacity * sizeof(T*)));
@@ -66,7 +68,7 @@ public:
             page_table_capacity_ = new_capacity;
         }
 
-        for (int i = 0; i < num_pages; ++i) {
+        for (std::size_t i = 0; i < num_pages; ++i) {
             T* new_page;
             safeCall(cudaMallocManaged(&new_page, page_size_ * sizeof(T)));
 
@@ -79,23 +81,23 @@ public:
     }
 
     SE_DEVICE_FUNC
-    T* operator[](int i) const {
-        int page   = i / page_size_;
-        int offset = i % page_size_;
+    T* operator[](std::size_t i) const {
+        std::size_t page   = i / page_size_;
+        std::size_t offset = i % page_size_;
 
         return page_table_[page] + offset;
     }
 
 private:
-    static constexpr int page_size_ = 32 * 4096 / sizeof(T);
+    static constexpr std::size_t page_size_ = 8 * 4096;
 
-    int capacity_ = 0;
-    int* used_    = nullptr;
+    std::size_t capacity_ = 0;
+    std::size_t* used_    = nullptr;
 
     T** page_table_ = nullptr;
 
-    int page_table_used_     = 0;
-    int page_table_capacity_ = 0;
+    std::size_t page_table_used_     = 0;
+    std::size_t page_table_capacity_ = 0;
 };
 
 } // namespace se
