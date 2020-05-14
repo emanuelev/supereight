@@ -32,7 +32,7 @@ __global__ static void updateBlockActiveKernel(OctreeT octree, Sophus::SE3f Tcw,
 }
 
 template<typename OctreeT, typename UpdateFuncT>
-__global__ static void __launch_bounds__(64)
+__global__ static void __launch_bounds__(64, 32)
     updateBlocksKernel(OctreeT octree, UpdateFuncT func, Sophus::SE3f Tcw,
         Eigen::Matrix4f K, Eigen::Vector2i frame_size) {
     auto* block = octree.getBlockBuffer()[blockIdx.x];
