@@ -47,40 +47,38 @@ __global__ static void __launch_bounds__(64)
 
     const Eigen::Vector3i block_coord = block->coordinates();
     const Eigen::Vector3f pos_delta =
-        Tcw.rotationMatrix() * Eigen::Vector3f(octree.voxel_size(), 0, 0);
+        Tcw.rotationMatrix() * Eigen::Vector3f(0, 0, octree.voxel_size());
     const Eigen::Vector3f camera_delta = K.topLeftCorner<3, 3>() * pos_delta;
 
     int num_visible = 0;
 
-    int y = threadIdx.x + block_coord(1);
-    int z = threadIdx.y + block_coord(2);
+    int x = threadIdx.x + block_coord(0);
+    int y = threadIdx.y + block_coord(1);
 
-    Eigen::Vector3i pix   = Eigen::Vector3i(block_coord(0), y, z);
-    Eigen::Vector3f start = Tcw *
-        Eigen::Vector3f(block_coord(0) * octree.voxel_size(),
-            y * octree.voxel_size(), z * octree.voxel_size());
-    Eigen::Vector3f camera_start = K.topLeftCorner<3, 3>() * start;
+    Eigen::Vector3i pix = Eigen::Vector3i(x, y, block_coord(2));
+    Eigen::Vector3f pos = Tcw * (octree.voxel_size() * pix.cast<float>());
+    Eigen::Vector3f camera_voxel = K.topLeftCorner<3, 3>() * pos;
 
-    for (int x = 0; x < BLOCK_SIDE; ++x) {
-        pix(0)                             = x + block_coord(0);
-        const Eigen::Vector3f camera_voxel = camera_start + (x * camera_delta);
-        const Eigen::Vector3f pos          = start + (x * pos_delta);
-        if (pos(2) < 0.0001f) continue;
+    for (; pix(2) < block_coord(2) + BLOCK_SIDE; ++pix(2)) {
+        if (pos(2) >= 0.0001f) {
+            const float inverse_depth = 1.f / camera_voxel(2);
+            const Eigen::Vector2f pixel =
+                Eigen::Vector2f(camera_voxel(0) * inverse_depth + 0.5f,
+                    camera_voxel(1) * inverse_depth + 0.5f);
 
-        const float inverse_depth = 1.f / camera_voxel(2);
-        const Eigen::Vector2f pixel =
-            Eigen::Vector2f(camera_voxel(0) * inverse_depth + 0.5f,
-                camera_voxel(1) * inverse_depth + 0.5f);
+            if (pixel(0) < 0.5f || pixel(0) > frame_size(0) - 1.5f ||
+                pixel(1) < 0.5f || pixel(1) > frame_size(1) - 1.5f)
+                continue;
 
-        if (pixel(0) < 0.5f || pixel(0) > frame_size(0) - 1.5f ||
-            pixel(1) < 0.5f || pixel(1) > frame_size(1) - 1.5f)
-            continue;
+            num_visible++;
 
-        num_visible++;
+            VoxelBlockHandlerCUDA<typename OctreeT::value_type> handler = {
+                block, pix};
+            func(handler, pix, pos, pixel);
+        }
 
-        VoxelBlockHandlerCUDA<typename OctreeT::value_type> handler = {
-            block, pix};
-        func(handler, pix, pos, pixel);
+        pos += pos_delta;
+        camera_voxel += camera_delta;
     }
 
     int num_active = BlockReduce(temp_storage).Sum(num_visible, 64);
@@ -90,10 +88,9 @@ __global__ static void __launch_bounds__(64)
 /*
 template<typename OctreeT, typename UpdateFuncT>
 __global__ static void updateBlocksKernel(OctreeT octree, UpdateFuncT func,
-    Sophus::SE3f Tcw, Eigen::Matrix4f K, Eigen::Vector2i frame_size, int maxIdx,
-    float* splat) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= maxIdx) return;
+    Sophus::SE3f Tcw, Eigen::Matrix4f K, Eigen::Vector2i frame_size, int
+maxIdx, float* splat) { int idx = blockIdx.x * blockDim.x + threadIdx.x; if
+(idx >= maxIdx) return;
 
     auto block_buffer = octree.getBlockBuffer();
     auto* block       = block_buffer[idx];
@@ -119,12 +116,10 @@ __global__ static void updateBlocksKernel(OctreeT octree, UpdateFuncT func,
         for (y = blockCoord(1); y < ylast; ++y) {
             Eigen::Vector3i pix   = Eigen::Vector3i(blockCoord(0), y, z);
             Eigen::Vector3f start = Tcw *
-                Eigen::Vector3f((pix(0)) * voxel_size, (pix(1)) * voxel_size,
-                    (pix(2)) * voxel_size);
-            Eigen::Vector3f camerastart = K.topLeftCorner<3, 3>() * start;
-            for (unsigned int x = 0; x < BLOCK_SIDE; ++x) {
-                pix(0) = x + blockCoord(0);
-                const Eigen::Vector3f camera_voxel =
+                Eigen::Vector3f((pix(0)) * voxel_size, (pix(1)) *
+voxel_size, (pix(2)) * voxel_size); Eigen::Vector3f camerastart =
+K.topLeftCorner<3, 3>() * start; for (unsigned int x = 0; x < BLOCK_SIDE;
+++x) { pix(0) = x + blockCoord(0); const Eigen::Vector3f camera_voxel =
                     camerastart + (x * cameraDelta);
                 const Eigen::Vector3f pos = start + (x * delta);
                 if (pos(2) < 0.0001f) continue;
@@ -149,7 +144,8 @@ __global__ static void updateBlocksKernel(OctreeT octree, UpdateFuncT func,
                 if (near) {
                     float dist = camera_voxel(2);
                     atomicMin(
-                        reinterpret_cast<int*>(splat_px), __float_as_int(dist));
+                        reinterpret_cast<int*>(splat_px),
+__float_as_int(dist));
                 }
             }
         }
