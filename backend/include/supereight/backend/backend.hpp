@@ -51,8 +51,6 @@ protected:
 template<typename Derived, template<typename> class BufferT>
 BackendBase<Derived, BufferT>::BackendBase(int size, float dim) {
     octree_.init(size, dim);
-    std::printf("node size: %lu, block size: %lu\n", sizeof(Node<FieldType>),
-        sizeof(VoxelBlock<FieldType>));
 }
 
 template<typename Derived, template<typename> class BufferT>
@@ -60,7 +58,6 @@ void BackendBase<Derived, BufferT>::integrate(const Image<float>& depth,
     const Eigen::Vector4f& k, const Eigen::Matrix4f& pose,
     const Eigen::Vector2i& computation_size, float mu, int frame) {
     self->allocate_(depth, k, pose, computation_size, mu);
-
     self->update_(
         depth, Sophus::SE3f(pose).inverse(), k, computation_size, mu, frame);
 }

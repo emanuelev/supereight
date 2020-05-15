@@ -6,7 +6,7 @@ find_package(Eigen3 REQUIRED)
 find_package(Sophus REQUIRED)
 
 set(libraries lodepng supereight-shared supereight-core
-    supereight-tracking)
+    supereight-tracking-openmp)
 
 if (SE_OPENMP)
     list(APPEND compile_flags ${OpenMP_CXX_FLAGS})

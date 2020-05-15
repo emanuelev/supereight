@@ -1,10 +1,11 @@
 #pragma once
 
-#include <string>
-#include <iostream>
 #include <cstdlib>
+#include <iostream>
+#include <string>
 
 namespace se {
+namespace tracking {
 
 struct TrackData {
     int result;
@@ -31,4 +32,5 @@ inline void compareTrackData(
     }
 }
 
+} // namespace tracking
 } // namespace se

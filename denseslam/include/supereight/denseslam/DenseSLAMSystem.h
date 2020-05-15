@@ -75,7 +75,7 @@ private:
     se::Image<float> float_depth_;
     se::Image<float> float_depth_filtered_;
 
-    se::Tracker tracker_;
+    se::tracking::Tracker tracker_;
     se::Backend backend_;
 
 public:

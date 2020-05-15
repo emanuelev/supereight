@@ -35,13 +35,17 @@
 
 #include <supereight/image/image.hpp>
 
+#include <supereight/shared/commons.h>
 #include <supereight/shared/perfstats.h>
 #include <supereight/shared/timings.h>
-#include <supereight/shared/commons.h>
 
 #include <supereight/utils/math_utils.h>
 
 #include <supereight/tracking/track_data.hpp>
+
+namespace se {
+namespace tracking {
+namespace kernels {
 
 static inline Eigen::Matrix<float, 6, 6> makeJTJ(
     const Eigen::Matrix<float, 1, 21>& v) {
@@ -70,8 +74,9 @@ static inline Eigen::Matrix<float, 6, 1> solve(
         : Eigen::Matrix<float, 6, 1>::Constant(0.f);
 }
 
-void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
-    const se::Image<float>& depth, const Eigen::Matrix4f& invK) {
+template<typename VertexAccessorT, typename DepthAccessorT>
+void depth2vertex(VertexAccessorT vertex, const DepthAccessorT& depth,
+    const Eigen::Matrix4f& invK) {
     TICK();
     int x, y;
 #pragma omp parallel for shared(vertex), private(x, y)
@@ -80,7 +85,7 @@ void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
             if (depth[x + y * depth.width()] > 0) {
                 vertex[x + y * depth.width()] = (depth[x + y * depth.width()] *
                     invK * Eigen::Vector4f(x, y, 1.f, 0.f))
-                                                    .head<3>();
+                                                    .template head<3>();
             } else {
                 vertex[x + y * depth.width()] = Eigen::Vector3f::Constant(0);
             }
@@ -89,9 +94,8 @@ void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
     TOCK("depth2vertexKernel", imageSize.x * imageSize.y);
 }
 
-template<bool NegY>
-void vertex2normalKernel(
-    se::Image<Eigen::Vector3f>& out, const se::Image<Eigen::Vector3f>& in) {
+template<bool NegY, typename OutAccessorT, typename InAccessorT>
+void vertex2normal(OutAccessorT out, const InAccessorT& in) {
     TICK();
     int x, y;
     int width  = in.width();
@@ -138,9 +142,10 @@ void vertex2normalKernel(
     TOCK("vertex2normalKernel", width * height);
 }
 
-void new_reduce(int blockIndex, float* out, se::TrackData* J,
+template<typename OutAccessorT, typename JAccessorT>
+void new_reduce(int blockIndex, OutAccessorT out, const JAccessorT& J,
     const Eigen::Vector2i& Jsize, const Eigen::Vector2i& size) {
-    float* sums = out + blockIndex * 32;
+    float* sums = out.data() + blockIndex * 32;
 
     for (unsigned int i = 0; i < 32; ++i) sums[i] = 0;
 
@@ -185,7 +190,7 @@ void new_reduce(int blockIndex, float* out, se::TrackData* J,
 
     for (int y = blockIndex; y < size.y(); y += 8) {
         for (int x = 0; x < size.x(); x++) {
-            const se::TrackData& row = J[(x + y * Jsize.x())]; // ...
+            const TrackData& row = J[(x + y * Jsize.x())]; // ...
             if (row.result < 1) {
                 // accesses sums[28..31]
                 /*(sums+28)[1]*/ sums29 += row.result == -4 ? 1 : 0;
@@ -276,7 +281,8 @@ void new_reduce(int blockIndex, float* out, se::TrackData* J,
     sums[31] = sums31;
 }
 
-void reduceKernel(float* out, se::TrackData* J, const Eigen::Vector2i& Jsize,
+template<typename OutAccessorT, typename JAccessorT>
+void reduce(OutAccessorT out, const JAccessorT& J, const Eigen::Vector2i& Jsize,
     const Eigen::Vector2i& size) {
     TICK();
 
@@ -284,17 +290,18 @@ void reduceKernel(float* out, se::TrackData* J, const Eigen::Vector2i& Jsize,
         new_reduce(blockIndex, out, J, Jsize, size);
     }
 
-    Eigen::Map<Eigen::Matrix<float, 8, 32, Eigen::RowMajor>> values(out);
+    Eigen::Map<Eigen::Matrix<float, 8, 32, Eigen::RowMajor>> values(out.data());
     for (int j = 1; j < 8; ++j) { values.row(0) += values.row(j); }
 
     TOCK("reduceKernel", 512);
 }
 
-void trackKernel(se::TrackData* output,
-    const se::Image<Eigen::Vector3f>& inVertex,
-    const se::Image<Eigen::Vector3f>& inNormal,
-    const se::Image<Eigen::Vector3f>& refVertex,
-    const se::Image<Eigen::Vector3f>& refNormal, const Eigen::Matrix4f& Ttrack,
+template<typename OutputAccessorT, typename InVertexAccessorT,
+    typename InNormalAccessorT, typename RefVertexAccessorT,
+    typename RefNormalAccessorT>
+void track(OutputAccessorT output, const InVertexAccessorT& inVertex,
+    const InNormalAccessorT& inNormal, const RefVertexAccessorT& refVertex,
+    const RefNormalAccessorT& refNormal, const Eigen::Matrix4f& Ttrack,
     const Eigen::Matrix4f& view, const float dist_threshold,
     const float normal_threshold) {
     TICK();
@@ -311,7 +318,7 @@ void trackKernel(se::TrackData* output,
             pixel.x() = pixelx;
             pixel.y() = pixely;
 
-            se::TrackData& row = output[pixel.x() + pixel.y() * refSize.x()];
+            TrackData& row = output[pixel.x() + pixel.y() * refSize.x()];
 
             if (inNormal[pixel.x() + pixel.y() * inSize.x()].x() == INVALID) {
                 row.result = -1;
@@ -320,7 +327,7 @@ void trackKernel(se::TrackData* output,
 
             const Eigen::Vector3f projectedVertex = (Ttrack *
                 inVertex[pixel.x() + pixel.y() * inSize.x()].homogeneous())
-                                                        .head<3>();
+                                                        .template head<3>();
             const Eigen::Vector3f projectedPos =
                 (view * projectedVertex.homogeneous()).head<3>();
 
@@ -379,14 +386,15 @@ void trackKernel(se::TrackData* output,
     TOCK("trackKernel", inSize.x * inSize.y);
 }
 
-bool updatePoseKernel(
-    Eigen::Matrix4f& pose, const float* output, float icp_threshold) {
+template<typename OutputAccessorT>
+bool updatePose(
+    Eigen::Matrix4f& pose, const OutputAccessorT& output, float icp_threshold) {
     bool res = false;
 
     TICK()
 
     Eigen::Map<const Eigen::Matrix<float, 8, 32, Eigen::RowMajor>> values(
-        output);
+        output.data());
 
     Eigen::Matrix<float, 6, 1> x = solve(values.row(0).segment(1, 27));
     Eigen::Matrix4f delta        = Sophus::SE3<float>::exp(x).matrix();
@@ -399,13 +407,14 @@ bool updatePoseKernel(
     return res;
 }
 
-bool checkPoseKernel(Eigen::Matrix4f& pose, Eigen::Matrix4f& oldPose,
-    const float* output, const Eigen::Vector2i& imageSize,
+template<typename OutputAccessorT>
+bool checkPose(Eigen::Matrix4f& pose, const Eigen::Matrix4f& oldPose,
+    const OutputAccessorT& output, const Eigen::Vector2i& imageSize,
     float track_threshold) {
     // Check the tracking result, and go back to the previous camera position if
     // necessary
 
-    const Eigen::Matrix<float, 8, 32, Eigen::RowMajor> values(output);
+    const Eigen::Matrix<float, 8, 32, Eigen::RowMajor> values(output.data());
 
     if ((std::sqrt(values(0, 0) / values(0, 28)) > 2e-2) ||
         (values(0, 28) / (imageSize.x() * imageSize.y()) < track_threshold)) {
@@ -416,8 +425,9 @@ bool checkPoseKernel(Eigen::Matrix4f& pose, Eigen::Matrix4f& oldPose,
     return true;
 }
 
-void halfSampleRobustImageKernel(se::Image<float>& out,
-    const se::Image<float>& in, const float e_d, const int r) {
+template<typename OutAccessorT, typename InAccessorT>
+void halfSampleRobustImage(
+    OutAccessorT out, const InAccessorT& in, const float e_d, const int r) {
     if ((in.width() / out.width() != 2) || (in.height() / out.height() != 2)) {
         std::cerr << "Invalid ratio." << std::endl;
         exit(1);
@@ -453,7 +463,8 @@ void halfSampleRobustImageKernel(se::Image<float>& out,
     TOCK("halfSampleRobustImageKernel", outSize.x * outSize.y);
 }
 
-void renderTrackKernel(unsigned char* out, const se::TrackData* data,
+template<typename DataAccessorT>
+void renderTrack(unsigned char* out, const DataAccessorT& data,
     const Eigen::Vector2i& outSize) {
     TICK();
 
@@ -510,3 +521,7 @@ void renderTrackKernel(unsigned char* out, const se::TrackData* data,
         }
     TOCK("renderTrackKernel", outSize.x * outSize.y);
 }
+
+} // namespace kernels
+} // namespace tracking
+} // namespace se
