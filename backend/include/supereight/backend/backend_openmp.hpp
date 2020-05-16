@@ -1,13 +1,13 @@
 #pragma once
 
 #include <supereight/backend/backend.hpp>
-#include <supereight/memory/memory_pool_cpu.hpp>
+#include <supereight/memory/memory_pool.hpp>
 
 #include <supereight/octree.hpp>
 
 namespace se {
 
-class Backend final : public BackendBase<Backend, MemoryPoolCPU> {
+class Backend final : public BackendBase<Backend, MemoryPool> {
 public:
     Backend(int size, float dim) : BackendBase(size, dim) {}
 
@@ -32,7 +32,7 @@ private:
         const Image<Eigen::Vector3f>& normal,
         const Eigen::Matrix4f& raycast_pose);
 
-    friend class BackendBase<Backend, MemoryPoolCPU>;
+    friend class BackendBase<Backend, MemoryPool>;
 };
 
 } // namespace se

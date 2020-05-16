@@ -1,7 +1,7 @@
 #pragma once
 
-#include <supereight/utils/cuda_util.hpp>
 #include <supereight/shared/commons.h>
+#include <supereight/utils/cuda_util.hpp>
 
 #include <cuda_runtime.h>
 
