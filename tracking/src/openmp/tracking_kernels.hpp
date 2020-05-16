@@ -33,7 +33,7 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <supereight/image/image.hpp>
+#include <supereight/memory/image.hpp>
 
 #include <supereight/shared/commons.h>
 #include <supereight/shared/perfstats.h>

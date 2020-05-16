@@ -2,7 +2,7 @@
 #include "allocate.hpp"
 
 #include <supereight/algorithms/unique.hpp>
-#include <supereight/backend/cuda_util.hpp>
+#include <supereight/utils/cuda_util.hpp>
 
 #include <cub/cub.cuh>
 #include <cuda_runtime.h>

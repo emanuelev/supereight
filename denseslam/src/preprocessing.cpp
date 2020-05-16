@@ -37,7 +37,7 @@
 #include <supereight/utils/math_utils.h>
 
 #include <functional>
-#include <supereight/image/image.hpp>
+#include <supereight/memory/image.hpp>
 
 void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
     const std::vector<float>& gaussian, float e_d, int r) {

@@ -34,7 +34,7 @@
 #include "bspline_lookup.hpp"
 
 #include <supereight/backend/fields.hpp>
-#include <supereight/image/image.hpp>
+#include <supereight/memory/image.hpp>
 #include <supereight/node.hpp>
 #include <supereight/shared/constant_parameters.h>
 

@@ -5,7 +5,7 @@
 #include "../common/field_impls.hpp"
 
 #include <supereight/backend/backend.hpp>
-#include <supereight/backend/cuda_util.hpp>
+#include <supereight/utils/cuda_util.hpp>
 
 #include <cuda_runtime.h>
 

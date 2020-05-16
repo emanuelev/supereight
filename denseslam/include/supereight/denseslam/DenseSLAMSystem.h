@@ -43,7 +43,7 @@
 
 #include <supereight/denseslam/config.h>
 
-#include <supereight/image/image.hpp>
+#include <supereight/memory/image.hpp>
 
 #include <supereight/shared/perfstats.h>
 #include <supereight/shared/timings.h>

@@ -45,7 +45,7 @@
 #include <tuple>
 
 #include <sophus/se3.hpp>
-#include <supereight/image/image.hpp>
+#include <supereight/memory/image.hpp>
 #include <supereight/ray_iterator.hpp>
 
 namespace se {

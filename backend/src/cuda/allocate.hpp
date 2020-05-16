@@ -36,9 +36,9 @@
 
 #pragma once
 
-#include <supereight/backend/buffer_cuda.hpp>
+#include <supereight/memory/buffer_cuda.hpp>
 #include <supereight/backend/fields.hpp>
-#include <supereight/backend/memory_pool_cuda.hpp>
+#include <supereight/memory/memory_pool_cuda.hpp>
 #include <supereight/octree.hpp>
 
 #include <Eigen/Dense>

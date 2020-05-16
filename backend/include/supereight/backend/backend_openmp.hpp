@@ -1,7 +1,7 @@
 #pragma once
 
 #include <supereight/backend/backend.hpp>
-#include <supereight/backend/memory_pool_cpu.hpp>
+#include <supereight/memory/memory_pool_cpu.hpp>
 
 #include <supereight/octree.hpp>
 

@@ -2,7 +2,7 @@
 
 #include "../common/field_impls.hpp"
 
-#include <supereight/backend/cuda_util.hpp>
+#include <supereight/utils/cuda_util.hpp>
 #include <supereight/ray_iterator.hpp>
 
 #include <cuda_runtime.h>
