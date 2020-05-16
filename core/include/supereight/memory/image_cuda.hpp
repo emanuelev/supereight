@@ -6,9 +6,9 @@
 namespace se {
 
 template<typename T>
-using BufferCUDA = Image<T, allocator_cuda<T>>;
+using ImageCUDA = Image<T, allocator_cuda<T>>;
 
 template<typename T>
-using BufferAccessorCUDA = ImageAccessor<T>;
+using ImageAccessorCUDA = ImageAccessor<T>;
 
 } // namespace se

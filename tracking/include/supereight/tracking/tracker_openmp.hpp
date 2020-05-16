@@ -6,14 +6,14 @@
 namespace se {
 namespace tracking {
 
-class Tracker final : public TrackerBase<Tracker, Image> {
+template<typename T>
+using buffer_type = Image<T>;
+
+class Tracker final : public TrackerBase<Tracker, buffer_type> {
 public:
     Tracker(const std::vector<int>& pyramid, Eigen::Vector2i computation_size,
         Eigen::Matrix4f init_pose)
         : TrackerBase(pyramid, computation_size, init_pose) {}
-
-    template<typename T>
-    using buffer_type = Image<T>;
 
 private:
     const Image<Eigen::Vector3f>* reference_vertex_;

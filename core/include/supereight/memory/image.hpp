@@ -1,103 +1,164 @@
-#ifndef IMAGE_H
-#define IMAGE_H
+#pragma once
 
-#include <cassert>
-#include <vector>
+#include <supereight/shared/commons.h>
 
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
+
+#include <cassert>
+#include <memory>
 
 namespace se {
 
 template<typename T>
 class ImageAccessor;
 
-template<typename T>
+template<typename T, typename AllocatorT = Eigen::aligned_allocator<T>>
 class Image {
 public:
-    using accessor_type = ImageAccessor<T>;
+    using value_type = T;
+    using size_type  = std::size_t;
+
+    using accessor_type = ImageAccessor<value_type>;
+
+    Image() = default;
+
+    Image(const size_type width, const size_type height)
+        : width_(width), height_(height) {
+        assert(width_ > 0 && height_ > 0);
+        data_ = allocator_.allocate(width_ * height_);
+    }
 
     Image(const Eigen::Vector2i& size) : Image(size.x(), size.y()) {}
+    Image(const size_type size) : Image(size, 1) {}
 
-    Image(const unsigned w, const unsigned h) : width_(w), height_(h) {
-        assert(width_ > 0 && height_ > 0);
-        data_.resize(width_ * height_);
+    Image(const Image& other) = delete;
+
+    Image(Image&& other)
+        : width_{other.width_}, height_{other.height_}, data_{other.data_} {
+        other.width_  = 0;
+        other.height_ = 0;
+        other.data_   = nullptr;
     }
 
-    Image(const unsigned w, const unsigned h, const T& val)
-        : width_(w), height_(h) {
-        assert(width_ > 0 && height_ > 0);
-        data_.resize(width_ * height_, val);
-    }
+    ~Image() { allocator_.deallocate(data_, width_ * height_); };
 
-    int width() const { return width_; };
-    int height() const { return height_; };
+    size_type width() const { return width_; };
+    size_type height() const { return height_; };
 
-    std::size_t size() const { return width_ * height_; };
+    size_type size() const { return width_ * height_; };
     Eigen::Vector2i dim() const { return Eigen::Vector2i(width(), height()); }
 
-    T* data() { return data_.data(); }
-    const T* data() const { return data_.data(); }
+    void resize(const size_type width, const size_type height) {
+        if (width == width_ && height == height_) return;
 
-    T& operator[](std::size_t idx) { return data_[idx]; }
-    const T& operator[](std::size_t idx) const { return data_[idx]; }
+        if (width * height == size()) {
+            width_  = width;
+            height_ = height;
 
-    T& operator()(const int x, const int y) { return data_[x + y * width_]; }
-    const T& operator()(const int x, const int y) const {
+            return;
+        }
+
+        allocator_.deallocate(data_, size());
+
+        width_  = width;
+        height_ = height;
+
+        data_ = allocator_.allocate(size());
+    }
+
+    void resize(const size_type size) { resize(size, 1); }
+
+    value_type* data() { return data_; }
+    const value_type* data() const { return data_; }
+
+    value_type& operator[](const size_type idx) { return data_[idx]; }
+    const value_type& operator[](const size_type idx) const {
+        return data_[idx];
+    }
+
+    value_type& operator()(const size_type x, const size_type y) {
         return data_[x + y * width_];
     }
 
-    accessor_type accessor() {
-        return accessor_type(data_.data(), width_, height_);
+    const value_type& operator()(const size_type x, const size_type y) const {
+        return data_[x + y * width_];
     }
 
+    accessor_type accessor() { return accessor_type(data_, width_, height_); }
+
     const accessor_type accessor() const {
-        return accessor_type(data_.data(), width_, height_);
+        return accessor_type(data_, width_, height_);
     }
 
 private:
-    int width_;
-    int height_;
+    size_type width_;
+    size_type height_;
 
-    std::vector<T, Eigen::aligned_allocator<T>> data_;
+    value_type* data_;
+
+    AllocatorT allocator_;
 };
 
 template<typename T>
 class ImageAccessor {
 public:
+    using value_type = T;
+    using size_type  = std::size_t;
+
     ImageAccessor() = delete;
 
-    int width() const { return width_; };
-    int height() const { return height_; };
+    SE_DEVICE_FUNC
+    size_type width() const { return width_; };
 
-    std::size_t size() const { return width_ * height_; };
+    SE_DEVICE_FUNC
+    size_type height() const { return height_; };
+
+    SE_DEVICE_FUNC
+    size_type size() const { return width_ * height_; };
+
+    SE_DEVICE_FUNC
     Eigen::Vector2i dim() const { return Eigen::Vector2i(width(), height()); }
 
-    T* data() { return data_; }
-    const T* data() const { return data_; }
+    SE_DEVICE_FUNC
+    value_type* data() { return data_; }
 
-    T& operator[](std::size_t idx) { return data_[idx]; }
-    const T& operator[](std::size_t idx) const { return data_[idx]; }
+    SE_DEVICE_FUNC
+    const value_type* data() const { return data_; }
 
-    T& operator()(const int x, const int y) { return data_[x + y * width_]; }
-    const T& operator()(const int x, const int y) const {
+    SE_DEVICE_FUNC
+    value_type& operator[](size_type idx) { return data_[idx]; }
+
+    SE_DEVICE_FUNC
+    const value_type& operator[](size_type idx) const { return data_[idx]; }
+
+    SE_DEVICE_FUNC
+    value_type& operator()(const size_type x, const size_type y) {
+        return data_[x + y * width_];
+    }
+
+    SE_DEVICE_FUNC
+    const value_type& operator()(const size_type x, const size_type y) const {
         return data_[x + y * width_];
     }
 
 private:
-    ImageAccessor(T* data, int width, int height)
+    ImageAccessor(
+        value_type* const data, const size_type width, const size_type height)
         : data_{data}, width_{width}, height_{height} {}
 
-    ImageAccessor(const T* data, int width, int height)
-        : data_{const_cast<T*>(data)}, width_{width}, height_{height} {}
+    ImageAccessor(const value_type* const data, const size_type width,
+        const size_type height)
+        : data_{const_cast<value_type*>(data)}, width_{width}, height_{height} {
+    }
 
-    T* const data_;
+    value_type* const data_;
 
-    const int width_;
-    const int height_;
+    size_type width_;
+    size_type height_;
 
-    friend class Image<T>;
+    template<typename, typename>
+    friend class Image;
 };
 
 } // end namespace se
-#endif

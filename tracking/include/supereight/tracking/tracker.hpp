@@ -8,7 +8,7 @@
 namespace se {
 namespace tracking {
 
-template<typename Derived, template<typename> class BufferT>
+template<typename Derived, template<typename...> class BufferT>
 class TrackerBase {
 public:
     TrackerBase(const std::vector<int>& pyramid,
@@ -48,7 +48,7 @@ protected:
     BufferT<TrackData> tracking_result_;
 };
 
-template<typename Derived, template<typename> class BufferT>
+template<typename Derived, template<typename...> class BufferT>
 TrackerBase<Derived, BufferT>::TrackerBase(const std::vector<int>& pyramid,
     Eigen::Vector2i computation_size, Eigen::Matrix4f init_pose)
     : pyramid_{pyramid}, computation_size_{computation_size}, pose_{init_pose},
@@ -68,7 +68,7 @@ TrackerBase<Derived, BufferT>::TrackerBase(const std::vector<int>& pyramid,
     }
 }
 
-template<typename Derived, template<typename> class BufferT>
+template<typename Derived, template<typename...> class BufferT>
 bool TrackerBase<Derived, BufferT>::track(const Eigen::Vector4f& k,
     se::Image<float>& input_depth, float icp_threshold,
     const Eigen::Matrix4f& render_pose,
@@ -118,7 +118,7 @@ bool TrackerBase<Derived, BufferT>::track(const Eigen::Vector4f& k,
     return self->checkPose_(old_pose, track_threshold);
 }
 
-template<typename Derived, template<typename> class BufferT>
+template<typename Derived, template<typename...> class BufferT>
 void TrackerBase<Derived, BufferT>::renderTrack(
     unsigned char* out, const Eigen::Vector2i& output_size) const {
     self->renderTrack_(out, output_size);
