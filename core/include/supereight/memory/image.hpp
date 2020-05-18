@@ -92,10 +92,10 @@ public:
     }
 
 private:
-    size_type width_;
-    size_type height_;
+    size_type width_  = 0;
+    size_type height_ = 0;
 
-    value_type* data_;
+    value_type* data_ = nullptr;
 
     AllocatorT allocator_;
 };
@@ -152,10 +152,10 @@ private:
         : data_{const_cast<value_type*>(data)}, width_{width}, height_{height} {
     }
 
-    value_type* const data_;
+    value_type* const data_ = nullptr;
 
-    size_type width_;
-    size_type height_;
+    size_type width_  = 0;
+    size_type height_ = 0;
 
     template<typename, typename>
     friend class Image;

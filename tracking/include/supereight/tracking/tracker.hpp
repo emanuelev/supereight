@@ -40,6 +40,10 @@ protected:
     Eigen::Matrix4f pose_;
     Eigen::Matrix4f init_pose_;
 
+    const Image<Eigen::Vector3f>* reference_vertex_;
+    const Image<Eigen::Vector3f>* reference_normal_;
+    Eigen::Matrix4f reference_view_;
+
     std::vector<BufferT<float>> scaled_depth_;
     std::vector<BufferT<Eigen::Vector3f>> vertex_;
     std::vector<BufferT<Eigen::Vector3f>> normal_;
@@ -96,16 +100,19 @@ bool TrackerBase<Derived, BufferT>::track(const Eigen::Vector4f& k,
     }
 
     Eigen::Matrix4f old_pose = pose_;
-    const Eigen::Matrix4f render_view =
-        getCameraMatrix(k) * render_pose.inverse();
 
-    self->setReference_(rendered_vertex, rendered_normal, render_view);
+    reference_vertex_ = &rendered_vertex;
+    reference_normal_ = &rendered_normal;
+    reference_view_   = getCameraMatrix(k) * render_pose.inverse();
 
     for (int level = pyramid_.size() - 1; level >= 0; --level) {
         Eigen::Vector2i local_size(computation_size_.x() / (int) pow(2, level),
             computation_size_.y() / (int) pow(2, level));
 
         for (int i = 0; i < pyramid_[level]; ++i) {
+            std::printf("tracking_result_ size: %dx%d; data: %p\n",
+                tracking_result_.width(), tracking_result_.height(),
+                tracking_result_.accessor().data());
             self->track_(vertex_[level].accessor(), normal_[level].accessor(),
                 dist_threshold, normal_threshold);
 

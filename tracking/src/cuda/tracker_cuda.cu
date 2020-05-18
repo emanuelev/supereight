@@ -1,6 +1,6 @@
 #include "tracking_kernels.hpp"
 
-#include <supereight/tracking/tracker_openmp.hpp>
+#include <supereight/tracking/tracker_cuda.hpp>
 
 namespace se {
 namespace tracking {
@@ -41,6 +41,9 @@ template void Tracker::vertexToNormal_<false>(
 void Tracker::track_(const buffer_type<Eigen::Vector3f>::accessor_type& vertex,
     const buffer_type<Eigen::Vector3f>::accessor_type& normal,
     const float dist_threshold, const float normal_threshold) {
+    std::printf("tracking_result_ size: %dx%d; data: %p\n",
+        tracking_result_.width(), tracking_result_.height(),
+        tracking_result_.accessor().data());
     kernels::track(tracking_result_.accessor(), vertex, normal,
         reference_vertex_->accessor(), reference_normal_->accessor(), pose_,
         reference_view_, dist_threshold, normal_threshold);

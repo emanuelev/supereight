@@ -33,7 +33,7 @@ public:
         size_type size = num * sizeof(T);
 
         value_type* p;
-        safeCall(cudaMalloc(&p, size));
+        safeCall(cudaMallocManaged(&p, size));
 
         return p;
     }

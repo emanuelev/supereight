@@ -1,13 +1,13 @@
 #pragma once
 
-#include <supereight/memory/image.hpp>
+#include <supereight/memory/image_cuda.hpp>
 #include <supereight/tracking/tracker.hpp>
 
 namespace se {
 namespace tracking {
 
 template<typename T>
-using buffer_type = Image<T>;
+using buffer_type = ImageCUDA<T>;
 
 class Tracker final : public TrackerBase<Tracker, buffer_type> {
 public:
