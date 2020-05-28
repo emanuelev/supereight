@@ -2,8 +2,8 @@
 
 #include "../common/field_impls.hpp"
 
-#include <supereight/utils/cuda_util.hpp>
 #include <supereight/ray_iterator.hpp>
+#include <supereight/utils/cuda_util.hpp>
 
 #include <cuda_runtime.h>
 
@@ -89,11 +89,10 @@ void raycast(const Octree<FieldType, MemoryPoolCUDA>& octree,
     Eigen::Vector3f* vertex, Eigen::Vector3f* normal,
     Eigen::Vector2i frame_size, Eigen::Matrix4f view, Eigen::Vector2f planes,
     float mu, float step) {
-    constexpr int thread_dim = 16;
 
-    dim3 threads(thread_dim, thread_dim);
-    dim3 blocks((frame_size.x() + thread_dim - 1) / thread_dim,
-        (frame_size.y() + thread_dim - 1) / thread_dim);
+    dim3 threads(16, 16);
+    dim3 blocks((frame_size.x() + threads.x - 1) / threads.x,
+        (frame_size.y() + threads.y - 1) / threads.y);
 
     raycastKernel<<<blocks, threads>>>(
         octree, vertex, normal, frame_size, view, planes, mu, step);

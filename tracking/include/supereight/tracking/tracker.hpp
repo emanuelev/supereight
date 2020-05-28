@@ -110,9 +110,6 @@ bool TrackerBase<Derived, BufferT>::track(const Eigen::Vector4f& k,
             computation_size_.y() / (int) pow(2, level));
 
         for (int i = 0; i < pyramid_[level]; ++i) {
-            std::printf("tracking_result_ size: %dx%d; data: %p\n",
-                tracking_result_.width(), tracking_result_.height(),
-                tracking_result_.accessor().data());
             self->track_(vertex_[level].accessor(), normal_[level].accessor(),
                 dist_threshold, normal_threshold);
 
