@@ -75,4 +75,3 @@ void renderDepthKernel(unsigned char* out, float* depth,
     }
     TOCK("renderDepthKernel", depthSize.x * depthSize.y);
 }
-

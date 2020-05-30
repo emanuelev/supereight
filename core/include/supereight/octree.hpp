@@ -947,7 +947,7 @@ SE_DEVICE_ONLY_FUNC void Octree<T, BufferT>::insert_one(
     Node<T>** node = &root_;
 
     key_t code = keyops::code(key);
-    int edge = size_ / 2;
+    int edge   = size_ / 2;
 
     for (int level = 1; level <= target_level - 1; ++level) {
         int index = child_id(code, level, max_depth_);

@@ -196,8 +196,8 @@ void marching_cube(Octree<FieldType, BufferT>& volume, FieldSelector select,
     std::vector<se::VoxelBlock<FieldType>*> blocklist;
     std::mutex lck;
 
-    const int size = volume.size();
-    const float dim  = volume.dim();
+    const int size  = volume.size();
+    const float dim = volume.dim();
 
     volume.getBlockList(blocklist, false);
     std::cout << "Blocklist size: " << blocklist.size() << std::endl;

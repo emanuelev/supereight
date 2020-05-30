@@ -59,32 +59,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace se {
 namespace math {
 template<typename T>
-SE_DEVICE_FUNC
-static inline T fracf(const T& v) {
+SE_DEVICE_FUNC static inline T fracf(const T& v) {
     return v - v.array().floor().matrix();
 }
 
 template<typename T>
-SE_DEVICE_FUNC
-static inline T floorf(const T& v) {
+SE_DEVICE_FUNC static inline T floorf(const T& v) {
     return v.array().floor();
 }
 
 template<typename T>
-SE_DEVICE_FUNC
-static inline T fabs(const T& v) {
+SE_DEVICE_FUNC static inline T fabs(const T& v) {
     return v.cwiseAbs();
 }
 
 template<typename Scalar>
-SE_DEVICE_FUNC
-static inline Scalar sq(Scalar a) {
+SE_DEVICE_FUNC static inline Scalar sq(Scalar a) {
     return a * a;
 }
 
 template<typename Scalar>
-SE_DEVICE_FUNC
-static inline bool in(const Scalar v, const Scalar a, const Scalar b) {
+SE_DEVICE_FUNC static inline bool in(
+    const Scalar v, const Scalar a, const Scalar b) {
     return v >= a && v <= b;
 }
 
@@ -100,15 +96,14 @@ static inline Eigen::Matrix4f toMatrix4f(const Eigen::Vector3f& trans) {
 }
 
 template<typename T>
-SE_DEVICE_FUNC
-static inline typename std::enable_if<std::is_arithmetic<T>::value, T>::type
+SE_DEVICE_FUNC static inline
+    typename std::enable_if<std::is_arithmetic<T>::value, T>::type
     clamp(const T& f, const T& a, const T& b) {
     return std::max(a, std::min(f, b));
 }
 
 template<typename R, typename A, typename B>
-SE_DEVICE_FUNC
-static inline void clamp(Eigen::MatrixBase<R>& res,
+SE_DEVICE_FUNC static inline void clamp(Eigen::MatrixBase<R>& res,
     const Eigen::MatrixBase<A>& a, const Eigen::MatrixBase<B>& b) {
     res = res.array().max(a.array());
     res = res.array().min(b.array());

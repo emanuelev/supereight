@@ -36,8 +36,8 @@
 
 #pragma once
 
-#include <supereight/memory/buffer_cuda.hpp>
 #include <supereight/backend/fields.hpp>
+#include <supereight/memory/buffer_cuda.hpp>
 #include <supereight/memory/memory_pool_cuda.hpp>
 #include <supereight/octree.hpp>
 

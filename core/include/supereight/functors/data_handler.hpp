@@ -57,9 +57,7 @@ public:
         : _ptr(block->data_ptr(v)) {}
 
     SE_DEVICE_FUNC
-    typename se::VoxelBlock<FieldType>::value_type get() {
-        return *_ptr;
-    }
+    typename se::VoxelBlock<FieldType>::value_type get() { return *_ptr; }
 
     SE_DEVICE_FUNC
     void set(const typename se::VoxelBlock<FieldType>::value_type& val) {
