@@ -57,13 +57,6 @@ static void buildAllocationListKernel(HashType* allocation_list, int reserved,
     const Eigen::Vector2i& image_size, float mu) {
     const Eigen::Matrix4f inv_P = pose * K.inverse();
 
-    const int max_depth = log2(octree.size());
-    const int block_depth =
-        log2(octree.size()) - se::math::log2_const(OctreeT::blockSide);
-
-    const float voxel_size         = octree.dim() / octree.size();
-    const float inverse_voxel_size = 1.f / voxel_size;
-
     std::atomic<int> voxel_count = {0};
     auto* voxel_count_ptr        = &voxel_count;
     auto get_idx = [=]() { return voxel_count_ptr->fetch_add(1); };
@@ -86,8 +79,7 @@ static void buildAllocationListKernel(HashType* allocation_list, int reserved,
 
             OctreeT::traits_type::buildAllocationList(allocation_list, reserved,
                 get_idx, octree, world_vertex, direction, camera_pos,
-                depth_sample, max_depth, block_depth, voxel_size,
-                inverse_voxel_size, mu);
+                depth_sample, mu);
         }
     }
 

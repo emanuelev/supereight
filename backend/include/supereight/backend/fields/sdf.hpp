@@ -56,8 +56,7 @@ struct voxel_traits<SDF> {
     SE_DEVICE_FUNC static void buildAllocationList(HashType* allocation_list,
         int reserved, IncF get_idx, const OctreeT& octree,
         const Eigen::Vector3f& world_vertex, const Eigen::Vector3f& direction,
-        const Eigen::Vector3f&, float, int, int block_depth, float,
-        float inverse_voxel_size, float mu);
+        const Eigen::Vector3f&, float, float mu);
 
     template<typename OctreeT>
     SE_DEVICE_FUNC static Eigen::Vector4f raycast(const OctreeT& octree,

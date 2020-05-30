@@ -41,25 +41,23 @@ template<typename OctreeT, typename HashType, typename IncF>
 inline void voxel_traits<SDF>::buildAllocationList(HashType* allocation_list,
     int reserved, IncF get_idx, const OctreeT& octree,
     const Eigen::Vector3f& world_vertex, const Eigen::Vector3f& direction,
-    const Eigen::Vector3f&, float, int, int block_depth, float,
-    float inverse_voxel_size, float mu) {
+    const Eigen::Vector3f&, float, float mu) {
     const float band             = mu * 2;
     const Eigen::Vector3f origin = world_vertex - (band * 0.5f) * direction;
-    const int num_steps          = ceil(band * inverse_voxel_size);
+    const int num_steps          = ceil(band * octree.inverseVoxelSize());
     const Eigen::Vector3f step   = (direction * band) / num_steps;
 
     Eigen::Vector3f voxel_pos = origin;
     for (int i = 0; i < num_steps; i++) {
         Eigen::Vector3f voxel_scaled =
-            (voxel_pos * inverse_voxel_size).array().floor();
+            (voxel_pos * octree.inverseVoxelSize()).array().floor();
         if (octree.inBounds(voxel_scaled)) {
             auto voxel     = voxel_scaled.cast<int>();
             auto block_ptr = octree.fetch(voxel.x(), voxel.y(), voxel.z());
 
             if (!block_ptr) {
-                HashType k =
-                    octree.hash(voxel.x(), voxel.y(), voxel.z(), block_depth);
-                int idx = get_idx();
+                HashType k = octree.hash(voxel.x(), voxel.y(), voxel.z());
+                int idx    = get_idx();
 
                 if (idx < reserved) {
                     allocation_list[idx] = k;

@@ -3,9 +3,9 @@
 #include "../common/field_impls.hpp"
 
 #include <supereight/algorithms/filter.hpp>
-#include <supereight/utils/cuda_util.hpp>
 #include <supereight/functors/data_handler.hpp>
 #include <supereight/functors/data_handler_cuda.hpp>
+#include <supereight/utils/cuda_util.hpp>
 
 #include <cub/cub.cuh>
 #include <cuda_runtime.h>
@@ -27,7 +27,7 @@ __global__ static void updateBlockActiveKernel(OctreeT octree, Sophus::SE3f Tcw,
     auto* block = octree.getBlockBuffer()[idx];
     if (!block->active()) {
         block->active(algorithms::in_frustum<OctreeT::block_type>(
-            block, octree.voxel_size(), K * Tcw.matrix(), frame_size));
+            block, octree.voxelSize(), K * Tcw.matrix(), frame_size));
     }
 }
 
@@ -40,7 +40,7 @@ __global__ static void __launch_bounds__(64, 32)
 
     if (!block->active() /* &&
         !algorithms::in_frustum<OctreeT::block_type>(
-            block, octree.voxel_size(), K * Tcw.matrix(), frame_size)*/)
+            block, octree.voxelSize(), K * Tcw.matrix(), frame_size)*/)
         return;
 
     typedef cub::BlockReduce<int, 64> BlockReduce;
@@ -52,7 +52,7 @@ __global__ static void __launch_bounds__(64, 32)
     const int y = threadIdx.y + block_coord(1);
 
     Eigen::Vector3i pix = Eigen::Vector3i(x, y, block_coord(2));
-    Eigen::Vector3f pos = Tcw * (octree.voxel_size() * pix.cast<float>());
+    Eigen::Vector3f pos = Tcw * (octree.voxelSize() * pix.cast<float>());
     Eigen::Vector3f camera_voxel = K.topLeftCorner<3, 3>() * pos;
 
     int num_visible = 0;
@@ -163,12 +163,11 @@ __global__ static void updateNodesKernel(OctreeT octree, UpdateFuncT func,
 
     const Eigen::Vector3i voxel = Eigen::Vector3i(unpack_morton(node->code_));
     const Eigen::Vector3f delta = Tcw.rotationMatrix() *
-        Eigen::Vector3f::Constant(0.5f * octree.voxel_size() * node->side_);
+        Eigen::Vector3f::Constant(0.5f * octree.voxelSize() * node->side_);
 
     const Eigen::Vector3f delta_c = K.topLeftCorner<3, 3>() * delta;
 
-    Eigen::Vector3f base_cam =
-        Tcw * (octree.voxel_size() * voxel.cast<float>());
+    Eigen::Vector3f base_cam = Tcw * (octree.voxelSize() * voxel.cast<float>());
     Eigen::Vector3f basepix_hom = K.topLeftCorner<3, 3>() * base_cam;
 
     for (int i = 0; i < 8; ++i) {
@@ -208,7 +207,7 @@ static void updateBlocks(Octree<FieldType, MemoryPoolCUDA>& octree,
     safeCall(cudaPeekAtLastError());
 
     const Eigen::Vector3f pos_delta =
-        Tcw.rotationMatrix() * Eigen::Vector3f(0, 0, octree.voxel_size());
+        Tcw.rotationMatrix() * Eigen::Vector3f(0, 0, octree.voxelSize());
     const Eigen::Vector3f camera_delta = K.topLeftCorner<3, 3>() * pos_delta;
 
     updateBlocksKernel<<<blocks, threads>>>(

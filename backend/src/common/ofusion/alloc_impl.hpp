@@ -67,13 +67,13 @@ inline void voxel_traits<OFusion>::buildAllocationList(
     HashType* allocation_list, int reserved, IncF get_idx,
     const OctreeT& octree, const Eigen::Vector3f& world_vertex,
     const Eigen::Vector3f& direction, const Eigen::Vector3f& camera_pos,
-    float depth_sample, int max_depth, int block_depth, float voxel_size,
-    float inverse_voxel_size, float noise_factor) {
-    int cur_depth   = max_depth;
-    float step_size = voxel_size;
+    float depth_sample, float noise_factor) {
+    int cur_depth   = octree.maxDepth();
+    float step_size = octree.voxelSize();
 
-    const float sigma = se::math::clamp(
-        noise_factor * se::math::sq(depth_sample), 2 * voxel_size, 0.05f);
+    const float sigma =
+        se::math::clamp(noise_factor * se::math::sq(depth_sample),
+            2 * octree.voxelSize(), 0.05f);
     const float band             = 2 * sigma;
     const Eigen::Vector3f origin = world_vertex - (band * 0.5f) * direction;
     const float dist             = (camera_pos - origin).norm();
@@ -83,7 +83,7 @@ inline void voxel_traits<OFusion>::buildAllocationList(
     float travelled           = 0.f;
     for (; travelled < dist; travelled += step_size) {
         Eigen::Vector3f voxel_scaled =
-            (voxel_pos * inverse_voxel_size).array().floor();
+            (voxel_pos * octree.inverseVoxelSize()).array().floor();
         if (octree.inBounds(voxel_scaled)) {
             auto voxel = voxel_scaled.cast<int>();
             auto node_ptr =
@@ -91,18 +91,19 @@ inline void voxel_traits<OFusion>::buildAllocationList(
 
             if (!node_ptr) {
                 HashType k = octree.hash(voxel.x(), voxel.y(), voxel.z(),
-                    std::min(cur_depth, block_depth));
+                    std::min(cur_depth, octree.blockDepth()));
                 int idx    = get_idx();
 
                 if (idx < reserved) { allocation_list[idx] = k; }
-            } else if (cur_depth >= block_depth) {
+            } else if (cur_depth >= octree.blockDepth()) {
                 static_cast<typename OctreeT::block_type*>(node_ptr)->active(
                     true);
             }
         }
 
-        step_size = compute_step_size(travelled, band, voxel_size);
-        cur_depth = step_to_depth(step_size, max_depth, voxel_size);
+        step_size = compute_step_size(travelled, band, octree.voxelSize());
+        cur_depth =
+            step_to_depth(step_size, octree.maxDepth(), octree.voxelSize());
 
         step = direction * step_size;
         voxel_pos += step;

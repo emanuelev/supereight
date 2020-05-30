@@ -57,8 +57,7 @@ struct voxel_traits<OFusion> {
     SE_DEVICE_FUNC static void buildAllocationList(HashType* allocation_list,
         int reserved, IncF get_idx, const OctreeT& octree,
         const Eigen::Vector3f& world_vertex, const Eigen::Vector3f& direction,
-        const Eigen::Vector3f& camera_pos, float depth_sample, int max_depth,
-        int block_depth, float voxel_size, float inverse_voxel_size,
+        const Eigen::Vector3f& camera_pos, float depth_sample,
         float noise_factor);
 
     template<typename OctreeT>

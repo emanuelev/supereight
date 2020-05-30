@@ -104,7 +104,10 @@ public:
     inline float dim() const { return dim_; }
 
     SE_DEVICE_FUNC
-    inline float voxel_size() const { return voxel_size_; }
+    inline float voxelSize() const { return voxel_size_; }
+
+    SE_DEVICE_FUNC
+    inline float inverseVoxelSize() const { return inverse_voxel_size_; }
 
     SE_DEVICE_FUNC
     inline Node<T>* root() const { return root_; }
@@ -171,7 +174,7 @@ public:
      * \param z z coordinate in interval [0, size]
      */
     SE_DEVICE_ONLY_FUNC
-    void insert_one(const key_t key);
+    void insert_one(const key_t key, const int target_level);
 
     /*! \brief Interp voxel value at voxel position  (x,y,z)
      * \param pos three-dimensional coordinates in which each component belongs
@@ -216,14 +219,12 @@ public:
      */
     SE_DEVICE_ONLY_FUNC
     key_t hash(const int x, const int y, const int z) const {
-        const int scale =
-            max_level_ - math::log2_const(blockSide); // depth of blocks
-        return keyops::encode(x, y, z, scale, max_level_);
+        return keyops::encode(x, y, z, block_depth_, max_depth_);
     }
 
     SE_DEVICE_ONLY_FUNC
     key_t hash(const int x, const int y, const int z, key_t scale) const {
-        return keyops::encode(x, y, z, scale, max_level_);
+        return keyops::encode(x, y, z, scale, max_depth_);
     }
 
     SE_DEVICE_FUNC
@@ -247,7 +248,10 @@ public:
     void load(const std::string& filename);
 
     SE_DEVICE_FUNC
-    int maxLevel() const { return max_level_; }
+    int maxDepth() const { return max_depth_; }
+
+    SE_DEVICE_FUNC
+    int blockDepth() const { return block_depth_; }
 
     /*! \brief Counts the number of blocks allocated
      * \return number of voxel blocks allocated
@@ -268,9 +272,12 @@ private:
 
     int size_;
     float dim_;
-    float voxel_size_;
 
-    int max_level_;
+    float voxel_size_;
+    float inverse_voxel_size_;
+
+    int max_depth_;
+    int block_depth_;
 
     BufferT<VoxelBlock<T>> block_buffer_;
     BufferT<Node<T>> nodes_buffer_;
@@ -312,7 +319,7 @@ template<typename T, template<typename> class BufferT>
 inline typename Octree<T, BufferT>::value_type Octree<T, BufferT>::get(
     const Eigen::Vector3f& p, VoxelBlock<T>* cached) const {
     const Eigen::Vector3i pos =
-        (p.homogeneous() * Eigen::Vector4f::Constant(size_ / dim_))
+        (p.homogeneous() * Eigen::Vector4f::Constant(inverse_voxel_size_))
             .template head<3>()
             .template cast<int>();
 
@@ -438,9 +445,12 @@ void Octree<T, BufferT>::init(int size, float dim) {
     size_ = size;
     dim_  = dim;
 
-    voxel_size_ = dim / size;
+    voxel_size_         = dim / size;
+    inverse_voxel_size_ = size / dim;
 
-    max_level_ = log2(size);
+    max_depth_   = log2(size);
+    block_depth_ = max_depth_ - se::math::log2_const(blockSide);
+
     nodes_buffer_.reserve(1);
 
     root_        = nodes_buffer_.acquire();
@@ -486,12 +496,11 @@ template<typename T, template<typename> class BufferT>
 SE_DEVICE_ONLY_FUNC Node<T>* Octree<T, BufferT>::insert(
     const int x, const int y, const int z, const int depth) {
     // Make sure we have enough space on buffers
-    const int leaves_level = max_level_ - math::log2_const(blockSide);
 
     /*
-    if (depth >= leaves_level) {
+    if (depth >= block_depth_) {
         block_buffer_.reserve(block_buffer_.used() + 1);
-        nodes_buffer_.reserve(nodes_buffer_.used() + leaves_level);
+        nodes_buffer_.reserve(nodes_buffer_.used() + block_depth_);
     } else {
         nodes_buffer_.reserve(nodes_buffer_.used() + depth);
     }
@@ -506,8 +515,8 @@ SE_DEVICE_ONLY_FUNC Node<T>* Octree<T, BufferT>::insert(
         n            = root_;
     }
 
-    key_t key                = keyops::encode(x, y, z, depth, max_level_);
-    const unsigned int shift = MAX_BITS - max_level_ - 1;
+    key_t key                = keyops::encode(x, y, z, depth, max_depth_);
+    const unsigned int shift = MAX_BITS - max_depth_ - 1;
 
     unsigned edge = size_ / 2;
     for (int d = 1; edge >= blockSide && d <= depth; edge /= 2, ++d) {
@@ -543,7 +552,7 @@ SE_DEVICE_ONLY_FUNC Node<T>* Octree<T, BufferT>::insert(
 template<typename T, template<typename> class BufferT>
 SE_DEVICE_ONLY_FUNC VoxelBlock<T>* Octree<T, BufferT>::insert(
     const int x, const int y, const int z) {
-    return static_cast<VoxelBlock<T>*>(insert(x, y, z, max_level_));
+    return static_cast<VoxelBlock<T>*>(insert(x, y, z, max_depth_));
 }
 
 template<typename T, template<typename> class BufferT>
@@ -682,7 +691,7 @@ Eigen::Vector3f Octree<T, BufferT>::grad(const Eigen::Vector3f& pos) const {
                 factor(1)) *
             factor(2);
 
-    return (0.5f * dim_ / size_) * gradient;
+    return (0.5f * voxel_size_) * gradient;
 }
 
 template<typename T, template<typename> class BufferT>
@@ -804,7 +813,7 @@ Eigen::Vector3f Octree<T, BufferT>::grad(
                 factor(1)) *
             factor(2);
 
-    return (0.5f * dim_ / size_) * gradient;
+    return (0.5f * voxel_size_) * gradient;
 }
 
 template<typename T, template<typename> class BufferT>
@@ -872,15 +881,14 @@ SE_DEVICE_ONLY_FUNC bool Octree<T, BufferT>::allocate(
               << ", num unique: " << end - unique_keys << "\n";
     */
 
-    num_elem = algorithms::filter_ancestors(keys, num_elem, max_level_);
+    num_elem = algorithms::filter_ancestors(keys, num_elem, max_depth_);
     reserveBuffers(num_elem);
 
     int last_elem = 0;
     bool success  = false;
 
-    const int leaves_level   = max_level_ - log2(blockSide);
-    const unsigned int shift = MAX_BITS - max_level_ - 1;
-    for (int level = 1; level <= leaves_level; level++) {
+    const unsigned int shift = MAX_BITS - max_depth_ - 1;
+    for (int level = 1; level <= block_depth_; level++) {
         const key_t mask = MASK[level + shift] | SCALE_MASK;
         compute_prefix(keys, keys_at_level_, num_elem, mask);
         last_elem = algorithms::unique_multiscale(keys_at_level_, num_elem);
@@ -894,7 +902,6 @@ SE_DEVICE_ONLY_FUNC bool Octree<T, BufferT>::allocate(
 template<typename T, template<typename> class BufferT>
 bool Octree<T, BufferT>::allocate_level(
     key_t* keys, int num_tasks, int target_level) {
-    int leaves_level = max_level_ - log2(blockSide);
     nodes_buffer_.reserve(nodes_buffer_.used() + num_tasks);
 
     // #pragma omp parallel for
@@ -906,12 +913,12 @@ bool Octree<T, BufferT>::allocate_level(
 
         int edge = size_ / 2;
         for (int level = 1; level <= target_level; ++level) {
-            int index       = child_id(myKey, level, max_level_);
+            int index       = child_id(myKey, level, max_depth_);
             Node<T>* parent = *n;
             n               = &(*n)->child(index);
 
             if (!(*n)) {
-                if (level == leaves_level) {
+                if (level == block_depth_) {
                     *n          = block_buffer_.acquire();
                     (*n)->side_ = edge;
                     static_cast<VoxelBlock<T>*>(*n)->coordinates(
@@ -935,30 +942,28 @@ bool Octree<T, BufferT>::allocate_level(
 }
 
 template<typename T, template<typename> class BufferT>
-SE_DEVICE_ONLY_FUNC void Octree<T, BufferT>::insert_one(const key_t key) {
+SE_DEVICE_ONLY_FUNC void Octree<T, BufferT>::insert_one(
+    const key_t key, const int target_level) {
     Node<T>** node = &root_;
 
-    key_t code       = keyops::code(key);
-    int target_level = keyops::level(key);
-
-    int leaves_level = max_level_ - log2(BLOCK_SIDE);
-    int edge         = size_ / 2;
+    key_t code = keyops::code(key);
+    int edge = size_ / 2;
 
     for (int level = 1; level <= target_level - 1; ++level) {
-        int index = child_id(code, level, max_level_);
+        int index = child_id(code, level, max_depth_);
         node      = &(*node)->child(index);
 
         edge /= 2;
     }
 
-    int index       = child_id(code, target_level, max_level_);
+    int index       = child_id(code, target_level, max_depth_);
     Node<T>* parent = *node;
     node            = &(*node)->child(index);
 
     // Already allocated?!
     if (*node) return;
 
-    if (target_level == leaves_level) {
+    if (target_level == block_depth_) {
         *node       = block_buffer_.acquire();
         auto* block = static_cast<VoxelBlock<T>*>(*node);
 
