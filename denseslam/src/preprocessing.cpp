@@ -90,7 +90,8 @@ void mm2metersKernel(se::Image<float>& out, const unsigned short* in,
     const Eigen::Vector2i& inputSize) {
     TICK();
     // Check for unsupported conditions
-    if ((inputSize.x() < out.width()) || inputSize.y() < out.height()) {
+    if ((static_cast<std::size_t>(inputSize.x()) < out.width()) ||
+        static_cast<std::size_t>(inputSize.y()) < out.height()) {
         std::cerr << "Invalid ratio." << std::endl;
         exit(1);
     }
@@ -105,10 +106,10 @@ void mm2metersKernel(se::Image<float>& out, const unsigned short* in,
     }
 
     int ratio = inputSize.x() / out.width();
-    int y;
+    std::size_t y;
 #pragma omp parallel for shared(out), private(y)
     for (y = 0; y < out.height(); y++)
-        for (int x = 0; x < out.width(); x++) {
+        for (auto x = 0ul; x < out.width(); x++) {
             out[x + out.width() * y] =
                 in[x * ratio + inputSize.x() * y * ratio] / 1000.0f;
         }

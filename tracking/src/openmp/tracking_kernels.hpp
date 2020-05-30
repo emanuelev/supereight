@@ -78,7 +78,7 @@ template<typename VertexAccessorT, typename DepthAccessorT>
 void depth2vertex(VertexAccessorT vertex, const DepthAccessorT& depth,
     const Eigen::Matrix4f& invK) {
     TICK();
-    int x, y;
+    std::size_t x, y;
 #pragma omp parallel for shared(vertex), private(x, y)
     for (y = 0; y < depth.height(); y++) {
         for (x = 0; x < depth.width(); x++) {
@@ -433,10 +433,10 @@ void halfSampleRobustImage(
         exit(1);
     }
     TICK();
-    int y;
+    std::size_t y;
 #pragma omp parallel for shared(out), private(y)
     for (y = 0; y < out.height(); y++) {
-        for (int x = 0; x < out.width(); x++) {
+        for (auto x = 0ul; x < out.width(); x++) {
             Eigen::Vector2i pixel             = Eigen::Vector2i(x, y);
             const Eigen::Vector2i centerPixel = 2 * pixel;
 

@@ -193,7 +193,8 @@ void allocate(Octree<FieldType, MemoryPoolCUDA>& octree,
         return;
     }
 
-    if (num_unique > keys_at_level.size()) keys_at_level.resize(num_unique);
+    if (static_cast<std::size_t>(num_unique) > keys_at_level.size())
+        keys_at_level.resize(num_unique);
 
     for (int level = 1; level <= octree.blockDepth(); ++level) {
         constexpr int thread_dim_ktl = 256;

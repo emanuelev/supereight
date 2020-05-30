@@ -32,7 +32,7 @@ __global__ static void updateBlockActiveKernel(OctreeT octree, Sophus::SE3f Tcw,
 }
 
 template<typename OctreeT, typename UpdateFuncT>
-__global__ static void __launch_bounds__(64, 32)
+__global__ static void // __launch_bounds__(64, 16)
     updateBlocksKernel(OctreeT octree, UpdateFuncT func, const Sophus::SE3f Tcw,
         const Eigen::Matrix4f K, const Eigen::Vector3f pos_delta,
         const Eigen::Vector3f camera_delta, const Eigen::Vector2i frame_size) {
