@@ -267,7 +267,7 @@ class KinectFusion(SLAMAlgorithm):
         self.camera = ''
         self.quat = None
 
-        self.impl = 'sdf'
+        self.impl = 'cuda-sdf'
         self.dump_volume = ''
         #self.ate_remove_offset = True
         #self.ate_align = True
@@ -316,7 +316,7 @@ class KinectFusion(SLAMAlgorithm):
         if self.bilateralFilter:
             args.extend(['-F', ''])
 
-        return [self.bin_path + 'se-denseslam-' + self.impl + '-main'] + (args)
+        return [self.bin_path + 'supereight-denseslam-' + self.impl + '-main'] + (args)
 
     def _store_variables(self, res):
         res['compute-size-ratio'] = str(self.compute_size_ratio)

@@ -431,7 +431,7 @@ class RawDepthReader: public DepthReader {
 #endif
 
       if (total != expected_size) {
-        std::cout << "End of file" << (total == 0 ? "" : "(garbage found)")
+        std::cerr << "End of file" << (total == 0 ? "" : "(garbage found)")
           << "." << std::endl;
         return false;
       } else {

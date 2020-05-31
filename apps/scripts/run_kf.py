@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # for sequence in ICL + TUM_RGB_FR1 + TUM_RGB_FR2 + TUM_RGB_FR3:
     for sequence in [ICL_NUIM_LIV_2, TUM_RGB_FR3_DESK]:
         for resol in [512]:
-            for version in ['sdf']:
+            for version in ['cuda-sdf']:
                 kernel_data = []
                 mu = 0.1
                 algorithm.impl = version

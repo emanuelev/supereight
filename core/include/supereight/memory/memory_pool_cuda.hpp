@@ -86,7 +86,8 @@ public:
             initPage<T, page_size_>
                 <<<(page_size_ + 255) / 256, 256>>>(new_page);
 #else
-            std::printf("warning: CPU init for CUDA memory pool page\n");
+            std::fprintf(
+                stderr, "warning: CPU init for CUDA memory pool page\n");
             for (unsigned i = 0; i < page_size_; ++i) { new_page[i] = T(); }
 #endif
 
