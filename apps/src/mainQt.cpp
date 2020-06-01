@@ -301,7 +301,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 	float yt = pose(1, 3) - init_pose.y();
 	float zt = pose(2, 3) - init_pose.z();
 	storeStats(frame, timings, pos, tracked, integrated);
-	if(config->no_gui){
+	if(config->log_file != "") {
 		*logstream << reader->getFrameNumber() << "\t" << xt << "\t" << yt << "\t" << zt << "\t" << std::endl;
 	}
 

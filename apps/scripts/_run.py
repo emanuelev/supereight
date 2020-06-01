@@ -29,10 +29,10 @@ def _time():
 #
 
 
-def gen_results_dir(path):
+def gen_results_dir(path, name = ''):
     global _RESULTS_DIR
 
-    _RESULTS_DIR = os.path.join(path, _time())
+    _RESULTS_DIR = os.path.join(path, name + '-' + _time())
     os.makedirs(_RESULTS_DIR)
     return _RESULTS_DIR
 
@@ -82,8 +82,14 @@ class SLAMAlgorithm:
         results_path = _get_next_res_file()
         self._dump_config(results_path, dataset)
         self._setup_from_dataset(dataset)
-        self._run_internal(dataset.camera_file,
-                           dataset.dataset_path, results_path)
+
+        if dataset.use_ground_truth:
+            self._run_internal(dataset.camera_file,
+                               dataset.dataset_path, results_path, dataset.ground_truth_assoc)
+        else:
+            self._run_internal(dataset.camera_file,
+                               dataset.dataset_path, results_path)
+
 
         if self.failed:
             return res
@@ -155,15 +161,16 @@ class SLAMAlgorithm:
     def _logpath(self, results_path):
         return results_path + '_log'
 
-    def _run_internal(self, camera_calib_path, dataset_path, results_path):
+    def _run_internal(self, camera_calib_path, dataset_path, results_path,
+                      ground_truth_path = ''):
         """ Generate the run command and run
         """
         stdio_log_path = results_path + '_log'
         with open(stdio_log_path, 'w') as stdio_log:
             cmd = self._generate_run_command(
-                camera_calib_path, dataset_path, results_path)
+                camera_calib_path, dataset_path, results_path, ground_truth_path)
 
-            print ' '.join(cmd)
+            print(' '.join(cmd))
 
             try:
                 # Doesn't work without shell=True??
@@ -288,7 +295,8 @@ class KinectFusion(SLAMAlgorithm):
         self.camera = dataset.camera
         #self.ate_associate_identity = dataset.ate_associate_identity
 
-    def _generate_run_command(self, camera_calib_path, dataset_path, results_path):
+    def _generate_run_command(self, camera_calib_path, dataset_path, results_path,
+                              ground_truth_path = ''):
         args = []
         args.extend(['--compute-size-ratio', str(self.compute_size_ratio)])
         args.extend(['--fps', str(self.fps)])
@@ -309,6 +317,9 @@ class KinectFusion(SLAMAlgorithm):
             args.extend(['--dump-volume', str(results_path) +
                 str(self.dump_volume)])
         args.extend(['-k', str(self.camera)])
+
+        if ground_truth_path != '':
+            args.extend(['--ground-truth', ground_truth_path])
 
         if self.quat:
             args.extend(['-a', str(self.quat)])
@@ -442,7 +453,7 @@ def _pre_assoc_results(pre_assoc_file, path_to_traj, output_path):
     assoc_times = []
 
     with open(pre_assoc_file) as ate_file:
-        assoc_times = [line.rstrip('\n') for line in ate_file]
+        assoc_times = [line.rstrip('\n').split()[2] for line in ate_file]
 
     with open(output_path, 'w') as new_traj:
         for i in range(0, min(len(traj), len(assoc_times))):

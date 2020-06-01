@@ -68,7 +68,7 @@ class EvaluateATE:
         self.first_list = associate.read_file_list(self.resultsfile)
         self.second_list = associate.read_file_list(self.groundtruthfile)
 
-        self.matches = zip(self.first_list, self.second_list)
+        self.matches = list(zip(self.first_list, self.second_list))
 
     #
     # Remove constant offset, uses first point to provide the offset. 
@@ -104,11 +104,11 @@ class EvaluateATE:
         rot,trans,self.trans_error = align(second_xyz,self.first_xyz)
         self.second_xyz_aligned = rot * second_xyz + trans
 
-        self.first_stamps = self.first_list.keys()
+        self.first_stamps = list(self.first_list.keys())
         self.first_stamps.sort()
         self.first_xyz_full = numpy.matrix([[float(value) for value in self.first_list[b][0:3]] for b in self.first_stamps]).transpose()
         
-        self.second_stamps = self.second_list.keys()
+        self.second_stamps = list(self.second_list.keys())
         self.second_stamps.sort()
         second_xyz_full = numpy.matrix([[float(value)*float(scale) for value in self.second_list[b][0:3]] for b in self.second_stamps]).transpose()
         self.second_xyz_full_aligned = rot * second_xyz_full + trans
@@ -118,16 +118,16 @@ class EvaluateATE:
 
     def latest_print(self, verbose = False):
         if verbose:
-            print "compared_pose_pairs %d pairs"%(len(self.trans_error))
+            print("compared_pose_pairs %d pairs"%(len(self.trans_error)))
 
-            print "absolute_translational_error.rmse %f m"%self.latest_ate()
-            print "absolute_translational_error.mean %f m"%numpy.mean(self.trans_error)
-            print "absolute_translational_error.median %f m"%numpy.median(self.trans_error)
-            print "absolute_translational_error.std %f m"%numpy.std(self.trans_error)
-            print "absolute_translational_error.min %f m"%numpy.min(self.trans_error)
-            print "absolute_translational_error.max %f m"%numpy.max(self.trans_error)
+            print("absolute_translational_error.rmse %f m"%self.latest_ate())
+            print("absolute_translational_error.mean %f m"%numpy.mean(self.trans_error))
+            print("absolute_translational_error.median %f m"%numpy.median(self.trans_error))
+            print("absolute_translational_error.std %f m"%numpy.std(self.trans_error))
+            print("absolute_translational_error.min %f m"%numpy.min(self.trans_error))
+            print("absolute_translational_error.max %f m"%numpy.max(self.trans_error))
         else:
-            print "%f"%self.latest_ate()
+            print("%f"%self.latest_ate())
 
     def latest_save_associations(self, path):
         file = open(path,"w")
