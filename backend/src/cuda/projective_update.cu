@@ -16,7 +16,7 @@ template<typename OctreeT>
 __global__ static void updateBlockActiveKernel(OctreeT octree, Sophus::SE3f Tcw,
     Eigen::Matrix4f K, Eigen::Vector2i frame_size, int max_idx) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= max_idx) return;
+        if (idx >= max_idx) return;
 
     auto* block = octree.getBlockBuffer()[idx];
     if (!block->active()) {
@@ -31,11 +31,7 @@ __global__ static void // __launch_bounds__(64, 16)
         const Eigen::Matrix4f K, const Eigen::Vector3f pos_delta,
         const Eigen::Vector3f camera_delta, const Eigen::Vector2i frame_size) {
     auto* block = octree.getBlockBuffer()[blockIdx.x];
-
-    if (!block->active() /* &&
-        !algorithms::in_frustum<OctreeT::block_type>(
-            block, octree.voxelSize(), K * Tcw.matrix(), frame_size)*/)
-        return;
+    if (!block->active()) return;
 
     typedef cub::BlockReduce<int, 64> BlockReduce;
     __shared__ typename BlockReduce::TempStorage temp_storage;
@@ -123,12 +119,12 @@ static void updateBlocks(Octree<FieldType, MemoryPoolCUDA>& octree,
     int num_elem       = block_buffer.used();
     if (num_elem < 1) return;
 
-    dim3 threads(BLOCK_SIDE, BLOCK_SIDE);
-    dim3 blocks(num_elem);
-
-    updateBlockActiveKernel<<<(num_elem + 255) / 256, 256>>>(
+    updateBlockActiveKernel<<<(((num_elem + 7) / 8) + 255) / 256, 256>>>(
         octree, Tcw, K, frame_size, num_elem);
     safeCall(cudaPeekAtLastError());
+
+    dim3 threads(BLOCK_SIDE, BLOCK_SIDE);
+    dim3 blocks(num_elem);
 
     const Eigen::Vector3f pos_delta =
         Tcw.rotationMatrix() * Eigen::Vector3f(0, 0, octree.voxelSize());
@@ -155,6 +151,7 @@ static void updateNodes(Octree<FieldType, MemoryPoolCUDA>& octree,
 void projectiveUpdate(Octree<FieldType, MemoryPoolCUDA>& octree,
     voxel_traits<FieldType>::update_func_type& func, Sophus::SE3f Tcw,
     Eigen::Matrix4f K, Eigen::Vector2i frame_size) {
+
     updateBlocks(octree, func, Tcw, K, frame_size);
     updateNodes(octree, func, Tcw, K, frame_size);
 }

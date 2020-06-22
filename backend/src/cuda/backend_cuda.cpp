@@ -40,8 +40,6 @@ void Backend::allocate_(const Image<float>& depth, const Eigen::Vector4f& k,
 
     se::allocate(octree_, allocation_list_.accessor(), used, keys_at_level_,
         keys_at_level_used_, allocation_temp_storage_);
-
-    safeCall(cudaDeviceSynchronize());
 }
 
 void Backend::update_(const Image<float>&, const Sophus::SE3f& Tcw,

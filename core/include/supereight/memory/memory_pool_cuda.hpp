@@ -57,8 +57,8 @@ public:
         return (*this)[idx];
     }
 
-    void reserve(std::size_t n) {
-        if (n <= capacity_) return;
+    bool reserve(std::size_t n) {
+        if (n <= capacity()) return false;
         std::size_t num_pages = (n - capacity() + page_size_ - 1) / page_size_;
 
         if (page_table_capacity_ < page_table_used_ + num_pages) {
@@ -97,6 +97,8 @@ public:
 
             capacity_ += page_size_;
         }
+
+        return true;
     }
 
     SE_DEVICE_FUNC

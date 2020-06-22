@@ -89,7 +89,9 @@ void raycast(const Octree<FieldType, MemoryPoolCUDA>& octree,
     Eigen::Vector3f* vertex, Eigen::Vector3f* normal,
     Eigen::Vector2i frame_size, Eigen::Matrix4f view, Eigen::Vector2f planes,
     float mu, float step) {
-    dim3 threads(16, 16);
+    constexpr int thread_dim = 16;
+
+    dim3 threads(thread_dim, thread_dim);
     dim3 blocks((frame_size.x() + threads.x - 1) / threads.x,
         (frame_size.y() + threads.y - 1) / threads.y);
 

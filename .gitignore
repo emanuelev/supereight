@@ -35,4 +35,4 @@
 build
 doc
 apps/scripts/__pycache__
-apps/scripts/results
+apps/scripts/.mypy_cache

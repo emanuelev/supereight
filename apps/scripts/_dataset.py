@@ -1,7 +1,7 @@
 class Dataset:
 
     def __init__(self):
-        self.dataset = None
+        self.dataset_path = None
         self.ground_truth = None
         self.ground_truth_assoc = None
         self.use_ground_truth = False
@@ -12,3 +12,4 @@ class Dataset:
         self.rgb_image = None
         self.pre_assoc_file_path = None
         self.descr = None
+        self.ate_associate_identity = False

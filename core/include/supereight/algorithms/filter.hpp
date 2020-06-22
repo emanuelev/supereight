@@ -70,6 +70,55 @@ SE_DEVICE_FUNC static inline bool in_frustum(const VoxelBlockType* v,
         .any();
 }
 
+template<typename VoxelBlockType>
+SE_DEVICE_FUNC static inline bool in_frustum2(const VoxelBlockType* v,
+    float voxel_size, const Eigen::Matrix4f& camera,
+    const Eigen::Vector2i& frame_size) {
+    constexpr static int side = VoxelBlockType::side;
+    Eigen::Vector3i coords    = v->coordinates();
+
+    for (int z = 0; z <= side; z += side) {
+        for (int y = 0; y <= side; y += side) {
+            for (int x = 0; x <= side; x += side) {
+                Eigen::Vector3i corner = coords + Eigen::Vector3i(x, y, z);
+                Eigen::Vector4f camera_corner =
+                    camera * (voxel_size * corner.cast<float>()).homogeneous();
+
+                camera_corner(0) /= camera_corner(2);
+                camera_corner(1) /= camera_corner(2);
+
+                if (camera_corner(0) >= 0.f &&
+                    camera_corner(0) < frame_size.x() &&
+                    camera_corner(1) >= 0.f &&
+                    camera_corner(1) < frame_size.y())
+                    return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+template<typename VoxelBlockType>
+SE_DEVICE_FUNC static inline bool in_frustum3(const VoxelBlockType* v,
+    float voxel_size, const Eigen::Matrix4f& camera,
+    const Eigen::Vector2i& frame_size) {
+    constexpr static int side = VoxelBlockType::side;
+    Eigen::Vector3i coords    = v->coordinates();
+    Eigen::Vector3f center    = voxel_size *
+        (coords + Eigen::Vector3i::Constant(side / 2)).template cast<float>();
+    Eigen::Vector4f camera_center = camera * center.homogeneous();
+
+    camera_center(0) /= camera_center(2);
+    camera_center(1) /= camera_center(2);
+
+    if (camera_center(0) >= 0.f && camera_center(0) < frame_size.x() &&
+        camera_center(1) >= 0.f && camera_center(1) < frame_size.y())
+        return true;
+
+    return false;
+}
+
 template<typename ValueType, typename P>
 SE_DEVICE_FUNC bool satisfies(const ValueType& el, P predicate) {
     return predicate(el);

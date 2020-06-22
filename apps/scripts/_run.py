@@ -73,7 +73,7 @@ class SLAMAlgorithm:
             for k in sorted(res):
                 file.write('{}: {}\n'.format(k, res[k]))
 
-    def run(self, dataset):
+    def run(self, dataset, env = {}):
         res = {}
 
         self.reset_evaluation()
@@ -85,10 +85,10 @@ class SLAMAlgorithm:
 
         if dataset.use_ground_truth:
             self._run_internal(dataset.camera_file,
-                               dataset.dataset_path, results_path, dataset.ground_truth_assoc)
+                               dataset.dataset_path, results_path, dataset.ground_truth_assoc, env)
         else:
             self._run_internal(dataset.camera_file,
-                               dataset.dataset_path, results_path)
+                               dataset.dataset_path, results_path, env=env)
 
 
         if self.failed:
@@ -162,7 +162,7 @@ class SLAMAlgorithm:
         return results_path + '_log'
 
     def _run_internal(self, camera_calib_path, dataset_path, results_path,
-                      ground_truth_path = ''):
+                      ground_truth_path = '', env = {}):
         """ Generate the run command and run
         """
         stdio_log_path = results_path + '_log'
@@ -175,7 +175,7 @@ class SLAMAlgorithm:
             try:
                 # Doesn't work without shell=True??
                 subprocess.check_call(
-                    ' '.join(cmd), shell=True, stdout=stdio_log, stderr=stdio_log)
+                    ' '.join(cmd), shell=True, stdout=stdio_log, stderr=stdio_log, env=env)
             except Exception:
                 pass
                 #self.failed = True
@@ -186,14 +186,28 @@ class SLAMAlgorithm:
     def _parse_stdio_log(self, results_path):
         stdio_log_path = self._logpath(results_path)
 
+        alloc_timings = []
+        aux_timings = []
         res = {}
 
         with open(stdio_log_path, 'r') as stdio_log:
             lines = stdio_log.readlines()
 
             for line in lines:
-                if line.startswith('{'):
+                if line.startswith('$'):
+                    dat = line.split();
+                    alloc_timings.append((int(dat[2]), float(dat[4])))
+                if line.startswith('%'):
+                    dat = line.split();
+                    aux_timings.append(float(dat[1]))
+                elif line.startswith('{'):
                     res = json.loads(line)
+
+        if alloc_timings != {}:
+            res['alloc_timings'] = alloc_timings
+
+        if aux_timings != {}:
+            res['aux_timings'] = aux_timings
 
         return res
 
@@ -279,6 +293,8 @@ class KinectFusion(SLAMAlgorithm):
         #self.ate_remove_offset = True
         #self.ate_align = True
 
+        self.nsight_cu = ''
+
     def reset_evaluation(self):
         pass
 
@@ -300,7 +316,7 @@ class KinectFusion(SLAMAlgorithm):
         args = []
         args.extend(['--compute-size-ratio', str(self.compute_size_ratio)])
         args.extend(['--fps', str(self.fps)])
-        args.extend(['--block-read', str(self.blocking)])
+        # args.extend(['--block-read', str(self.blocking)])
         args.extend(['--input-file', dataset_path])
         args.extend(['--icp-threshold', str(self.icp_threshold)])
         args.extend(['--log-file', str(results_path)])
@@ -327,12 +343,17 @@ class KinectFusion(SLAMAlgorithm):
         if self.bilateralFilter:
             args.extend(['-F', ''])
 
-        return [self.bin_path + 'supereight-denseslam-' + self.impl + '-main'] + (args)
+        nsight_cu = []
+        if self.nsight_cu != '':
+            nsight_cu.extend([self.nsight_cu])
+            nsight_cu.extend(["-o", str(results_path)])
+
+        return nsight_cu + [self.bin_path + 'supereight-denseslam-' + self.impl + '-main'] + (args)
 
     def _store_variables(self, res):
         res['compute-size-ratio'] = str(self.compute_size_ratio)
         res['fps'] = str(self.fps)
-        res['block-read'] = str(self.blocking)
+        # res['block-read'] = str(self.blocking)
         res['icp-threshold'] = str(self.icp_threshold)
         res['mu'] = str(self.mu)
         res['init-pose'] = str(self.init_pose)
