@@ -34,4 +34,5 @@
 # Directories
 build
 doc
-
+apps/scripts/__pycache__
+apps/scripts/.mypy_cache
