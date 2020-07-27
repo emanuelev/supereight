@@ -45,7 +45,7 @@ required by `denseslam` and `apps`.
 
 # Dependencies
 The following packages are required to build the `denseslam` library:
-* CMake >= 3.10
+* CMake >= 3.18
 * Eigen3 (use latest from https://gitlab.com/libeigen/eigen)
 * Sophus (use latest from https://github.com/strasdat/Sophus)
 * CUDA >= 10.1 (optional, for GPU backend)

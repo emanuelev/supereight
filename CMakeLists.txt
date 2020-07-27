@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.18)
 include(CheckLanguage)
 
 project(supereight)
@@ -9,8 +9,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wno-unknown-pra
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++14 --expt-relaxed-constexpr -Wall -Wextra -Wno-unknown-pragmas -lineinfo")
-set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -gencode arch=compute_61,code=sm_61")
-set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -gencode arch=compute_30,code=sm_30")
 
 find_package(OpenMP)
 
@@ -41,4 +39,3 @@ add_subdirectory(denseslam)
 # message(STATUS "BUILT_LIBS=${BUILT_LIBS}")
 
 add_subdirectory(apps)
-

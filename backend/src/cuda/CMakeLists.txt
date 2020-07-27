@@ -33,6 +33,8 @@ foreach(FIELD_TYPE ${FIELD_TYPES})
     target_compile_definitions(${library_name} PUBLIC SE_CUDA_VF
         SE_BACKEND=cuda SE_FIELD_TYPE=${FIELD_TYPE})
 
+    set_property(TARGET ${library_name} PROPERTY CUDA_ARCHITECTURES 30 61 72)
+
     list(APPEND BUILT_BACKENDS cuda-${FIELD_TYPE_NAME})
 endforeach()
 
